@@ -54,11 +54,15 @@ class MyComponent extends StreamlitComponentBase<State> {
       })
       .then(() => {
         const offer = pc.localDescription
-        console.log("Send sdpOffer", offer)
-        Streamlit.setComponentValue({
-          sdpOfferJson: JSON.stringify(offer),
-          playing: true,
-        })
+        if (offer) {
+          console.log("Send sdpOffer", offer.toJSON())
+          Streamlit.setComponentValue({
+            sdpOffer: offer.toJSON(),
+            playing: true,
+          })
+        } else {
+          console.error("Offer has not been created")
+        }
       })
   }
 

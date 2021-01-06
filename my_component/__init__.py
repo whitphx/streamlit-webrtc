@@ -54,16 +54,14 @@ def my_component(key: str):
 
     if component_value:
         playing = component_value.get("playing", False)
-        sdp_offer_json = component_value.get("sdpOfferJson")
+        sdp_offer = component_value.get("sdpOffer")
 
         if webrtc_worker:
             if not playing:
                 webrtc_worker.stop()
                 unset_webrtc_worker(key)
         else:
-            if sdp_offer_json:
-                sdp_offer = json.loads(sdp_offer_json)
-
+            if sdp_offer:
                 webrtc_worker = WebRtcWorker()
                 webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
                 set_webrtc_worker(key, webrtc_worker)
