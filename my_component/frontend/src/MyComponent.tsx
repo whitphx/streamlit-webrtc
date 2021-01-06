@@ -136,7 +136,13 @@ class MyComponent extends StreamlitComponentBase<State> {
   public render = (): ReactNode => {
     return (
       <div>
-        <video ref={this.videoRef} autoPlay controls />
+        <video
+          ref={this.videoRef}
+          autoPlay
+          controls
+          style={{ width: "100%" }}
+          onCanPlay={() => Streamlit.setFrameHeight()}
+        />
         <audio ref={this.audioRef} autoPlay controls />
         {this.state.playing ? (
           <button onClick={this.stop}>Stop</button>
