@@ -32,6 +32,10 @@ def set_webrtc_worker(key: Hashable, webrtc_worker: WebRtcWorker) -> None:
     session_state.webrtc_workers[key] = webrtc_worker
 
 
+def unset_webrtc_worker(key: Hashable) -> None:
+    del session_state.webrtc_workers[key]
+
+
 def my_component(key: Optional[str] = None):
     webrtc_worker = get_webrtc_worker(key)
 
@@ -55,6 +59,7 @@ def my_component(key: Optional[str] = None):
         if webrtc_worker:
             if not playing:
                 webrtc_worker.stop()
+                unset_webrtc_worker(key)
         else:
             if sdp_offer_json:
                 sdp_offer = json.loads(sdp_offer_json)
