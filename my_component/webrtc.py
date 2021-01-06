@@ -4,28 +4,29 @@ import threading
 import queue
 import logging
 import traceback
+from typing import Callable, Optional
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer
+
+MediaPlayerFactory = Callable[..., MediaPlayer]
 
 
 logger = logging.getLogger(__name__)
 
 
-async def process_offer(pc, offer, callback):
+async def process_offer(
+    pc: RTCPeerConnection,
+    offer: RTCSessionDescription,
+    player_factory: Optional[MediaPlayerFactory],
+    callback: Callable[[], RTCSessionDescription],
+):
     @pc.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
         if pc.iceConnectionState == "failed":
             await pc.close()
 
-    # Open media source
-    # TODO: Be configurable
-    # player = MediaPlayer("./sample-mp4-file.mp4")
-    player = MediaPlayer(
-        "1:none",
-        format="avfoundation",
-        options={"framerate": "30", "video_size": "1280x720"},
-    )
+    player = player_factory()
 
     await pc.setRemoteDescription(offer)
     for t in pc.getTransceivers():
@@ -41,17 +42,21 @@ async def process_offer(pc, offer, callback):
 
 
 class WebRtcWorker:
-    def __init__(self) -> None:
+    def __init__(self, player_factory: Optional[MediaPlayerFactory]) -> None:
         self._thread = None
         self._loop = None
         self.pc = RTCPeerConnection()
         self._answer_queue = queue.Queue()
         self._stop_requested = False
 
-    def _run_webrtc_thread(self, sdp, type_):
+        self.player_factory = player_factory
+
+    def _run_webrtc_thread(
+        self, sdp: str, type_: str, player_factory: Optional[MediaPlayerFactory]
+    ):
         try:
-            self._webrtc_thread(sdp=sdp, type_=type_)
-        except Exception:
+            self._webrtc_thread(sdp=sdp, type_=type_, player_factory=player_factory)
+        except Exception as e:
             logger.error("Error occurred in the WebRTC thread:")
 
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -59,7 +64,11 @@ class WebRtcWorker:
                 for tbline in tb.rstrip().splitlines():
                     logger.error(tbline.rstrip())
 
-    def _webrtc_thread(self, sdp, type_):
+            raise e
+
+    def _webrtc_thread(
+        self, sdp: str, type_: str, player_factory: Optional[MediaPlayerFactory]
+    ):
         loop = asyncio.new_event_loop()
         self._loop = loop
 
@@ -68,7 +77,7 @@ class WebRtcWorker:
         def callback(localDescription):
             self._answer_queue.put(localDescription)
 
-        loop.create_task(process_offer(self.pc, offer, callback))
+        loop.create_task(process_offer(self.pc, offer, player_factory, callback))
 
         try:
             loop.run_forever()
@@ -79,7 +88,9 @@ class WebRtcWorker:
 
     def process_offer(self, sdp, type_, timeout=10.0):
         self._thread = threading.Thread(
-            target=self._run_webrtc_thread, kwargs={"sdp": sdp, "type_": type_}
+            target=self._run_webrtc_thread,
+            kwargs={"sdp": sdp, "type_": type_, "player_factory": self.player_factory},
+            daemon=True,
         )
         self._thread.start()
 

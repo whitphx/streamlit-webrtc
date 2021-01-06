@@ -1,10 +1,11 @@
 import os
 import json
 import logging
-from typing import Dict, Hashable, Union
+from typing import Dict, Hashable, Union, Optional
 import streamlit.components.v1 as components
+from aiortc.contrib.media import MediaPlayer
 
-from webrtc import WebRtcWorker
+from webrtc import WebRtcWorker, MediaPlayerFactory
 import SessionState
 
 
@@ -36,7 +37,7 @@ def unset_webrtc_worker(key: Hashable) -> None:
     del session_state.webrtc_workers[key]
 
 
-def my_component(key: str):
+def my_component(key: str, player_factory: Optional[MediaPlayerFactory]):
     webrtc_worker = get_webrtc_worker(key)
 
     sdp_answer_json = None
@@ -62,7 +63,7 @@ def my_component(key: str):
                 unset_webrtc_worker(key)
         else:
             if sdp_offer:
-                webrtc_worker = WebRtcWorker()
+                webrtc_worker = WebRtcWorker(player_factory=player_factory)
                 webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
                 set_webrtc_worker(key, webrtc_worker)
                 st.experimental_rerun()  # Rerun to send the SDP answer to frontend
@@ -80,4 +81,13 @@ if not _RELEASE:
 
     st.subheader("WebRTC component")
 
-    my_component(key="foo")
+    def create_player():
+        # TODO: Be configurable
+        # return MediaPlayer("./sample-mp4-file.mp4")
+        return MediaPlayer(
+            "1:none",
+            format="avfoundation",
+            options={"framerate": "30", "video_size": "1280x720"},
+        )
+
+    my_component(key="foo", player_factory=create_player)
