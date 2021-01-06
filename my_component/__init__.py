@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import Dict, Hashable, Optional, Union
+from typing import Dict, Hashable, Union
 import streamlit.components.v1 as components
 
 from webrtc import WebRtcWorker
@@ -63,14 +63,11 @@ def my_component(key: str):
         else:
             if sdp_offer_json:
                 sdp_offer = json.loads(sdp_offer_json)
-                st.write("SDP offer:", sdp_offer)
 
                 webrtc_worker = WebRtcWorker()
-                localDescription = webrtc_worker.process_offer(
-                    sdp_offer["sdp"], sdp_offer["type"]
-                )
+                webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
                 set_webrtc_worker(key, webrtc_worker)
-                st.experimental_rerun()
+                st.experimental_rerun()  # Rerun to send the SDP answer to frontend
 
     return component_value
 
