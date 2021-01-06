@@ -36,7 +36,7 @@ def unset_webrtc_worker(key: Hashable) -> None:
     del session_state.webrtc_workers[key]
 
 
-def my_component(key: Optional[str] = None):
+def my_component(key: str):
     webrtc_worker = get_webrtc_worker(key)
 
     sdp_answer_json = None
