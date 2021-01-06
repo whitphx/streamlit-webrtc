@@ -6,6 +6,40 @@ import {
 } from "streamlit-component-lib"
 import React, { ReactNode } from "react"
 
+const setupOffer = (
+  pc: RTCPeerConnection
+): Promise<RTCSessionDescription | null> => {
+  pc.addTransceiver("video", { direction: "recvonly" })
+  pc.addTransceiver("audio", { direction: "recvonly" })
+
+  return pc
+    .createOffer()
+    .then(offer => {
+      console.log("Created offer:", offer)
+      return pc.setLocalDescription(offer)
+    })
+    .then(() => {
+      console.log("Wait for ICE gethering...")
+      // Wait for ICE gathering to complete
+      return new Promise<void>(resolve => {
+        if (pc.iceGatheringState === "complete") {
+          resolve()
+        } else {
+          const checkState = () => {
+            if (pc.iceGatheringState === "complete") {
+              pc.removeEventListener("icegatheringstatechange", checkState)
+              resolve()
+            }
+          }
+          pc.addEventListener("icegatheringstatechange", checkState)
+        }
+      })
+    })
+    .then(() => {
+      return pc.localDescription
+    })
+}
+
 interface State {
   playing: boolean
 }
@@ -105,6 +139,18 @@ class MyComponent extends StreamlitComponentBase<State> {
 
     this.setState({ playing: true })
 
+    setupOffer(pc).then(offer => {
+      if (offer == null) {
+        console.warn("Failed to create an offer SDP")
+        return
+      }
+
+      console.log("Send sdpOffer", offer.toJSON())
+      Streamlit.setComponentValue({
+        sdpOffer: offer.toJSON(),
+        playing: true,
+      })
+    })
     this.sendOffer(pc)
     this.pc = pc
   }
