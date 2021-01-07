@@ -30,6 +30,7 @@ class WebRtcMode(enum.Enum):
 
 
 async def process_offer(
+    mode: WebRtcMode,
     pc: RTCPeerConnection,
     offer: RTCSessionDescription,
     player_factory: Optional[MediaPlayerFactory],
@@ -49,40 +50,58 @@ async def process_offer(
         if pc.iceConnectionState == "failed":
             await pc.close()
 
-    @pc.on("track")
-    def on_track(track):
-        print("Track %s received", track.kind)
+    if mode == WebRtcMode.SENDRECV or mode == WebRtcMode.SENDONLY:
 
-        if track.kind == "audio":
-            if player and player.audio:
-                pc.addTrack(player.audio)
-            recorder.addTrack(track)  # TODO
-        elif track.kind == "video":
-            if player and player.video:
-                pc.addTrack(player.video)
-            else:
-                if video_transformer:
-                    if video_generator:
-                        print(
-                            "Both video_transformer and video_generator are provided. video_transformer is used."
+        @pc.on("track")
+        def on_track(track):
+            print("Track %s received", track.kind)
+
+            if track.kind == "audio":
+                if player and player.audio:
+                    pc.addTrack(player.audio)
+                recorder.addTrack(track)  # TODO
+            elif track.kind == "video":
+                if player and player.video:
+                    print("Add player to video track")
+                    pc.addTrack(player.video)
+                else:
+                    if video_transformer:
+                        if video_generator:
+                            print(
+                                "Both video_transformer and video_generator are provided. video_transformer is used."
+                            )
+                        local_video = VideoTransformTrack(
+                            track=track, video_transformer=video_transformer
                         )
-                    local_video = VideoTransformTrack(
-                        track=track, video_transformer=video_transformer
-                    )
-                    pc.addTrack(local_video)
-                elif video_generator:
-                    local_video = VideoImageTrack(
-                        track=track, video_generator=video_generator
-                    )
-                    pc.addTrack(local_video)
+                        pc.addTrack(local_video)
+                    elif video_generator:
+                        local_video = VideoImageTrack(
+                            track=track, video_generator=video_generator
+                        )
+                        pc.addTrack(local_video)
 
-        @track.on("ended")
-        async def on_ended():
-            print("Track %s ended", track.kind)
-            await recorder.stop()
+            @track.on("ended")
+            async def on_ended():
+                print("Track %s ended", track.kind)
+                await recorder.stop()
 
     await pc.setRemoteDescription(offer)
-    await recorder.start()
+    if mode == WebRtcMode.RECVONLY:
+        for t in pc.getTransceivers():
+            if t.kind == "audio":
+                if player and player.audio:
+                    pc.addTrack(player.audio)
+            elif t.kind == "video":
+                if player and player.video:
+                    pc.addTrack(player.video)
+                elif video_generator:
+                    print("Not supported yet")  # TODO
+                    # local_video = VideoImageTrack(
+                    #     track=track, video_generator=video_generator
+                    # )
+                    # pc.addTrack(local_video)
+
+    await recorder.start()  # TODO
 
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
@@ -167,6 +186,7 @@ class WebRtcWorker:
 
         loop.create_task(
             process_offer(
+                self.mode,
                 self.pc,
                 offer,
                 player_factory,

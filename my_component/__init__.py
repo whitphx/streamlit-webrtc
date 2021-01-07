@@ -115,7 +115,12 @@ if not _RELEASE:
     )
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
-        [loopback_page, transform_page, generate_page, serverside_play_page],
+        [
+            loopback_page,
+            transform_page,
+            generate_page,
+            serverside_play_page,
+        ],
     )
     if app_mode == loopback_page:
         mode = WebRtcMode.SENDRECV
@@ -146,7 +151,7 @@ if not _RELEASE:
         video_generator_class = RotationImageVideoGenerator
 
     elif app_mode == serverside_play_page:
-        # mode = WebRtcMode.RECVONLY  # TODO: It should be RECVONLY
+        mode = WebRtcMode.RECVONLY
 
         def create_player():
             # TODO: Be configurable
