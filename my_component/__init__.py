@@ -129,7 +129,7 @@ if not _RELEASE:
                 )
 
         video_transformer_class = VideoEdgeTransformer
-    elif generate_page:
+    elif app_mode == generate_page:
         # mode = WebRtcMode.RECVONLY  # TODO: It should be RECVONLY
 
         class RotationImageVideoGenerator(VideoGeneratorBase):
