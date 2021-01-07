@@ -100,43 +100,70 @@ if not _RELEASE:
 
     logging.basicConfig()
 
-    st.subheader("WebRTC component")
+    st.header("WebRTC component")
 
-    # def create_player():
-    #     # TODO: Be configurable
-    #     return MediaPlayer("./sample-mp4-file.mp4")
-    #     # return MediaPlayer("./demo-instruct.wav")
-    #     # return MediaPlayer(
-    #     #     "1:none",
-    #     #     format="avfoundation",
-    #     #     options={"framerate": "30", "video_size": "1280x720"},
-    #     # )
-    create_player = None
+    mode = WebRtcMode.SENDRECV
+    player_factory = None
+    video_transformer_class = None
+    video_generator_class = None
 
-    class VideoEdgeTransformer(VideoTransformerBase):
-        def transform(self, frame_bgr24: np.ndarray) -> np.ndarray:
-            return cv2.cvtColor(cv2.Canny(frame_bgr24, 100, 200), cv2.COLOR_GRAY2BGR)
+    loopback_page = "Loopback (sendrecv)"
+    transform_page = "Transform video stream (sendrecv)"
+    generate_page = "Generate video stream (recvonly)"
+    serverside_play_page = (
+        "Consume a video on server-side and play it on client-side (recvonly)"
+    )
+    app_mode = st.sidebar.selectbox(
+        "Choose the app mode",
+        [loopback_page, transform_page, generate_page, serverside_play_page],
+    )
+    if app_mode == loopback_page:
+        mode = WebRtcMode.SENDRECV
+    elif app_mode == transform_page:
+        mode = WebRtcMode.SENDRECV
 
-    class RotationImageVideoGenerator(VideoGeneratorBase):
-        def __init__(self) -> None:
-            self.img = cv2.imread("./photo.jpg", cv2.IMREAD_COLOR)
+        class VideoEdgeTransformer(VideoTransformerBase):
+            def transform(self, frame_bgr24: np.ndarray) -> np.ndarray:
+                return cv2.cvtColor(
+                    cv2.Canny(frame_bgr24, 100, 200), cv2.COLOR_GRAY2BGR
+                )
 
-        def generate(self, pts: int, time_base: fractions.Fraction) -> np.ndarray:
-            rows, cols, _ = self.img.shape
-            M = cv2.getRotationMatrix2D(
-                (cols / 2, rows / 2), int(pts * time_base * 45), 1
-            )
-            return cv2.warpAffine(self.img, M, (cols, rows))
+        video_transformer_class = VideoEdgeTransformer
+    elif generate_page:
+        # mode = WebRtcMode.RECVONLY  # TODO: It should be RECVONLY
+
+        class RotationImageVideoGenerator(VideoGeneratorBase):
+            def __init__(self) -> None:
+                self.img = cv2.imread("./photo.jpg", cv2.IMREAD_COLOR)
+
+            def generate(self, pts: int, time_base: fractions.Fraction) -> np.ndarray:
+                rows, cols, _ = self.img.shape
+                M = cv2.getRotationMatrix2D(
+                    (cols / 2, rows / 2), int(pts * time_base * 45), 1
+                )
+                return cv2.warpAffine(self.img, M, (cols, rows))
+
+        video_generator_class = RotationImageVideoGenerator
+
+    elif app_mode == serverside_play_page:
+        # mode = WebRtcMode.RECVONLY  # TODO: It should be RECVONLY
+
+        def create_player():
+            # TODO: Be configurable
+            return MediaPlayer("./sample-mp4-file.mp4")
+            # return MediaPlayer("./demo-instruct.wav")
+            # return MediaPlayer(
+            #     "1:none",
+            #     format="avfoundation",
+            #     options={"framerate": "30", "video_size": "1280x720"},
+            # )
+
+        player_factory = create_player
 
     my_component(
-        key="foo",
-        player_factory=create_player,
-        mode=WebRtcMode.SENDRECV,
-        video_transformer_class=VideoEdgeTransformer,
+        key=app_mode,
+        player_factory=player_factory,
+        mode=mode,
+        video_transformer_class=video_transformer_class,
+        video_generator_class=video_generator_class,
     )
-    # my_component(
-    #     key="foo",
-    #     player_factory=create_player,
-    #     mode=WebRtcMode.SENDRECV,
-    #     video_generator_class=RotationImageVideoGenerator,
-    # )
