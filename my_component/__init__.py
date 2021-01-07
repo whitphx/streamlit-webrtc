@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 import logging
@@ -5,7 +6,7 @@ from typing import Dict, Hashable, Union, Optional
 import streamlit.components.v1 as components
 from aiortc.contrib.media import MediaPlayer
 
-from webrtc import WebRtcWorker, MediaPlayerFactory
+from webrtc import WebRtcWorker, MediaPlayerFactory, WebRtcMode
 import SessionState
 
 
@@ -37,7 +38,7 @@ def unset_webrtc_worker(key: Hashable) -> None:
     del session_state.webrtc_workers[key]
 
 
-def my_component(key: str, player_factory: Optional[MediaPlayerFactory]):
+def my_component(key: str, mode: WebRtcMode = WebRtcMode.SENDRECV, player_factory: Optional[MediaPlayerFactory] = None):
     webrtc_worker = get_webrtc_worker(key)
 
     sdp_answer_json = None
@@ -50,7 +51,7 @@ def my_component(key: str, player_factory: Optional[MediaPlayerFactory]):
         )
 
     component_value: Union[Dict, None] = _component_func(
-        key=key, sdp_answer_json=sdp_answer_json
+        key=key, sdp_answer_json=sdp_answer_json, mode=mode.name
     )
 
     if component_value:
@@ -81,13 +82,15 @@ if not _RELEASE:
 
     st.subheader("WebRTC component")
 
-    def create_player():
-        # TODO: Be configurable
-        # return MediaPlayer("./sample-mp4-file.mp4")
-        return MediaPlayer(
-            "1:none",
-            format="avfoundation",
-            options={"framerate": "30", "video_size": "1280x720"},
-        )
+    # def create_player():
+    #     # TODO: Be configurable
+    #     return MediaPlayer("./sample-mp4-file.mp4")
+    #     # return MediaPlayer("./demo-instruct.wav")
+    #     # return MediaPlayer(
+    #     #     "1:none",
+    #     #     format="avfoundation",
+    #     #     options={"framerate": "30", "video_size": "1280x720"},
+    #     # )
+    create_player = None
 
-    my_component(key="foo", player_factory=create_player)
+    my_component(key="foo", player_factory=create_player, mode=WebRtcMode.SENDRECV)

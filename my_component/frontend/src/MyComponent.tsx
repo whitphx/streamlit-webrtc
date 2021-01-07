@@ -6,11 +6,18 @@ import {
 } from "streamlit-component-lib"
 import React, { ReactNode } from "react"
 
+type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV"
+const isWebRtcMode = (val: unknown): val is WebRtcMode =>
+  val === "RECVONLY" || val === "SENDONLY" || val == "SENDRECV"
+
 const setupOffer = (
-  pc: RTCPeerConnection
+  pc: RTCPeerConnection,
+  mode: WebRtcMode
 ): Promise<RTCSessionDescription | null> => {
-  pc.addTransceiver("video", { direction: "recvonly" })
-  pc.addTransceiver("audio", { direction: "recvonly" })
+  if (mode === "RECVONLY") {
+    pc.addTransceiver("video", { direction: "recvonly" })
+    pc.addTransceiver("audio", { direction: "recvonly" })
+  }
 
   return pc
     .createOffer()
@@ -36,7 +43,12 @@ const setupOffer = (
       })
     })
     .then(() => {
-      return pc.localDescription
+      const offer = pc.localDescription
+      return offer
+    })
+    .catch(err => {
+      console.error(err)
+      throw err
     })
 }
 
@@ -59,47 +71,6 @@ class MyComponent extends StreamlitComponentBase<State> {
     }
   }
 
-  private sendOffer = (pc: RTCPeerConnection): Promise<void> => {
-    pc.addTransceiver("video", { direction: "recvonly" })
-    pc.addTransceiver("audio", { direction: "recvonly" })
-
-    return pc
-      .createOffer()
-      .then(offer => {
-        console.log("Created offer:", offer)
-        return pc.setLocalDescription(offer)
-      })
-      .then(() => {
-        console.log("Wait for ICE gethering...")
-        // Wait for ICE gathering to complete
-        return new Promise<void>(resolve => {
-          if (pc.iceGatheringState === "complete") {
-            resolve()
-          } else {
-            const checkState = () => {
-              if (pc.iceGatheringState === "complete") {
-                pc.removeEventListener("icegatheringstatechange", checkState)
-                resolve()
-              }
-            }
-            pc.addEventListener("icegatheringstatechange", checkState)
-          }
-        })
-      })
-      .then(() => {
-        const offer = pc.localDescription
-        if (offer) {
-          console.log("Send sdpOffer", offer.toJSON())
-          Streamlit.setComponentValue({
-            sdpOffer: offer.toJSON(),
-            playing: true,
-          })
-        } else {
-          console.error("Offer has not been created")
-        }
-      })
-  }
-
   private processAnswer = (
     pc: RTCPeerConnection,
     sdpAnswerJson: string
@@ -109,7 +80,12 @@ class MyComponent extends StreamlitComponentBase<State> {
     return pc.setRemoteDescription(sdpAnswer)
   }
 
-  private start = () => {
+  private start = async () => {
+    const mode = this.props.args["mode"]
+    if (!isWebRtcMode(mode)) {
+      throw new Error(`Invalid mode ${mode}`)
+    }
+
     const config: RTCConfiguration = {
       // TODO
       iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
@@ -137,9 +113,24 @@ class MyComponent extends StreamlitComponentBase<State> {
       }
     })
 
+    if (mode === "SENDRECV" || mode === "SENDONLY") {
+      const constraints: MediaStreamConstraints = {
+        // TODO: Be configurable
+        audio: true,
+        video: true,
+      }
+
+      if (constraints.audio || constraints.video) {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints)
+        stream.getTracks().forEach(track => {
+          pc.addTrack(track, stream)
+        })
+      }
+    }
+
     this.setState({ playing: true })
 
-    setupOffer(pc).then(offer => {
+    setupOffer(pc, mode).then(offer => {
       if (offer == null) {
         console.warn("Failed to create an offer SDP")
         return
@@ -151,7 +142,6 @@ class MyComponent extends StreamlitComponentBase<State> {
         playing: true,
       })
     })
-    this.sendOffer(pc)
     this.pc = pc
   }
 
@@ -162,9 +152,27 @@ class MyComponent extends StreamlitComponentBase<State> {
       Streamlit.setComponentValue({ playing: false })
     )
 
+    if (pc == null) {
+      return
+    }
+
+    // close transceivers
+    if (pc.getTransceivers) {
+      pc.getTransceivers().forEach(function(transceiver) {
+        if (transceiver.stop) {
+          transceiver.stop()
+        }
+      })
+    }
+
+    // close local audio / video
+    pc.getSenders().forEach(function(sender) {
+      sender.track?.stop()
+    })
+
     // close peer connection
     setTimeout(() => {
-      pc?.close()
+      pc.close()
     }, 500)
   }
 
