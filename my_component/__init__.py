@@ -6,7 +6,13 @@ from typing import Dict, Hashable, Union, Optional
 import streamlit.components.v1 as components
 from aiortc.contrib.media import MediaPlayer
 
-from webrtc import WebRtcWorker, MediaPlayerFactory, WebRtcMode, VideoTransformerBase, VideoGeneratorBase
+from webrtc import (
+    WebRtcWorker,
+    MediaPlayerFactory,
+    WebRtcMode,
+    VideoTransformerBase,
+    VideoGeneratorBase,
+)
 import SessionState
 
 
@@ -38,7 +44,13 @@ def unset_webrtc_worker(key: Hashable) -> None:
     del session_state.webrtc_workers[key]
 
 
-def my_component(key: str, mode: WebRtcMode = WebRtcMode.SENDRECV, player_factory: Optional[MediaPlayerFactory] = None, video_transformer_class: Optional[VideoTransformerBase] = None, video_generator_class: Optional[VideoGeneratorBase] = None):
+def my_component(
+    key: str,
+    mode: WebRtcMode = WebRtcMode.SENDRECV,
+    player_factory: Optional[MediaPlayerFactory] = None,
+    video_transformer_class: Optional[VideoTransformerBase] = None,
+    video_generator_class: Optional[VideoGeneratorBase] = None,
+):
     webrtc_worker = get_webrtc_worker(key)
 
     sdp_answer_json = None
@@ -64,7 +76,12 @@ def my_component(key: str, mode: WebRtcMode = WebRtcMode.SENDRECV, player_factor
                 unset_webrtc_worker(key)
         else:
             if sdp_offer:
-                webrtc_worker = WebRtcWorker(mode=mode, player_factory=player_factory, video_transformer_class=video_transformer_class, video_generator_class=video_generator_class)
+                webrtc_worker = WebRtcWorker(
+                    mode=mode,
+                    player_factory=player_factory,
+                    video_transformer_class=video_transformer_class,
+                    video_generator_class=video_generator_class,
+                )
                 webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
                 set_webrtc_worker(key, webrtc_worker)
                 st.experimental_rerun()  # Rerun to send the SDP answer to frontend
@@ -102,13 +119,24 @@ if not _RELEASE:
 
     class RotationImageVideoGenerator(VideoGeneratorBase):
         def __init__(self) -> None:
-            self.img = cv2.imread('./photo.jpg', cv2.IMREAD_COLOR)
+            self.img = cv2.imread("./photo.jpg", cv2.IMREAD_COLOR)
 
         def generate(self, pts: int, time_base: fractions.Fraction) -> np.ndarray:
             rows, cols, _ = self.img.shape
-            M = cv2.getRotationMatrix2D((cols / 2, rows / 2), int(pts * time_base * 45), 1)
+            M = cv2.getRotationMatrix2D(
+                (cols / 2, rows / 2), int(pts * time_base * 45), 1
+            )
             return cv2.warpAffine(self.img, M, (cols, rows))
 
-
-    my_component(key="foo", player_factory=create_player, mode=WebRtcMode.SENDRECV, video_transformer_class=VideoEdgeTransformer)
-    # my_component(key="foo", player_factory=create_player, mode=WebRtcMode.SENDRECV, video_generator_class=RotationImageVideoGenerator)
+    my_component(
+        key="foo",
+        player_factory=create_player,
+        mode=WebRtcMode.SENDRECV,
+        video_transformer_class=VideoEdgeTransformer,
+    )
+    # my_component(
+    #     key="foo",
+    #     player_factory=create_player,
+    #     mode=WebRtcMode.SENDRECV,
+    #     video_generator_class=RotationImageVideoGenerator,
+    # )
