@@ -1,4 +1,5 @@
 import asyncio
+import enum
 import os
 import json
 import logging
@@ -92,7 +93,7 @@ def my_component(
 if not _RELEASE:
     import streamlit as st
     import cv2
-    import numpy as np
+    from av import VideoFrame
 
     logging.basicConfig()
 
@@ -119,11 +120,61 @@ if not _RELEASE:
         )
     elif app_mode == transform_page:
 
+        class TransformType(enum.Enum):
+            NOOP = enum.auto()
+            CARTOON = enum.auto()
+            EDGES = enum.auto()
+            ROTATE = enum.auto()
+
         class VideoEdgeTransformer(VideoTransformerBase):
-            def transform(self, frame_bgr24: np.ndarray) -> np.ndarray:
-                return cv2.cvtColor(
-                    cv2.Canny(frame_bgr24, 100, 200), cv2.COLOR_GRAY2BGR
-                )
+            type: TransformType
+
+            def __init__(self) -> None:
+                self.type = TransformType.EDGE
+
+            def transform(self, frame: VideoFrame) -> VideoFrame:
+                if self.type == TransformType.NOOP:
+                    return frame
+
+                img = frame.to_ndarray(format="bgr24")
+
+                if self.type == TransformType.CARTOON:
+                    # prepare color
+                    img_color = cv2.pyrDown(cv2.pyrDown(img))
+                    for _ in range(6):
+                        img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
+                    img_color = cv2.pyrUp(cv2.pyrUp(img_color))
+
+                    # prepare edges
+                    img_edges = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+                    img_edges = cv2.adaptiveThreshold(
+                        cv2.medianBlur(img_edges, 7),
+                        255,
+                        cv2.ADAPTIVE_THRESH_MEAN_C,
+                        cv2.THRESH_BINARY,
+                        9,
+                        2,
+                    )
+                    img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
+
+                    # combine color and edges
+                    img = cv2.bitwise_and(img_color, img_edges)
+                elif self.type == TransformType.EDGES:
+                    # perform edge detection
+                    img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
+                elif self.type == TransformType.ROTATE:
+                    # rotate image
+                    rows, cols, _ = img.shape
+                    M = cv2.getRotationMatrix2D(
+                        (cols / 2, rows / 2), frame.time * 45, 1
+                    )
+                    img = cv2.warpAffine(img, M, (cols, rows))
+
+                # rebuild a VideoFrame, preserving timing information
+                new_frame = VideoFrame.from_ndarray(img, format="bgr24")
+                new_frame.pts = frame.pts
+                new_frame.time_base = frame.time_base
+                return new_frame
 
         my_component(
             key=app_mode,
