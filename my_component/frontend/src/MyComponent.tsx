@@ -53,7 +53,9 @@ const setupOffer = (
 }
 
 interface State {
+  signaling: boolean
   playing: boolean
+  stopping: boolean
 }
 
 class MyComponent extends StreamlitComponentBase<State> {
@@ -67,24 +69,39 @@ class MyComponent extends StreamlitComponentBase<State> {
     this.audioRef = React.createRef()
 
     this.state = {
+      signaling: false,
       playing: false,
+      stopping: false,
     }
   }
 
-  private processAnswer = (
+  private processAnswerInner = async (
     pc: RTCPeerConnection,
     sdpAnswerJson: string
   ): Promise<void> => {
     const sdpAnswer = JSON.parse(sdpAnswerJson)
     console.log("Receive answer sdpOffer", sdpAnswer)
-    return pc.setRemoteDescription(sdpAnswer)
+    await pc.setRemoteDescription(sdpAnswer)
   }
 
-  private start = async () => {
+  private processAnswer = (
+    pc: RTCPeerConnection,
+    sdpAnswerJson: string
+  ): void => {
+    this.processAnswerInner(pc, sdpAnswerJson)
+      .then(() => {
+        console.log("Remote description is set")
+      })
+      .finally(() => this.setState({ signaling: false }))
+  }
+
+  private startInner = async () => {
     const mode = this.props.args["mode"]
     if (!isWebRtcMode(mode)) {
       throw new Error(`Invalid mode ${mode}`)
     }
+
+    this.setState({ signaling: true })
 
     const config: RTCConfiguration =
       this.props.args.settings?.rtc_configuration || {}
@@ -146,7 +163,11 @@ class MyComponent extends StreamlitComponentBase<State> {
     this.pc = pc
   }
 
-  private stop = () => {
+  private start = (): void => {
+    this.startInner().catch(() => this.setState({ signaling: false }))
+  }
+
+  private stopInner = async (): Promise<void> => {
     const pc = this.pc
     this.pc = undefined
     this.setState({ playing: false }, () =>
@@ -154,7 +175,7 @@ class MyComponent extends StreamlitComponentBase<State> {
     )
 
     if (pc == null) {
-      return
+      return Promise.resolve()
     }
 
     // close transceivers
@@ -172,9 +193,19 @@ class MyComponent extends StreamlitComponentBase<State> {
     })
 
     // close peer connection
-    setTimeout(() => {
-      pc.close()
-    }, 500)
+    return new Promise(resolve => {
+      setTimeout(() => {
+        pc.close()
+        resolve()
+      }, 500)
+    })
+  }
+
+  private stop = () => {
+    this.setState({ stopping: true })
+    this.stopInner().finally(() => {
+      this.setState({ stopping: false })
+    })
   }
 
   public componentDidUpdate() {
@@ -185,14 +216,15 @@ class MyComponent extends StreamlitComponentBase<State> {
     if (pc.remoteDescription == null) {
       const sdpAnswerJson = this.props.args["sdp_answer_json"]
       if (sdpAnswerJson) {
-        this.processAnswer(pc, sdpAnswerJson).then(() => {
-          console.log("Remote description is set")
-        })
+        this.processAnswer(pc, sdpAnswerJson)
       }
     }
   }
 
   public render = (): ReactNode => {
+    const buttonDisabled =
+      this.props.disabled || this.state.signaling || this.state.stopping
+
     return (
       <div>
         <video
@@ -204,11 +236,11 @@ class MyComponent extends StreamlitComponentBase<State> {
         />
         <audio ref={this.audioRef} autoPlay controls />
         {this.state.playing ? (
-          <button onClick={this.stop} disabled={this.props.disabled}>
+          <button onClick={this.stop} disabled={buttonDisabled}>
             Stop
           </button>
         ) : (
-          <button onClick={this.start} disabled={this.props.disabled}>
+          <button onClick={this.start} disabled={buttonDisabled}>
             Start
           </button>
         )}
