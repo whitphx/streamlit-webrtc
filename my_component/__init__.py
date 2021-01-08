@@ -138,12 +138,11 @@ if not _RELEASE:
                 self.type = "noop"
 
             def transform(self, frame: VideoFrame) -> VideoFrame:
-                if self.type == "noop":
-                    return frame
-
                 img = frame.to_ndarray(format="bgr24")
 
-                if self.type == "cartoon":
+                if self.type == "noop":
+                    pass
+                elif self.type == "cartoon":
                     # prepare color
                     img_color = cv2.pyrDown(cv2.pyrDown(img))
                     for _ in range(6):
@@ -177,11 +176,7 @@ if not _RELEASE:
                     )
                     img = cv2.warpAffine(img, M, (cols, rows))
 
-                # rebuild a VideoFrame, preserving timing information
-                new_frame = VideoFrame.from_ndarray(img, format="bgr24")
-                new_frame.pts = frame.pts
-                new_frame.time_base = frame.time_base
-                return new_frame
+                return img
 
         webrtc_ctx = my_component(
             key=app_mode,

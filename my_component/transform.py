@@ -17,13 +17,13 @@ logger = logging.getLogger(__name__)
 
 class VideoTransformerBase(abc.ABC):
     @abc.abstractmethod
-    def transform(self, frame: VideoFrame) -> VideoFrame:
-        """ Returns a new VideoFrame """
+    def transform(self, frame: VideoFrame) -> np.ndarray:
+        """ Returns a new video frame in bgr24 format """
 
 
 class NoOpVideoTransformer(VideoTransformerBase):
-    def transform(self, frame: VideoFrame) -> VideoFrame:
-        return frame
+    def transform(self, frame: VideoFrame) -> np.ndarray:
+        return frame.to_ndarray(format="bgr24")
 
 
 class VideoTransformTrack(MediaStreamTrack):
@@ -38,7 +38,14 @@ class VideoTransformTrack(MediaStreamTrack):
 
     async def recv(self):
         frame = await self.track.recv()
-        return self.transformer.transform(frame)
+
+        img = self.transformer.transform(frame)
+
+        # rebuild a VideoFrame, preserving timing information
+        new_frame = VideoFrame.from_ndarray(img, format="bgr24")
+        new_frame.pts = frame.pts
+        new_frame.time_base = frame.time_base
+        return new_frame
 
 
 __SENTINEL__ = "__SENTINEL__"
@@ -96,12 +103,10 @@ class AsyncVideoTransformTrack(MediaStreamTrack):
             if item is None:
                 raise Exception("A queued item is unexpectedly None")
 
-            output = self.transformer.transform(item)
+            result_img = self.transformer.transform(item)
 
             with self._latest_result_img_lock:
-                self._latest_result_img = output.to_ndarray(
-                    format="bgr24"
-                )  # TODO: Rethink VideoTransformer interface to return image array
+                self._latest_result_img = result_img
 
     def stop(self):
         self._in_queue.put(__SENTINEL__)
