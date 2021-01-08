@@ -58,7 +58,7 @@ interface State {
   stopping: boolean;
 }
 
-class MyComponent extends StreamlitComponentBase<State> {
+class WebRtcStreamer extends StreamlitComponentBase<State> {
   private pc: RTCPeerConnection | undefined;
   private videoRef: React.RefObject<HTMLVideoElement>;
   private audioRef: React.RefObject<HTMLAudioElement>;
@@ -255,4 +255,4 @@ class MyComponent extends StreamlitComponentBase<State> {
 // passing arguments from Python -> Component.
 //
 // You don't need to edit withStreamlitConnection (but you're welcome to!).
-export default withStreamlitConnection(MyComponent);
+export default withStreamlitConnection(WebRtcStreamer);

@@ -1,10 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import MyComponent from "./MyComponent";
+import WebRtcStreamer from "./WebRtcStreamer";
 
 ReactDOM.render(
   <React.StrictMode>
-    <MyComponent />
+    <WebRtcStreamer />
   </React.StrictMode>,
   document.getElementById("root")
 );
