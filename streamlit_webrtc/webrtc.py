@@ -1,11 +1,12 @@
 import asyncio
+from asyncio.events import AbstractEventLoop
 import enum
 import sys
 import threading
 import queue
 import logging
 import traceback
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer
@@ -38,7 +39,7 @@ async def process_offer(
     player_factory: Optional[MediaPlayerFactory],
     video_transformer: Optional[VideoTransformerBase],
     async_transform: bool,
-    callback: Callable[[], RTCSessionDescription],
+    callback: Callable[[RTCSessionDescription], None],
 ):
     player = None
     if player_factory:
@@ -101,6 +102,8 @@ async def process_offer(
 
 
 class WebRtcWorker:
+    _loop: Union[AbstractEventLoop, None]
+    _answer_queue: queue.Queue
     _video_transformer: Optional[VideoTransformerBase]
 
     @property

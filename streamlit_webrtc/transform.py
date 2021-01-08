@@ -54,6 +54,8 @@ __SENTINEL__ = "__SENTINEL__"
 class AsyncVideoTransformTrack(MediaStreamTrack):
     kind = "video"
 
+    _in_queue: queue.Queue
+
     def __init__(
         self,
         track: MediaStreamTrack,
