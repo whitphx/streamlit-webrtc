@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 from typing import Literal
 
 import cv2
@@ -8,6 +9,13 @@ from aiortc.contrib.media import MediaPlayer
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, ClientSettings, VideoTransformerBase
 
 logging.basicConfig(level=logging.DEBUG)
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+logging.getLogger("streamlit_webrtc").addHandler(ch)
 
 st.header("WebRTC component")
 
