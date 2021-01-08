@@ -105,7 +105,7 @@ if not _RELEASE:
     import cv2
     from av import VideoFrame
 
-    logging.basicConfig()
+    logging.basicConfig(level=logging.DEBUG)
 
     st.header("WebRTC component")
 
