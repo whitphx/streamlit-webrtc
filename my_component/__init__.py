@@ -51,6 +51,7 @@ def my_component(
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     player_factory: Optional[MediaPlayerFactory] = None,
     video_transformer_class: Optional[VideoTransformerBase] = None,
+    async_transform: bool = True,
 ) -> WebRtcWorkerContext:
     webrtc_worker = get_webrtc_worker(key)
 
@@ -81,6 +82,7 @@ def my_component(
                     mode=mode,
                     player_factory=player_factory,
                     video_transformer_class=video_transformer_class,
+                    async_transform=async_transform,
                 )
                 webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
                 set_webrtc_worker(key, webrtc_worker)
@@ -97,6 +99,7 @@ def my_component(
 # During development, we can run this just as we would any other Streamlit
 # app: `$ streamlit run my_component/__init__.py`
 if not _RELEASE:
+    import time
     import streamlit as st
     import cv2
     from av import VideoFrame
@@ -157,6 +160,8 @@ if not _RELEASE:
                     )
                     img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
 
+                    time.sleep(1)
+
                     # combine color and edges
                     img = cv2.bitwise_and(img_color, img_edges)
                 elif self.type == "edges":
@@ -180,6 +185,7 @@ if not _RELEASE:
             key=app_mode,
             mode=WebRtcMode.SENDRECV,
             video_transformer_class=VideoEdgeTransformer,
+            async_transform=True,
         )
 
         transform_type = st.radio(

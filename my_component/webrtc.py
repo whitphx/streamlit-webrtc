@@ -10,7 +10,12 @@ from typing import Callable, Optional
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer
 
-from transform import VideoTransformerBase, NoOpVideoTransformer, VideoTransformTrack
+from transform import (
+    VideoTransformerBase,
+    NoOpVideoTransformer,
+    VideoTransformTrack,
+    AsyncVideoTransformTrack,
+)
 
 
 VideoTransformFn = Callable
@@ -33,6 +38,7 @@ async def process_offer(
     offer: RTCSessionDescription,
     player_factory: Optional[MediaPlayerFactory],
     video_transformer: Optional[VideoTransformerBase],
+    async_transform: bool,
     callback: Callable[[], RTCSessionDescription],
 ):
     player = None
@@ -62,7 +68,12 @@ async def process_offer(
                     print("Add player to video track")
                     pc.addTrack(player.video)
                 elif video_transformer:
-                    local_video = VideoTransformTrack(
+                    VideoTrack = (
+                        AsyncVideoTransformTrack
+                        if async_transform
+                        else VideoTransformTrack
+                    )
+                    local_video = VideoTrack(
                         track=track, video_transformer=video_transformer
                     )
                     pc.addTrack(local_video)
@@ -102,6 +113,7 @@ class WebRtcWorker:
         mode: WebRtcMode,
         player_factory: Optional[MediaPlayerFactory] = None,
         video_transformer_class: Optional[VideoTransformerBase] = None,
+        async_transform: bool = True,
     ) -> None:
         self._thread = None
         self._loop = None
@@ -112,6 +124,7 @@ class WebRtcWorker:
         self.mode = mode
         self.player_factory = player_factory
         self.video_transformer_class = video_transformer_class
+        self.async_transform = async_transform
 
         self._video_transformer = None
 
@@ -121,6 +134,7 @@ class WebRtcWorker:
         type_: str,
         player_factory: Optional[MediaPlayerFactory],
         video_transformer_class: Optional[VideoTransformerBase],
+        async_transform: bool,
     ):
         try:
             self._webrtc_thread(
@@ -128,6 +142,7 @@ class WebRtcWorker:
                 type_=type_,
                 player_factory=player_factory,
                 video_transformer_class=video_transformer_class,
+                async_transform=async_transform,
             )
         except Exception as e:
             logger.error("Error occurred in the WebRTC thread:")
@@ -146,6 +161,7 @@ class WebRtcWorker:
         type_: str,
         player_factory: Optional[MediaPlayerFactory],
         video_transformer_class: Optional[VideoTransformerBase],
+        async_transform: bool,
     ):
         print(
             "Start webrtc_thread with",
@@ -180,6 +196,7 @@ class WebRtcWorker:
                 offer,
                 player_factory,
                 video_transformer=video_transformer,
+                async_transform=async_transform,
                 callback=callback,
             )
         )
@@ -199,6 +216,7 @@ class WebRtcWorker:
                 "type_": type_,
                 "player_factory": self.player_factory,
                 "video_transformer_class": self.video_transformer_class,
+                "async_transform": self.async_transform,
             },
             daemon=True,
         )
