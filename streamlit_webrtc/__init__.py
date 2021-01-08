@@ -21,13 +21,14 @@ _RELEASE = False
 
 if not _RELEASE:
     _component_func = components.declare_component(
-        "my_component",
+        "webrtc_streamer",
         url="http://localhost:3001",
     )
 else:
     parent_dir = os.path.dirname(os.path.abspath(__file__))
     build_dir = os.path.join(parent_dir, "frontend/build")
-    _component_func = components.declare_component("my_component", path=build_dir)
+    _component_func = components.declare_component(
+        "webrtc_streamer", path=build_dir)
 
 
 session_state = SessionState.get(webrtc_workers={})
@@ -54,7 +55,7 @@ class WebRtcWorkerContext(NamedTuple):
     video_transformer: Optional[VideoTransformerBase]
 
 
-def my_component(
+def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     client_settings: Optional[ClientSettings] = None,
@@ -96,7 +97,8 @@ def my_component(
                     video_transformer_class=video_transformer_class,
                     async_transform=async_transform,
                 )
-                webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
+                webrtc_worker.process_offer(
+                    sdp_offer["sdp"], sdp_offer["type"])
                 set_webrtc_worker(key, webrtc_worker)
                 st.experimental_rerun()  # Rerun to send the SDP answer to frontend
 
@@ -109,7 +111,7 @@ def my_component(
 
 # Add some test code to play with the component while it's in development.
 # During development, we can run this just as we would any other Streamlit
-# app: `$ streamlit run my_component/__init__.py`
+# app: `$ streamlit run webrtc_streamer/__init__.py`
 if not _RELEASE:
     import streamlit as st
     import cv2
@@ -142,7 +144,7 @@ if not _RELEASE:
         ],
     )
     if app_mode == loopback_page:
-        my_component(
+        webrtc_streamer(
             key=app_mode,
             mode=WebRtcMode.SENDRECV,
             client_settings=client_settings,
@@ -184,7 +186,8 @@ if not _RELEASE:
                     img = cv2.bitwise_and(img_color, img_edges)
                 elif self.type == "edges":
                     # perform edge detection
-                    img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
+                    img = cv2.cvtColor(
+                        cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
                 elif self.type == "rotate":
                     # rotate image
                     rows, cols, _ = img.shape
@@ -195,7 +198,7 @@ if not _RELEASE:
 
                 return img
 
-        webrtc_ctx = my_component(
+        webrtc_ctx = webrtc_streamer(
             key=app_mode,
             mode=WebRtcMode.SENDRECV,
             client_settings=client_settings,
@@ -222,7 +225,7 @@ if not _RELEASE:
 
         player_factory = create_player
 
-        my_component(
+        webrtc_streamer(
             key=app_mode,
             mode=WebRtcMode.RECVONLY,
             client_settings=client_settings,
