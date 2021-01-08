@@ -1,4 +1,3 @@
-import abc
 import asyncio
 import enum
 import sys
@@ -92,6 +91,12 @@ async def process_offer(
 
 
 class WebRtcWorker:
+    _video_transformer: Optional[VideoTransformerBase]
+
+    @property
+    def video_transformer(self) -> Optional[VideoTransformerBase]:
+        return self._video_transformer
+
     def __init__(
         self,
         mode: WebRtcMode,
@@ -107,6 +112,8 @@ class WebRtcWorker:
         self.mode = mode
         self.player_factory = player_factory
         self.video_transformer_class = video_transformer_class
+
+        self._video_transformer = None
 
     def _run_webrtc_thread(
         self,
@@ -130,6 +137,7 @@ class WebRtcWorker:
                 for tbline in tb.rstrip().splitlines():
                     logger.error(tbline.rstrip())
 
+            # TODO shutdown this thread!
             raise e
 
     def _webrtc_thread(
@@ -162,6 +170,8 @@ class WebRtcWorker:
                     "mode is set as sendrecv, but video_transformer_class is not specified. A simple loopback transformer is used."
                 )
                 video_transformer = NoOpVideoTransformer()
+
+        self._video_transformer = video_transformer
 
         loop.create_task(
             process_offer(

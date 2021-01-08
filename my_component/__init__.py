@@ -1,9 +1,7 @@
-import asyncio
-import enum
 import os
 import json
 import logging
-from typing import Dict, Hashable, Union, Optional
+from typing import Dict, Hashable, Union, Optional, NamedTuple, Literal
 import streamlit.components.v1 as components
 from aiortc.contrib.media import MediaPlayer
 
@@ -44,12 +42,16 @@ def unset_webrtc_worker(key: Hashable) -> None:
     del session_state.webrtc_workers[key]
 
 
+class WebRtcWorkerContext(NamedTuple):
+    video_transformer: Optional[VideoTransformerBase]
+
+
 def my_component(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     player_factory: Optional[MediaPlayerFactory] = None,
     video_transformer_class: Optional[VideoTransformerBase] = None,
-):
+) -> WebRtcWorkerContext:
     webrtc_worker = get_webrtc_worker(key)
 
     sdp_answer_json = None
@@ -84,7 +86,11 @@ def my_component(
                 set_webrtc_worker(key, webrtc_worker)
                 st.experimental_rerun()  # Rerun to send the SDP answer to frontend
 
-    return component_value
+    ctx = WebRtcWorkerContext(
+        video_transformer=webrtc_worker.video_transformer if webrtc_worker else None
+    )
+
+    return ctx
 
 
 # Add some test code to play with the component while it's in development.
@@ -120,25 +126,19 @@ if not _RELEASE:
         )
     elif app_mode == transform_page:
 
-        class TransformType(enum.Enum):
-            NOOP = enum.auto()
-            CARTOON = enum.auto()
-            EDGES = enum.auto()
-            ROTATE = enum.auto()
-
         class VideoEdgeTransformer(VideoTransformerBase):
-            type: TransformType
+            type: Literal["noop", "cartoon", "edges", "rotate"]
 
             def __init__(self) -> None:
-                self.type = TransformType.EDGE
+                self.type = "noop"
 
             def transform(self, frame: VideoFrame) -> VideoFrame:
-                if self.type == TransformType.NOOP:
+                if self.type == "noop":
                     return frame
 
                 img = frame.to_ndarray(format="bgr24")
 
-                if self.type == TransformType.CARTOON:
+                if self.type == "cartoon":
                     # prepare color
                     img_color = cv2.pyrDown(cv2.pyrDown(img))
                     for _ in range(6):
@@ -159,10 +159,10 @@ if not _RELEASE:
 
                     # combine color and edges
                     img = cv2.bitwise_and(img_color, img_edges)
-                elif self.type == TransformType.EDGES:
+                elif self.type == "edges":
                     # perform edge detection
                     img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
-                elif self.type == TransformType.ROTATE:
+                elif self.type == "rotate":
                     # rotate image
                     rows, cols, _ = img.shape
                     M = cv2.getRotationMatrix2D(
@@ -176,11 +176,17 @@ if not _RELEASE:
                 new_frame.time_base = frame.time_base
                 return new_frame
 
-        my_component(
+        webrtc_ctx = my_component(
             key=app_mode,
             mode=WebRtcMode.SENDRECV,
             video_transformer_class=VideoEdgeTransformer,
         )
+
+        transform_type = st.radio(
+            "Select transform type", ("noop", "cartoon", "edges", "rotate")
+        )
+        if webrtc_ctx.video_transformer:
+            webrtc_ctx.video_transformer.type = transform_type
     elif app_mode == serverside_play_page:
 
         def create_player():
