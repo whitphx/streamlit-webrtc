@@ -98,10 +98,6 @@ if not _RELEASE:
 
     st.header("WebRTC component")
 
-    mode = WebRtcMode.SENDRECV
-    player_factory = None
-    video_transformer_class = None
-
     loopback_page = "Loopback (sendrecv)"
     transform_page = "Transform video stream (sendrecv)"
     serverside_play_page = (
@@ -116,9 +112,12 @@ if not _RELEASE:
         ],
     )
     if app_mode == loopback_page:
-        mode = WebRtcMode.SENDRECV
+        my_component(
+            key=app_mode,
+            mode=WebRtcMode.SENDRECV,
+            video_transformer_class=None,  # NoOp
+        )
     elif app_mode == transform_page:
-        mode = WebRtcMode.SENDRECV
 
         class VideoEdgeTransformer(VideoTransformerBase):
             def transform(self, frame_bgr24: np.ndarray) -> np.ndarray:
@@ -126,9 +125,12 @@ if not _RELEASE:
                     cv2.Canny(frame_bgr24, 100, 200), cv2.COLOR_GRAY2BGR
                 )
 
-        video_transformer_class = VideoEdgeTransformer
+        my_component(
+            key=app_mode,
+            mode=WebRtcMode.SENDRECV,
+            video_transformer_class=VideoEdgeTransformer,
+        )
     elif app_mode == serverside_play_page:
-        mode = WebRtcMode.RECVONLY
 
         def create_player():
             # TODO: Be configurable
@@ -142,9 +144,8 @@ if not _RELEASE:
 
         player_factory = create_player
 
-    my_component(
-        key=app_mode,
-        player_factory=player_factory,
-        mode=mode,
-        video_transformer_class=video_transformer_class,
-    )
+        my_component(
+            key=app_mode,
+            mode=WebRtcMode.RECVONLY,
+            player_factory=create_player,
+        )
