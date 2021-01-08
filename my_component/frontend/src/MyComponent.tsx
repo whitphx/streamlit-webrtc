@@ -86,10 +86,9 @@ class MyComponent extends StreamlitComponentBase<State> {
       throw new Error(`Invalid mode ${mode}`)
     }
 
-    const config: RTCConfiguration = {
-      // TODO
-      iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
-    }
+    const config: RTCConfiguration =
+      this.props.args.settings?.rtc_configuration || {}
+    console.log("RTCConfiguration:", config)
     const pc = new RTCPeerConnection(config)
 
     // connect audio / video
@@ -114,11 +113,13 @@ class MyComponent extends StreamlitComponentBase<State> {
     })
 
     if (mode === "SENDRECV" || mode === "SENDONLY") {
-      const constraints: MediaStreamConstraints = {
-        // TODO: Be configurable
+      const defaultConstraints = {
         audio: true,
         video: true,
       }
+      const constraints: MediaStreamConstraints =
+        this.props.args.settings?.media_stream_constraints || defaultConstraints
+      console.log("MediaStreamConstraints:", constraints)
 
       if (constraints.audio || constraints.video) {
         const stream = await navigator.mediaDevices.getUserMedia(constraints)

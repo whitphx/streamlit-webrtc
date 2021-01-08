@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import Dict, Hashable, Union, Optional, NamedTuple, Literal
+from typing import Dict, Hashable, TypedDict, Union, Optional, NamedTuple, Literal
 import streamlit.components.v1 as components
 from aiortc.contrib.media import MediaPlayer
 
@@ -11,6 +11,7 @@ from webrtc import (
     WebRtcMode,
     VideoTransformerBase,
 )
+from config import RTCConfiguration, MediaStreamConstraints
 import SessionState
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,11 @@ def unset_webrtc_worker(key: Hashable) -> None:
     del session_state.webrtc_workers[key]
 
 
+class ClientSettings(TypedDict):
+    rtc_configuration: Optional[RTCConfiguration]
+    media_stream_constraints: Optional[MediaStreamConstraints]
+
+
 class WebRtcWorkerContext(NamedTuple):
     video_transformer: Optional[VideoTransformerBase]
 
@@ -51,6 +57,7 @@ class WebRtcWorkerContext(NamedTuple):
 def my_component(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
+    client_settings: Optional[ClientSettings] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     video_transformer_class: Optional[VideoTransformerBase] = None,
     async_transform: bool = True,
@@ -67,7 +74,10 @@ def my_component(
         )
 
     component_value: Union[Dict, None] = _component_func(
-        key=key, sdp_answer_json=sdp_answer_json, mode=mode.name
+        key=key,
+        sdp_answer_json=sdp_answer_json,
+        mode=mode.name,
+        settings=client_settings,
     )
 
     if component_value:
@@ -109,6 +119,15 @@ if not _RELEASE:
 
     st.header("WebRTC component")
 
+    client_settings = ClientSettings(
+        rtc_configuration={
+            "rtc_configuration": {
+                "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+            }
+        },
+        media_stream_constraints={"video": True, "audio": True},
+    )
+
     loopback_page = "Loopback (sendrecv)"
     transform_page = "Transform video stream (sendrecv)"
     serverside_play_page = (
@@ -126,6 +145,7 @@ if not _RELEASE:
         my_component(
             key=app_mode,
             mode=WebRtcMode.SENDRECV,
+            client_settings=client_settings,
             video_transformer_class=None,  # NoOp
         )
     elif app_mode == transform_page:
@@ -178,6 +198,7 @@ if not _RELEASE:
         webrtc_ctx = my_component(
             key=app_mode,
             mode=WebRtcMode.SENDRECV,
+            client_settings=client_settings,
             video_transformer_class=VideoEdgeTransformer,
             async_transform=True,
         )
@@ -204,5 +225,6 @@ if not _RELEASE:
         my_component(
             key=app_mode,
             mode=WebRtcMode.RECVONLY,
+            client_settings=client_settings,
             player_factory=create_player,
         )
