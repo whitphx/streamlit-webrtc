@@ -3,86 +3,86 @@ import {
   StreamlitComponentBase,
   withStreamlitConnection,
   ComponentProps,
-} from "streamlit-component-lib"
-import React, { ReactNode } from "react"
+} from "streamlit-component-lib";
+import React, { ReactNode } from "react";
 
-type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV"
+type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
-  val === "RECVONLY" || val === "SENDONLY" || val === "SENDRECV"
+  val === "RECVONLY" || val === "SENDONLY" || val === "SENDRECV";
 
 const setupOffer = (
   pc: RTCPeerConnection,
   mode: WebRtcMode
 ): Promise<RTCSessionDescription | null> => {
   if (mode === "RECVONLY") {
-    pc.addTransceiver("video", { direction: "recvonly" })
-    pc.addTransceiver("audio", { direction: "recvonly" })
+    pc.addTransceiver("video", { direction: "recvonly" });
+    pc.addTransceiver("audio", { direction: "recvonly" });
   }
 
   return pc
     .createOffer()
-    .then(offer => {
-      console.log("Created offer:", offer)
-      return pc.setLocalDescription(offer)
+    .then((offer) => {
+      console.log("Created offer:", offer);
+      return pc.setLocalDescription(offer);
     })
     .then(() => {
-      console.log("Wait for ICE gethering...")
+      console.log("Wait for ICE gethering...");
       // Wait for ICE gathering to complete
-      return new Promise<void>(resolve => {
+      return new Promise<void>((resolve) => {
         if (pc.iceGatheringState === "complete") {
-          resolve()
+          resolve();
         } else {
           const checkState = () => {
             if (pc.iceGatheringState === "complete") {
-              pc.removeEventListener("icegatheringstatechange", checkState)
-              resolve()
+              pc.removeEventListener("icegatheringstatechange", checkState);
+              resolve();
             }
-          }
-          pc.addEventListener("icegatheringstatechange", checkState)
+          };
+          pc.addEventListener("icegatheringstatechange", checkState);
         }
-      })
+      });
     })
     .then(() => {
-      const offer = pc.localDescription
-      return offer
+      const offer = pc.localDescription;
+      return offer;
     })
-    .catch(err => {
-      console.error(err)
-      throw err
-    })
-}
+    .catch((err) => {
+      console.error(err);
+      throw err;
+    });
+};
 
 interface State {
-  signaling: boolean
-  playing: boolean
-  stopping: boolean
+  signaling: boolean;
+  playing: boolean;
+  stopping: boolean;
 }
 
 class MyComponent extends StreamlitComponentBase<State> {
-  private pc: RTCPeerConnection | undefined
-  private videoRef: React.RefObject<HTMLVideoElement>
-  private audioRef: React.RefObject<HTMLAudioElement>
+  private pc: RTCPeerConnection | undefined;
+  private videoRef: React.RefObject<HTMLVideoElement>;
+  private audioRef: React.RefObject<HTMLAudioElement>;
 
   constructor(props: ComponentProps) {
-    super(props)
-    this.videoRef = React.createRef()
-    this.audioRef = React.createRef()
+    super(props);
+    this.videoRef = React.createRef();
+    this.audioRef = React.createRef();
 
     this.state = {
       signaling: false,
       playing: false,
       stopping: false,
-    }
+    };
   }
 
   private processAnswerInner = async (
     pc: RTCPeerConnection,
     sdpAnswerJson: string
   ): Promise<void> => {
-    const sdpAnswer = JSON.parse(sdpAnswerJson)
-    console.log("Receive answer sdpOffer", sdpAnswer)
-    await pc.setRemoteDescription(sdpAnswer)
-  }
+    const sdpAnswer = JSON.parse(sdpAnswerJson);
+    console.log("Receive answer sdpOffer", sdpAnswer);
+    await pc.setRemoteDescription(sdpAnswer);
+  };
 
   private processAnswer = (
     pc: RTCPeerConnection,
@@ -90,140 +90,141 @@ class MyComponent extends StreamlitComponentBase<State> {
   ): void => {
     this.processAnswerInner(pc, sdpAnswerJson)
       .then(() => {
-        console.log("Remote description is set")
+        console.log("Remote description is set");
       })
-      .finally(() => this.setState({ signaling: false }))
-  }
+      .finally(() => this.setState({ signaling: false }));
+  };
 
   private startInner = async () => {
-    const mode = this.props.args["mode"]
+    const mode = this.props.args["mode"];
     if (!isWebRtcMode(mode)) {
-      throw new Error(`Invalid mode ${mode}`)
+      throw new Error(`Invalid mode ${mode}`);
     }
 
-    this.setState({ signaling: true })
+    this.setState({ signaling: true });
 
     const config: RTCConfiguration =
-      this.props.args.settings?.rtc_configuration || {}
-    console.log("RTCConfiguration:", config)
-    const pc = new RTCPeerConnection(config)
+      this.props.args.settings?.rtc_configuration || {};
+    console.log("RTCConfiguration:", config);
+    const pc = new RTCPeerConnection(config);
 
     // connect audio / video
-    pc.addEventListener("track", evt => {
+    pc.addEventListener("track", (evt) => {
       if (evt.track.kind === "video") {
-        const videoElem = this.videoRef.current
+        const videoElem = this.videoRef.current;
         if (videoElem == null) {
-          console.error("video element is not mounted")
-          return
+          console.error("video element is not mounted");
+          return;
         }
 
-        videoElem.srcObject = evt.streams[0]
+        videoElem.srcObject = evt.streams[0];
       } else {
-        const audioElem = this.audioRef.current
+        const audioElem = this.audioRef.current;
         if (audioElem == null) {
-          console.error("audio element is not mounted")
-          return
+          console.error("audio element is not mounted");
+          return;
         }
 
-        audioElem.srcObject = evt.streams[0]
+        audioElem.srcObject = evt.streams[0];
       }
-    })
+    });
 
     if (mode === "SENDRECV" || mode === "SENDONLY") {
       const defaultConstraints = {
         audio: true,
         video: true,
-      }
+      };
       const constraints: MediaStreamConstraints =
-        this.props.args.settings?.media_stream_constraints || defaultConstraints
-      console.log("MediaStreamConstraints:", constraints)
+        this.props.args.settings?.media_stream_constraints ||
+        defaultConstraints;
+      console.log("MediaStreamConstraints:", constraints);
 
       if (constraints.audio || constraints.video) {
-        const stream = await navigator.mediaDevices.getUserMedia(constraints)
-        stream.getTracks().forEach(track => {
-          pc.addTrack(track, stream)
-        })
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        stream.getTracks().forEach((track) => {
+          pc.addTrack(track, stream);
+        });
       }
     }
 
-    this.setState({ playing: true })
+    this.setState({ playing: true });
 
-    setupOffer(pc, mode).then(offer => {
+    setupOffer(pc, mode).then((offer) => {
       if (offer == null) {
-        console.warn("Failed to create an offer SDP")
-        return
+        console.warn("Failed to create an offer SDP");
+        return;
       }
 
-      console.log("Send sdpOffer", offer.toJSON())
+      console.log("Send sdpOffer", offer.toJSON());
       Streamlit.setComponentValue({
         sdpOffer: offer.toJSON(),
         playing: true,
-      })
-    })
-    this.pc = pc
-  }
+      });
+    });
+    this.pc = pc;
+  };
 
   private start = (): void => {
-    this.startInner().catch(() => this.setState({ signaling: false }))
-  }
+    this.startInner().catch(() => this.setState({ signaling: false }));
+  };
 
   private stopInner = async (): Promise<void> => {
-    const pc = this.pc
-    this.pc = undefined
+    const pc = this.pc;
+    this.pc = undefined;
     this.setState({ playing: false }, () =>
       Streamlit.setComponentValue({ playing: false })
-    )
+    );
 
     if (pc == null) {
-      return Promise.resolve()
+      return Promise.resolve();
     }
 
     // close transceivers
     if (pc.getTransceivers) {
-      pc.getTransceivers().forEach(function(transceiver) {
+      pc.getTransceivers().forEach(function (transceiver) {
         if (transceiver.stop) {
-          transceiver.stop()
+          transceiver.stop();
         }
-      })
+      });
     }
 
     // close local audio / video
-    pc.getSenders().forEach(function(sender) {
-      sender.track?.stop()
-    })
+    pc.getSenders().forEach(function (sender) {
+      sender.track?.stop();
+    });
 
     // close peer connection
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       setTimeout(() => {
-        pc.close()
-        resolve()
-      }, 500)
-    })
-  }
+        pc.close();
+        resolve();
+      }, 500);
+    });
+  };
 
   private stop = () => {
-    this.setState({ stopping: true })
+    this.setState({ stopping: true });
     this.stopInner().finally(() => {
-      this.setState({ stopping: false })
-    })
-  }
+      this.setState({ stopping: false });
+    });
+  };
 
   public componentDidUpdate() {
     if (this.pc == null) {
-      return
+      return;
     }
-    const pc = this.pc
+    const pc = this.pc;
     if (pc.remoteDescription == null) {
-      const sdpAnswerJson = this.props.args["sdp_answer_json"]
+      const sdpAnswerJson = this.props.args["sdp_answer_json"];
       if (sdpAnswerJson) {
-        this.processAnswer(pc, sdpAnswerJson)
+        this.processAnswer(pc, sdpAnswerJson);
       }
     }
   }
 
   public render = (): ReactNode => {
     const buttonDisabled =
-      this.props.disabled || this.state.signaling || this.state.stopping
+      this.props.disabled || this.state.signaling || this.state.stopping;
 
     return (
       <div>
@@ -245,8 +246,8 @@ class MyComponent extends StreamlitComponentBase<State> {
           </button>
         )}
       </div>
-    )
-  }
+    );
+  };
 }
 
 // "withStreamlitConnection" is a wrapper function. It bootstraps the
@@ -254,4 +255,4 @@ class MyComponent extends StreamlitComponentBase<State> {
 // passing arguments from Python -> Component.
 //
 // You don't need to edit withStreamlitConnection (but you're welcome to!).
-export default withStreamlitConnection(MyComponent)
+export default withStreamlitConnection(MyComponent);
