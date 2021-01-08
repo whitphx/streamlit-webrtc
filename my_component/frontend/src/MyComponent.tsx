@@ -204,9 +204,13 @@ class MyComponent extends StreamlitComponentBase<State> {
         />
         <audio ref={this.audioRef} autoPlay controls />
         {this.state.playing ? (
-          <button onClick={this.stop}>Stop</button>
+          <button onClick={this.stop} disabled={this.props.disabled}>
+            Stop
+          </button>
         ) : (
-          <button onClick={this.start}>Start</button>
+          <button onClick={this.start} disabled={this.props.disabled}>
+            Start
+          </button>
         )}
       </div>
     )
