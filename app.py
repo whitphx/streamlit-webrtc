@@ -13,9 +13,7 @@ st.header("WebRTC component")
 
 client_settings = ClientSettings(
     rtc_configuration={
-        "rtc_configuration": {
-            "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-        }
+        "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
     },
     media_stream_constraints={"video": True, "audio": True},
 )
