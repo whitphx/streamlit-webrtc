@@ -101,7 +101,6 @@ def my_component(
 # During development, we can run this just as we would any other Streamlit
 # app: `$ streamlit run my_component/__init__.py`
 if not _RELEASE:
-    import time
     import streamlit as st
     import cv2
     from av import VideoFrame
@@ -160,8 +159,6 @@ if not _RELEASE:
                         2,
                     )
                     img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
-
-                    time.sleep(1)
 
                     # combine color and edges
                     img = cv2.bitwise_and(img_color, img_edges)
