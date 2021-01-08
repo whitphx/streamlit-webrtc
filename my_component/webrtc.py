@@ -238,7 +238,7 @@ async def test():
 
     offer = await client.createOffer()
 
-    webrtc_worker = WebRtcWorker()
+    webrtc_worker = WebRtcWorker(mode=WebRtcMode.SENDRECV)
     localDescription = webrtc_worker.process_offer(offer.sdp, offer.type)
 
     print("localDescription:")
