@@ -13,6 +13,8 @@ from webrtc import (
 )
 import SessionState
 
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 _RELEASE = False
 

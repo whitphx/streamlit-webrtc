@@ -17,13 +17,12 @@ from transform import (
     AsyncVideoTransformTrack,
 )
 
+logger = logging.getLogger(__name__)
+
 
 VideoTransformFn = Callable
 
 MediaPlayerFactory = Callable[..., MediaPlayer]
-
-
-logger = logging.getLogger(__name__)
 
 
 class WebRtcMode(enum.Enum):
@@ -49,7 +48,7 @@ async def process_offer(
 
     @pc.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
-        print("ICE connection state is %s", pc.iceConnectionState)
+        logger.info("ICE connection state is %s", pc.iceConnectionState)
         if pc.iceConnectionState == "failed":
             await pc.close()
 
@@ -57,7 +56,7 @@ async def process_offer(
 
         @pc.on("track")
         def on_track(track):
-            print("Track %s received", track.kind)
+            logger.info("Track %s received", track.kind)
 
             if track.kind == "audio":
                 if player and player.audio:
@@ -65,7 +64,7 @@ async def process_offer(
                 recorder.addTrack(track)  # TODO
             elif track.kind == "video":
                 if player and player.video:
-                    print("Add player to video track")
+                    logger.info("Add player to video track")
                     pc.addTrack(player.video)
                 elif video_transformer:
                     VideoTrack = (
@@ -80,7 +79,7 @@ async def process_offer(
 
             @track.on("ended")
             async def on_ended():
-                print("Track %s ended", track.kind)
+                logger.info("Track %s ended", track.kind)
                 await recorder.stop()
 
     await pc.setRemoteDescription(offer)
@@ -163,11 +162,12 @@ class WebRtcWorker:
         video_transformer_class: Optional[VideoTransformerBase],
         async_transform: bool,
     ):
-        print(
-            "Start webrtc_thread with",
+        logger.debug(
+            "_webrtc_thread(player_factory=%s, video_transformer_class=%s)",
             player_factory,
             video_transformer_class,
         )
+
         loop = asyncio.new_event_loop()
         self._loop = loop
 
@@ -182,7 +182,7 @@ class WebRtcWorker:
 
         if self.mode == WebRtcMode.SENDRECV:
             if video_transformer is None:
-                print(
+                logger.info(
                     "mode is set as sendrecv, but video_transformer_class is not specified. A simple loopback transformer is used."
                 )
                 video_transformer = NoOpVideoTransformer()
@@ -241,8 +241,8 @@ async def test():
     webrtc_worker = WebRtcWorker()
     localDescription = webrtc_worker.process_offer(offer.sdp, offer.type)
 
-    logger.debug("localDescription:")
-    logger.debug(localDescription)
+    print("localDescription:")
+    print(localDescription)
 
     webrtc_worker.stop()
 
