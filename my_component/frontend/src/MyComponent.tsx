@@ -8,7 +8,7 @@ import React, { ReactNode } from "react"
 
 type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV"
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
-  val === "RECVONLY" || val === "SENDONLY" || val == "SENDRECV"
+  val === "RECVONLY" || val === "SENDONLY" || val === "SENDRECV"
 
 const setupOffer = (
   pc: RTCPeerConnection,
