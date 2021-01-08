@@ -10,7 +10,7 @@ from typing import Callable, Optional
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer
 
-from transform import (
+from .transform import (
     VideoTransformerBase,
     NoOpVideoTransformer,
     VideoTransformTrack,

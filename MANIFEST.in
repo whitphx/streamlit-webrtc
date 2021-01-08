@@ -1,1 +1,1 @@
-recursive-include package/frontend/build *
+recursive-include streamlit_webrtc/frontend/build *
