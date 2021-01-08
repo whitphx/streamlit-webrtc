@@ -11,7 +11,6 @@ from webrtc import (
     MediaPlayerFactory,
     WebRtcMode,
     VideoTransformerBase,
-    VideoGeneratorBase,
 )
 import SessionState
 
@@ -49,7 +48,6 @@ def my_component(
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     player_factory: Optional[MediaPlayerFactory] = None,
     video_transformer_class: Optional[VideoTransformerBase] = None,
-    video_generator_class: Optional[VideoGeneratorBase] = None,
 ):
     webrtc_worker = get_webrtc_worker(key)
 
@@ -80,7 +78,6 @@ def my_component(
                     mode=mode,
                     player_factory=player_factory,
                     video_transformer_class=video_transformer_class,
-                    video_generator_class=video_generator_class,
                 )
                 webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
                 set_webrtc_worker(key, webrtc_worker)
@@ -93,7 +90,6 @@ def my_component(
 # During development, we can run this just as we would any other Streamlit
 # app: `$ streamlit run my_component/__init__.py`
 if not _RELEASE:
-    import fractions
     import streamlit as st
     import cv2
     import numpy as np
@@ -105,11 +101,9 @@ if not _RELEASE:
     mode = WebRtcMode.SENDRECV
     player_factory = None
     video_transformer_class = None
-    video_generator_class = None
 
     loopback_page = "Loopback (sendrecv)"
     transform_page = "Transform video stream (sendrecv)"
-    generate_page = "Generate video stream (recvonly)"
     serverside_play_page = (
         "Consume a video on server-side and play it on client-side (recvonly)"
     )
@@ -118,7 +112,6 @@ if not _RELEASE:
         [
             loopback_page,
             transform_page,
-            generate_page,
             serverside_play_page,
         ],
     )
@@ -134,22 +127,6 @@ if not _RELEASE:
                 )
 
         video_transformer_class = VideoEdgeTransformer
-    elif app_mode == generate_page:
-        # mode = WebRtcMode.RECVONLY  # TODO: It should be RECVONLY
-
-        class RotationImageVideoGenerator(VideoGeneratorBase):
-            def __init__(self) -> None:
-                self.img = cv2.imread("./photo.jpg", cv2.IMREAD_COLOR)
-
-            def generate(self, pts: int, time_base: fractions.Fraction) -> np.ndarray:
-                rows, cols, _ = self.img.shape
-                M = cv2.getRotationMatrix2D(
-                    (cols / 2, rows / 2), int(pts * time_base * 45), 1
-                )
-                return cv2.warpAffine(self.img, M, (cols, rows))
-
-        video_generator_class = RotationImageVideoGenerator
-
     elif app_mode == serverside_play_page:
         mode = WebRtcMode.RECVONLY
 
@@ -170,5 +147,4 @@ if not _RELEASE:
         player_factory=player_factory,
         mode=mode,
         video_transformer_class=video_transformer_class,
-        video_generator_class=video_generator_class,
     )
