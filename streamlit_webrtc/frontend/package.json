@@ -1,5 +1,5 @@
 {
-  "name": "streamlit_component_template",
+  "name": "streamlit_webrtc",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
