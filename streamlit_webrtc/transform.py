@@ -8,7 +8,7 @@ from typing import Optional, Union
 
 from aiortc import MediaStreamTrack
 
-from av import VideoFrame
+import av
 import numpy as np
 
 
@@ -17,12 +17,12 @@ logger = logging.getLogger(__name__)
 
 class VideoTransformerBase(abc.ABC):
     @abc.abstractmethod
-    def transform(self, frame: VideoFrame) -> np.ndarray:
+    def transform(self, frame: av.VideoFrame) -> np.ndarray:
         """ Returns a new video frame in bgr24 format """
 
 
 class NoOpVideoTransformer(VideoTransformerBase):
-    def transform(self, frame: VideoFrame) -> np.ndarray:
+    def transform(self, frame: av.VideoFrame) -> np.ndarray:
         return frame.to_ndarray(format="bgr24")
 
 
@@ -41,8 +41,8 @@ class VideoTransformTrack(MediaStreamTrack):
 
         img = self.transformer.transform(frame)
 
-        # rebuild a VideoFrame, preserving timing information
-        new_frame = VideoFrame.from_ndarray(img, format="bgr24")
+        # rebuild a av.VideoFrame, preserving timing information
+        new_frame = av.VideoFrame.from_ndarray(img, format="bgr24")
         new_frame.pts = frame.pts
         new_frame.time_base = frame.time_base
         return new_frame
@@ -122,8 +122,8 @@ class AsyncVideoTransformTrack(MediaStreamTrack):
 
         with self._latest_result_img_lock:
             if self._latest_result_img is not None:
-                # rebuild a VideoFrame, preserving timing information
-                new_frame = VideoFrame.from_ndarray(
+                # rebuild a av.VideoFrame, preserving timing information
+                new_frame = av.VideoFrame.from_ndarray(
                     self._latest_result_img, format="bgr24"
                 )
                 new_frame.pts = frame.pts
