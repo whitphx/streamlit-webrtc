@@ -6,7 +6,7 @@ exclude =
     dist,
     fronend,
     data,
-    model
+    models
 # Black compatible configs
 max-line-length = 88
 extend-ignore = E203, W503
