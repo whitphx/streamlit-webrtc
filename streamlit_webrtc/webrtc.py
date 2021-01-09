@@ -191,7 +191,9 @@ class WebRtcWorker:
         if self.mode == WebRtcMode.SENDRECV:
             if video_transformer is None:
                 logger.info(
-                    "mode is set as sendrecv, but video_transformer_class is not specified. A simple loopback transformer is used."
+                    "mode is set as sendrecv, "
+                    "but video_transformer_class is not specified. "
+                    "A simple loopback transformer is used."
                 )
                 video_transformer = NoOpVideoTransformer()
 
