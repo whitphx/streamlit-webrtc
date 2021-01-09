@@ -10,6 +10,7 @@
 
 # production
 # /build  # Include this to deploy to Heroku
+/build/**/*.map
 
 # misc
 .DS_Store
