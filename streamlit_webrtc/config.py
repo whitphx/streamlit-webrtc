@@ -1,4 +1,4 @@
-from typing import List, Optional, Union, TypedDict
+from typing import List, Optional, TypedDict, Union
 
 
 class RTCIceServer(TypedDict):

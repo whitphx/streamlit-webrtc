@@ -4,18 +4,18 @@ import urllib.request
 from pathlib import Path
 from typing import Literal
 
+import av
 import cv2
 import numpy as np
 import streamlit as st
-import av
 from aiortc.contrib.media import MediaPlayer
+
 from streamlit_webrtc import (
-    webrtc_streamer,
-    WebRtcMode,
     ClientSettings,
     VideoTransformerBase,
+    WebRtcMode,
+    webrtc_streamer,
 )
-
 
 HERE = Path(__file__).parent
 
@@ -27,7 +27,8 @@ def setup_logger():
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
-        "[%(asctime)s] %(levelname)7s in %(module)s (%(filename)s:%(lineno)d): %(message)s"
+        "[%(asctime)s] %(levelname)7s in %(module)s (%(filename)s:%(lineno)d): "
+        "%(message)s"
     )
     ch.setFormatter(formatter)
 
@@ -36,7 +37,9 @@ def setup_logger():
     st_webrtc_logger.addHandler(ch)
     st_webrtc_logger.setLevel(logging.DEBUG)
 
-    # `aiortc` does not have loggers with a common prefix and the loggers cannot be configured in this way: https://github.com/aiortc/aiortc/issues/446
+    # `aiortc` does not have loggers with a common prefix
+    # and the loggers cannot be configured in this way.
+    # See https://github.com/aiortc/aiortc/issues/446
     # aiortc_logger = logging.getLogger("aiortc")
     # aiortc_logger.addHandler(ch)
     # aiortc_logger.setLevel(logging.DEBUG)
@@ -46,9 +49,10 @@ def setup_logger():
     logger.setLevel(logging.DEBUG)
 
 
-# This code is based on https://github.com/streamlit/demo-self-driving/blob/230245391f2dda0cb464008195a470751c01770b/streamlit_app.py#L48
+# This code is based on https://github.com/streamlit/demo-self-driving/blob/230245391f2dda0cb464008195a470751c01770b/streamlit_app.py#L48  # noqa: E501
 def download_file(url, download_to: Path, expected_size=None):
-    # Don't download the file twice. (If possible, verify the download using the file length.)
+    # Don't download the file twice.
+    # (If possible, verify the download using the file length.)
     if download_to.exists():
         if expected_size:
             if download_to.stat().st_size == expected_size:
@@ -196,11 +200,12 @@ def app_video_filters():
 
 def app_object_detection():
     """Object detection demo with MobileNet SSD.
-    This model and code are based on https://github.com/robmarkcole/object-detection-app
+    This model and code are based on
+    https://github.com/robmarkcole/object-detection-app
     """
-    MODEL_URL = "https://github.com/robmarkcole/object-detection-app/raw/master/model/MobileNetSSD_deploy.caffemodel"
+    MODEL_URL = "https://github.com/robmarkcole/object-detection-app/raw/master/model/MobileNetSSD_deploy.caffemodel"  # noqa: E501
     MODEL_LOCAL_PATH = HERE / "./models/MobileNetSSD_deploy.caffemodel"
-    PROTOTXT_URL = "https://github.com/robmarkcole/object-detection-app/raw/master/model/MobileNetSSD_deploy.prototxt.txt"
+    PROTOTXT_URL = "https://github.com/robmarkcole/object-detection-app/raw/master/model/MobileNetSSD_deploy.prototxt.txt"  # noqa: E501
     PROTOTXT_LOCAL_PATH = HERE / "./models/MobileNetSSD_deploy.prototxt.txt"
 
     CLASSES = [
@@ -300,7 +305,9 @@ def app_object_detection():
         webrtc_ctx.video_transformer.confidence_threshold = confidence_threshold
 
     st.markdown(
-        "This demo uses a model and code from https://github.com/robmarkcole/object-detection-app. Many thanks to the project."
+        "This demo uses a model and code from "
+        "https://github.com/robmarkcole/object-detection-app. "
+        "Many thanks to the project."
     )
 
 
@@ -308,22 +315,22 @@ def app_streaming():
     """ Media streamings """
     MEDIAFILES = {
         "big_buck_bunny_720p_2mb.mp4": {
-            "url": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_2mb.mp4",
+            "url": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_2mb.mp4",  # noqa: E501
             "local_file_path": HERE / "data/big_buck_bunny_720p_2mb.mp4",
             "type": "video",
         },
         "big_buck_bunny_720p_10mb.mp4": {
-            "url": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_10mb.mp4",
+            "url": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_10mb.mp4",  # noqa: E501
             "local_file_path": HERE / "data/big_buck_bunny_720p_10mb.mp4",
             "type": "video",
         },
         "file_example_MP3_700KB.mp3": {
-            "url": "https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_700KB.mp3",
+            "url": "https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_700KB.mp3",  # noqa: E501
             "local_file_path": HERE / "data/file_example_MP3_700KB.mp3",
             "type": "audio",
         },
         "file_example_MP3_5MG.mp3": {
-            "url": "https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_5MG.mp3",
+            "url": "https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_5MG.mp3",  # noqa: E501
             "local_file_path": HERE / "data/file_example_MP3_5MG.mp3",
             "type": "audio",
         },

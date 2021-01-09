@@ -1,18 +1,14 @@
-import os
 import json
 import logging
-from typing import Dict, Hashable, TypedDict, Union, Optional, NamedTuple
+import os
+from typing import Dict, Hashable, NamedTuple, Optional, TypedDict, Union
+
 import streamlit as st
 import streamlit.components.v1 as components
 
-from .webrtc import (
-    WebRtcWorker,
-    MediaPlayerFactory,
-    WebRtcMode,
-    VideoTransformerBase,
-)
-from .config import RTCConfiguration, MediaStreamConstraints
 from . import SessionState
+from .config import MediaStreamConstraints, RTCConfiguration
+from .webrtc import MediaPlayerFactory, VideoTransformerBase, WebRtcMode, WebRtcWorker
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -27,8 +23,7 @@ if not _RELEASE:
 else:
     parent_dir = os.path.dirname(os.path.abspath(__file__))
     build_dir = os.path.join(parent_dir, "frontend/build")
-    _component_func = components.declare_component(
-        "webrtc_streamer", path=build_dir)
+    _component_func = components.declare_component("webrtc_streamer", path=build_dir)
 
 
 session_state = SessionState.get(webrtc_workers={})
@@ -97,8 +92,7 @@ def webrtc_streamer(
                     video_transformer_class=video_transformer_class,
                     async_transform=async_transform,
                 )
-                webrtc_worker.process_offer(
-                    sdp_offer["sdp"], sdp_offer["type"])
+                webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
                 set_webrtc_worker(key, webrtc_worker)
                 st.experimental_rerun()  # Rerun to send the SDP answer to frontend
 

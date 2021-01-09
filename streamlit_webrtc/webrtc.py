@@ -1,21 +1,21 @@
 import asyncio
-from asyncio.events import AbstractEventLoop
 import enum
+import logging
+import queue
 import sys
 import threading
-import queue
-import logging
 import traceback
+from asyncio.events import AbstractEventLoop
 from typing import Callable, Optional, Union
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer
 
 from .transform import (
-    VideoTransformerBase,
-    NoOpVideoTransformer,
-    VideoTransformTrack,
     AsyncVideoTransformTrack,
+    NoOpVideoTransformer,
+    VideoTransformerBase,
+    VideoTransformTrack,
 )
 
 logger = logging.getLogger(__name__)
@@ -191,7 +191,9 @@ class WebRtcWorker:
         if self.mode == WebRtcMode.SENDRECV:
             if video_transformer is None:
                 logger.info(
-                    "mode is set as sendrecv, but video_transformer_class is not specified. A simple loopback transformer is used."
+                    "mode is set as sendrecv, "
+                    "but video_transformer_class is not specified. "
+                    "A simple loopback transformer is used."
                 )
                 video_transformer = NoOpVideoTransformer()
 
