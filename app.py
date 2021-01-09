@@ -274,6 +274,10 @@ elif app_mode == transform_with_nn_page:
     if webrtc_ctx.video_transformer:
         webrtc_ctx.video_transformer.confidence_threshold = confidence_threshold
 
+    st.markdown(
+        "This demo uses a model and code from https://github.com/robmarkcole/object-detection-app. Many thanks to the project."
+    )
+
 
 elif app_mode == serverside_play_page:
     MEDIAFILES = {
