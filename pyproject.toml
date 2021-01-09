@@ -4,6 +4,8 @@ version = "0.1.0"
 description = ""
 authors = ["Yuichiro Tsuchiya <t.yic.yt@gmail.com>"]
 license = "MIT"
+include = ["./streamlit_webrtc/frontend/build/**/*"]
+exclude = ["./streamlit_webrtc/frontend/[!build]*"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
