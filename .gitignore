@@ -141,3 +141,6 @@ cython_debug/
 
 # Machine learning models
 models/
+
+# Demo data
+data/
