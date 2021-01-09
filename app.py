@@ -8,7 +8,7 @@ from typing import Literal
 import cv2
 import numpy as np
 import streamlit as st
-from av import VideoFrame
+import av
 from aiortc.contrib.media import MediaPlayer
 from streamlit_webrtc import (
     webrtc_streamer,
@@ -23,7 +23,13 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 ch.setFormatter(formatter)
-logging.getLogger("streamlit_webrtc").addHandler(ch)
+lib_logger = logging.getLogger("streamlit_webrtc")
+lib_logger.addHandler(ch)
+lib_logger.setLevel(logging.DEBUG)
+
+logger = logging.getLogger(__name__)
+logger.addHandler(ch)
+logger.setLevel(logging.DEBUG)
 
 HERE = Path(__file__).parent
 
@@ -112,7 +118,7 @@ elif app_mode == transform_page:
         def __init__(self) -> None:
             self.type = "noop"
 
-        def transform(self, frame: VideoFrame) -> VideoFrame:
+        def transform(self, frame: av.VideoFrame) -> av.VideoFrame:
             img = frame.to_ndarray(format="bgr24")
 
             if self.type == "noop":
@@ -242,7 +248,7 @@ elif app_mode == transform_with_nn_page:
                     )
             return image, labels
 
-        def transform(self, frame: VideoFrame) -> np.ndarray:
+        def transform(self, frame: av.VideoFrame) -> np.ndarray:
             image = frame.to_ndarray(format="bgr24")
             blob = cv2.dnn.blobFromImage(
                 cv2.resize(image, (300, 300)), 0.007843, (300, 300), 127.5
