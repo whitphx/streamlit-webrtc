@@ -17,6 +17,9 @@ from streamlit_webrtc import (
 )
 
 
+HERE = Path(__file__).parent
+
+
 @st.cache
 def setup_logger():
     logging.basicConfig(level=logging.DEBUG)
@@ -41,12 +44,6 @@ def setup_logger():
     logger = logging.getLogger(__name__)
     logger.addHandler(ch)
     logger.setLevel(logging.DEBUG)
-
-
-setup_logger()
-
-
-HERE = Path(__file__).parent
 
 
 # This code is based on https://github.com/streamlit/demo-self-driving/blob/230245391f2dda0cb464008195a470751c01770b/streamlit_app.py#L48
@@ -94,38 +91,50 @@ def download_file(url, download_to: Path, expected_size=None):
             progress_bar.empty()
 
 
-st.header("WebRTC demo")
+def main():
+    st.header("WebRTC demo")
 
-client_settings = ClientSettings(
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-    media_stream_constraints={"video": True, "audio": True},
-)
+    object_detection_page = "Real time object detection (sendrecv)"
+    video_filters_page = (
+        "Real time video transform with simple OpenCV filters (sendrecv)"
+    )
+    streaming_page = (
+        "Consuming media files on server-side and streaming it to browser (recvonly)"
+    )
+    loopback_page = "Simple video loopback (sendrecv)"
+    app_mode = st.sidebar.selectbox(
+        "Choose the app mode",
+        [
+            object_detection_page,
+            video_filters_page,
+            streaming_page,
+            loopback_page,
+        ],
+    )
+    st.subheader(app_mode)
 
-transform_with_nn_page = "Real time object detection (sendrecv)"
-transform_page = "Real time video transform with simple OpenCV filters (sendrecv)"
-serverside_play_page = (
-    "Consuming media files on server-side and streaming it to browser (recvonly)"
-)
-loopback_page = "Simple video loopback (sendrecv)"
-app_mode = st.sidebar.selectbox(
-    "Choose the app mode",
-    [
-        transform_with_nn_page,
-        transform_page,
-        serverside_play_page,
-        loopback_page,
-    ],
-)
-st.subheader(app_mode)
+    if app_mode == video_filters_page:
+        app_video_filters()
+    elif app_mode == object_detection_page:
+        app_object_detection()
+    elif app_mode == streaming_page:
+        app_streaming()
+    elif app_mode == loopback_page:
+        app_loopback()
 
-if app_mode == loopback_page:
+
+def app_loopback():
+    """ Simple video loopback """
     webrtc_streamer(
-        key=app_mode,
+        key="loopback",
         mode=WebRtcMode.SENDRECV,
-        client_settings=client_settings,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
         video_transformer_class=None,  # NoOp
     )
-elif app_mode == transform_page:
+
+
+def app_video_filters():
+    """ Video transforms with OpenCV """
 
     class OpenCVVideoTransformer(VideoTransformerBase):
         type: Literal["noop", "cartoon", "edges", "rotate"]
@@ -171,9 +180,9 @@ elif app_mode == transform_page:
             return img
 
     webrtc_ctx = webrtc_streamer(
-        key=app_mode,
+        key="opencv-filter",
         mode=WebRtcMode.SENDRECV,
-        client_settings=client_settings,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
         video_transformer_class=OpenCVVideoTransformer,
         async_transform=True,
     )
@@ -184,9 +193,15 @@ elif app_mode == transform_page:
     if webrtc_ctx.video_transformer:
         webrtc_ctx.video_transformer.type = transform_type
 
-elif app_mode == transform_with_nn_page:
 
-    # This detection model and code are based on https://github.com/robmarkcole/object-detection-app
+def app_object_detection():
+    """Object detection demo with MobileNet SSD.
+    This model and code are based on https://github.com/robmarkcole/object-detection-app
+    """
+    MODEL_URL = "https://github.com/robmarkcole/object-detection-app/raw/master/model/MobileNetSSD_deploy.caffemodel"
+    MODEL_LOCAL_PATH = HERE / "./models/MobileNetSSD_deploy.caffemodel"
+    PROTOTXT_URL = "https://github.com/robmarkcole/object-detection-app/raw/master/model/MobileNetSSD_deploy.prototxt.txt"
+    PROTOTXT_LOCAL_PATH = HERE / "./models/MobileNetSSD_deploy.prototxt.txt"
 
     CLASSES = [
         "background",
@@ -212,11 +227,6 @@ elif app_mode == transform_with_nn_page:
         "tvmonitor",
     ]
     COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
-
-    MODEL_URL = "https://github.com/robmarkcole/object-detection-app/raw/master/model/MobileNetSSD_deploy.caffemodel"
-    MODEL_LOCAL_PATH = HERE / "./models/MobileNetSSD_deploy.caffemodel"
-    PROTOTXT_URL = "https://github.com/robmarkcole/object-detection-app/raw/master/model/MobileNetSSD_deploy.prototxt.txt"
-    PROTOTXT_LOCAL_PATH = HERE / "./models/MobileNetSSD_deploy.prototxt.txt"
 
     download_file(MODEL_URL, MODEL_LOCAL_PATH, expected_size=23147564)
     download_file(PROTOTXT_URL, PROTOTXT_LOCAL_PATH, expected_size=29353)
@@ -276,9 +286,9 @@ elif app_mode == transform_with_nn_page:
             return annotated_image
 
     webrtc_ctx = webrtc_streamer(
-        key=app_mode,
+        key="object-detection",
         mode=WebRtcMode.SENDRECV,
-        client_settings=client_settings,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
         video_transformer_class=NNVideoTransformer,
         async_transform=True,
     )
@@ -294,7 +304,8 @@ elif app_mode == transform_with_nn_page:
     )
 
 
-elif app_mode == serverside_play_page:
+def app_streaming():
+    """ Media streamings """
     MEDIAFILES = {
         "big_buck_bunny_720p_2mb.mp4": {
             "url": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_2mb.mp4",
@@ -333,9 +344,7 @@ elif app_mode == serverside_play_page:
         #     options={"framerate": "30", "video_size": "1280x720"},
         # )
 
-    player_factory = create_player
-
-    client_settings.update(
+    WEBRTC_CLIENT_SETTINGS.update(
         {
             "fmedia_stream_constraints": {
                 "video": media_file_info["type"] == "video",
@@ -345,8 +354,18 @@ elif app_mode == serverside_play_page:
     )
 
     webrtc_streamer(
-        key=f"{app_mode}-{media_file_label}",
+        key=f"media-streaming-{media_file_label}",
         mode=WebRtcMode.RECVONLY,
-        client_settings=client_settings,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
         player_factory=create_player,
     )
+
+
+WEBRTC_CLIENT_SETTINGS = ClientSettings(
+    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+    media_stream_constraints={"video": True, "audio": True},
+)
+
+if __name__ == "__main__":
+    setup_logger()
+    main()
