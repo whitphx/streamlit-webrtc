@@ -31,9 +31,14 @@ HERE = Path(__file__).parent
 # This code is based on https://github.com/streamlit/demo-self-driving/blob/230245391f2dda0cb464008195a470751c01770b/streamlit_app.py#L48
 def download_file(url, download_to: Path, expected_size=None):
     # Don't download the file twice. (If possible, verify the download using the file length.)
-    if download_to.exists() and expected_size is not None:
-        if download_to.stat().st_size == expected_size:
-            return
+    if download_to.exists():
+        if expected_size:
+            if download_to.stat().st_size == expected_size:
+                return
+        else:
+            st.info(f"{url} is already downloaded.")
+            if not st.button("Download again?"):
+                return
 
     download_to.parent.mkdir(parents=True, exist_ok=True)
 
@@ -68,28 +73,30 @@ def download_file(url, download_to: Path, expected_size=None):
             progress_bar.empty()
 
 
-st.header("WebRTC component")
+st.header("WebRTC demo")
 
 client_settings = ClientSettings(
     rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
     media_stream_constraints={"video": True, "audio": True},
 )
 
-loopback_page = "Loopback (sendrecv)"
-transform_page = "Transform video stream (sendrecv)"
-transform_with_nn_page = "Transform video stream with NN model (sendrecv)"
+transform_with_nn_page = "Real time object detection (sendrecv)"
+transform_page = "Real time video transform with simple OpenCV filters (sendrecv)"
 serverside_play_page = (
-    "Consume a video on server-side and play it on client-side (recvonly)"
+    "Consuming media files on server-side and streaming it to browser (recvonly)"
 )
+loopback_page = "Simple video loopback (sendrecv)"
 app_mode = st.sidebar.selectbox(
     "Choose the app mode",
     [
-        loopback_page,
-        transform_page,
         transform_with_nn_page,
+        transform_page,
         serverside_play_page,
+        loopback_page,
     ],
 )
+st.subheader(app_mode)
+
 if app_mode == loopback_page:
     webrtc_streamer(
         key=app_mode,
@@ -263,11 +270,38 @@ elif app_mode == transform_with_nn_page:
 
 
 elif app_mode == serverside_play_page:
+    MEDIAFILES = {
+        "big_buck_bunny_720p_2mb.mp4": {
+            "url": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_2mb.mp4",
+            "local_file_path": HERE / "data/big_buck_bunny_720p_2mb.mp4",
+            "type": "video",
+        },
+        "big_buck_bunny_720p_10mb.mp4": {
+            "url": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_10mb.mp4",
+            "local_file_path": HERE / "data/big_buck_bunny_720p_10mb.mp4",
+            "type": "video",
+        },
+        "file_example_MP3_700KB.mp3": {
+            "url": "https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_700KB.mp3",
+            "local_file_path": HERE / "data/file_example_MP3_700KB.mp3",
+            "type": "audio",
+        },
+        "file_example_MP3_5MG.mp3": {
+            "url": "https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_5MG.mp3",
+            "local_file_path": HERE / "data/file_example_MP3_5MG.mp3",
+            "type": "audio",
+        },
+    }
+    media_file_label = st.radio(
+        "Select a media file to stream", tuple(MEDIAFILES.keys())
+    )
+    media_file_info = MEDIAFILES[media_file_label]
+    download_file(media_file_info["url"], media_file_info["local_file_path"])
 
     def create_player():
-        # TODO: Be configurable
-        return MediaPlayer("./sample-mp4-file.mp4")
-        # return MediaPlayer("./demo-instruct.wav")
+        return MediaPlayer(str(media_file_info["local_file_path"]))
+
+        # NOTE: To stream the video from webcam, use the code below.
         # return MediaPlayer(
         #     "1:none",
         #     format="avfoundation",
@@ -276,8 +310,17 @@ elif app_mode == serverside_play_page:
 
     player_factory = create_player
 
+    client_settings.update(
+        {
+            "fmedia_stream_constraints": {
+                "video": media_file_info["type"] == "video",
+                "audio": media_file_info["type"] == "audio",
+            }
+        }
+    )
+
     webrtc_streamer(
-        key=app_mode,
+        key=f"{app_mode}-{media_file_label}",
         mode=WebRtcMode.RECVONLY,
         client_settings=client_settings,
         player_factory=create_player,
