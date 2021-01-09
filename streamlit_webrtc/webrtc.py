@@ -39,66 +39,71 @@ async def process_offer(
     player_factory: Optional[MediaPlayerFactory],
     video_transformer: Optional[VideoTransformerBase],
     async_transform: bool,
-    callback: Callable[[RTCSessionDescription], None],
+    callback: Callable[[Union[RTCSessionDescription, Exception]], None],
 ):
-    player = None
-    if player_factory:
-        player = player_factory()
+    try:
+        player = None
+        if player_factory:
+            player = player_factory()
 
-    recorder = MediaBlackhole()
+        recorder = MediaBlackhole()
 
-    @pc.on("iceconnectionstatechange")
-    async def on_iceconnectionstatechange():
-        logger.info("ICE connection state is %s", pc.iceConnectionState)
-        if pc.iceConnectionState == "failed":
-            await pc.close()
+        @pc.on("iceconnectionstatechange")
+        async def on_iceconnectionstatechange():
+            logger.info("ICE connection state is %s", pc.iceConnectionState)
+            if pc.iceConnectionState == "failed":
+                await pc.close()
 
-    if mode == WebRtcMode.SENDRECV or mode == WebRtcMode.SENDONLY:
+        if mode == WebRtcMode.SENDRECV or mode == WebRtcMode.SENDONLY:
 
-        @pc.on("track")
-        def on_track(track):
-            logger.info("Track %s received", track.kind)
+            @pc.on("track")
+            def on_track(track):
+                logger.info("Track %s received", track.kind)
 
-            if track.kind == "audio":
-                if player and player.audio:
-                    pc.addTrack(player.audio)
-                recorder.addTrack(track)  # TODO
-            elif track.kind == "video":
-                if player and player.video:
-                    logger.info("Add player to video track")
-                    pc.addTrack(player.video)
-                elif video_transformer:
-                    VideoTrack = (
-                        AsyncVideoTransformTrack
-                        if async_transform
-                        else VideoTransformTrack
-                    )
-                    local_video = VideoTrack(
-                        track=track, video_transformer=video_transformer
-                    )
-                    pc.addTrack(local_video)
+                if track.kind == "audio":
+                    if player and player.audio:
+                        pc.addTrack(player.audio)
+                    recorder.addTrack(track)  # TODO
+                elif track.kind == "video":
+                    if player and player.video:
+                        logger.info("Add player to video track")
+                        pc.addTrack(player.video)
+                    elif video_transformer:
+                        VideoTrack = (
+                            AsyncVideoTransformTrack
+                            if async_transform
+                            else VideoTransformTrack
+                        )
+                        local_video = VideoTrack(
+                            track=track, video_transformer=video_transformer
+                        )
+                        pc.addTrack(local_video)
 
-            @track.on("ended")
-            async def on_ended():
-                logger.info("Track %s ended", track.kind)
-                await recorder.stop()
+                @track.on("ended")
+                async def on_ended():
+                    logger.info("Track %s ended", track.kind)
+                    await recorder.stop()
 
-    await pc.setRemoteDescription(offer)
-    if mode == WebRtcMode.RECVONLY:
-        for t in pc.getTransceivers():
-            if t.kind == "audio":
-                if player and player.audio:
-                    pc.addTrack(player.audio)
-            elif t.kind == "video":
-                if player and player.video:
-                    pc.addTrack(player.video)
+        await pc.setRemoteDescription(offer)
+        if mode == WebRtcMode.RECVONLY:
+            for t in pc.getTransceivers():
+                if t.kind == "audio":
+                    if player and player.audio:
+                        pc.addTrack(player.audio)
+                elif t.kind == "video":
+                    if player and player.video:
+                        pc.addTrack(player.video)
 
-    await recorder.start()  # TODO
+        await recorder.start()  # TODO
 
-    answer = await pc.createAnswer()
-    await pc.setLocalDescription(answer)
+        answer = await pc.createAnswer()
+        await pc.setLocalDescription(answer)
 
-    callback(pc.localDescription)
+        callback(pc.localDescription)
+    except Exception as e:
+        logger.debug("Error occurred in process_offer")
+        logger.debug(e)
+        callback(e)
 
 
 class WebRtcWorker:
@@ -207,11 +212,13 @@ class WebRtcWorker:
         try:
             loop.run_forever()
         finally:
+            logger.debug("Event loop %s has stopped.", loop)
             loop.run_until_complete(self.pc.close())
             loop.run_until_complete(loop.shutdown_asyncgens())
             loop.close()
+            logger.debug("Event loop %s cleaned up.", loop)
 
-    def process_offer(self, sdp, type_, timeout=10.0):
+    def process_offer(self, sdp, type_, timeout=10.0) -> RTCSessionDescription:
         self._thread = threading.Thread(
             target=self._run_webrtc_thread,
             kwargs={
@@ -225,8 +232,11 @@ class WebRtcWorker:
         )
         self._thread.start()
 
-        answer = self._answer_queue.get(timeout)
-        return answer
+        result = self._answer_queue.get(timeout)
+        if isinstance(result, Exception):
+            raise result
+
+        return result
 
     def stop(self):
         if self._loop:
