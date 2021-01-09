@@ -18,7 +18,7 @@ opencv-python = "^4.5.1"
 
 [tool.black]
 line-length = 88
-target-version = ['py37']
+target-version = ['py38']
 exclude = '''
 
 (
