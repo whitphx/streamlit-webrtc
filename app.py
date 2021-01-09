@@ -1,7 +1,6 @@
 import logging
 import logging.handlers
 import urllib.request
-import os
 from pathlib import Path
 from typing import Literal
 
@@ -17,19 +16,35 @@ from streamlit_webrtc import (
     VideoTransformerBase,
 )
 
-logging.basicConfig(level=logging.DEBUG)
 
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-ch.setFormatter(formatter)
-lib_logger = logging.getLogger("streamlit_webrtc")
-lib_logger.addHandler(ch)
-lib_logger.setLevel(logging.DEBUG)
+@st.cache
+def setup_logger():
+    logging.basicConfig(level=logging.DEBUG)
 
-logger = logging.getLogger(__name__)
-logger.addHandler(ch)
-logger.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        "[%(asctime)s] %(levelname)7s in %(module)s (%(filename)s:%(lineno)d): %(message)s"
+    )
+    ch.setFormatter(formatter)
+
+    st_webrtc_logger = logging.getLogger("streamlit_webrtc")
+
+    st_webrtc_logger.addHandler(ch)
+    st_webrtc_logger.setLevel(logging.DEBUG)
+
+    # `aiortc` does not have loggers with a common prefix and the loggers cannot be configured in this way: https://github.com/aiortc/aiortc/issues/446
+    # aiortc_logger = logging.getLogger("aiortc")
+    # aiortc_logger.addHandler(ch)
+    # aiortc_logger.setLevel(logging.DEBUG)
+
+    logger = logging.getLogger(__name__)
+    logger.addHandler(ch)
+    logger.setLevel(logging.DEBUG)
+
+
+setup_logger()
+
 
 HERE = Path(__file__).parent
 
