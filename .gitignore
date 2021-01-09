@@ -144,3 +144,6 @@ models/
 
 # Demo data
 data/
+
+# Exception for Heroku deployment
+!streamlit_webrtc/frontend/build/
