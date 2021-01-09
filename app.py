@@ -4,18 +4,18 @@ import urllib.request
 from pathlib import Path
 from typing import Literal
 
+import av
 import cv2
 import numpy as np
 import streamlit as st
-import av
 from aiortc.contrib.media import MediaPlayer
+
 from streamlit_webrtc import (
-    webrtc_streamer,
-    WebRtcMode,
     ClientSettings,
     VideoTransformerBase,
+    WebRtcMode,
+    webrtc_streamer,
 )
-
 
 HERE = Path(__file__).parent
 

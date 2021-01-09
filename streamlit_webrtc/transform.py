@@ -1,16 +1,14 @@
 import abc
-import threading
-import queue
-import traceback
 import logging
+import queue
 import sys
+import threading
+import traceback
 from typing import Optional, Union
-
-from aiortc import MediaStreamTrack
 
 import av
 import numpy as np
-
+from aiortc import MediaStreamTrack
 
 logger = logging.getLogger(__name__)
 
