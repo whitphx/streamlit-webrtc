@@ -5,6 +5,8 @@ import {
   ComponentProps,
 } from "streamlit-component-lib";
 import React, { ReactNode } from "react";
+import Box from "@material-ui/core/Box";
+import Button from "@material-ui/core/Button";
 
 type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -56,6 +58,8 @@ interface State {
   signaling: boolean;
   playing: boolean;
   stopping: boolean;
+  hasVideo: boolean;
+  hasAudio: boolean;
 }
 
 class WebRtcStreamer extends StreamlitComponentBase<State> {
@@ -72,6 +76,8 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       signaling: false,
       playing: false,
       stopping: false,
+      hasVideo: false,
+      hasAudio: false,
     };
   }
 
@@ -101,7 +107,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       throw new Error(`Invalid mode ${mode}`);
     }
 
-    this.setState({ signaling: true });
+    this.setState({ signaling: true, hasVideo: false, hasAudio: false });
 
     const config: RTCConfiguration =
       this.props.args.settings?.rtc_configuration || {};
@@ -118,6 +124,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
         }
 
         videoElem.srcObject = evt.streams[0];
+        this.setState({ hasVideo: true });
       } else {
         const audioElem = this.audioRef.current;
         if (audioElem == null) {
@@ -126,6 +133,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
         }
 
         audioElem.srcObject = evt.streams[0];
+        this.setState({ hasAudio: true });
       }
     });
 
@@ -205,7 +213,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   private stop = () => {
     this.setState({ stopping: true });
     this.stopInner().finally(() => {
-      this.setState({ stopping: false });
+      this.setState({ stopping: false, hasVideo: false, hasAudio: false });
     });
   };
 
@@ -227,25 +235,42 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       this.props.disabled || this.state.signaling || this.state.stopping;
 
     return (
-      <div>
-        <video
-          ref={this.videoRef}
-          autoPlay
-          controls
-          style={{ width: "100%" }}
-          onCanPlay={() => Streamlit.setFrameHeight()}
-        />
-        <audio ref={this.audioRef} autoPlay controls />
-        {this.state.playing ? (
-          <button onClick={this.stop} disabled={buttonDisabled}>
-            Stop
-          </button>
-        ) : (
-          <button onClick={this.start} disabled={buttonDisabled}>
-            Start
-          </button>
-        )}
-      </div>
+      <Box>
+        <Box>
+          <video
+            style={{
+              width: "100%",
+            }}
+            ref={this.videoRef}
+            autoPlay
+            controls
+            onCanPlay={() => Streamlit.setFrameHeight()}
+          />
+        </Box>
+        <Box>
+          <audio ref={this.audioRef} autoPlay controls />
+        </Box>
+        <Box>
+          {this.state.playing ? (
+            <Button
+              variant="contained"
+              onClick={this.stop}
+              disabled={buttonDisabled}
+            >
+              Stop
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={this.start}
+              disabled={buttonDisabled}
+            >
+              Start
+            </Button>
+          )}
+        </Box>
+      </Box>
     );
   };
 }
