@@ -1,3 +1,4 @@
+import queue
 import logging
 import logging.handlers
 import urllib.request
@@ -142,9 +143,10 @@ def app_server_recv():
     if webrtc_ctx.video_receiver:
         image_loc = st.empty()
         while True:
-            frame = webrtc_ctx.video_receiver.get_frame(timeout=1)
-
-            if frame is None:
+            try:
+                frame = webrtc_ctx.video_receiver.frames_queue.get(timeout=1)
+            except queue.Empty:
+                print('Queue is empty. Stop the loop.')
                 webrtc_ctx.video_receiver.stop()
                 break
 

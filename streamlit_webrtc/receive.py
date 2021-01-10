@@ -1,3 +1,4 @@
+import av
 import asyncio
 import queue
 from typing import Union
@@ -13,18 +14,14 @@ class VideoReceiver:
     _track: Union[MediaStreamTrack, None]
     _task: Union[asyncio.Task, None]
 
+    @property
+    def frames_queue(self) -> queue.Queue:
+        return self._frames_queue
+
     def __init__(self, queue_maxsize: int = 1) -> None:
         self._frames_queue = queue.Queue(maxsize=queue_maxsize)
         self._track = None
         self._task = None
-
-    def get_frame(self, timeout: float):
-        try:
-            return self._frames_queue.get(
-                timeout
-            )  # timeout must be set to avoid for the thread to halt.
-        except queue.Empty:
-            return None
 
     def addTrack(self, track: MediaStreamTrack):
         if self._track is not None:
@@ -51,4 +48,4 @@ class VideoReceiver:
                 frame = await track.recv()
             except MediaStreamError:
                 return
-            self._frames_queue.put(frame)
+            self.frames_queue.put(frame)
