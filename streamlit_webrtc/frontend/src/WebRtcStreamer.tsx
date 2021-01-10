@@ -13,14 +13,8 @@ const isWebRtcMode = (val: unknown): val is WebRtcMode =>
   val === "RECVONLY" || val === "SENDONLY" || val === "SENDRECV";
 
 const setupOffer = (
-  pc: RTCPeerConnection,
-  mode: WebRtcMode
+  pc: RTCPeerConnection
 ): Promise<RTCSessionDescription | null> => {
-  if (mode === "RECVONLY") {
-    pc.addTransceiver("video", { direction: "recvonly" });
-    pc.addTransceiver("audio", { direction: "recvonly" });
-  }
-
   return pc
     .createOffer()
     .then((offer) => {
@@ -114,29 +108,32 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     console.log("RTCConfiguration:", config);
     const pc = new RTCPeerConnection(config);
 
-    // connect audio / video
-    pc.addEventListener("track", (evt) => {
-      if (evt.track.kind === "video") {
-        const videoElem = this.videoRef.current;
-        if (videoElem == null) {
-          console.error("video element is not mounted");
-          return;
+    // Connect received audio / video to DOM elements
+    if (mode === "SENDRECV" || mode === "RECVONLY") {
+      pc.addEventListener("track", (evt) => {
+        if (evt.track.kind === "video") {
+          const videoElem = this.videoRef.current;
+          if (videoElem == null) {
+            console.error("video element is not mounted");
+            return;
+          }
+
+          videoElem.srcObject = evt.streams[0];
+          this.setState({ hasVideo: true });
+        } else {
+          const audioElem = this.audioRef.current;
+          if (audioElem == null) {
+            console.error("audio element is not mounted");
+            return;
+          }
+
+          audioElem.srcObject = evt.streams[0];
+          this.setState({ hasAudio: true });
         }
+      });
+    }
 
-        videoElem.srcObject = evt.streams[0];
-        this.setState({ hasVideo: true });
-      } else {
-        const audioElem = this.audioRef.current;
-        if (audioElem == null) {
-          console.error("audio element is not mounted");
-          return;
-        }
-
-        audioElem.srcObject = evt.streams[0];
-        this.setState({ hasAudio: true });
-      }
-    });
-
+    // Set up transceivers
     if (mode === "SENDRECV" || mode === "SENDONLY") {
       const defaultConstraints = {
         audio: true,
@@ -153,11 +150,22 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
           pc.addTrack(track, stream);
         });
       }
+
+      if (mode === "SENDONLY") {
+        for (const transceiver of pc.getTransceivers()) {
+          transceiver.direction = "sendonly";
+        }
+      }
+    } else if (mode === "RECVONLY") {
+      pc.addTransceiver("video", { direction: "recvonly" });
+      pc.addTransceiver("audio", { direction: "recvonly" });
     }
 
     this.setState({ playing: true });
 
-    setupOffer(pc, mode).then((offer) => {
+    console.log("transceivers", pc.getTransceivers());
+
+    setupOffer(pc).then((offer) => {
       if (offer == null) {
         console.warn("Failed to create an offer SDP");
         return;

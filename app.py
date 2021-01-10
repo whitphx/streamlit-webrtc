@@ -7,6 +7,7 @@ from typing import Literal
 import av
 import cv2
 import numpy as np
+import PIL
 import streamlit as st
 from aiortc.contrib.media import MediaPlayer
 
@@ -98,6 +99,7 @@ def download_file(url, download_to: Path, expected_size=None):
 def main():
     st.header("WebRTC demo")
 
+    server_recv_page = "Receive on server-side"
     object_detection_page = "Real time object detection (sendrecv)"
     video_filters_page = (
         "Real time video transform with simple OpenCV filters (sendrecv)"
@@ -109,6 +111,7 @@ def main():
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
         [
+            server_recv_page,
             object_detection_page,
             video_filters_page,
             streaming_page,
@@ -117,7 +120,9 @@ def main():
     )
     st.subheader(app_mode)
 
-    if app_mode == video_filters_page:
+    if app_mode == server_recv_page:
+        app_server_recv()
+    elif app_mode == video_filters_page:
         app_video_filters()
     elif app_mode == object_detection_page:
         app_object_detection()
@@ -125,6 +130,27 @@ def main():
         app_streaming()
     elif app_mode == loopback_page:
         app_loopback()
+
+
+def app_server_recv():
+    webrtc_ctx = webrtc_streamer(
+        key="loopback",
+        mode=WebRtcMode.SENDONLY,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+    )
+
+    if webrtc_ctx.video_receiver:
+        image_loc = st.empty()
+        while True:
+            frame = webrtc_ctx.video_receiver.get_frame(timeout=1)
+
+            if frame is None:
+                webrtc_ctx.video_receiver.stop()
+                break
+
+            img = frame.to_ndarray(format="bgr24")
+            img = PIL.Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+            image_loc.image(img)
 
 
 def app_loopback():

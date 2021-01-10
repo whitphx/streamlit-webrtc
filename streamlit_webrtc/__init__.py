@@ -8,7 +8,13 @@ import streamlit.components.v1 as components
 
 from . import SessionState
 from .config import MediaStreamConstraints, RTCConfiguration
-from .webrtc import MediaPlayerFactory, VideoTransformerBase, WebRtcMode, WebRtcWorker
+from .webrtc import (
+    MediaPlayerFactory,
+    VideoReceiver,
+    VideoTransformerBase,
+    WebRtcMode,
+    WebRtcWorker,
+)
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -48,6 +54,7 @@ class ClientSettings(TypedDict):
 
 class WebRtcWorkerContext(NamedTuple):
     video_transformer: Optional[VideoTransformerBase]
+    video_receiver: Optional[VideoReceiver]
 
 
 def webrtc_streamer(
@@ -97,7 +104,8 @@ def webrtc_streamer(
                 st.experimental_rerun()  # Rerun to send the SDP answer to frontend
 
     ctx = WebRtcWorkerContext(
-        video_transformer=webrtc_worker.video_transformer if webrtc_worker else None
+        video_transformer=webrtc_worker.video_transformer if webrtc_worker else None,
+        video_receiver=webrtc_worker.video_receiver if webrtc_worker else None,
     )
 
     return ctx
