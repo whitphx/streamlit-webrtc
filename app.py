@@ -1,6 +1,6 @@
-import queue
 import logging
 import logging.handlers
+import queue
 import urllib.request
 from pathlib import Path
 from typing import Literal
@@ -375,8 +375,8 @@ def app_streaming():
 
 
 def app_sendonly():
-    """ A sample to use WebRTC in sendonly mode to transfer frames
-    from the browser to the server and to render frames via `st.image`. """
+    """A sample to use WebRTC in sendonly mode to transfer frames
+    from the browser to the server and to render frames via `st.image`."""
     webrtc_ctx = webrtc_streamer(
         key="loopback",
         mode=WebRtcMode.SENDONLY,
