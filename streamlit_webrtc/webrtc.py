@@ -20,6 +20,7 @@ from .transform import (
 )
 
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 VideoTransformFn = Callable

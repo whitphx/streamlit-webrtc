@@ -11,6 +11,7 @@ import numpy as np
 from aiortc import MediaStreamTrack
 
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 class VideoTransformerBase(abc.ABC):
