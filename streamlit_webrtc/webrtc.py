@@ -73,7 +73,12 @@ async def process_offer(
                             if async_transform
                             else VideoTransformTrack
                         )
-                        logger.info("Add a input video track %s to another track with video_transformer %s", track, VideoTrack)
+                        logger.info(
+                            "Add a input video track %s to "
+                            "another track with video_transformer %s",
+                            track,
+                            VideoTrack,
+                        )
                         local_video = VideoTrack(
                             track=track, video_transformer=video_transformer
                         )
@@ -91,7 +96,9 @@ async def process_offer(
                     pass
                 elif track.kind == "video":
                     if video_receiver:
-                        logger.info("Add a track %s to receiver %s", track, video_receiver)
+                        logger.info(
+                            "Add a track %s to receiver %s", track, video_receiver
+                        )
                         video_receiver.addTrack(track)
 
                 @track.on("ended")

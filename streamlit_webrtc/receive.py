@@ -1,4 +1,3 @@
-import av
 import asyncio
 import queue
 from typing import Union
