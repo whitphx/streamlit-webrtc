@@ -7,10 +7,13 @@ import {
 import React, { ReactNode } from "react";
 import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
+import VisibilitySwitch from "./VisibilitySwitch";
 
 type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
   val === "RECVONLY" || val === "SENDONLY" || val === "SENDRECV";
+const isReceivable = (mode: WebRtcMode): boolean =>
+  mode === "SENDRECV" || mode === "RECVONLY";
 
 const setupOffer = (
   pc: RTCPeerConnection
@@ -241,23 +244,30 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   public render = (): ReactNode => {
     const buttonDisabled =
       this.props.disabled || this.state.signaling || this.state.stopping;
+    const mode = this.props.args["mode"];
+    const receivable = isWebRtcMode(mode) && isReceivable(mode);
 
     return (
       <Box>
-        <Box>
-          <video
-            style={{
-              width: "100%",
-            }}
-            ref={this.videoRef}
-            autoPlay
-            controls
-            onCanPlay={() => Streamlit.setFrameHeight()}
-          />
-        </Box>
-        <Box>
-          <audio ref={this.audioRef} autoPlay controls />
-        </Box>
+        <VisibilitySwitch
+          visible={receivable}
+          onVisibilityChange={() => setImmediate(Streamlit.setFrameHeight)}
+        >
+          <Box>
+            <video
+              style={{
+                width: "100%",
+              }}
+              ref={this.videoRef}
+              autoPlay
+              controls
+              onCanPlay={() => Streamlit.setFrameHeight()}
+            />
+          </Box>
+          <Box>
+            <audio ref={this.audioRef} autoPlay controls />
+          </Box>
+        </VisibilitySwitch>
         <Box>
           {this.state.playing ? (
             <Button
