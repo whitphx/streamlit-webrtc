@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from typing import Dict, Hashable, NamedTuple, Optional, TypedDict, Union
+from typing import Callable, Dict, Hashable, NamedTuple, Optional, TypedDict, Union
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -62,7 +62,7 @@ def webrtc_streamer(
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     client_settings: Optional[ClientSettings] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
-    video_transformer_class: Optional[VideoTransformerBase] = None,
+    video_transformer_class: Optional[Callable[[], VideoTransformerBase]] = None,
     async_transform: bool = True,
 ) -> WebRtcWorkerContext:
     webrtc_worker = get_webrtc_worker(key)

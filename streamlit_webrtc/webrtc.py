@@ -131,6 +131,7 @@ async def process_offer(
 
 
 class WebRtcWorker:
+    _thread: Union[threading.Thread, None]
     _loop: Union[AbstractEventLoop, None]
     _answer_queue: queue.Queue
     _video_transformer: Optional[VideoTransformerBase]
@@ -148,7 +149,7 @@ class WebRtcWorker:
         self,
         mode: WebRtcMode,
         player_factory: Optional[MediaPlayerFactory] = None,
-        video_transformer_class: Optional[VideoTransformerBase] = None,
+        video_transformer_class: Optional[Callable[[], VideoTransformerBase]] = None,
         async_transform: bool = True,
     ) -> None:
         self._thread = None
@@ -170,7 +171,7 @@ class WebRtcWorker:
         sdp: str,
         type_: str,
         player_factory: Optional[MediaPlayerFactory],
-        video_transformer_class: Optional[VideoTransformerBase],
+        video_transformer_class: Optional[Callable[[], VideoTransformerBase]],
         video_receiver: Optional[VideoReceiver],
         async_transform: bool,
     ):
@@ -199,7 +200,7 @@ class WebRtcWorker:
         sdp: str,
         type_: str,
         player_factory: Optional[MediaPlayerFactory],
-        video_transformer_class: Optional[VideoTransformerBase],
+        video_transformer_class: Optional[Callable[[], VideoTransformerBase]],
         video_receiver: Optional[VideoReceiver],
         async_transform: bool,
     ):
