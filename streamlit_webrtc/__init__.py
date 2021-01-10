@@ -1,14 +1,20 @@
 import json
 import logging
 import os
-from typing import Dict, Hashable, NamedTuple, Optional, TypedDict, Union
+from typing import Callable, Dict, Hashable, NamedTuple, Optional, TypedDict, Union
 
 import streamlit as st
 import streamlit.components.v1 as components
 
 from . import SessionState
 from .config import MediaStreamConstraints, RTCConfiguration
-from .webrtc import MediaPlayerFactory, VideoTransformerBase, WebRtcMode, WebRtcWorker
+from .webrtc import (
+    MediaPlayerFactory,
+    VideoReceiver,
+    VideoTransformerBase,
+    WebRtcMode,
+    WebRtcWorker,
+)
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -48,6 +54,7 @@ class ClientSettings(TypedDict):
 
 class WebRtcWorkerContext(NamedTuple):
     video_transformer: Optional[VideoTransformerBase]
+    video_receiver: Optional[VideoReceiver]
 
 
 def webrtc_streamer(
@@ -55,7 +62,7 @@ def webrtc_streamer(
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     client_settings: Optional[ClientSettings] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
-    video_transformer_class: Optional[VideoTransformerBase] = None,
+    video_transformer_class: Optional[Callable[[], VideoTransformerBase]] = None,
     async_transform: bool = True,
 ) -> WebRtcWorkerContext:
     webrtc_worker = get_webrtc_worker(key)
@@ -97,7 +104,8 @@ def webrtc_streamer(
                 st.experimental_rerun()  # Rerun to send the SDP answer to frontend
 
     ctx = WebRtcWorkerContext(
-        video_transformer=webrtc_worker.video_transformer if webrtc_worker else None
+        video_transformer=webrtc_worker.video_transformer if webrtc_worker else None,
+        video_receiver=webrtc_worker.video_receiver if webrtc_worker else None,
     )
 
     return ctx

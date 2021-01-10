@@ -1,10 +1,14 @@
 from typing import List, Optional, TypedDict, Union
 
-
-class RTCIceServer(TypedDict):
-    urls: Union[str, List[str]]
-    username: Optional[str]
-    credential: Optional[str]
+RTCIceServer = TypedDict(
+    "RTCIceServer",
+    {
+        "urls": Union[str, List[str]],
+        "username": Optional[str],
+        "credential": Optional[str],
+    },
+    total=False,
+)
 
 
 class RTCConfiguration(TypedDict):
