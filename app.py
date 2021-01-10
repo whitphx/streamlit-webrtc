@@ -203,6 +203,12 @@ def app_video_filters():
     if webrtc_ctx.video_transformer:
         webrtc_ctx.video_transformer.type = transform_type
 
+    st.markdown(
+        "This demo is based on "
+        "https://github.com/aiortc/aiortc/blob/2362e6d1f0c730a0f8c387bbea76546775ad2fe8/examples/server/server.py#L34. "
+        "Many thanks to the project."
+    )
+
 
 def app_object_detection():
     """Object detection demo with MobileNet SSD.
