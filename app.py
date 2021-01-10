@@ -1,3 +1,4 @@
+import queue
 import logging
 import logging.handlers
 import urllib.request
@@ -7,6 +8,7 @@ from typing import Literal
 import av
 import cv2
 import numpy as np
+import PIL
 import streamlit as st
 from aiortc.contrib.media import MediaPlayer
 
@@ -105,6 +107,7 @@ def main():
     streaming_page = (
         "Consuming media files on server-side and streaming it to browser (recvonly)"
     )
+    sendonly_page = "WebRTC is sendonly and images are shown via st.image() (sendonly)"
     loopback_page = "Simple video loopback (sendrecv)"
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
@@ -112,6 +115,7 @@ def main():
             object_detection_page,
             video_filters_page,
             streaming_page,
+            sendonly_page,
             loopback_page,
         ],
     )
@@ -123,6 +127,8 @@ def main():
         app_object_detection()
     elif app_mode == streaming_page:
         app_streaming()
+    elif app_mode == sendonly_page:
+        app_sendonly()
     elif app_mode == loopback_page:
         app_loopback()
 
@@ -366,6 +372,30 @@ def app_streaming():
         client_settings=WEBRTC_CLIENT_SETTINGS,
         player_factory=create_player,
     )
+
+
+def app_sendonly():
+    """ A sample to use WebRTC in sendonly mode to transfer frames
+    from the browser to the server and to render frames via `st.image`. """
+    webrtc_ctx = webrtc_streamer(
+        key="loopback",
+        mode=WebRtcMode.SENDONLY,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+    )
+
+    if webrtc_ctx.video_receiver:
+        image_loc = st.empty()
+        while True:
+            try:
+                frame = webrtc_ctx.video_receiver.frames_queue.get(timeout=1)
+            except queue.Empty:
+                print("Queue is empty. Stop the loop.")
+                webrtc_ctx.video_receiver.stop()
+                break
+
+            img = frame.to_ndarray(format="bgr24")
+            img = PIL.Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+            image_loc.image(img)
 
 
 WEBRTC_CLIENT_SETTINGS = ClientSettings(
