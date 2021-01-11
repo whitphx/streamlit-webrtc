@@ -24,4 +24,4 @@ const VisibilitySwitch = ({
   );
 };
 
-export default VisibilitySwitch;
+export default React.memo(VisibilitySwitch);
