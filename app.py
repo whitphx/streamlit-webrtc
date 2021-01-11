@@ -230,7 +230,7 @@ def app_object_detection():
             self._net = cv2.dnn.readNetFromCaffe(
                 str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH)
             )
-            self.confidence_threshold = 0.8
+            self.confidence_threshold = DEFAULT_CONFIDENCE_THRESHOLD
 
         def _annotate_image(self, image, detections):
             # loop over the detections
@@ -385,7 +385,7 @@ WEBRTC_CLIENT_SETTINGS = ClientSettings(
 if __name__ == "__main__":
     logging.basicConfig(
         format="[%(asctime)s] %(levelname)7s from %(name)s in %(filename)s:%(lineno)d: "
-               "%(message)s",
+        "%(message)s",
         force=True,
     )
 
