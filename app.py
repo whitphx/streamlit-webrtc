@@ -21,34 +21,7 @@ from streamlit_webrtc import (
 
 HERE = Path(__file__).parent
 
-
-@st.cache
-def setup_logger():
-    logging.basicConfig(level=logging.DEBUG)
-
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        "[%(asctime)s] %(levelname)7s in %(module)s (%(filename)s:%(lineno)d): "
-        "%(message)s"
-    )
-    ch.setFormatter(formatter)
-
-    st_webrtc_logger = logging.getLogger("streamlit_webrtc")
-
-    st_webrtc_logger.addHandler(ch)
-    st_webrtc_logger.setLevel(logging.DEBUG)
-
-    # `aiortc` does not have loggers with a common prefix
-    # and the loggers cannot be configured in this way.
-    # See https://github.com/aiortc/aiortc/issues/446
-    # aiortc_logger = logging.getLogger("aiortc")
-    # aiortc_logger.addHandler(ch)
-    # aiortc_logger.setLevel(logging.DEBUG)
-
-    logger = logging.getLogger(__name__)
-    logger.addHandler(ch)
-    logger.setLevel(logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 # This code is based on https://github.com/streamlit/demo-self-driving/blob/230245391f2dda0cb464008195a470751c01770b/streamlit_app.py#L48  # noqa: E501
@@ -205,7 +178,7 @@ def app_video_filters():
 
     st.markdown(
         "This demo is based on "
-        "https://github.com/aiortc/aiortc/blob/2362e6d1f0c730a0f8c387bbea76546775ad2fe8/examples/server/server.py#L34. "
+        "https://github.com/aiortc/aiortc/blob/2362e6d1f0c730a0f8c387bbea76546775ad2fe8/examples/server/server.py#L34. "  # noqa: E501
         "Many thanks to the project."
     )
 
@@ -410,5 +383,15 @@ WEBRTC_CLIENT_SETTINGS = ClientSettings(
 )
 
 if __name__ == "__main__":
-    setup_logger()
+    logging.basicConfig(
+        format="[%(asctime)s] %(levelname)7s from %(name)s in %(filename)s:%(lineno)d: "
+               "%(message)s",
+        force=True,
+    )
+
+    logger.setLevel(level=logging.DEBUG)
+
+    st_webrtc_logger = logging.getLogger("streamlit_webrtc")
+    st_webrtc_logger.setLevel(logging.DEBUG)
+
     main()
