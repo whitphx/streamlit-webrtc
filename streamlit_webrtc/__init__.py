@@ -62,7 +62,7 @@ def webrtc_streamer(
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     client_settings: Optional[ClientSettings] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
-    video_transformer_class: Optional[Callable[[], VideoTransformerBase]] = None,
+    video_transformer_factory: Optional[Callable[[], VideoTransformerBase]] = None,
     async_transform: bool = True,
 ) -> WebRtcWorkerContext:
     webrtc_worker = get_webrtc_worker(key)
@@ -96,7 +96,7 @@ def webrtc_streamer(
                 webrtc_worker = WebRtcWorker(
                     mode=mode,
                     player_factory=player_factory,
-                    video_transformer_class=video_transformer_class,
+                    video_transformer_factory=video_transformer_factory,
                     async_transform=async_transform,
                 )
                 webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
