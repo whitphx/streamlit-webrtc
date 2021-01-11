@@ -296,7 +296,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
             <audio ref={this.audioRef} autoPlay controls />
           </Box>
         </VisibilitySwitch>
-        <Box>
+        <Box display="flex" justifyContent="space-between">
           {this.state.playing ? (
             <Button
               variant="contained"
@@ -315,8 +315,8 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
               Start
             </Button>
           )}
+          <DeviceSelector onSelect={this.handleDeviceSelect} />
         </Box>
-        <DeviceSelector onSelect={this.handleDeviceSelect} />
       </Box>
     );
   };

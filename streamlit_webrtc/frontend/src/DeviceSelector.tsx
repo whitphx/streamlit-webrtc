@@ -1,11 +1,34 @@
 import React, { useState, useCallback } from "react";
 import Box from "@material-ui/core/Box";
+import { makeStyles } from "@material-ui/core/styles";
 import Button, { ButtonProps } from "@material-ui/core/Button";
 import FormControl from "@material-ui/core/FormControl";
 import InputLabel from "@material-ui/core/InputLabel";
 import Select, { SelectProps } from "@material-ui/core/Select";
 import MenuItem from "@material-ui/core/MenuItem";
 import Popper, { PopperProps } from "@material-ui/core/Popper";
+import Fade from "@material-ui/core/Fade";
+import Paper from "@material-ui/core/Paper";
+
+const useStyles = makeStyles((theme) => ({
+  paper: {
+    padding: theme.spacing(2),
+  },
+  formControl: {
+    maxWidth: "80vw",
+    margin: theme.spacing(1),
+    minWidth: 120,
+    display: "flex",
+  },
+  formButtonControl: {
+    margin: theme.spacing(2),
+    minWidth: 120,
+    display: "flex",
+  },
+  selectEmpty: {
+    marginTop: theme.spacing(2),
+  },
+}));
 
 interface DevicesMap {
   audio: MediaDeviceInfo[];
@@ -24,6 +47,8 @@ const DeviceSelecter = ({
   devices,
   onChange: onChangeProp,
 }: DeviceSelecterProps) => {
+  const classes = useStyles();
+
   const onChange = useCallback<NonNullable<SelectProps["onChange"]>>(
     (e) => {
       const selected = devices.find((d) => d.deviceId === e.target.value);
@@ -46,7 +71,12 @@ const DeviceSelecter = ({
   }
 
   return (
-    <Select labelId={labelId} value={value.deviceId} onChange={onChange}>
+    <Select
+      labelId={labelId}
+      value={value.deviceId}
+      onChange={onChange}
+      className={classes.selectEmpty}
+    >
       {devices.map((device) => (
         <MenuItem key={device.deviceId} value={device.deviceId}>
           {device.label}
@@ -78,33 +108,51 @@ const DeviceSelectPopper = ({
     null
   );
 
-  const onSubmitButton = useCallback(() => {
-    onSubmit(selectedVideo, selectedAudio);
-  }, [onSubmit, selectedVideo, selectedAudio]);
+  const handleSubmit = useCallback<
+    NonNullable<React.ComponentProps<"form">["onSubmit"]>
+  >(
+    (e) => {
+      e.preventDefault();
+      onSubmit(selectedVideo, selectedAudio);
+    },
+    [onSubmit, selectedVideo, selectedAudio]
+  );
+
+  const classes = useStyles();
 
   return (
-    <Popper open={open} anchorEl={anchorEl} placement="right">
-      <Box style={{ backgroundColor: "white" }}>
-        <FormControl>
-          <InputLabel id="video-input-select">Video input</InputLabel>
-          <DeviceSelecter
-            labelId="video-input-select"
-            devices={devicesMap.video}
-            value={selectedVideo}
-            onChange={setSelectedVideo}
-          />
-        </FormControl>
-        <FormControl>
-          <InputLabel id="audio-input-select">Audio input</InputLabel>
-          <DeviceSelecter
-            labelId="audio-input-select"
-            devices={devicesMap.audio}
-            value={selectedAudio}
-            onChange={setSelectedAudio}
-          />
-        </FormControl>
-        <Button onClick={onSubmitButton}>OK</Button>
-      </Box>
+    <Popper open={open} anchorEl={anchorEl} placement="top-end" transition>
+      {({ TransitionProps }) => (
+        <Fade {...TransitionProps} timeout={350}>
+          <Paper className={classes.paper}>
+            <form onSubmit={handleSubmit}>
+              <FormControl className={classes.formControl}>
+                <InputLabel id="video-input-select">Video input</InputLabel>
+                <DeviceSelecter
+                  labelId="video-input-select"
+                  devices={devicesMap.video}
+                  value={selectedVideo}
+                  onChange={setSelectedVideo}
+                />
+              </FormControl>
+              <FormControl className={classes.formControl}>
+                <InputLabel id="audio-input-select">Audio input</InputLabel>
+                <DeviceSelecter
+                  labelId="audio-input-select"
+                  devices={devicesMap.audio}
+                  value={selectedAudio}
+                  onChange={setSelectedAudio}
+                />
+              </FormControl>
+              <FormControl className={classes.formButtonControl}>
+                <Button type="submit" variant="contained" color="primary">
+                  OK
+                </Button>
+              </FormControl>
+            </form>
+          </Paper>
+        </Fade>
+      )}
     </Popper>
   );
 };
