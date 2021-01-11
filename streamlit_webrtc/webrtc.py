@@ -25,7 +25,8 @@ logger.addHandler(logging.NullHandler())
 
 VideoTransformFn = Callable
 
-MediaPlayerFactory = Callable[..., MediaPlayer]
+MediaPlayerFactory = Callable[[], MediaPlayer]
+VideoTransformerFactory = Callable[[], VideoTransformerBase]
 
 
 class WebRtcMode(enum.Enum):
@@ -150,7 +151,7 @@ class WebRtcWorker:
         self,
         mode: WebRtcMode,
         player_factory: Optional[MediaPlayerFactory] = None,
-        video_transformer_class: Optional[Callable[[], VideoTransformerBase]] = None,
+        video_transformer_factory: Optional[VideoTransformerFactory] = None,
         async_transform: bool = True,
     ) -> None:
         self._thread = None
@@ -161,7 +162,7 @@ class WebRtcWorker:
 
         self.mode = mode
         self.player_factory = player_factory
-        self.video_transformer_class = video_transformer_class
+        self.video_transformer_factory = video_transformer_factory
         self.async_transform = async_transform
 
         self._video_transformer = None
@@ -172,7 +173,7 @@ class WebRtcWorker:
         sdp: str,
         type_: str,
         player_factory: Optional[MediaPlayerFactory],
-        video_transformer_class: Optional[Callable[[], VideoTransformerBase]],
+        video_transformer_factory: Optional[VideoTransformerFactory],
         video_receiver: Optional[VideoReceiver],
         async_transform: bool,
     ):
@@ -181,7 +182,7 @@ class WebRtcWorker:
                 sdp=sdp,
                 type_=type_,
                 player_factory=player_factory,
-                video_transformer_class=video_transformer_class,
+                video_transformer_factory=video_transformer_factory,
                 video_receiver=video_receiver,
                 async_transform=async_transform,
             )
@@ -201,14 +202,14 @@ class WebRtcWorker:
         sdp: str,
         type_: str,
         player_factory: Optional[MediaPlayerFactory],
-        video_transformer_class: Optional[Callable[[], VideoTransformerBase]],
+        video_transformer_factory: Optional[Callable[[], VideoTransformerBase]],
         video_receiver: Optional[VideoReceiver],
         async_transform: bool,
     ):
         logger.debug(
-            "_webrtc_thread(player_factory=%s, video_transformer_class=%s)",
+            "_webrtc_thread(player_factory=%s, video_transformer_factory=%s)",
             player_factory,
-            video_transformer_class,
+            video_transformer_factory,
         )
 
         loop = asyncio.new_event_loop()
@@ -220,14 +221,14 @@ class WebRtcWorker:
             self._answer_queue.put(localDescription)
 
         video_transformer = None
-        if video_transformer_class:
-            video_transformer = video_transformer_class()
+        if video_transformer_factory:
+            video_transformer = video_transformer_factory()
 
         if self.mode == WebRtcMode.SENDRECV:
             if video_transformer is None:
                 logger.info(
                     "mode is set as sendrecv, "
-                    "but video_transformer_class is not specified. "
+                    "but video_transformer_factory is not specified. "
                     "A simple loopback transformer is used."
                 )
                 video_transformer = NoOpVideoTransformer()
@@ -266,7 +267,7 @@ class WebRtcWorker:
                 "sdp": sdp,
                 "type_": type_,
                 "player_factory": self.player_factory,
-                "video_transformer_class": self.video_transformer_class,
+                "video_transformer_factory": self.video_transformer_factory,
                 "video_receiver": self._video_receiver,
                 "async_transform": self.async_transform,
             },

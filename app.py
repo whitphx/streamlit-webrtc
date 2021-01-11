@@ -112,7 +112,7 @@ def app_loopback():
         key="loopback",
         mode=WebRtcMode.SENDRECV,
         client_settings=WEBRTC_CLIENT_SETTINGS,
-        video_transformer_class=None,  # NoOp
+        video_transformer_factory=None,  # NoOp
     )
 
 
@@ -166,7 +166,7 @@ def app_video_filters():
         key="opencv-filter",
         mode=WebRtcMode.SENDRECV,
         client_settings=WEBRTC_CLIENT_SETTINGS,
-        video_transformer_class=OpenCVVideoTransformer,
+        video_transformer_factory=OpenCVVideoTransformer,
         async_transform=True,
     )
 
@@ -279,7 +279,7 @@ def app_object_detection():
         key="object-detection",
         mode=WebRtcMode.SENDRECV,
         client_settings=WEBRTC_CLIENT_SETTINGS,
-        video_transformer_class=NNVideoTransformer,
+        video_transformer_factory=NNVideoTransformer,
         async_transform=True,
     )
 
