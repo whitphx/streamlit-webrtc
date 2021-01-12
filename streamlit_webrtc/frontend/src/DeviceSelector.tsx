@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
+import { Streamlit } from "streamlit-component-lib";
 import Box from "@material-ui/core/Box";
 import { makeStyles } from "@material-ui/core/styles";
 import Button, { ButtonProps } from "@material-ui/core/Button";
@@ -7,7 +8,6 @@ import InputLabel from "@material-ui/core/InputLabel";
 import Select, { SelectProps } from "@material-ui/core/Select";
 import MenuItem from "@material-ui/core/MenuItem";
 import Popper, { PopperProps } from "@material-ui/core/Popper";
-import Fade from "@material-ui/core/Fade";
 import Paper from "@material-ui/core/Paper";
 
 const useStyles = makeStyles((theme) => ({
@@ -67,7 +67,7 @@ const DeviceSelecter = ({
   }
 
   if (value == null) {
-    onChangeProp(devices[0]);
+    setImmediate(() => onChangeProp(devices[0]));
     return null;
   }
 
@@ -121,39 +121,67 @@ const DeviceSelectPopper = ({
 
   const classes = useStyles();
 
+  const originalBodyHeightRef = useRef<string>();
+  const popperRefFn = useCallback((popper: HTMLDivElement | null) => {
+    // Manage <body>'s height reacting to popper appearance.
+    if (popper) {
+      setTimeout(() => {
+        const body = document.getElementsByTagName("body")[0];
+        originalBodyHeightRef.current = body.style.height;
+
+        const style = window.getComputedStyle(popper);
+        const matrix = new WebKitCSSMatrix(style.transform);
+        const translateY = matrix.m42;
+
+        const scrollBottom = translateY + popper.getBoundingClientRect().height;
+        if (scrollBottom > document.body.scrollHeight) {
+          body.style.height = `${scrollBottom}px`;
+          Streamlit.setFrameHeight();
+        }
+      }, 0);
+    } else {
+      const body = document.getElementsByTagName("body")[0];
+      if (originalBodyHeightRef.current != null) {
+        body.style.height = originalBodyHeightRef.current;
+      }
+      Streamlit.setFrameHeight();
+    }
+  }, []);
+
   return (
-    <Popper open={open} anchorEl={anchorEl} placement="top-end" transition>
-      {({ TransitionProps }) => (
-        <Fade {...TransitionProps} timeout={350}>
-          <Paper className={classes.paper}>
-            <form onSubmit={handleSubmit}>
-              <FormControl className={classes.formControl}>
-                <InputLabel id="video-input-select">Video input</InputLabel>
-                <DeviceSelecter
-                  labelId="video-input-select"
-                  devices={devicesMap.video}
-                  value={selectedVideo}
-                  onChange={setSelectedVideo}
-                />
-              </FormControl>
-              <FormControl className={classes.formControl}>
-                <InputLabel id="audio-input-select">Audio input</InputLabel>
-                <DeviceSelecter
-                  labelId="audio-input-select"
-                  devices={devicesMap.audio}
-                  value={selectedAudio}
-                  onChange={setSelectedAudio}
-                />
-              </FormControl>
-              <FormControl className={classes.formButtonControl}>
-                <Button type="submit" variant="contained" color="primary">
-                  OK
-                </Button>
-              </FormControl>
-            </form>
-          </Paper>
-        </Fade>
-      )}
+    <Popper
+      ref={popperRefFn}
+      open={open}
+      anchorEl={anchorEl}
+      placement="left-end"
+    >
+      <Paper className={classes.paper}>
+        <form onSubmit={handleSubmit}>
+          <FormControl className={classes.formControl}>
+            <InputLabel id="video-input-select">Video input</InputLabel>
+            <DeviceSelecter
+              labelId="video-input-select"
+              devices={devicesMap.video}
+              value={selectedVideo}
+              onChange={setSelectedVideo}
+            />
+          </FormControl>
+          <FormControl className={classes.formControl}>
+            <InputLabel id="audio-input-select">Audio input</InputLabel>
+            <DeviceSelecter
+              labelId="audio-input-select"
+              devices={devicesMap.audio}
+              value={selectedAudio}
+              onChange={setSelectedAudio}
+            />
+          </FormControl>
+          <FormControl className={classes.formButtonControl}>
+            <Button type="submit" variant="contained" color="primary">
+              OK
+            </Button>
+          </FormControl>
+        </form>
+      </Paper>
     </Popper>
   );
 };
