@@ -315,7 +315,13 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
               Start
             </Button>
           )}
-          <DeviceSelector onSelect={this.handleDeviceSelect} />
+          <DeviceSelector
+            onSelect={this.handleDeviceSelect}
+            value={{
+              video: this.state.videoInput,
+              audio: this.state.audioInput,
+            }}
+          />
         </Box>
       </Box>
     );

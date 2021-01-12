@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Streamlit } from "streamlit-component-lib";
 import Box from "@material-ui/core/Box";
 import { makeStyles } from "@material-ui/core/styles";
@@ -90,6 +90,10 @@ const DeviceSelecter = ({
 interface DeviceSelectPopperProps {
   open: boolean;
   anchorEl: PopperProps["anchorEl"];
+  value: {
+    video: MediaDeviceInfo | null;
+    audio: MediaDeviceInfo | null;
+  };
   devicesMap: DevicesMap;
   onSubmit: (
     video: MediaDeviceInfo | null,
@@ -99,6 +103,7 @@ interface DeviceSelectPopperProps {
 const DeviceSelectPopper = ({
   open,
   anchorEl,
+  value,
   devicesMap,
   onSubmit,
 }: DeviceSelectPopperProps) => {
@@ -108,6 +113,15 @@ const DeviceSelectPopper = ({
   const [selectedAudio, setSelectedAudio] = useState<MediaDeviceInfo | null>(
     null
   );
+
+  useEffect(() => {
+    setSelectedVideo(
+      devicesMap.video.find((d) => d.deviceId === value.video?.deviceId) || null
+    );
+    setSelectedAudio(
+      devicesMap.audio.find((d) => d.deviceId === value.audio?.deviceId) || null
+    );
+  }, [devicesMap, value]);
 
   const handleSubmit = useCallback<
     NonNullable<React.ComponentProps<"form">["onSubmit"]>
@@ -187,16 +201,21 @@ const DeviceSelectPopper = ({
 };
 
 interface DeviceSelectorProps {
+  value: {
+    video: MediaDeviceInfo | null;
+    audio: MediaDeviceInfo | null;
+  };
   onSelect: (
     video: MediaDeviceInfo | null,
     audio: MediaDeviceInfo | null
   ) => void;
 }
-const DeviceSelector = ({ onSelect }: DeviceSelectorProps) => {
+const DeviceSelector = ({ value, onSelect }: DeviceSelectorProps) => {
   const [open, setOpen] = useState(false);
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
   const [devicesMap, setDevicesMap] = useState<DevicesMap>();
   const [unavailable, setUnavailable] = useState(false);
+
   const onOpen = useCallback<NonNullable<ButtonProps["onClick"]>>((event) => {
     setAnchorEl(event.currentTarget);
 
@@ -241,6 +260,7 @@ const DeviceSelector = ({ onSelect }: DeviceSelectorProps) => {
         <DeviceSelectPopper
           open={open}
           anchorEl={anchorEl}
+          value={value}
           devicesMap={devicesMap}
           onSubmit={onSubmit}
         />
