@@ -8,6 +8,7 @@ import React, { ReactNode } from "react";
 import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
 import VisibilitySwitch from "./VisibilitySwitch";
+import DeviceSelector from "./DeviceSelector";
 
 type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -55,6 +56,8 @@ interface State {
   signaling: boolean;
   playing: boolean;
   stopping: boolean;
+  videoInput: MediaDeviceInfo | null;
+  audioInput: MediaDeviceInfo | null;
   hasVideo: boolean;
   hasAudio: boolean;
 }
@@ -73,6 +76,8 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       signaling: false,
       playing: false,
       stopping: false,
+      videoInput: null,
+      audioInput: null,
       hasVideo: false,
       hasAudio: false,
     };
@@ -138,13 +143,29 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
 
     // Set up transceivers
     if (mode === "SENDRECV" || mode === "SENDONLY") {
-      const defaultConstraints = {
-        audio: true,
-        video: true,
-      };
-      const constraints: MediaStreamConstraints =
-        this.props.args.settings?.media_stream_constraints ||
-        defaultConstraints;
+      const constraintsFromPython = this.props.args.settings
+        ?.media_stream_constraints;
+      const useAudio = constraintsFromPython
+        ? constraintsFromPython.audio
+        : true;
+      const useVideo = constraintsFromPython
+        ? constraintsFromPython.video
+        : true;
+      const constraints: MediaStreamConstraints = {};
+      if (useAudio) {
+        constraints.audio = this.state.audioInput
+          ? {
+              deviceId: this.state.audioInput.deviceId,
+            }
+          : true;
+      }
+      if (useVideo) {
+        constraints.video = this.state.videoInput
+          ? {
+              deviceId: this.state.videoInput.deviceId,
+            }
+          : true;
+      }
       console.log("MediaStreamConstraints:", constraints);
 
       if (constraints.audio || constraints.video) {
@@ -241,6 +262,13 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     }
   }
 
+  private handleDeviceSelect = (
+    video: MediaDeviceInfo | null,
+    audio: MediaDeviceInfo | null
+  ) => {
+    this.setState({ videoInput: video, audioInput: audio });
+  };
+
   public render = (): ReactNode => {
     const buttonDisabled =
       this.props.disabled || this.state.signaling || this.state.stopping;
@@ -268,7 +296,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
             <audio ref={this.audioRef} autoPlay controls />
           </Box>
         </VisibilitySwitch>
-        <Box>
+        <Box display="flex" justifyContent="space-between">
           {this.state.playing ? (
             <Button
               variant="contained"
@@ -287,6 +315,13 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
               Start
             </Button>
           )}
+          <DeviceSelector
+            onSelect={this.handleDeviceSelect}
+            value={{
+              video: this.state.videoInput,
+              audio: this.state.audioInput,
+            }}
+          />
         </Box>
       </Box>
     );
