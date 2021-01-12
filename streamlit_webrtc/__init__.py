@@ -16,8 +16,8 @@ from .webrtc import (
     WebRtcWorker,
 )
 
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
+LOGGER = logging.getLogger(__name__)
+LOGGER.addHandler(logging.NullHandler())
 
 _RELEASE = True  # TODO: How to dynamically manage this variable?
 
@@ -32,19 +32,19 @@ else:
     _component_func = components.declare_component("webrtc_streamer", path=build_dir)
 
 
-session_state = SessionState.get(webrtc_workers={})
+_session_state = SessionState.get(webrtc_workers={})
 
 
-def get_webrtc_worker(key: Hashable) -> Union[WebRtcWorker, None]:
-    return session_state.webrtc_workers.get(key)
+def _get_webrtc_worker(key: Hashable) -> Union[WebRtcWorker, None]:
+    return _session_state.webrtc_workers.get(key)
 
 
-def set_webrtc_worker(key: Hashable, webrtc_worker: WebRtcWorker) -> None:
-    session_state.webrtc_workers[key] = webrtc_worker
+def _set_webrtc_worker(key: Hashable, webrtc_worker: WebRtcWorker) -> None:
+    _session_state.webrtc_workers[key] = webrtc_worker
 
 
-def unset_webrtc_worker(key: Hashable) -> None:
-    del session_state.webrtc_workers[key]
+def _unset_webrtc_worker(key: Hashable) -> None:
+    del _session_state.webrtc_workers[key]
 
 
 class ClientSettings(TypedDict):
@@ -65,7 +65,7 @@ def webrtc_streamer(
     video_transformer_factory: Optional[Callable[[], VideoTransformerBase]] = None,
     async_transform: bool = True,
 ) -> WebRtcWorkerContext:
-    webrtc_worker = get_webrtc_worker(key)
+    webrtc_worker = _get_webrtc_worker(key)
 
     sdp_answer_json = None
     if webrtc_worker:
@@ -90,7 +90,7 @@ def webrtc_streamer(
         if webrtc_worker:
             if not playing:
                 webrtc_worker.stop()
-                unset_webrtc_worker(key)
+                _unset_webrtc_worker(key)
         else:
             if sdp_offer:
                 webrtc_worker = WebRtcWorker(
@@ -100,7 +100,7 @@ def webrtc_streamer(
                     async_transform=async_transform,
                 )
                 webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
-                set_webrtc_worker(key, webrtc_worker)
+                _set_webrtc_worker(key, webrtc_worker)
                 st.experimental_rerun()  # Rerun to send the SDP answer to frontend
 
     ctx = WebRtcWorkerContext(

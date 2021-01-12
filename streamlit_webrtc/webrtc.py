@@ -35,7 +35,7 @@ class WebRtcMode(enum.Enum):
     SENDRECV = enum.auto()
 
 
-async def process_offer(
+async def _process_offer(
     mode: WebRtcMode,
     pc: RTCPeerConnection,
     offer: RTCSessionDescription,
@@ -236,7 +236,7 @@ class WebRtcWorker:
         self._video_transformer = video_transformer
 
         loop.create_task(
-            process_offer(
+            _process_offer(
                 self.mode,
                 self.pc,
                 offer,
@@ -288,7 +288,7 @@ class WebRtcWorker:
             self._thread.join()
 
 
-async def test():
+async def _test():
     client = RTCPeerConnection()
     client.createDataChannel("test")
 
@@ -306,4 +306,4 @@ async def test():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
-    asyncio.run(test())
+    asyncio.run(_test())
