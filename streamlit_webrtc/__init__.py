@@ -1,7 +1,15 @@
+"""streamlit-webrtc
+"""
+
 import json
 import logging
 import os
-from typing import Callable, Dict, Hashable, NamedTuple, Optional, TypedDict, Union
+from typing import Callable, Dict, Hashable, NamedTuple, Optional, Union
+try:
+    from typing import TypedDict
+except ImportError:
+    # Python < 3.8
+    from typing_extensions import TypedDict
 
 try:
     import importlib.metadata as importlib_metadata
