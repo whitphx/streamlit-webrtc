@@ -11,6 +11,10 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: streamlit_webrtc/frontend
+
     strategy:
       matrix:
         node-version: [14.x]
