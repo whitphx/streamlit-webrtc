@@ -3,6 +3,12 @@ import logging
 import os
 from typing import Callable, Dict, Hashable, NamedTuple, Optional, TypedDict, Union
 
+try:
+    import importlib.metadata as importlib_metadata
+except ModuleNotFoundError:
+    # Python < 3.8
+    import importlib_metadata
+
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -15,6 +21,8 @@ from .webrtc import (
     WebRtcMode,
     WebRtcWorker,
 )
+
+__version__ = importlib_metadata.version(__name__)
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.NullHandler())
