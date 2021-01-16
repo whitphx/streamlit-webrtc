@@ -1,6 +1,6 @@
 pkg/build:
 	python release_check.py streamlit_webrtc/__init__.py
-	cd streamlit_webrtc/frontend && npm run build
+	cd streamlit_webrtc/frontend && npm install && npm run build
 	poetry build
 
 format:
