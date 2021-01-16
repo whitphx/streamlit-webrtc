@@ -22,7 +22,7 @@ def get_release_flag_value(filepath: Path):
     for node in toplevel_assignments:
         if len(node.targets) != 1:
             continue
-        if isinstance(node.targets[0], ast.Name):
+        if not isinstance(node.targets[0], ast.Name):
             continue
         single_target = cast(ast.Name, node.targets[0])
 
