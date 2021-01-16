@@ -7,7 +7,7 @@ try:
     import importlib.metadata as importlib_metadata
 except ModuleNotFoundError:
     # Python < 3.8
-    import importlib_metadata
+    import importlib_metadata  # type: ignore
 
 import streamlit as st
 import streamlit.components.v1 as components
