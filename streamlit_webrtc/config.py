@@ -1,4 +1,5 @@
 from typing import List, Optional, Union
+
 try:
     from typing import TypedDict
 except ImportError:

@@ -5,6 +5,7 @@ import json
 import logging
 import os
 from typing import Callable, Dict, Hashable, NamedTuple, Optional, Union
+
 try:
     from typing import TypedDict
 except ImportError:
