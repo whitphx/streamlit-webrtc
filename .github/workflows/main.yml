@@ -1,0 +1,53 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  tests:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install poetry
+      run: |
+        curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+        echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+
+    # Ref: https://github.com/python-poetry/poetry/blob/de0b32c245c72568cf546090600d4626917cd3a4/.github/workflows/main.yml#L46-L60
+    - name: Configure poetry
+      run: poetry config virtualenvs.in-project true
+    - name: Set up cache
+      uses: actions/cache@v2
+      id: cache
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
+    - name: Ensure cache is healthy
+      if: steps.cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: timeout 10s poetry run pip --version || rm -rf .venv
+
+    - name: Install dependencies
+      run: poetry install
+    - name: Lint with black and flake8
+      run: |
+        poetry run black . --check
+        poetry run flake8
+    - name: Type checking with mypy
+      run: |
+        poetry run mypy .
+    # - name: Test with pytest
+    #   run: |
+    #     pytest
