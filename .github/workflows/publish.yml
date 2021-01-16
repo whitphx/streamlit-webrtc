@@ -29,4 +29,5 @@ jobs:
       env:
         PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
       run: |
-        poetry publish --build -u __token__ -p ${PYPI_TOKEN}
+        make pkg/build
+        poetry publish -u __token__ -p ${PYPI_TOKEN}
