@@ -5,6 +5,7 @@ import argparse
 import ast
 import sys
 from pathlib import Path
+from typing import cast
 
 
 def get_release_flag_value(filepath: Path):
@@ -21,12 +22,17 @@ def get_release_flag_value(filepath: Path):
     for node in toplevel_assignments:
         if len(node.targets) != 1:
             continue
-        single_target = node.targets[0]
+        if isinstance(node.targets[0], ast.Name):
+            continue
+        single_target = cast(ast.Name, node.targets[0])
+
         assigned_value = node.value
+
         if single_target.id == "_RELEASE":
             if not isinstance(assigned_value, ast.Constant):
                 raise Exception(
-                    f"Not constant value {assigned_value} is assigned to {single_target}"
+                    f"Not a constant value {assigned_value} is "
+                    f"assigned to {single_target}"
                 )
             release_val = assigned_value.value
 
