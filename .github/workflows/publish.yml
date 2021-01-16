@@ -26,9 +26,11 @@ jobs:
       run: |
         curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
         echo "$HOME/.poetry/bin" >> $GITHUB_PATH
-    - name: Install dependencies
-      run: |
-        poetry install
+    - name: Install Python dependencies
+      run: poetry install
+    - name: Install fronend dependencies
+      run: npm ci
+      working-directory: streamlit_webrtc/frontend
     - name: Build and publish
       env:
         PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
