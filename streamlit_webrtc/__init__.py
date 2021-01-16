@@ -3,6 +3,12 @@ import logging
 import os
 from typing import Callable, Dict, Hashable, NamedTuple, Optional, TypedDict, Union
 
+try:
+    import importlib.metadata as importlib_metadata
+except ModuleNotFoundError:
+    # Python < 3.8
+    import importlib_metadata  # type: ignore
+
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -15,6 +21,15 @@ from .webrtc import (
     WebRtcMode,
     WebRtcWorker,
 )
+
+# Set __version__ dynamically base on metadata.
+# https://github.com/python-poetry/poetry/issues/1036#issuecomment-489880822
+# https://github.com/python-poetry/poetry/issues/144#issuecomment-623927302
+# https://github.com/python-poetry/poetry/pull/2366#issuecomment-652418094
+try:
+    __version__ = importlib_metadata.version(__name__)
+except importlib_metadata.PackageNotFoundError:
+    pass
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.NullHandler())
