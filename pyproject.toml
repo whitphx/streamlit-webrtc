@@ -9,9 +9,10 @@ include = ["./streamlit_webrtc/frontend/build/**/*"]
 exclude = ["./streamlit_webrtc/frontend/[!build]*"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.6"
 streamlit = ">=0.63"
 aiortc = ">=1.0.0"
+typing_extensions = { version = "^3.7.4", python = "<3.8" }
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
