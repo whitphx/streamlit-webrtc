@@ -7,6 +7,7 @@ import {
 import React, { ReactNode } from "react";
 import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
+import Alert from "@material-ui/lab/Alert";
 import VisibilitySwitch from "./VisibilitySwitch";
 import DeviceSelector from "./DeviceSelector";
 
@@ -60,6 +61,7 @@ interface State {
   audioInput: MediaDeviceInfo | null;
   hasVideo: boolean;
   hasAudio: boolean;
+  error: Error | null;
 }
 
 class WebRtcStreamer extends StreamlitComponentBase<State> {
@@ -80,6 +82,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       audioInput: null,
       hasVideo: false,
       hasAudio: false,
+      error: null,
     };
   }
 
@@ -109,7 +112,12 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       throw new Error(`Invalid mode ${mode}`);
     }
 
-    this.setState({ signaling: true, hasVideo: false, hasAudio: false });
+    this.setState({
+      signaling: true,
+      hasVideo: false,
+      hasAudio: false,
+      error: null,
+    });
 
     const config: RTCConfiguration =
       this.props.args.settings?.rtc_configuration || {};
@@ -205,7 +213,9 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   };
 
   private start = (): void => {
-    this.startInner().catch(() => this.setState({ signaling: false }));
+    this.startInner().catch((error) =>
+      this.setState({ signaling: false, error })
+    );
   };
 
   private stopInner = async (): Promise<void> => {
@@ -277,6 +287,9 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
 
     return (
       <Box>
+        {this.state.error && (
+          <Alert severity="error">{this.state.error.message}</Alert>
+        )}
         <VisibilitySwitch
           visible={receivable}
           onVisibilityChange={() => setImmediate(Streamlit.setFrameHeight)}
