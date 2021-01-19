@@ -112,8 +112,10 @@ async def _process_offer(
 
                 pc.addTrack(output_track)
                 if out_recorder:
+                    logger.info("Track %s is added to out_recorder", output_track.kind)
                     out_recorder.addTrack(output_track)
                 if in_recorder:
+                    logger.info("Track %s is added to in_recorder", input_track.kind)
                     in_recorder.addTrack(input_track)
 
                 @input_track.on("ended")
@@ -141,6 +143,7 @@ async def _process_offer(
                         video_receiver.addTrack(input_track)
 
                 if in_recorder:
+                    logger.info("Track %s is added to in_recorder", input_track.kind)
                     in_recorder.addTrack(input_track)
 
                 @input_track.on("ended")
