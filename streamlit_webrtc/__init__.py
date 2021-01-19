@@ -25,6 +25,7 @@ from . import SessionState
 from .config import MediaStreamConstraints, RTCConfiguration
 from .webrtc import (
     MediaPlayerFactory,
+    MediaRecorderFactory,
     VideoReceiver,
     VideoTransformerBase,
     WebRtcMode,
@@ -86,6 +87,8 @@ def webrtc_streamer(
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     client_settings: Optional[ClientSettings] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
+    in_recorder_factory: Optional[MediaRecorderFactory] = None,
+    out_recorder_factory: Optional[MediaRecorderFactory] = None,
     video_transformer_factory: Optional[Callable[[], VideoTransformerBase]] = None,
     async_transform: bool = True,
 ) -> WebRtcWorkerContext:
@@ -120,6 +123,8 @@ def webrtc_streamer(
                 webrtc_worker = WebRtcWorker(
                     mode=mode,
                     player_factory=player_factory,
+                    in_recorder_factory=in_recorder_factory,
+                    out_recorder_factory=out_recorder_factory,
                     video_transformer_factory=video_transformer_factory,
                     async_transform=async_transform,
                 )
