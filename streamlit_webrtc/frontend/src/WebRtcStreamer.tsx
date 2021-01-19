@@ -177,6 +177,17 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       console.log("MediaStreamConstraints:", constraints);
 
       if (constraints.audio || constraints.video) {
+        if (navigator.mediaDevices == null) {
+          // Ref: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#privacy_and_security
+          // > A secure context is, in short, a page loaded using HTTPS or the file:/// URL scheme, or a page loaded from localhost.
+          throw new Error(
+            "navigator.mediaDevices is undefined. It seems the current document is not loaded securely."
+          );
+        }
+        if (navigator.mediaDevices.getUserMedia == null) {
+          throw new Error("getUserMedia is not implemented in this browser");
+        }
+
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         stream.getTracks().forEach((track) => {
           pc.addTrack(track, stream);
@@ -288,7 +299,9 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     return (
       <Box>
         {this.state.error && (
-          <Alert severity="error">{this.state.error.message}</Alert>
+          <Alert severity="error">
+            {this.state.error.name}: {this.state.error.message}
+          </Alert>
         )}
         <VisibilitySwitch
           visible={receivable}
