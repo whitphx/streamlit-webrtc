@@ -77,7 +77,12 @@ class ClientSettings(TypedDict):
     media_stream_constraints: Optional[MediaStreamConstraints]
 
 
+class WebRtcWorkerState(NamedTuple):
+    playing: bool
+
+
 class WebRtcWorkerContext(NamedTuple):
+    state: WebRtcWorkerState
     video_transformer: Optional[VideoTransformerBase]
     video_receiver: Optional[VideoReceiver]
 
@@ -110,6 +115,7 @@ def webrtc_streamer(
         settings=client_settings,
     )
 
+    playing = False
     if component_value:
         playing = component_value.get("playing", False)
         sdp_offer = component_value.get("sdpOffer")
@@ -133,6 +139,7 @@ def webrtc_streamer(
                 st.experimental_rerun()  # Rerun to send the SDP answer to frontend
 
     ctx = WebRtcWorkerContext(
+        state=WebRtcWorkerState(playing=playing),
         video_transformer=webrtc_worker.video_transformer if webrtc_worker else None,
         video_receiver=webrtc_worker.video_receiver if webrtc_worker else None,
     )
