@@ -230,7 +230,7 @@ def app_object_detection():
 
     DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 
-    class NNVideoTransformer(VideoTransformerBase):
+    class MobileNetSSDVideoTransformer(VideoTransformerBase):
         confidence_threshold: float
         _labels: Union[List[str], None]
         _labels_lock: threading.Lock
@@ -299,7 +299,7 @@ def app_object_detection():
         key="object-detection",
         mode=WebRtcMode.SENDRECV,
         client_settings=WEBRTC_CLIENT_SETTINGS,
-        video_transformer_factory=NNVideoTransformer,
+        video_transformer_factory=MobileNetSSDVideoTransformer,
         async_transform=True,
     )
 
