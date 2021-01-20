@@ -25,6 +25,7 @@ from . import SessionState
 from .config import MediaStreamConstraints, RTCConfiguration
 from .webrtc import (
     MediaPlayerFactory,
+    MediaRecorderFactory,
     VideoReceiver,
     VideoTransformerBase,
     WebRtcMode,
@@ -76,7 +77,12 @@ class ClientSettings(TypedDict):
     media_stream_constraints: Optional[MediaStreamConstraints]
 
 
+class WebRtcWorkerState(NamedTuple):
+    playing: bool
+
+
 class WebRtcWorkerContext(NamedTuple):
+    state: WebRtcWorkerState
     video_transformer: Optional[VideoTransformerBase]
     video_receiver: Optional[VideoReceiver]
 
@@ -86,6 +92,8 @@ def webrtc_streamer(
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     client_settings: Optional[ClientSettings] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
+    in_recorder_factory: Optional[MediaRecorderFactory] = None,
+    out_recorder_factory: Optional[MediaRecorderFactory] = None,
     video_transformer_factory: Optional[Callable[[], VideoTransformerBase]] = None,
     async_transform: bool = True,
 ) -> WebRtcWorkerContext:
@@ -107,6 +115,7 @@ def webrtc_streamer(
         settings=client_settings,
     )
 
+    playing = False
     if component_value:
         playing = component_value.get("playing", False)
         sdp_offer = component_value.get("sdpOffer")
@@ -120,6 +129,8 @@ def webrtc_streamer(
                 webrtc_worker = WebRtcWorker(
                     mode=mode,
                     player_factory=player_factory,
+                    in_recorder_factory=in_recorder_factory,
+                    out_recorder_factory=out_recorder_factory,
                     video_transformer_factory=video_transformer_factory,
                     async_transform=async_transform,
                 )
@@ -128,6 +139,7 @@ def webrtc_streamer(
                 st.experimental_rerun()  # Rerun to send the SDP answer to frontend
 
     ctx = WebRtcWorkerContext(
+        state=WebRtcWorkerState(playing=playing),
         video_transformer=webrtc_worker.video_transformer if webrtc_worker else None,
         video_receiver=webrtc_worker.video_receiver if webrtc_worker else None,
     )

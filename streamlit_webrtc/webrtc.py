@@ -9,7 +9,7 @@ from asyncio.events import AbstractEventLoop
 from typing import Callable, Optional, Union
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaPlayer
+from aiortc.contrib.media import MediaPlayer, MediaRecorder
 
 from .receive import VideoReceiver
 from .transform import (
@@ -26,6 +26,7 @@ logger.addHandler(logging.NullHandler())
 VideoTransformFn = Callable
 
 MediaPlayerFactory = Callable[[], MediaPlayer]
+MediaRecorderFactory = Callable[[], MediaRecorder]
 VideoTransformerFactory = Callable[[], VideoTransformerBase]
 
 
@@ -40,6 +41,8 @@ async def _process_offer(
     pc: RTCPeerConnection,
     offer: RTCSessionDescription,
     player_factory: Optional[MediaPlayerFactory],
+    in_recorder_factory: Optional[MediaRecorderFactory],
+    out_recorder_factory: Optional[MediaRecorderFactory],
     video_transformer: Optional[VideoTransformerBase],
     video_receiver: Optional[VideoReceiver],
     async_transform: bool,
@@ -50,6 +53,14 @@ async def _process_offer(
         if player_factory:
             player = player_factory()
 
+        in_recorder = None
+        if in_recorder_factory:
+            in_recorder = in_recorder_factory()
+
+        out_recorder = None
+        if out_recorder_factory:
+            out_recorder = out_recorder_factory()
+
         @pc.on("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
             logger.info("ICE connection state is %s", pc.iceConnectionState)
@@ -59,16 +70,22 @@ async def _process_offer(
         if mode == WebRtcMode.SENDRECV:
 
             @pc.on("track")
-            def on_track(track):
-                logger.info("Track %s received", track.kind)
+            def on_track(input_track):
+                logger.info("Track %s received", input_track.kind)
 
-                if track.kind == "audio":
+                output_track = None
+
+                if input_track.kind == "audio":
                     if player and player.audio:
-                        pc.addTrack(player.audio)
-                elif track.kind == "video":
+                        logger.info("Add player to audio track")
+                        output_track = player.audio
+                    else:
+                        # Transforming audio is not supported yet.
+                        output_track = input_track  # passthrough
+                elif input_track.kind == "video":
                     if player and player.video:
                         logger.info("Add player to video track")
-                        pc.addTrack(player.video)
+                        output_track = player.video
                     elif video_transformer:
                         VideoTrack = (
                             AsyncVideoTransformTrack
@@ -78,49 +95,91 @@ async def _process_offer(
                         logger.info(
                             "Add a input video track %s to "
                             "another track with video_transformer %s",
-                            track,
+                            input_track,
                             VideoTrack,
                         )
                         local_video = VideoTrack(
-                            track=track, video_transformer=video_transformer
+                            track=input_track, video_transformer=video_transformer
                         )
                         logger.info("Add the video track with transfomer to %s", pc)
-                        pc.addTrack(local_video)
+                        output_track = local_video
+
+                if not output_track:
+                    raise Exception(
+                        "Neither a player nor a transformer is created. "
+                        "Either factory must be set."
+                    )
+
+                pc.addTrack(output_track)
+                if out_recorder:
+                    logger.info("Track %s is added to out_recorder", output_track.kind)
+                    out_recorder.addTrack(output_track)
+                if in_recorder:
+                    logger.info("Track %s is added to in_recorder", input_track.kind)
+                    in_recorder.addTrack(input_track)
+
+                @input_track.on("ended")
+                async def on_ended():
+                    logger.info("Track %s ended", input_track.kind)
+                    if in_recorder:
+                        await in_recorder.stop()
+                    if out_recorder:
+                        await out_recorder.stop()
 
         elif mode == WebRtcMode.SENDONLY:
 
             @pc.on("track")
-            def on_track(track):
-                logger.info("Track %s received", track.kind)
+            def on_track(input_track):
+                logger.info("Track %s received", input_track.kind)
 
-                if track.kind == "audio":
+                if input_track.kind == "audio":
                     # Not supported yet
                     pass
-                elif track.kind == "video":
+                elif input_track.kind == "video":
                     if video_receiver:
                         logger.info(
-                            "Add a track %s to receiver %s", track, video_receiver
+                            "Add a track %s to receiver %s", input_track, video_receiver
                         )
-                        video_receiver.addTrack(track)
+                        video_receiver.addTrack(input_track)
 
-                @track.on("ended")
+                if in_recorder:
+                    logger.info("Track %s is added to in_recorder", input_track.kind)
+                    in_recorder.addTrack(input_track)
+
+                @input_track.on("ended")
                 async def on_ended():
-                    logger.info("Track %s ended", track.kind)
+                    logger.info("Track %s ended", input_track.kind)
                     if video_receiver:
                         video_receiver.stop()
+                    if in_recorder:
+                        await in_recorder.stop()
 
         await pc.setRemoteDescription(offer)
         if mode == WebRtcMode.RECVONLY:
             for t in pc.getTransceivers():
+                output_track = None
                 if t.kind == "audio":
                     if player and player.audio:
-                        pc.addTrack(player.audio)
+                        output_track = player.audio
+                        # pc.addTrack(player.audio)
                 elif t.kind == "video":
                     if player and player.video:
-                        pc.addTrack(player.video)
+                        # pc.addTrack(player.video)
+                        output_track = player.video
+
+                if output_track:
+                    pc.addTrack(output_track)
+                    # NOTE: Recording is not supported in this mode
+                    # because connecting player to recorder does not work somehow;
+                    # it generates unplayable movie files.
 
         if video_receiver and video_receiver.hasTrack():
             video_receiver.start()
+
+        if in_recorder:
+            await in_recorder.start()
+        if out_recorder:
+            await out_recorder.start()
 
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
@@ -151,6 +210,8 @@ class WebRtcWorker:
         self,
         mode: WebRtcMode,
         player_factory: Optional[MediaPlayerFactory] = None,
+        in_recorder_factory: Optional[MediaRecorderFactory] = None,
+        out_recorder_factory: Optional[MediaRecorderFactory] = None,
         video_transformer_factory: Optional[VideoTransformerFactory] = None,
         async_transform: bool = True,
     ) -> None:
@@ -162,6 +223,8 @@ class WebRtcWorker:
 
         self.mode = mode
         self.player_factory = player_factory
+        self.in_recorder_factory = in_recorder_factory
+        self.out_recorder_factory = out_recorder_factory
         self.video_transformer_factory = video_transformer_factory
         self.async_transform = async_transform
 
@@ -172,6 +235,8 @@ class WebRtcWorker:
         self,
         sdp: str,
         type_: str,
+        in_recorder_factory: Optional[MediaRecorderFactory],
+        out_recorder_factory: Optional[MediaRecorderFactory],
         player_factory: Optional[MediaPlayerFactory],
         video_transformer_factory: Optional[VideoTransformerFactory],
         video_receiver: Optional[VideoReceiver],
@@ -182,6 +247,8 @@ class WebRtcWorker:
                 sdp=sdp,
                 type_=type_,
                 player_factory=player_factory,
+                in_recorder_factory=in_recorder_factory,
+                out_recorder_factory=out_recorder_factory,
                 video_transformer_factory=video_transformer_factory,
                 video_receiver=video_receiver,
                 async_transform=async_transform,
@@ -202,6 +269,8 @@ class WebRtcWorker:
         sdp: str,
         type_: str,
         player_factory: Optional[MediaPlayerFactory],
+        in_recorder_factory: Optional[MediaRecorderFactory],
+        out_recorder_factory: Optional[MediaRecorderFactory],
         video_transformer_factory: Optional[Callable[[], VideoTransformerBase]],
         video_receiver: Optional[VideoReceiver],
         async_transform: bool,
@@ -240,7 +309,9 @@ class WebRtcWorker:
                 self.mode,
                 self.pc,
                 offer,
-                player_factory,
+                player_factory=player_factory,
+                in_recorder_factory=in_recorder_factory,
+                out_recorder_factory=out_recorder_factory,
                 video_transformer=video_transformer,
                 video_receiver=video_receiver,
                 async_transform=async_transform,
@@ -267,6 +338,8 @@ class WebRtcWorker:
                 "sdp": sdp,
                 "type_": type_,
                 "player_factory": self.player_factory,
+                "in_recorder_factory": self.in_recorder_factory,
+                "out_recorder_factory": self.out_recorder_factory,
                 "video_transformer_factory": self.video_transformer_factory,
                 "video_receiver": self._video_receiver,
                 "async_transform": self.async_transform,
