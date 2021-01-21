@@ -313,7 +313,7 @@ def app_object_detection():
         if webrtc_ctx.state.playing:
             labels_placeholder = st.empty()
             # NOTE: The video transformation with object detection and
-            # this loop rendering the resultant labels are processed
+            # this loop displaying the result labels are running
             # in different threads asynchronously.
             # Then the rendered video frames and the labels displayed here
             # are not synchronized.
