@@ -1,8 +1,11 @@
 import logging
 import logging.handlers
 import queue
+import threading
+import time
 import urllib.request
 from pathlib import Path
+from typing import List, Union
 
 try:
     from typing import Literal
@@ -227,14 +230,23 @@ def app_object_detection():
 
     DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 
-    class NNVideoTransformer(VideoTransformerBase):
+    class MobileNetSSDVideoTransformer(VideoTransformerBase):
         confidence_threshold: float
+        _labels: Union[List[str], None]
+        _labels_lock: threading.Lock
 
         def __init__(self) -> None:
             self._net = cv2.dnn.readNetFromCaffe(
                 str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH)
             )
             self.confidence_threshold = DEFAULT_CONFIDENCE_THRESHOLD
+            self._labels = None
+            self._labels_lock = threading.Lock()
+
+        @property
+        def labels(self) -> Union[List[str], None]:
+            with self._labels_lock:
+                return self._labels
 
         def _annotate_image(self, image, detections):
             # loop over the detections
@@ -275,7 +287,11 @@ def app_object_detection():
             self._net.setInput(blob)
             detections = self._net.forward()
             annotated_image, labels = self._annotate_image(image, detections)
-            # TODO: Show labels
+
+            # NOTE: This `transform` method is called in another thread,
+            # so it must be thread-safe.
+            with self._labels_lock:
+                self._labels = labels
 
             return annotated_image
 
@@ -283,7 +299,7 @@ def app_object_detection():
         key="object-detection",
         mode=WebRtcMode.SENDRECV,
         client_settings=WEBRTC_CLIENT_SETTINGS,
-        video_transformer_factory=NNVideoTransformer,
+        video_transformer_factory=MobileNetSSDVideoTransformer,
         async_transform=True,
     )
 
@@ -292,6 +308,19 @@ def app_object_detection():
     )
     if webrtc_ctx.video_transformer:
         webrtc_ctx.video_transformer.confidence_threshold = confidence_threshold
+
+    if st.checkbox("Show the detected labels"):
+        if webrtc_ctx.state.playing:
+            labels_placeholder = st.empty()
+            # NOTE: The video transformation with object detection and
+            # this loop displaying the result labels are running
+            # in different threads asynchronously.
+            # Then the rendered video frames and the labels displayed here
+            # are not synchronized.
+            while True:
+                if webrtc_ctx.video_transformer:
+                    labels_placeholder.write(webrtc_ctx.video_transformer.labels)
+                time.sleep(0.1)
 
     st.markdown(
         "This demo uses a model and code from "
