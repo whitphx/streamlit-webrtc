@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.6.1] - 2021-01-27
 ### Fix
 - Update dependencies.
 
