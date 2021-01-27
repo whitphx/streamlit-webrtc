@@ -11,7 +11,7 @@ exclude = ["./streamlit_webrtc/frontend/[!build]*"]
 
 [tool.poetry.dependencies]
 python = "^3.6"
-streamlit = ">=0.63"
+streamlit = ">=0.73.0"  # For allow-same-origin. See https://blog.streamlit.io/streamlit-components-security-and-a-five-month-quest-to-ship-a-single-line-of-code/
 aiortc = ">=1.0.0"
 typing_extensions = { version = "^3.7.4", python = "<3.8" }
 

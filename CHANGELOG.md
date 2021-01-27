@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fix
+- Update dependencies.
 
 ## [0.6.0] - 2021-01-21
 ### Added
