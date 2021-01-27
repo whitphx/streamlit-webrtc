@@ -1,9 +1,9 @@
 # streamlit-webrtc
 
-![PyPI](https://img.shields.io/pypi/v/streamlit-webrtc)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/streamlit-webrtc)
-![PyPI - License](https://img.shields.io/pypi/l/streamlit-webrtc)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/streamlit-webrtc)
+[![PyPI](https://img.shields.io/pypi/v/streamlit-webrtc)](https://pypi.org/project/streamlit-webrtc/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/streamlit-webrtc)](https://pypi.org/project/streamlit-webrtc/)
+[![PyPI - License](https://img.shields.io/pypi/l/streamlit-webrtc)](https://pypi.org/project/streamlit-webrtc/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/streamlit-webrtc)](https://pypi.org/project/streamlit-webrtc/)
 
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/whitphx?label=Sponsor%20me%20on%20GitHub%20Sponsors&style=social)](https://github.com/sponsors/whitphx)
 
