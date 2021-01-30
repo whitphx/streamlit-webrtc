@@ -15,7 +15,6 @@ except ImportError:
 import av
 import cv2
 import numpy as np
-import PIL
 import streamlit as st
 from aiortc.contrib.media import MediaPlayer
 
@@ -405,9 +404,8 @@ def app_sendonly():
                 webrtc_ctx.video_receiver.stop()
                 break
 
-            img = frame.to_ndarray(format="bgr24")
-            img = PIL.Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-            image_loc.image(img)
+            img_rgb = frame.to_ndarray(format="rgb24")
+            image_loc.image(img_rgb)
 
 
 WEBRTC_CLIENT_SETTINGS = ClientSettings(
