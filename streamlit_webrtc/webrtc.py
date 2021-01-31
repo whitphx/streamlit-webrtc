@@ -2,9 +2,7 @@ import asyncio
 import enum
 import logging
 import queue
-import sys
 import threading
-import traceback
 from asyncio.events import AbstractEventLoop
 from typing import Callable, Optional, Union
 
@@ -34,6 +32,10 @@ class WebRtcMode(enum.Enum):
     RECVONLY = enum.auto()
     SENDONLY = enum.auto()
     SENDRECV = enum.auto()
+
+
+class TimeoutError(Exception):
+    pass
 
 
 async def _process_offer(
@@ -254,15 +256,17 @@ class WebRtcWorker:
                 async_transform=async_transform,
             )
         except Exception as e:
-            logger.error("Error occurred in the WebRTC thread:")
+            logger.warn("An error occurred in the WebRTC worker thread: %s", e)
 
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            for tb in traceback.format_exception(exc_type, exc_value, exc_traceback):
-                for tbline in tb.rstrip().splitlines():
-                    logger.error(tbline.rstrip())
+            if self._loop:
+                logger.warn("An event loop exists. Clean up it.")
+                loop = self._loop
+                loop.run_until_complete(self.pc.close())
+                loop.run_until_complete(loop.shutdown_asyncgens())
+                loop.close()
+                logger.warn("Event loop %s cleaned up.", loop)
 
-            # TODO shutdown this thread!
-            raise e
+            self._answer_queue.put(e)  # Send the error object to the main thread
 
     def _webrtc_thread(
         self,
@@ -328,7 +332,9 @@ class WebRtcWorker:
             loop.close()
             logger.debug("Event loop %s cleaned up.", loop)
 
-    def process_offer(self, sdp, type_, timeout=10.0) -> RTCSessionDescription:
+    def process_offer(
+        self, sdp, type_, timeout: Union[float, None] = 10.0
+    ) -> RTCSessionDescription:
         if self.mode == WebRtcMode.SENDONLY:
             self._video_receiver = VideoReceiver(queue_maxsize=1)
 
@@ -348,17 +354,25 @@ class WebRtcWorker:
         )
         self._thread.start()
 
-        result = self._answer_queue.get(timeout)
+        try:
+            result = self._answer_queue.get(block=True, timeout=timeout)
+        except queue.Empty:
+            self.stop(timeout=1)
+            raise TimeoutError(
+                "Processing offer and initializing the worker "
+                f"has not finished in {timeout} seconds"
+            )
+
         if isinstance(result, Exception):
             raise result
 
         return result
 
-    def stop(self):
+    def stop(self, timeout: Union[float, None] = 1.0):
         if self._loop:
             self._loop.stop()
         if self._thread:
-            self._thread.join()
+            self._thread.join(timeout=timeout)
 
 
 async def _test():
