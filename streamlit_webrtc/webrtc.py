@@ -34,6 +34,10 @@ class WebRtcMode(enum.Enum):
     SENDRECV = enum.auto()
 
 
+class TimeoutError(Exception):
+    pass
+
+
 async def _process_offer(
     mode: WebRtcMode,
     pc: RTCPeerConnection,
@@ -328,7 +332,9 @@ class WebRtcWorker:
             loop.close()
             logger.debug("Event loop %s cleaned up.", loop)
 
-    def process_offer(self, sdp, type_, timeout=10.0) -> RTCSessionDescription:
+    def process_offer(
+        self, sdp, type_, timeout: Union[float, None] = 10.0
+    ) -> RTCSessionDescription:
         if self.mode == WebRtcMode.SENDONLY:
             self._video_receiver = VideoReceiver(queue_maxsize=1)
 
@@ -348,17 +354,25 @@ class WebRtcWorker:
         )
         self._thread.start()
 
-        result = self._answer_queue.get(timeout)
+        try:
+            result = self._answer_queue.get(block=True, timeout=timeout)
+        except queue.Empty:
+            self.stop(timeout=1)
+            raise TimeoutError(
+                "Processing offer and initializing the worker "
+                f"has not finished in {timeout} seconds"
+            )
+
         if isinstance(result, Exception):
             raise result
 
         return result
 
-    def stop(self):
+    def stop(self, timeout: Union[float, None] = 1.0):
         if self._loop:
             self._loop.stop()
         if self._thread:
-            self._thread.join()
+            self._thread.join(timeout=timeout)
 
 
 async def _test():
