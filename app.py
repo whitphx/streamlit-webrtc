@@ -76,6 +76,12 @@ def download_file(url, download_to: Path, expected_size=None):
             progress_bar.empty()
 
 
+WEBRTC_CLIENT_SETTINGS = ClientSettings(
+    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+    media_stream_constraints={"video": True, "audio": True},
+)
+
+
 def main():
     st.header("WebRTC demo")
 
@@ -370,7 +376,7 @@ def app_streaming():
 
     WEBRTC_CLIENT_SETTINGS.update(
         {
-            "fmedia_stream_constraints": {
+            "media_stream_constraints": {
                 "video": media_file_info["type"] == "video",
                 "audio": media_file_info["type"] == "audio",
             }
@@ -407,11 +413,6 @@ def app_sendonly():
             img_rgb = frame.to_ndarray(format="rgb24")
             image_loc.image(img_rgb)
 
-
-WEBRTC_CLIENT_SETTINGS = ClientSettings(
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-    media_stream_constraints={"video": True, "audio": True},
-)
 
 if __name__ == "__main__":
     logging.basicConfig(
