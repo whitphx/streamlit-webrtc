@@ -2,9 +2,7 @@ import asyncio
 import enum
 import logging
 import queue
-import sys
 import threading
-import traceback
 from asyncio.events import AbstractEventLoop
 from typing import Callable, Optional, Union
 
@@ -254,15 +252,17 @@ class WebRtcWorker:
                 async_transform=async_transform,
             )
         except Exception as e:
-            logger.error("Error occurred in the WebRTC thread:")
+            logger.warn("An error occurred in the WebRTC worker thread: %s", e)
 
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            for tb in traceback.format_exception(exc_type, exc_value, exc_traceback):
-                for tbline in tb.rstrip().splitlines():
-                    logger.error(tbline.rstrip())
+            if self._loop:
+                logger.warn("An event loop exists. Clean up it.")
+                loop = self._loop
+                loop.run_until_complete(self.pc.close())
+                loop.run_until_complete(loop.shutdown_asyncgens())
+                loop.close()
+                logger.warn("Event loop %s cleaned up.", loop)
 
-            # TODO shutdown this thread!
-            raise e
+            self._answer_queue.put(e)  # Send the error object to the main thread
 
     def _webrtc_thread(
         self,
