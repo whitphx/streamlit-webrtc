@@ -5,7 +5,7 @@ import threading
 import time
 import urllib.request
 from pathlib import Path
-from typing import List, Union
+from typing import List, NamedTuple, Union
 
 try:
     from typing import Literal
@@ -235,28 +235,32 @@ def app_object_detection():
 
     DEFAULT_CONFIDENCE_THRESHOLD = 0.5
 
+    class Detection(NamedTuple):
+        name: str
+        prob: float
+
     class MobileNetSSDVideoTransformer(VideoTransformerBase):
         confidence_threshold: float
-        _labels: Union[List[str], None]
-        _labels_lock: threading.Lock
+        _result: Union[List[Detection], None]
+        _result_lock: threading.Lock
 
         def __init__(self) -> None:
             self._net = cv2.dnn.readNetFromCaffe(
                 str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH)
             )
             self.confidence_threshold = DEFAULT_CONFIDENCE_THRESHOLD
-            self._labels = None
-            self._labels_lock = threading.Lock()
+            self._result = None
+            self._result_lock = threading.Lock()
 
         @property
-        def labels(self) -> Union[List[str], None]:
-            with self._labels_lock:
-                return self._labels
+        def result(self) -> Union[List[Detection], None]:
+            with self._result_lock:
+                return self._result
 
         def _annotate_image(self, image, detections):
             # loop over the detections
             (h, w) = image.shape[:2]
-            labels = []
+            result: List[Detection] = []
             for i in np.arange(0, detections.shape[2]):
                 confidence = detections[0, 0, i, 2]
 
@@ -268,9 +272,11 @@ def app_object_detection():
                     box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                     (startX, startY, endX, endY) = box.astype("int")
 
+                    name = CLASSES[idx]
+                    result.append(Detection(name=name, prob=float(confidence)))
+
                     # display the prediction
-                    label = f"{CLASSES[idx]}: {round(confidence * 100, 2)}%"
-                    labels.append(label)
+                    label = f"{name}: {round(confidence * 100, 2)}%"
                     cv2.rectangle(image, (startX, startY), (endX, endY), COLORS[idx], 2)
                     y = startY - 15 if startY - 15 > 15 else startY + 15
                     cv2.putText(
@@ -282,7 +288,7 @@ def app_object_detection():
                         COLORS[idx],
                         2,
                     )
-            return image, labels
+            return image, result
 
         def transform(self, frame: av.VideoFrame) -> np.ndarray:
             image = frame.to_ndarray(format="bgr24")
@@ -291,12 +297,12 @@ def app_object_detection():
             )
             self._net.setInput(blob)
             detections = self._net.forward()
-            annotated_image, labels = self._annotate_image(image, detections)
+            annotated_image, result = self._annotate_image(image, detections)
 
             # NOTE: This `transform` method is called in another thread,
             # so it must be thread-safe.
-            with self._labels_lock:
-                self._labels = labels
+            with self._result_lock:
+                self._result = result
 
             return annotated_image
 
@@ -314,7 +320,7 @@ def app_object_detection():
     if webrtc_ctx.video_transformer:
         webrtc_ctx.video_transformer.confidence_threshold = confidence_threshold
 
-    if st.checkbox("Show the detected labels"):
+    if st.checkbox("Show the detected labels", value=True):
         if webrtc_ctx.state.playing:
             labels_placeholder = st.empty()
             # NOTE: The video transformation with object detection and
@@ -324,7 +330,7 @@ def app_object_detection():
             # are not synchronized.
             while True:
                 if webrtc_ctx.video_transformer:
-                    labels_placeholder.write(webrtc_ctx.video_transformer.labels)
+                    labels_placeholder.table(webrtc_ctx.video_transformer.result)
                 time.sleep(0.1)
 
     st.markdown(
