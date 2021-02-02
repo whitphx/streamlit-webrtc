@@ -1,7 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.6.3] - 2021-02-03
+### Fix
+- Set `aiortc` version to exactly `1.0.0`, as `1.1.0` and `1.1.1` cause an error. See https://github.com/whitphx/streamlit-webrtc/issues/37.
+
+## [0.6.2] - 2021-02-01
 ### Fix
 - Fix webrtc_worker thread not to block the main thread when an error occurs inside it.
 
