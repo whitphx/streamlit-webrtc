@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "streamlit-webrtc"
-version = "0.6.2"
+version = "0.6.3"
 description = ""
 authors = ["Yuichiro Tsuchiya <t.yic.yt@gmail.com>"]
 license = "MIT"
