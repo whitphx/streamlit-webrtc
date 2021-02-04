@@ -5,3 +5,6 @@ updates:
   schedule:
     interval: daily
   open-pull-requests-limit: 10
+  ignore:
+    - dependency-name: "aiortc"  # https://github.com/whitphx/streamlit-webrtc/issues/37
+      versions: ["1.1.x"]
