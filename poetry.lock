@@ -1,27 +1,28 @@
 [[package]]
 name = "aioice"
-version = "0.6.18"
+version = "0.7.3"
 description = "An implementation of Interactive Connectivity Establishment (RFC 5245)"
 category = "main"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
+dnspython = "*"
 netifaces = "*"
 
 [[package]]
 name = "aiortc"
-version = "1.0.0"
+version = "1.1.1"
 description = "An implementation of WebRTC and ORTC"
 category = "main"
 optional = false
 python-versions = "*"
 
 [package.dependencies]
-aioice = ">=0.6.17,<0.7.0"
+aioice = ">=0.7.2,<0.8.0"
 av = ">=8.0.0,<9.0.0"
 cffi = ">=1.0.0"
-crc32c = "*"
+crc32c = ">=2.1"
 cryptography = ">=2.2"
 dataclasses = {version = "*", markers = "python_version < \"3.7\""}
 pyee = ">=6.0.0"
@@ -281,6 +282,21 @@ description = "XML bomb protection for Python stdlib modules"
 category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+
+[[package]]
+name = "dnspython"
+version = "2.1.0"
+description = "DNS toolkit"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.extras]
+dnssec = ["cryptography (>=2.6)"]
+doh = ["requests", "requests-toolbelt"]
+idna = ["idna (>=2.1)"]
+curio = ["curio (>=1.2)", "sniffio (>=1.1)"]
+trio = ["trio (>=0.14.0)", "sniffio (>=1.1)"]
 
 [[package]]
 name = "entrypoints"
@@ -1243,51 +1259,51 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "5309083bf720b10ce94d4d7d50e7594b41dc03d2e256682703db616c22db629f"
+content-hash = "47d498340d9e049efd9b1d3f27893674a299126eec90e4094530d1a1d0167792"
 
 [metadata.files]
 aioice = [
-    {file = "aioice-0.6.18-py3-none-any.whl", hash = "sha256:c6ab906e4c71b91d89daf0bb161ed1b3cf0e8e9803f47cb7fe2ff2c942a0e428"},
-    {file = "aioice-0.6.18.tar.gz", hash = "sha256:962192aa29c2bec1f1fdd86b58a431efe355394c86fad09beddc7094cd3d09ef"},
+    {file = "aioice-0.7.3-py3-none-any.whl", hash = "sha256:ee6521a65fd1e38c527e918732ecb183dc56bf1828840b59f3def4117b9b5836"},
+    {file = "aioice-0.7.3.tar.gz", hash = "sha256:475094e88b9827ad6d3fe75217af43a55520ded926dc390237c93acd4b85fd3c"},
 ]
 aiortc = [
-    {file = "aiortc-1.0.0-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:32eb07b51acce9ef4fbecd0eea49246c85d5cf21436ee92ab1a5878cc90d3d23"},
-    {file = "aiortc-1.0.0-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:489389a4288fe3fc1d3c49de38b521eb7ac070901feb9bad98a1ab04e11b6100"},
-    {file = "aiortc-1.0.0-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:4fa58a16d267790a41d5073a67d0fd5da3da0e29147c37cf0a52bf6462b9f3fa"},
-    {file = "aiortc-1.0.0-cp36-cp36m-manylinux2010_i686.whl", hash = "sha256:7d38816b62efb50b6ed5b37e2a5c9ec672b96548eda2b864fc2d3e9702a4e1f4"},
-    {file = "aiortc-1.0.0-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:c4669ca5fb00e7c70123a6bfa189680c0dc0861d08430cd23aaca05c3d85c2cb"},
-    {file = "aiortc-1.0.0-cp36-cp36m-win32.whl", hash = "sha256:85ce1cf75d3f3e883dc6880cbc9e4d33b30e33ab40cbab31bc03cf717ffd1afc"},
-    {file = "aiortc-1.0.0-cp36-cp36m-win_amd64.whl", hash = "sha256:c0440d83d6abe0b92d226eeb4cbe3f6cea1b0b715a56ae41696e92303aa268f3"},
-    {file = "aiortc-1.0.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:ada86d0ae2ed8d7ef3b57c3c0e99b962477daf61fc055309b9627e276e1f43da"},
-    {file = "aiortc-1.0.0-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:21e1968577df34239dea043e09727146ccb15e80861d52c2ed53c65f09abae78"},
-    {file = "aiortc-1.0.0-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:80c355354e24c5be1147b590f948e076b70298ba97cb783c59b18270c37447f5"},
-    {file = "aiortc-1.0.0-cp37-cp37m-manylinux2010_i686.whl", hash = "sha256:3291ee421d9b8c711fcd6d556887918db4c12e1efcc1baa65aeef6bc09ecfed3"},
-    {file = "aiortc-1.0.0-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:17cc484a186afc993fd3a9d885e7b7d75b2b2eb2a1f3e3c9e6f5dde3d2eced13"},
-    {file = "aiortc-1.0.0-cp37-cp37m-win32.whl", hash = "sha256:e3d0c572b35fefbbfc0a384f9819fa960aa0ce59bff78714d829b70bdce9f202"},
-    {file = "aiortc-1.0.0-cp37-cp37m-win_amd64.whl", hash = "sha256:7180f5ab0a48ef6c03a8b53580d05833491beb2ffbce3861a2cb67d222723e7c"},
-    {file = "aiortc-1.0.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:088b46f488721b29490a4181b7a58c509248bbf3eb14e0ebcad8cfb5b70af932"},
-    {file = "aiortc-1.0.0-cp38-cp38-manylinux1_i686.whl", hash = "sha256:edc0bb52afb93e33ed3b3e9dad90b11e25d54c62828d8212fce9e8503b73db04"},
-    {file = "aiortc-1.0.0-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:2d7767bfcb5e41d2f6822e033a5b077fb81bb5f3aeca08864212141214421a2c"},
-    {file = "aiortc-1.0.0-cp38-cp38-manylinux2010_i686.whl", hash = "sha256:3ac7a0bfe0f24ea1adea7eb148e172bb80f0972761cfdb7b7ef8c8054fc8f248"},
-    {file = "aiortc-1.0.0-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:d20ced36f0dac1e0284799d98ba73bddd1e0591a620c7892c0b3d205792d2e80"},
-    {file = "aiortc-1.0.0-cp38-cp38-win32.whl", hash = "sha256:8c0c3994e41e5ff623a7264918160e4e69bb061619df68136234615c3c6e328d"},
-    {file = "aiortc-1.0.0-cp38-cp38-win_amd64.whl", hash = "sha256:460357d7bc28fc9f696c30ff7c1dd95648e021ee874e1073b588ed5fec25f77f"},
-    {file = "aiortc-1.0.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:e87ae7911725b714a164ad671dd0bbfaf35b2853a4f1c753bb380c9dd4c28cc2"},
-    {file = "aiortc-1.0.0-cp39-cp39-manylinux1_i686.whl", hash = "sha256:175235ae22d21a639c0cbcdaeb3729eb47bb78914aed4dea17dc1af1742c645f"},
-    {file = "aiortc-1.0.0-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:4e624fe70fff1209fa850dae6dbc730b635d28450d7c30b8504e9ebfa9f43d95"},
-    {file = "aiortc-1.0.0-cp39-cp39-manylinux2010_i686.whl", hash = "sha256:55f7f1cde8cc242458f73e2f9c0963b8515b3e67645288d00d267d2f268d9c78"},
-    {file = "aiortc-1.0.0-cp39-cp39-manylinux2010_x86_64.whl", hash = "sha256:94f2a9d0645015a0a36f45a590e806f92ed9233395c7576a95de58e130b929c8"},
-    {file = "aiortc-1.0.0-cp39-cp39-win32.whl", hash = "sha256:8e082e5d60c38cc3e363fbb8f31ca01b158fdd8955e89c4f373b2a4ed3c9a4f6"},
-    {file = "aiortc-1.0.0-cp39-cp39-win_amd64.whl", hash = "sha256:8d828f4ae942bf74931e1b53a35f54a9a6a7a2ba0f7f60e99df5d6c3649e855e"},
-    {file = "aiortc-1.0.0-pp36-pypy36_pp73-macosx_10_9_x86_64.whl", hash = "sha256:bc0848319c2d5b808e433bee513ce120b794e5f416d13f2d5addb57c28f2558f"},
-    {file = "aiortc-1.0.0-pp36-pypy36_pp73-manylinux1_x86_64.whl", hash = "sha256:a8fcd64dfdcbc80cfc7e788ccac6cb6a62ad0c5a88fcef3378eb33646e353ae5"},
-    {file = "aiortc-1.0.0-pp36-pypy36_pp73-manylinux2010_x86_64.whl", hash = "sha256:4377cd4b2c5978ebecd02d5311489fd135249fa9ee939383ee470fa8672c79ac"},
-    {file = "aiortc-1.0.0-pp36-pypy36_pp73-win32.whl", hash = "sha256:878d061520d06ddbb77366378c95b4669dae27b549ea4d8e0230231cf0dc12c8"},
-    {file = "aiortc-1.0.0-pp37-pypy37_pp73-macosx_10_9_x86_64.whl", hash = "sha256:6dba261b17ad976ffa2ce6121b813bc4f7a682fa97d676d7e6a0336988955624"},
-    {file = "aiortc-1.0.0-pp37-pypy37_pp73-manylinux1_x86_64.whl", hash = "sha256:992569396702f5c86a83447db3aec047202729f1e94445d26371fc108255ba36"},
-    {file = "aiortc-1.0.0-pp37-pypy37_pp73-manylinux2010_x86_64.whl", hash = "sha256:47c6bd2b528987d50ee8e3e5fdff20d55a1f9cc17946cf441689150f16b3ee31"},
-    {file = "aiortc-1.0.0-pp37-pypy37_pp73-win32.whl", hash = "sha256:de83e52d1f66689be9af071254edb18201d39f52dd3c74e632e642c18aa3b605"},
-    {file = "aiortc-1.0.0.tar.gz", hash = "sha256:fb40b424b65c12ffdbf18deb641521dfbca0ad9a8a44f6e48ab82e83afc0d924"},
+    {file = "aiortc-1.1.1-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:80d3b45ebcae36957962a2ba48ba2facea02a42190176932cee5c1372f4b5ecd"},
+    {file = "aiortc-1.1.1-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:010a176fe1bb1bc64684066e6e29084d4c3a9004d1a1e8e0cc1fed2101ec2703"},
+    {file = "aiortc-1.1.1-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:a0e20ea06df14b2a666f73a8f3b883b644775bf638854d92c69fcc7952828ce5"},
+    {file = "aiortc-1.1.1-cp36-cp36m-manylinux2010_i686.whl", hash = "sha256:a5ee9904126e7e316c37ce389620e0ce8233ff5dc85c9cbee3ce4a6e9952b286"},
+    {file = "aiortc-1.1.1-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:13a76f5f8454cba911f0d373ca2946e58cd1fbfaf88ccd74144f62f2e6d7791b"},
+    {file = "aiortc-1.1.1-cp36-cp36m-win32.whl", hash = "sha256:324335f1ccab86a46b7dbf0f56afc3064893e7b104910095d7d360ac4f4d966c"},
+    {file = "aiortc-1.1.1-cp36-cp36m-win_amd64.whl", hash = "sha256:ff9e9283b419ef349a71b596a00c216b17c39089d5ed9bba3c4ecfb7710040e2"},
+    {file = "aiortc-1.1.1-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:7fc64e0b73a241b80c25eb704e23f5279348c245db6456235dbac1cf22426af3"},
+    {file = "aiortc-1.1.1-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:4381a7ab33bc2ff3f332837ace44fa57b92a2ae8634d5c22968151bb969da89f"},
+    {file = "aiortc-1.1.1-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:09786f8a967ed2fbfb00863b491207e0f7e5692de82700562c55992a8d8f9b1f"},
+    {file = "aiortc-1.1.1-cp37-cp37m-manylinux2010_i686.whl", hash = "sha256:07460f34ff8eda63fee0b08fe42143107b0a50acba3047da22c83f9bbd818d78"},
+    {file = "aiortc-1.1.1-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:faddab45e8f07cc0b9638ea0892bd7bb5ef262e640deab1078b650e1569d8f9c"},
+    {file = "aiortc-1.1.1-cp37-cp37m-win32.whl", hash = "sha256:ceee2597e3bfb3b1ab276384627639653bf5f0b30ef6bb85e6c282d9e641d7dc"},
+    {file = "aiortc-1.1.1-cp37-cp37m-win_amd64.whl", hash = "sha256:064847f6420bb6f7bad7b521287b712bd3285e2cf4ea85f36576397ea25ba2fb"},
+    {file = "aiortc-1.1.1-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:34ba8779822b0656378cd24081a83b04f2430b28dc5fc4826a2431fad7e73dd5"},
+    {file = "aiortc-1.1.1-cp38-cp38-manylinux1_i686.whl", hash = "sha256:e0ff16895c8ab8cc47f6437687c7f5305c77087fcff553977b415a0d3c089f82"},
+    {file = "aiortc-1.1.1-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:bcc02d96d6eb5d692a94eb6d0339486c6a8d56ecf409b2ff56ed8a28b1907a8e"},
+    {file = "aiortc-1.1.1-cp38-cp38-manylinux2010_i686.whl", hash = "sha256:a18685e5ec265875f93a41d3816d855a95c44c541dfbd3a4abdd68bb974f5ebb"},
+    {file = "aiortc-1.1.1-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:2d032530b6f7c4f108d45772be37c4ac5917a79971735ca61487ca2d71378f74"},
+    {file = "aiortc-1.1.1-cp38-cp38-win32.whl", hash = "sha256:f7480322485a5dc28a20be76ccb9e48f818da19ee5c727c58147c94e4113c5bc"},
+    {file = "aiortc-1.1.1-cp38-cp38-win_amd64.whl", hash = "sha256:9338d1f6aac18422abe82966ee444eebc08550b803c79348e7d5fb3aefe48871"},
+    {file = "aiortc-1.1.1-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:ca5858188159c21c89daa1445ad0d8a8b032cdaab41b75bcafbb741a8246987d"},
+    {file = "aiortc-1.1.1-cp39-cp39-manylinux1_i686.whl", hash = "sha256:3a83089070c7cc39628c7f77a87110264bb8f9c8af5b1e41dda80dec7d961ec1"},
+    {file = "aiortc-1.1.1-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:ecb0fcf7242a10a4ff4ebe92bd21443a3744242d2de424eac9cc86962ae7ad19"},
+    {file = "aiortc-1.1.1-cp39-cp39-manylinux2010_i686.whl", hash = "sha256:4bcb2bf0b229123a597605cc6b8722c34cf8c963ba5c4ed0e36444df7331a693"},
+    {file = "aiortc-1.1.1-cp39-cp39-manylinux2010_x86_64.whl", hash = "sha256:4201bb44cef17518163e0e8160aa2e447d6a218515c0fe84f95dfc1b2cc602b4"},
+    {file = "aiortc-1.1.1-cp39-cp39-win32.whl", hash = "sha256:fa2ac5055b82614067053a086fed13c8dde253d523866a092a3b5f7a09e50f66"},
+    {file = "aiortc-1.1.1-cp39-cp39-win_amd64.whl", hash = "sha256:3bbaae288a46141a20602f52d07dc9f96f6b33416cbde087b5af18b40f74d1c9"},
+    {file = "aiortc-1.1.1-pp36-pypy36_pp73-macosx_10_9_x86_64.whl", hash = "sha256:875a3537bec82c6af569caa37c203676bbb1fc41a307df4a5559581952edbf74"},
+    {file = "aiortc-1.1.1-pp36-pypy36_pp73-manylinux1_x86_64.whl", hash = "sha256:ffdb03c6483dfa891826cf42f0355392d32d723c85a8a2303291f7b760aa0d81"},
+    {file = "aiortc-1.1.1-pp36-pypy36_pp73-manylinux2010_x86_64.whl", hash = "sha256:6d320154ccb14a0eafa49903c126f6b923be4480ffe26db67aaca737e4914131"},
+    {file = "aiortc-1.1.1-pp36-pypy36_pp73-win32.whl", hash = "sha256:0f3209e7a4b35e286cb8617418a3fa473629c3bdf11d5e2eb2a2019a0f9256fd"},
+    {file = "aiortc-1.1.1-pp37-pypy37_pp73-macosx_10_9_x86_64.whl", hash = "sha256:5d92c7b95065417ba6d71acf78f6cc6742d4e3e091ac3bf8d51118ff94dd5f78"},
+    {file = "aiortc-1.1.1-pp37-pypy37_pp73-manylinux1_x86_64.whl", hash = "sha256:542800562f3d7e1a8ace7c4ca1094d5a7a487e89267bd6b526ba7ccdbf63b07c"},
+    {file = "aiortc-1.1.1-pp37-pypy37_pp73-manylinux2010_x86_64.whl", hash = "sha256:95eddefaba92bdebfa2cf993cf26d7c0dde45600574a07c0978cd18ff530d315"},
+    {file = "aiortc-1.1.1-pp37-pypy37_pp73-win32.whl", hash = "sha256:2c64d136ef1e4c4f0e49502a9256ef69eaeb9981baef60c10555cb6db9509ae5"},
+    {file = "aiortc-1.1.1.tar.gz", hash = "sha256:92f1cc00564c884641043b28c0e8deeecd2008ecdacc0582d24290281623714a"},
 ]
 altair = [
     {file = "altair-4.1.0-py3-none-any.whl", hash = "sha256:7748841a1bea8354173d1140bef6d3b58bea21d201f562528e9599ea384feb7f"},
@@ -1531,6 +1547,10 @@ decorator = [
 defusedxml = [
     {file = "defusedxml-0.6.0-py2.py3-none-any.whl", hash = "sha256:6687150770438374ab581bb7a1b327a847dd9c5749e396102de3fad4e8a3ef93"},
     {file = "defusedxml-0.6.0.tar.gz", hash = "sha256:f684034d135af4c6cbb949b8a4d2ed61634515257a67299e5f940fbaa34377f5"},
+]
+dnspython = [
+    {file = "dnspython-2.1.0-py3-none-any.whl", hash = "sha256:95d12f6ef0317118d2a1a6fc49aac65ffec7eb8087474158f42f26a639135216"},
+    {file = "dnspython-2.1.0.zip", hash = "sha256:e4a87f0b573201a0f3727fa18a516b055fd1107e0e5477cded4a2de497df1dd4"},
 ]
 entrypoints = [
     {file = "entrypoints-0.3-py2.py3-none-any.whl", hash = "sha256:589f874b313739ad35be6e0cd7efde2a4e9b6fea91edcc34e58ecbb8dbe56d19"},
