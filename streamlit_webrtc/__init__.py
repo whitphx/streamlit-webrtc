@@ -4,7 +4,7 @@
 import json
 import logging
 import os
-from typing import Callable, Dict, Hashable, NamedTuple, Optional, Union
+from typing import Dict, Hashable, NamedTuple, Optional, Union
 
 try:
     from typing import TypedDict
@@ -28,6 +28,7 @@ from .webrtc import (
     MediaRecorderFactory,
     VideoReceiver,
     VideoTransformerBase,
+    VideoTransformerFactory,
     WebRtcMode,
     WebRtcWorker,
 )
@@ -94,7 +95,7 @@ def webrtc_streamer(
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
-    video_transformer_factory: Optional[Callable[[], VideoTransformerBase]] = None,
+    video_transformer_factory: Optional[VideoTransformerFactory] = None,
     async_transform: bool = True,
 ) -> WebRtcWorkerContext:
     webrtc_worker = _get_webrtc_worker(key)
