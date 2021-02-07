@@ -410,7 +410,7 @@ def app_sendonly():
         image_loc = st.empty()
         while True:
             try:
-                frame = webrtc_ctx.video_receiver.frames_queue.get(timeout=1)
+                frame = webrtc_ctx.video_receiver.get_frame(timeout=1)
             except queue.Empty:
                 print("Queue is empty. Stop the loop.")
                 webrtc_ctx.video_receiver.stop()
