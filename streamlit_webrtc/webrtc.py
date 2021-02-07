@@ -275,7 +275,7 @@ class WebRtcWorker:
         player_factory: Optional[MediaPlayerFactory],
         in_recorder_factory: Optional[MediaRecorderFactory],
         out_recorder_factory: Optional[MediaRecorderFactory],
-        video_transformer_factory: Optional[Callable[[], VideoTransformerBase]],
+        video_transformer_factory: Optional[VideoTransformerFactory],
         video_receiver: Optional[VideoReceiver],
         async_transform: bool,
     ):
