@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+## Fix
+- Add `VideoReceiver.get_frame()` and remove `VideoReceiver.frames_queue` attribute.
+
 ## [0.6.3] - 2021-02-03
 ### Fix
 - Set `aiortc` version to exactly `1.0.0`, as `1.1.0` and `1.1.1` cause an error. See https://github.com/whitphx/streamlit-webrtc/issues/37.

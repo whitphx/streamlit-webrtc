@@ -241,7 +241,6 @@ class WebRtcWorker:
         out_recorder_factory: Optional[MediaRecorderFactory],
         player_factory: Optional[MediaPlayerFactory],
         video_transformer_factory: Optional[VideoTransformerFactory],
-        video_receiver: Optional[VideoReceiver],
         async_transform: bool,
     ):
         try:
@@ -252,7 +251,6 @@ class WebRtcWorker:
                 in_recorder_factory=in_recorder_factory,
                 out_recorder_factory=out_recorder_factory,
                 video_transformer_factory=video_transformer_factory,
-                video_receiver=video_receiver,
                 async_transform=async_transform,
             )
         except Exception as e:
@@ -276,7 +274,6 @@ class WebRtcWorker:
         in_recorder_factory: Optional[MediaRecorderFactory],
         out_recorder_factory: Optional[MediaRecorderFactory],
         video_transformer_factory: Optional[VideoTransformerFactory],
-        video_receiver: Optional[VideoReceiver],
         async_transform: bool,
     ):
         logger.debug(
@@ -306,7 +303,12 @@ class WebRtcWorker:
                 )
                 video_transformer = NoOpVideoTransformer()
 
+        video_receiver = None
+        if self.mode == WebRtcMode.SENDONLY:
+            video_receiver = VideoReceiver(queue_maxsize=1)
+
         self._video_transformer = video_transformer
+        self._video_receiver = video_receiver
 
         loop.create_task(
             _process_offer(
@@ -335,9 +337,6 @@ class WebRtcWorker:
     def process_offer(
         self, sdp, type_, timeout: Union[float, None] = 10.0
     ) -> RTCSessionDescription:
-        if self.mode == WebRtcMode.SENDONLY:
-            self._video_receiver = VideoReceiver(queue_maxsize=1)
-
         self._thread = threading.Thread(
             target=self._run_webrtc_thread,
             kwargs={
@@ -347,7 +346,6 @@ class WebRtcWorker:
                 "in_recorder_factory": self.in_recorder_factory,
                 "out_recorder_factory": self.out_recorder_factory,
                 "video_transformer_factory": self.video_transformer_factory,
-                "video_receiver": self._video_receiver,
                 "async_transform": self.async_transform,
             },
             daemon=True,

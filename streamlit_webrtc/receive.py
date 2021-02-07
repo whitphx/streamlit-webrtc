@@ -1,7 +1,8 @@
 import asyncio
 import queue
-from typing import Union
+from typing import Optional, Union
 
+import av
 from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
@@ -12,10 +13,6 @@ class VideoReceiver:
     _frames_queue: queue.Queue
     _track: Union[MediaStreamTrack, None]
     _task: Union[asyncio.Task, None]
-
-    @property
-    def frames_queue(self) -> queue.Queue:
-        return self._frames_queue
 
     def __init__(self, queue_maxsize: int = 1) -> None:
         self._frames_queue = queue.Queue(maxsize=queue_maxsize)
@@ -41,10 +38,15 @@ class VideoReceiver:
             self._task.cancel()
             self._task = None
 
+    def get_frame(
+        self, block: bool = True, timeout: Optional[float] = None
+    ) -> av.VideoFrame:
+        return self._frames_queue.get(block=block, timeout=timeout)
+
     async def _run_track(self, track: MediaStreamTrack):
         while True:
             try:
                 frame = await track.recv()
             except MediaStreamError:
                 return
-            self.frames_queue.put(frame)
+            self._frames_queue.put(frame)
