@@ -19,3 +19,6 @@ $ streamlit run https://raw.githubusercontent.com/whitphx/streamlit-webrtc-examp
 You can also try it out on [Streamlit Sharing](https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py).
 
 The deployment of this sample app is managed in this repository: https://github.com/whitphx/streamlit-webrtc-example/.
+
+## Tutorial
+[This post](https://dev.to/whitphx/build-a-web-based-real-time-computer-vision-app-with-streamlit-57l2) explains how to use `streamlit-webrtc` to build a real-time computer vision app.
