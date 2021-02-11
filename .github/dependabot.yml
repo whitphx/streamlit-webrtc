@@ -8,3 +8,8 @@ updates:
   ignore:
     - dependency-name: "aiortc"  # https://github.com/whitphx/streamlit-webrtc/issues/37
       versions: ["^1.1.0"]
+- package-ecosystem: npm
+  directory: "/streamlit_webrtc/frontend"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
