@@ -1,5 +1,8 @@
 # streamlit-webrtc
 
+[![Tests](https://github.com/whitphx/streamlit-webrtc/workflows/Tests/badge.svg?branch=master)](https://github.com/whitphx/streamlit-webrtc/actions?query=workflow%3ATests+branch%3Amaster)
+[![Frontend Tests](https://github.com/whitphx/streamlit-webrtc/workflows/Frontend%20tests/badge.svg?branch=master)](https://github.com/whitphx/streamlit-webrtc/actions?query=workflow%3A%22Frontend+tests%22+branch%3Amaster)
+
 [![PyPI](https://img.shields.io/pypi/v/streamlit-webrtc)](https://pypi.org/project/streamlit-webrtc/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/streamlit-webrtc)](https://pypi.org/project/streamlit-webrtc/)
 [![PyPI - License](https://img.shields.io/pypi/l/streamlit-webrtc)](https://pypi.org/project/streamlit-webrtc/)
