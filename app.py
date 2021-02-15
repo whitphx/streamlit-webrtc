@@ -1,11 +1,9 @@
 import logging
 import logging.handlers
 import queue
-import threading
-import time
 import urllib.request
 from pathlib import Path
-from typing import List, NamedTuple, Union
+from typing import List, NamedTuple
 
 try:
     from typing import Literal
@@ -241,21 +239,14 @@ def app_object_detection():
 
     class MobileNetSSDVideoTransformer(VideoTransformerBase):
         confidence_threshold: float
-        _result: Union[List[Detection], None]
-        _result_lock: threading.Lock
+        result_queue: "queue.Queue[List[Detection]]"
 
         def __init__(self) -> None:
             self._net = cv2.dnn.readNetFromCaffe(
                 str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH)
             )
             self.confidence_threshold = DEFAULT_CONFIDENCE_THRESHOLD
-            self._result = None
-            self._result_lock = threading.Lock()
-
-        @property
-        def result(self) -> Union[List[Detection], None]:
-            with self._result_lock:
-                return self._result
+            self.result_queue = queue.Queue()
 
         def _annotate_image(self, image, detections):
             # loop over the detections
@@ -301,8 +292,7 @@ def app_object_detection():
 
             # NOTE: This `transform` method is called in another thread,
             # so it must be thread-safe.
-            with self._result_lock:
-                self._result = result
+            self.result_queue.put(result)
 
             return annotated_image
 
@@ -327,11 +317,11 @@ def app_object_detection():
             # this loop displaying the result labels are running
             # in different threads asynchronously.
             # Then the rendered video frames and the labels displayed here
-            # are not synchronized.
-            while True:
-                if webrtc_ctx.video_transformer:
-                    labels_placeholder.table(webrtc_ctx.video_transformer.result)
-                time.sleep(0.1)
+            # are not strictly synchronized.
+            if webrtc_ctx.video_transformer:
+                while True:
+                    result = webrtc_ctx.video_transformer.result_queue.get()
+                    labels_placeholder.table(result)
 
     st.markdown(
         "This demo uses a model and code from "
