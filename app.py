@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import logging.handlers
 import queue
@@ -241,7 +239,7 @@ def app_object_detection():
 
     class MobileNetSSDVideoTransformer(VideoTransformerBase):
         confidence_threshold: float
-        result_queue: queue.Queue[List[Detection]]
+        result_queue: "queue.Queue[List[Detection]]"
 
         def __init__(self) -> None:
             self._net = cv2.dnn.readNetFromCaffe(
