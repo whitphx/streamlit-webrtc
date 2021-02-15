@@ -1,8 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.7.1] - 2021-02-16
+### Fix
+- Dependency updates.
+
 ## [0.7.0] - 2021-02-14
-## Fix
+### Fix
 - Add `VideoReceiver.get_frame()` and remove `VideoReceiver.frames_queue` attribute.
 
 ## [0.6.3] - 2021-02-03
