@@ -20,7 +20,7 @@ black = "^20.8b1"
 isort = "^5.7.0"
 flake8 = "^3.8.4"
 opencv-python = "^4.5.1"
-mypy = "^0.800"
+mypy = "^0.812"
 
 [tool.black]
 line-length = 88
