@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.7.2] - 2021-02-24
+### Fix
+- Dependency updates.
+
 ## [0.7.1] - 2021-02-16
 ### Fix
 - Dependency updates.
