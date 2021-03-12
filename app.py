@@ -318,10 +318,12 @@ def app_object_detection():
             # in different threads asynchronously.
             # Then the rendered video frames and the labels displayed here
             # are not strictly synchronized.
-            if webrtc_ctx.video_transformer:
-                while True:
+            while True:
+                if webrtc_ctx.video_transformer:
                     result = webrtc_ctx.video_transformer.result_queue.get()
                     labels_placeholder.table(result)
+                else:
+                    break
 
     st.markdown(
         "This demo uses a model and code from "
