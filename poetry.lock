@@ -311,17 +311,17 @@ python-versions = ">=2.7"
 
 [[package]]
 name = "flake8"
-version = "3.8.4"
+version = "3.9.0"
 description = "the modular source code checker: pep8 pyflakes and co"
 category = "dev"
 optional = false
-python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 
 [package.dependencies]
 importlib-metadata = {version = "*", markers = "python_version < \"3.8\""}
 mccabe = ">=0.6.0,<0.7.0"
-pycodestyle = ">=2.6.0a1,<2.7.0"
-pyflakes = ">=2.2.0,<2.3.0"
+pycodestyle = ">=2.7.0,<2.8.0"
+pyflakes = ">=2.3.0,<2.4.0"
 
 [[package]]
 name = "gitdb"
@@ -879,7 +879,7 @@ numpy = ">=1.16.6"
 
 [[package]]
 name = "pycodestyle"
-version = "2.6.0"
+version = "2.7.0"
 description = "Python style guide checker"
 category = "dev"
 optional = false
@@ -921,7 +921,7 @@ python-versions = "*"
 
 [[package]]
 name = "pyflakes"
-version = "2.2.0"
+version = "2.3.1"
 description = "passive checker of Python programs"
 category = "dev"
 optional = false
@@ -1262,7 +1262,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "05174f51a2e7fa8981807d1bb7d043dc290846945227764c869080403c171ba2"
+content-hash = "adb11644b529210b1e240041c524513e2e2ebe024df31ee21a155e0bcac981a7"
 
 [metadata.files]
 aioice = [
@@ -1560,8 +1560,8 @@ entrypoints = [
     {file = "entrypoints-0.3.tar.gz", hash = "sha256:c70dd71abe5a8c85e55e12c19bd91ccfeec11a6e99044204511f9ed547d48451"},
 ]
 flake8 = [
-    {file = "flake8-3.8.4-py2.py3-none-any.whl", hash = "sha256:749dbbd6bfd0cf1318af27bf97a14e28e5ff548ef8e5b1566ccfb25a11e7c839"},
-    {file = "flake8-3.8.4.tar.gz", hash = "sha256:aadae8761ec651813c24be05c6f7b4680857ef6afaae4651a4eccaef97ce6c3b"},
+    {file = "flake8-3.9.0-py2.py3-none-any.whl", hash = "sha256:12d05ab02614b6aee8df7c36b97d1a3b2372761222b19b58621355e82acddcff"},
+    {file = "flake8-3.9.0.tar.gz", hash = "sha256:78873e372b12b093da7b5e5ed302e8ad9e988b38b063b61ad937f26ca58fc5f0"},
 ]
 gitdb = [
     {file = "gitdb-4.0.5-py3-none-any.whl", hash = "sha256:91f36bfb1ab7949b3b40e23736db18231bf7593edada2ba5c3a174a7b23657ac"},
@@ -1962,8 +1962,8 @@ pyarrow = [
     {file = "pyarrow-3.0.0.tar.gz", hash = "sha256:4bf8cc43e1db1e0517466209ee8e8f459d9b5e1b4074863317f2a965cf59889e"},
 ]
 pycodestyle = [
-    {file = "pycodestyle-2.6.0-py2.py3-none-any.whl", hash = "sha256:2295e7b2f6b5bd100585ebcb1f616591b652db8a741695b3d8f5d28bdc934367"},
-    {file = "pycodestyle-2.6.0.tar.gz", hash = "sha256:c58a7d2815e0e8d7972bf1803331fb0152f867bd89adf8a01dfd55085434192e"},
+    {file = "pycodestyle-2.7.0-py2.py3-none-any.whl", hash = "sha256:514f76d918fcc0b55c6680472f0a37970994e07bbb80725808c17089be302068"},
+    {file = "pycodestyle-2.7.0.tar.gz", hash = "sha256:c389c1d06bf7904078ca03399a4816f974a1d590090fecea0c63ec26ebaf1cef"},
 ]
 pycparser = [
     {file = "pycparser-2.20-py2.py3-none-any.whl", hash = "sha256:7582ad22678f0fcd81102833f60ef8d0e57288b6b5fb00323d101be910e35705"},
@@ -1978,8 +1978,8 @@ pyee = [
     {file = "pyee-8.1.0.tar.gz", hash = "sha256:92dacc5bd2bdb8f95aa8dd2585d47ca1c4840e2adb95ccf90034d64f725bfd31"},
 ]
 pyflakes = [
-    {file = "pyflakes-2.2.0-py2.py3-none-any.whl", hash = "sha256:0d94e0e05a19e57a99444b6ddcf9a6eb2e5c68d3ca1e98e90707af8152c90a92"},
-    {file = "pyflakes-2.2.0.tar.gz", hash = "sha256:35b2d75ee967ea93b55750aa9edbbf72813e06a66ba54438df2cfac9e3c27fc8"},
+    {file = "pyflakes-2.3.1-py2.py3-none-any.whl", hash = "sha256:7893783d01b8a89811dd72d7dfd4d84ff098e5eed95cfa8905b22bbffe52efc3"},
+    {file = "pyflakes-2.3.1.tar.gz", hash = "sha256:f5bc8ecabc05bb9d291eb5203d6810b49040f6ff446a756326104746cc00c1db"},
 ]
 pygments = [
     {file = "Pygments-2.7.4-py3-none-any.whl", hash = "sha256:bc9591213a8f0e0ca1a5e68a479b4887fdc3e75d0774e5c71c31920c427de435"},
