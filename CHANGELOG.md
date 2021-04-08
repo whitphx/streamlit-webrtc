@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fix
+- Fix a sample app, `app.py` to avoid an infinate loop.
+- Update to unset a worker attributes from a context object after stopping.
+- Dependency updates.
+
 ## [0.7.2] - 2021-02-24
 ### Fix
 - Dependency updates.
