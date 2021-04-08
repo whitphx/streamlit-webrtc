@@ -221,7 +221,6 @@ class WebRtcWorker:
         self._loop = None
         self.pc = RTCPeerConnection()
         self._answer_queue = queue.Queue()
-        self._stop_requested = False
 
         self.mode = mode
         self.player_factory = player_factory
