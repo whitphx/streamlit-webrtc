@@ -320,7 +320,7 @@ def app_object_detection():
             # are not strictly synchronized.
             while True:
                 if webrtc_ctx.video_transformer:
-                    result = webrtc_ctx.video_transformer.result_queue.get()
+                    result = webrtc_ctx.video_transformer.result_queue.get(timeout=1.0)
                     labels_placeholder.table(result)
                 else:
                     break
