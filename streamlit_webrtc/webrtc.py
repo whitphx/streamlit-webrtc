@@ -194,7 +194,7 @@ async def _process_offer(
 
 
 class WebRtcWorker:
-    _thread: Union[threading.Thread, None]
+    _webrtc_thread: Union[threading.Thread, None]
     _loop: Union[AbstractEventLoop, None]
     _answer_queue: queue.Queue
     _video_transformer: Optional[VideoTransformerBase]
@@ -217,7 +217,7 @@ class WebRtcWorker:
         video_transformer_factory: Optional[VideoTransformerFactory] = None,
         async_transform: bool = True,
     ) -> None:
-        self._thread = None
+        self._webrtc_thread = None
         self._loop = None
         self.pc = RTCPeerConnection()
         self._answer_queue = queue.Queue()
@@ -243,7 +243,7 @@ class WebRtcWorker:
         async_transform: bool,
     ):
         try:
-            self._webrtc_thread(
+            self._webrtc_thread_impl(
                 sdp=sdp,
                 type_=type_,
                 player_factory=player_factory,
@@ -265,7 +265,7 @@ class WebRtcWorker:
 
             self._answer_queue.put(e)  # Send the error object to the main thread
 
-    def _webrtc_thread(
+    def _webrtc_thread_impl(
         self,
         sdp: str,
         type_: str,
@@ -336,7 +336,7 @@ class WebRtcWorker:
     def process_offer(
         self, sdp, type_, timeout: Union[float, None] = 10.0
     ) -> RTCSessionDescription:
-        self._thread = threading.Thread(
+        self._webrtc_thread = threading.Thread(
             target=self._run_webrtc_thread,
             kwargs={
                 "sdp": sdp,
@@ -349,7 +349,7 @@ class WebRtcWorker:
             },
             daemon=True,
         )
-        self._thread.start()
+        self._webrtc_thread.start()
 
         try:
             result = self._answer_queue.get(block=True, timeout=timeout)
@@ -368,8 +368,8 @@ class WebRtcWorker:
     def stop(self, timeout: Union[float, None] = 1.0):
         if self._loop:
             self._loop.stop()
-        if self._thread:
-            self._thread.join(timeout=timeout)
+        if self._webrtc_thread:
+            self._webrtc_thread.join(timeout=timeout)
 
 
 async def _test():
