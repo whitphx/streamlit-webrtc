@@ -309,6 +309,12 @@ class WebRtcWorker:
         self._video_transformer = video_transformer
         self._video_receiver = video_receiver
 
+        @self.pc.on("iceconnectionstatechange")
+        async def on_iceconnectionstatechange():
+            iceConnectionState = self.pc.iceConnectionState
+            if iceConnectionState == "closed" or iceConnectionState == "failed":
+                self._unset_transformers()
+
         loop.create_task(
             _process_offer(
                 self.mode,
@@ -365,7 +371,12 @@ class WebRtcWorker:
 
         return result
 
+    def _unset_transformers(self):
+        self._video_transformer = None
+        self._video_receiver = None
+
     def stop(self, timeout: Union[float, None] = 1.0):
+        self._unset_transformers()
         if self._loop:
             self._loop.stop()
         if self._webrtc_thread:

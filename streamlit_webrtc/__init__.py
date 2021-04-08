@@ -4,6 +4,7 @@
 import json
 import logging
 import os
+import weakref
 from typing import Dict, Hashable, NamedTuple, Optional, Union
 
 try:
@@ -78,14 +79,32 @@ class ClientSettings(TypedDict):
     media_stream_constraints: Optional[MediaStreamConstraints]
 
 
-class WebRtcWorkerState(NamedTuple):
+class WebRtcStreamerState(NamedTuple):
     playing: bool
 
 
-class WebRtcWorkerContext(NamedTuple):
-    state: WebRtcWorkerState
-    video_transformer: Optional[VideoTransformerBase]
-    video_receiver: Optional[VideoReceiver]
+class WebRtcStreamerContext:
+    state: WebRtcStreamerState
+    _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker]]"
+
+    def __init__(
+        self, worker: Optional[WebRtcWorker], state: WebRtcStreamerState
+    ) -> None:
+        self._worker_ref = weakref.ref(worker) if worker else None
+        self.state = state
+
+    def _get_worker(self) -> Optional[WebRtcWorker]:
+        return self._worker_ref() if self._worker_ref else None
+
+    @property
+    def video_transformer(self) -> Optional[VideoTransformerBase]:
+        worker = self._get_worker()
+        return worker.video_transformer if worker else None
+
+    @property
+    def video_receiver(self) -> Optional[VideoReceiver]:
+        worker = self._get_worker()
+        return worker.video_receiver if worker else None
 
 
 def webrtc_streamer(
@@ -97,7 +116,7 @@ def webrtc_streamer(
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
     video_transformer_factory: Optional[VideoTransformerFactory] = None,
     async_transform: bool = True,
-) -> WebRtcWorkerContext:
+) -> WebRtcStreamerContext:
     webrtc_worker = _get_webrtc_worker(key)
 
     sdp_answer_json = None
@@ -140,10 +159,9 @@ def webrtc_streamer(
                 _set_webrtc_worker(key, webrtc_worker)
                 st.experimental_rerun()  # Rerun to send the SDP answer to frontend
 
-    ctx = WebRtcWorkerContext(
-        state=WebRtcWorkerState(playing=playing),
-        video_transformer=webrtc_worker.video_transformer if webrtc_worker else None,
-        video_receiver=webrtc_worker.video_receiver if webrtc_worker else None,
+    ctx = WebRtcStreamerContext(
+        state=WebRtcStreamerState(playing=playing),
+        worker=webrtc_worker,
     )
 
     return ctx
