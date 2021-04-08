@@ -125,6 +125,7 @@ def webrtc_streamer(
             if not playing:
                 webrtc_worker.stop()
                 _unset_webrtc_worker(key)
+                webrtc_worker = None
         else:
             if sdp_offer:
                 webrtc_worker = WebRtcWorker(
