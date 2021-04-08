@@ -4,6 +4,7 @@
 import json
 import logging
 import os
+import weakref
 from typing import Dict, Hashable, NamedTuple, Optional, Union
 
 try:
@@ -84,21 +85,26 @@ class WebRtcStreamerState(NamedTuple):
 
 class WebRtcStreamerContext:
     state: WebRtcStreamerState
-    _worker: Optional[WebRtcWorker]
+    _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker]]"
 
     def __init__(
         self, worker: Optional[WebRtcWorker], state: WebRtcStreamerState
     ) -> None:
-        self._worker = worker
+        self._worker_ref = weakref.ref(worker) if worker else None
         self.state = state
+
+    def _get_worker(self) -> Optional[WebRtcWorker]:
+        return self._worker_ref() if self._worker_ref else None
 
     @property
     def video_transformer(self) -> Optional[VideoTransformerBase]:
-        return self._worker.video_transformer if self._worker else None
+        worker = self._get_worker()
+        return worker.video_transformer if worker else None
 
     @property
     def video_receiver(self) -> Optional[VideoReceiver]:
-        return self._worker.video_receiver if self._worker else None
+        worker = self._get_worker()
+        return worker.video_receiver if worker else None
 
 
 def webrtc_streamer(
