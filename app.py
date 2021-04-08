@@ -180,11 +180,10 @@ def app_video_filters():
         async_transform=True,
     )
 
-    transform_type = st.radio(
-        "Select transform type", ("noop", "cartoon", "edges", "rotate")
-    )
     if webrtc_ctx.video_transformer:
-        webrtc_ctx.video_transformer.type = transform_type
+        webrtc_ctx.video_transformer.type = st.radio(
+            "Select transform type", ("noop", "cartoon", "edges", "rotate")
+        )
 
     st.markdown(
         "This demo is based on "
