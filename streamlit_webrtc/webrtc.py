@@ -96,7 +96,7 @@ async def _process_offer(
                         )
                         logger.info(
                             "Add a input video track %s to "
-                            "another track with video_transformer %s",
+                            "output track with video_transformer %s",
                             input_track,
                             VideoTrack,
                         )
@@ -105,6 +105,8 @@ async def _process_offer(
                         )
                         logger.info("Add the video track with transfomer to %s", pc)
                         output_track = local_video
+                    else:
+                        output_track = input_track
 
                 if not output_track:
                     raise Exception(
@@ -292,15 +294,6 @@ class WebRtcWorker:
         video_transformer = None
         if video_transformer_factory:
             video_transformer = video_transformer_factory()
-
-        if self.mode == WebRtcMode.SENDRECV:
-            if video_transformer is None:
-                logger.info(
-                    "mode is set as sendrecv, "
-                    "but video_transformer_factory is not specified. "
-                    "A simple loopback transformer is used."
-                )
-                video_transformer = NoOpVideoTransformer()
 
         video_receiver = None
         if self.mode == WebRtcMode.SENDONLY:
