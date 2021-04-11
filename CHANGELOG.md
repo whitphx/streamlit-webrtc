@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.8.1] - 2021-04-11
 ### Fix
 - Internal fix, #126.
 - Set log level to `fsevents` logger, whose logs have been noisy, #129.
