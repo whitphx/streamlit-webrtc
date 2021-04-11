@@ -23,6 +23,7 @@
    `patch`, `minor`, or `major` can be used as `<version>`.
 3. Push the commit with the tag to GitHub. After pushing the tag, CI/CD automatically deploy the release.
    ```
+   $ git push
    $ git push --tags
    ```
 
