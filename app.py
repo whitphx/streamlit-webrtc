@@ -428,4 +428,7 @@ if __name__ == "__main__":
     st_webrtc_logger = logging.getLogger("streamlit_webrtc")
     st_webrtc_logger.setLevel(logging.DEBUG)
 
+    fsevents_logger = logging.getLogger("fsevents")
+    fsevents_logger.setLevel(logging.WARNING)
+
     main()
