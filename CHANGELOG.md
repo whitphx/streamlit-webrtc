@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fix
+- Internal fix, #126.
+
 ## [0.8.0] - 2021-04-09
 ### Fix
 - Fix a sample app, `app.py` to avoid an infinate loop.

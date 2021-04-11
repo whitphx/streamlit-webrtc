@@ -12,7 +12,6 @@ from aiortc.contrib.media import MediaPlayer, MediaRecorder
 from .receive import VideoReceiver
 from .transform import (
     AsyncVideoTransformTrack,
-    NoOpVideoTransformer,
     VideoTransformerBase,
     VideoTransformTrack,
 )
@@ -96,7 +95,7 @@ async def _process_offer(
                         )
                         logger.info(
                             "Add a input video track %s to "
-                            "another track with video_transformer %s",
+                            "output track with video_transformer %s",
                             input_track,
                             VideoTrack,
                         )
@@ -105,6 +104,8 @@ async def _process_offer(
                         )
                         logger.info("Add the video track with transfomer to %s", pc)
                         output_track = local_video
+                    else:
+                        output_track = input_track
 
                 if not output_track:
                     raise Exception(
@@ -236,21 +237,11 @@ class WebRtcWorker:
         self,
         sdp: str,
         type_: str,
-        in_recorder_factory: Optional[MediaRecorderFactory],
-        out_recorder_factory: Optional[MediaRecorderFactory],
-        player_factory: Optional[MediaPlayerFactory],
-        video_transformer_factory: Optional[VideoTransformerFactory],
-        async_transform: bool,
     ):
         try:
             self._webrtc_thread_impl(
                 sdp=sdp,
                 type_=type_,
-                player_factory=player_factory,
-                in_recorder_factory=in_recorder_factory,
-                out_recorder_factory=out_recorder_factory,
-                video_transformer_factory=video_transformer_factory,
-                async_transform=async_transform,
             )
         except Exception as e:
             logger.warn("An error occurred in the WebRTC worker thread: %s", e)
@@ -269,16 +260,9 @@ class WebRtcWorker:
         self,
         sdp: str,
         type_: str,
-        player_factory: Optional[MediaPlayerFactory],
-        in_recorder_factory: Optional[MediaRecorderFactory],
-        out_recorder_factory: Optional[MediaRecorderFactory],
-        video_transformer_factory: Optional[VideoTransformerFactory],
-        async_transform: bool,
     ):
         logger.debug(
-            "_webrtc_thread(player_factory=%s, video_transformer_factory=%s)",
-            player_factory,
-            video_transformer_factory,
+            "_webrtc_thread_impl starts",
         )
 
         loop = asyncio.new_event_loop()
@@ -290,17 +274,8 @@ class WebRtcWorker:
             self._answer_queue.put(localDescription)
 
         video_transformer = None
-        if video_transformer_factory:
-            video_transformer = video_transformer_factory()
-
-        if self.mode == WebRtcMode.SENDRECV:
-            if video_transformer is None:
-                logger.info(
-                    "mode is set as sendrecv, "
-                    "but video_transformer_factory is not specified. "
-                    "A simple loopback transformer is used."
-                )
-                video_transformer = NoOpVideoTransformer()
+        if self.video_transformer_factory:
+            video_transformer = self.video_transformer_factory()
 
         video_receiver = None
         if self.mode == WebRtcMode.SENDONLY:
@@ -320,12 +295,12 @@ class WebRtcWorker:
                 self.mode,
                 self.pc,
                 offer,
-                player_factory=player_factory,
-                in_recorder_factory=in_recorder_factory,
-                out_recorder_factory=out_recorder_factory,
+                player_factory=self.player_factory,
+                in_recorder_factory=self.in_recorder_factory,
+                out_recorder_factory=self.out_recorder_factory,
                 video_transformer=video_transformer,
                 video_receiver=video_receiver,
-                async_transform=async_transform,
+                async_transform=self.async_transform,
                 callback=callback,
             )
         )
@@ -347,11 +322,6 @@ class WebRtcWorker:
             kwargs={
                 "sdp": sdp,
                 "type_": type_,
-                "player_factory": self.player_factory,
-                "in_recorder_factory": self.in_recorder_factory,
-                "out_recorder_factory": self.out_recorder_factory,
-                "video_transformer_factory": self.video_transformer_factory,
-                "async_transform": self.async_transform,
             },
             daemon=True,
         )
