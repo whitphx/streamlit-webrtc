@@ -23,5 +23,8 @@ You can also try it out on [Streamlit Sharing](https://share.streamlit.io/whitph
 
 The deployment of this sample app is managed in this repository: https://github.com/whitphx/streamlit-webrtc-example/.
 
-## Tutorial
-[This post](https://dev.to/whitphx/build-a-web-based-real-time-computer-vision-app-with-streamlit-57l2) explains how to use `streamlit-webrtc` to build a real-time computer vision app.
+## Resources
+* [Building a Web-Based Real-Time Computer Vision App with Streamlit (dev.to)](https://dev.to/whitphx/build-a-web-based-real-time-computer-vision-app-with-streamlit-57l2)
+  * This post explains how to use `streamlit-webrtc` to build a real-time computer vision app.
+* [New Component: streamlit-webrtc, a new way to deal with real-time media streams (Streamlit Community)](https://discuss.streamlit.io/t/new-component-streamlit-webrtc-a-new-way-to-deal-with-real-time-media-streams/8669)
+  * This is a forum topic where `streamlit-webrtc` has been introduced and discussed about.
