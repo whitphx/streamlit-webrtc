@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fix
+- Fix SessionState to be bound to each session properly, #139
+
 ## [0.8.1] - 2021-04-11
 ### Fix
 - Internal fix, #126.
