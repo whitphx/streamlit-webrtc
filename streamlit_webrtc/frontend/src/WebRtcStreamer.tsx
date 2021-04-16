@@ -10,6 +10,7 @@ import Button from "@material-ui/core/Button";
 import Alert from "@material-ui/lab/Alert";
 import VisibilitySwitch from "./VisibilitySwitch";
 import DeviceSelector from "./DeviceSelector";
+import ThemeProvider from "./ThemeProvider";
 
 type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -297,59 +298,61 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     const receivable = isWebRtcMode(mode) && isReceivable(mode);
 
     return (
-      <Box>
-        {this.state.error && (
-          <Alert severity="error">
-            {this.state.error.name}: {this.state.error.message}
-          </Alert>
-        )}
-        <VisibilitySwitch
-          visible={receivable}
-          onVisibilityChange={() => setImmediate(Streamlit.setFrameHeight)}
-        >
-          <Box>
-            <video
-              style={{
-                width: "100%",
+      <ThemeProvider theme={this.props.theme}>
+        <Box>
+          {this.state.error && (
+            <Alert severity="error">
+              {this.state.error.name}: {this.state.error.message}
+            </Alert>
+          )}
+          <VisibilitySwitch
+            visible={receivable}
+            onVisibilityChange={() => setImmediate(Streamlit.setFrameHeight)}
+          >
+            <Box>
+              <video
+                style={{
+                  width: "100%",
+                }}
+                ref={this.videoRef}
+                autoPlay
+                controls
+                onCanPlay={() => Streamlit.setFrameHeight()}
+              />
+            </Box>
+            <Box>
+              <audio ref={this.audioRef} autoPlay controls />
+            </Box>
+          </VisibilitySwitch>
+          <Box display="flex" justifyContent="space-between">
+            {this.state.playing ? (
+              <Button
+                variant="contained"
+                onClick={this.stop}
+                disabled={buttonDisabled}
+              >
+                Stop
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={this.start}
+                disabled={buttonDisabled}
+              >
+                Start
+              </Button>
+            )}
+            <DeviceSelector
+              onSelect={this.handleDeviceSelect}
+              value={{
+                video: this.state.videoInput,
+                audio: this.state.audioInput,
               }}
-              ref={this.videoRef}
-              autoPlay
-              controls
-              onCanPlay={() => Streamlit.setFrameHeight()}
             />
           </Box>
-          <Box>
-            <audio ref={this.audioRef} autoPlay controls />
-          </Box>
-        </VisibilitySwitch>
-        <Box display="flex" justifyContent="space-between">
-          {this.state.playing ? (
-            <Button
-              variant="contained"
-              onClick={this.stop}
-              disabled={buttonDisabled}
-            >
-              Stop
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={this.start}
-              disabled={buttonDisabled}
-            >
-              Start
-            </Button>
-          )}
-          <DeviceSelector
-            onSelect={this.handleDeviceSelect}
-            value={{
-              video: this.state.videoInput,
-              audio: this.state.audioInput,
-            }}
-          />
         </Box>
-      </Box>
+      </ThemeProvider>
     );
   };
 }
