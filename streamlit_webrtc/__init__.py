@@ -59,19 +59,23 @@ else:
     _component_func = components.declare_component("webrtc_streamer", path=build_dir)
 
 
-_session_state = SessionState.get(webrtc_workers={})
+def _get_session_state():
+    return SessionState.get(webrtc_workers={})
 
 
 def _get_webrtc_worker(key: Hashable) -> Union[WebRtcWorker, None]:
-    return _session_state.webrtc_workers.get(key)
+    session_state = _get_session_state()
+    return session_state.webrtc_workers.get(key)
 
 
 def _set_webrtc_worker(key: Hashable, webrtc_worker: WebRtcWorker) -> None:
-    _session_state.webrtc_workers[key] = webrtc_worker
+    session_state = _get_session_state()
+    session_state.webrtc_workers[key] = webrtc_worker
 
 
 def _unset_webrtc_worker(key: Hashable) -> None:
-    del _session_state.webrtc_workers[key]
+    session_state = _get_session_state()
+    del session_state.webrtc_workers[key]
 
 
 class ClientSettings(TypedDict):
