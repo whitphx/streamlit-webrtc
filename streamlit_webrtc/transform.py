@@ -1,4 +1,5 @@
 import abc
+import itertools
 import logging
 import queue
 import sys
@@ -49,6 +50,8 @@ class VideoTransformTrack(MediaStreamTrack):
 
 __SENTINEL__ = "__SENTINEL__"
 
+video_transform_thread_id_generator = itertools.count()
+
 
 class AsyncVideoTransformTrack(MediaStreamTrack):
     kind = "video"
@@ -65,7 +68,10 @@ class AsyncVideoTransformTrack(MediaStreamTrack):
         self.track = track
         self.transformer = video_transformer
 
-        self._thread = threading.Thread(target=self._run_worker_thread)
+        self._thread = threading.Thread(
+            target=self._run_worker_thread,
+            name=f"async_video_transformer_{next(video_transform_thread_id_generator)}",
+        )
         self._in_queue = queue.Queue()
         self._latest_result_img_lock = threading.Lock()
 

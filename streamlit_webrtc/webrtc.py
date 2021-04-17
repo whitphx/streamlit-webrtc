@@ -1,5 +1,6 @@
 import asyncio
 import enum
+import itertools
 import logging
 import queue
 import threading
@@ -194,6 +195,9 @@ async def _process_offer(
         callback(e)
 
 
+webrtc_thread_id_generator = itertools.count()
+
+
 class WebRtcWorker:
     _webrtc_thread: Union[threading.Thread, None]
     _loop: Union[AbstractEventLoop, None]
@@ -324,6 +328,7 @@ class WebRtcWorker:
                 "type_": type_,
             },
             daemon=True,
+            name=f"webrtc_worker_{next(webrtc_thread_id_generator)}",
         )
         self._webrtc_thread.start()
 
