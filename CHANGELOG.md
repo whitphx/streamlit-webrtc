@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Add
+- Theming, #140.
+
 ## [0.9.0] - 2021-04-17
 ### Fix
 - Fix SessionState to be bound to each session properly, #139
