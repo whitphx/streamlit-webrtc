@@ -4,6 +4,7 @@ import {
   createMuiTheme,
   ThemeProvider as MuiThemeProvider,
 } from "@material-ui/core/styles";
+import chroma from "chroma-js";
 
 interface StreamlitThemeProviderProps {
   theme: Theme | undefined;
@@ -18,6 +19,10 @@ export const ThemeProvider: React.VFC<
       return undefined;
     }
 
+    const textColorScale = chroma
+      .scale([stTheme.textColor, stTheme.backgroundColor])
+      .mode("lab");
+
     return createMuiTheme({
       palette: {
         primary: {
@@ -29,6 +34,8 @@ export const ThemeProvider: React.VFC<
         },
         text: {
           primary: stTheme.textColor,
+          secondary: textColorScale(0.1).hex(),
+          disabled: textColorScale(0.5).hex(),
         },
       },
       typography: {
