@@ -195,6 +195,7 @@ async def _process_offer(
         callback(e)
 
 
+# See https://stackoverflow.com/a/42007659
 webrtc_thread_id_generator = itertools.count()
 
 

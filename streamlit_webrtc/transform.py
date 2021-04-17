@@ -50,6 +50,7 @@ class VideoTransformTrack(MediaStreamTrack):
 
 __SENTINEL__ = "__SENTINEL__"
 
+# See https://stackoverflow.com/a/42007659
 video_transform_thread_id_generator = itertools.count()
 
 
