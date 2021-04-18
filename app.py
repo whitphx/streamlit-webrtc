@@ -1,6 +1,7 @@
 import logging
 import logging.handlers
 import queue
+import threading
 import urllib.request
 from pathlib import Path
 from typing import List, NamedTuple
@@ -114,6 +115,11 @@ def main():
         app_sendonly()
     elif app_mode == loopback_page:
         app_loopback()
+
+    logger.debug("=== Alive threads ===")
+    for thread in threading.enumerate():
+        if thread.is_alive():
+            logger.debug(f"  {thread.name} ({thread.ident})")
 
 
 def app_loopback():
@@ -417,13 +423,17 @@ def app_sendonly():
 
 
 if __name__ == "__main__":
+    import os
+
+    DEBUG = os.environ.get("DEBUG", "false").lower() not in ["false", "no", "0"]
+
     logging.basicConfig(
         format="[%(asctime)s] %(levelname)7s from %(name)s in %(pathname)s:%(lineno)d: "
         "%(message)s",
         force=True,
     )
 
-    logger.setLevel(level=logging.DEBUG)
+    logger.setLevel(level=logging.DEBUG if DEBUG else logging.INFO)
 
     st_webrtc_logger = logging.getLogger("streamlit_webrtc")
     st_webrtc_logger.setLevel(logging.DEBUG)
