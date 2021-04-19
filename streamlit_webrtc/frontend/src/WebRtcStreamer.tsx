@@ -8,10 +8,10 @@ import React, { ReactNode } from "react";
 import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
 import Alert from "@material-ui/lab/Alert";
-import VisibilitySwitch from "./VisibilitySwitch";
 import DeviceSelector from "./DeviceSelector";
 import ThemeProvider from "./ThemeProvider";
 import MediaStreamPlayer from "./MediaStreamPlayer";
+import Placeholder from "./Placeholder";
 
 type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -291,14 +291,13 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
               {this.state.error.name}: {this.state.error.message}
             </Alert>
           )}
-          <VisibilitySwitch
-            visible={receivable}
-            onVisibilityChange={() => setImmediate(Streamlit.setFrameHeight)}
-          >
-            {this.state.stream && (
+          <Box>
+            {this.state.stream ? (
               <MediaStreamPlayer stream={this.state.stream} />
+            ) : (
+              receivable && <Placeholder loading={this.state.signaling} />
             )}
-          </VisibilitySwitch>
+          </Box>
           <Box display="flex" justifyContent="space-between">
             {this.state.playing ? (
               <Button

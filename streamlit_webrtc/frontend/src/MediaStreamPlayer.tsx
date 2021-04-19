@@ -1,11 +1,14 @@
 import { Streamlit } from "streamlit-component-lib";
-import React, { useCallback } from "react";
-import Box from "@material-ui/core/Box";
+import React, { useEffect, useCallback } from "react";
 
 interface MediaStreamPlayerProps {
   stream: MediaStream;
 }
 const MediaStreamPlayer: React.VFC<MediaStreamPlayerProps> = (props) => {
+  useEffect(() => {
+    Streamlit.setFrameHeight();
+  });
+
   const hasVideo = props.stream.getVideoTracks().length > 0;
 
   const refCallback = useCallback(
@@ -17,22 +20,18 @@ const MediaStreamPlayer: React.VFC<MediaStreamPlayerProps> = (props) => {
     [props.stream]
   );
 
-  return (
-    <Box>
-      {hasVideo ? (
-        <video
-          style={{
-            width: "100%",
-          }}
-          ref={refCallback}
-          autoPlay
-          controls
-          onCanPlay={() => Streamlit.setFrameHeight()}
-        />
-      ) : (
-        <audio ref={refCallback} autoPlay controls />
-      )}
-    </Box>
+  return hasVideo ? (
+    <video
+      style={{
+        width: "100%",
+      }}
+      ref={refCallback}
+      autoPlay
+      controls
+      onCanPlay={() => Streamlit.setFrameHeight()}
+    />
+  ) : (
+    <audio ref={refCallback} autoPlay controls />
   );
 };
 
