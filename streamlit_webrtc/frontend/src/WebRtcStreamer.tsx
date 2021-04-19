@@ -291,7 +291,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
               {this.state.error.name}: {this.state.error.message}
             </Alert>
           )}
-          <Box>
+          <Box py={1}>
             {this.state.stream ? (
               <MediaStreamPlayer stream={this.state.stream} />
             ) : (

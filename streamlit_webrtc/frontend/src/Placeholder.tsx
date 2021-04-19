@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import Paper from "@material-ui/core/Paper";
 import CircularProgress from "@material-ui/core/CircularProgress";
+import VideoLabelIcon from "@material-ui/icons/VideoLabel";
 
 const useStyles = makeStyles((theme) => ({
   paper: {
@@ -25,7 +26,11 @@ const Placeholder: React.VFC<PlaceholderProps> = (props) => {
 
   return (
     <Paper className={classes.paper} elevation={0}>
-      {props.loading && <CircularProgress />}
+      {props.loading ? (
+        <CircularProgress />
+      ) : (
+        <VideoLabelIcon fontSize="large" />
+      )}
     </Paper>
   );
 };
