@@ -8,9 +8,10 @@ import React, { ReactNode } from "react";
 import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
 import Alert from "@material-ui/lab/Alert";
-import VisibilitySwitch from "./VisibilitySwitch";
 import DeviceSelector from "./DeviceSelector";
 import ThemeProvider from "./ThemeProvider";
+import MediaStreamPlayer from "./MediaStreamPlayer";
+import Placeholder from "./Placeholder";
 
 type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -60,8 +61,7 @@ interface State {
   stopping: boolean;
   videoInput: MediaDeviceInfo | null;
   audioInput: MediaDeviceInfo | null;
-  hasVideo: boolean;
-  hasAudio: boolean;
+  stream: MediaStream | null;
   error: Error | null;
 }
 
@@ -81,8 +81,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       stopping: false,
       videoInput: null,
       audioInput: null,
-      hasVideo: false,
-      hasAudio: false,
+      stream: null,
       error: null,
     };
   }
@@ -115,8 +114,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
 
     this.setState({
       signaling: true,
-      hasVideo: false,
-      hasAudio: false,
+      stream: null,
       error: null,
     });
 
@@ -128,25 +126,10 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     // Connect received audio / video to DOM elements
     if (mode === "SENDRECV" || mode === "RECVONLY") {
       pc.addEventListener("track", (evt) => {
-        if (evt.track.kind === "video") {
-          const videoElem = this.videoRef.current;
-          if (videoElem == null) {
-            console.error("video element is not mounted");
-            return;
-          }
-
-          videoElem.srcObject = evt.streams[0];
-          this.setState({ hasVideo: true });
-        } else {
-          const audioElem = this.audioRef.current;
-          if (audioElem == null) {
-            console.error("audio element is not mounted");
-            return;
-          }
-
-          audioElem.srcObject = evt.streams[0];
-          this.setState({ hasAudio: true });
-        }
+        const stream = evt.streams[0]; // TODO: Handle multiple streams
+        this.setState({
+          stream,
+        });
       });
     }
 
@@ -267,7 +250,10 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   private stop = () => {
     this.setState({ stopping: true });
     this.stopInner().finally(() => {
-      this.setState({ stopping: false, hasVideo: false, hasAudio: false });
+      this.setState({
+        stopping: false,
+        stream: null,
+      });
     });
   };
 
@@ -305,25 +291,13 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
               {this.state.error.name}: {this.state.error.message}
             </Alert>
           )}
-          <VisibilitySwitch
-            visible={receivable}
-            onVisibilityChange={() => setImmediate(Streamlit.setFrameHeight)}
-          >
-            <Box>
-              <video
-                style={{
-                  width: "100%",
-                }}
-                ref={this.videoRef}
-                autoPlay
-                controls
-                onCanPlay={() => Streamlit.setFrameHeight()}
-              />
-            </Box>
-            <Box>
-              <audio ref={this.audioRef} autoPlay controls />
-            </Box>
-          </VisibilitySwitch>
+          <Box py={1}>
+            {this.state.stream ? (
+              <MediaStreamPlayer stream={this.state.stream} />
+            ) : (
+              receivable && <Placeholder loading={this.state.signaling} />
+            )}
+          </Box>
           <Box display="flex" justifyContent="space-between">
             {this.state.playing ? (
               <Button
