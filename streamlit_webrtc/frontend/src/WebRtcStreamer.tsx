@@ -18,6 +18,8 @@ const isWebRtcMode = (val: unknown): val is WebRtcMode =>
   val === "RECVONLY" || val === "SENDONLY" || val === "SENDRECV";
 const isReceivable = (mode: WebRtcMode): boolean =>
   mode === "SENDRECV" || mode === "RECVONLY";
+const isTransmittable = (mode: WebRtcMode): boolean =>
+  mode === "SENDRECV" || mode === "SENDONLY";
 
 const setupOffer = (
   pc: RTCPeerConnection
@@ -282,6 +284,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       this.props.disabled || this.state.signaling || this.state.stopping;
     const mode = this.props.args["mode"];
     const receivable = isWebRtcMode(mode) && isReceivable(mode);
+    const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
 
     return (
       <ThemeProvider theme={this.props.theme}>
@@ -317,13 +320,15 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
                 Start
               </Button>
             )}
-            <DeviceSelector
-              onSelect={this.handleDeviceSelect}
-              value={{
-                video: this.state.videoInput,
-                audio: this.state.audioInput,
-              }}
-            />
+            {transmittable && (
+              <DeviceSelector
+                onSelect={this.handleDeviceSelect}
+                value={{
+                  video: this.state.videoInput,
+                  audio: this.state.audioInput,
+                }}
+              />
+            )}
           </Box>
         </Box>
       </ThemeProvider>
