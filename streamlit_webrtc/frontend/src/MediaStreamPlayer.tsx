@@ -1,6 +1,10 @@
 import { Streamlit } from "streamlit-component-lib";
 import React, { useEffect, useCallback } from "react";
 
+const videoStyle: JSX.IntrinsicElements["video"]["style"] = {
+  width: "100%",
+};
+
 interface MediaStreamPlayerProps {
   stream: MediaStream;
 }
@@ -20,15 +24,15 @@ const MediaStreamPlayer: React.VFC<MediaStreamPlayerProps> = (props) => {
     [props.stream]
   );
 
+  const refreshFrameHeight = useCallback(() => Streamlit.setFrameHeight(), []);
+
   return hasVideo ? (
     <video
-      style={{
-        width: "100%",
-      }}
+      style={videoStyle}
       ref={refCallback}
       autoPlay
       controls
-      onCanPlay={() => Streamlit.setFrameHeight()}
+      onCanPlay={refreshFrameHeight}
     />
   ) : (
     <audio ref={refCallback} autoPlay controls />
