@@ -21,8 +21,6 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-VideoTransformFn = Callable
-
 MediaPlayerFactory = Callable[[], MediaPlayer]
 MediaRecorderFactory = Callable[[], MediaRecorder]
 VideoTransformerFactory = Callable[[], VideoTransformerBase]
