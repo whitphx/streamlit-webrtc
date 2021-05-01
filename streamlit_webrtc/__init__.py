@@ -28,6 +28,7 @@ from .webrtc import (
     MediaPlayerFactory,
     MediaRecorderFactory,
     VideoReceiver,
+    VideoTransformerBase,
     VideoTransformerFactory,
     VideoTransformerT,
     WebRtcMode,
@@ -173,3 +174,15 @@ def webrtc_streamer(
     )
 
     return ctx
+
+
+__all__ = [
+    "MediaPlayerFactory",
+    "MediaRecorderFactory",
+    "VideoReceiver",
+    "VideoTransformerBase",
+    "VideoTransformerFactory",
+    "WebRtcMode",
+    "ClientSettings",
+    "webrtc_streamer",
+]
