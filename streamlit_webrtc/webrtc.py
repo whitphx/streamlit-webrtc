@@ -5,7 +5,7 @@ import logging
 import queue
 import threading
 from asyncio.events import AbstractEventLoop
-from typing import Callable, Optional, Union
+from typing import Callable, Generic, Optional, TypeVar, Union
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRecorder
@@ -21,9 +21,11 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
+VideoTransformerT = TypeVar("VideoTransformerT", bound=VideoTransformerBase)
+
 MediaPlayerFactory = Callable[[], MediaPlayer]
 MediaRecorderFactory = Callable[[], MediaRecorder]
-VideoTransformerFactory = Callable[[], VideoTransformerBase]
+VideoTransformerFactory = Callable[[], VideoTransformerT]
 
 
 class WebRtcMode(enum.Enum):
@@ -197,15 +199,15 @@ async def _process_offer(
 webrtc_thread_id_generator = itertools.count()
 
 
-class WebRtcWorker:
+class WebRtcWorker(Generic[VideoTransformerT]):
     _webrtc_thread: Union[threading.Thread, None]
     _loop: Union[AbstractEventLoop, None]
     _answer_queue: queue.Queue
-    _video_transformer: Optional[VideoTransformerBase]
+    _video_transformer: Optional[VideoTransformerT]
     _video_receiver: Optional[VideoReceiver]
 
     @property
-    def video_transformer(self) -> Optional[VideoTransformerBase]:
+    def video_transformer(self) -> Optional[VideoTransformerT]:
         return self._video_transformer
 
     @property
@@ -218,7 +220,9 @@ class WebRtcWorker:
         player_factory: Optional[MediaPlayerFactory] = None,
         in_recorder_factory: Optional[MediaRecorderFactory] = None,
         out_recorder_factory: Optional[MediaRecorderFactory] = None,
-        video_transformer_factory: Optional[VideoTransformerFactory] = None,
+        video_transformer_factory: Optional[
+            VideoTransformerFactory[VideoTransformerT]
+        ] = None,
         async_transform: bool = True,
     ) -> None:
         self._webrtc_thread = None
