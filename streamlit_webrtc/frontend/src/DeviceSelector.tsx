@@ -90,6 +90,8 @@ const DeviceSelecter = ({
 interface DeviceSelectPopperProps {
   open: boolean;
   anchorEl: PopperProps["anchorEl"];
+  useVideo: boolean;
+  useAudio: boolean;
   value: {
     video: MediaDeviceInfo | null;
     audio: MediaDeviceInfo | null;
@@ -103,6 +105,8 @@ interface DeviceSelectPopperProps {
 const DeviceSelectPopper = ({
   open,
   anchorEl,
+  useVideo,
+  useAudio,
   value,
   devicesMap,
   onSubmit,
@@ -128,9 +132,12 @@ const DeviceSelectPopper = ({
   >(
     (e) => {
       e.preventDefault();
-      onSubmit(selectedVideo, selectedAudio);
+      onSubmit(
+        useVideo ? selectedVideo : null,
+        useAudio ? selectedAudio : null
+      );
     },
-    [onSubmit, selectedVideo, selectedAudio]
+    [onSubmit, useVideo, useAudio, selectedVideo, selectedAudio]
   );
 
   const classes = useStyles();
@@ -171,24 +178,28 @@ const DeviceSelectPopper = ({
     >
       <Paper className={classes.paper}>
         <form onSubmit={handleSubmit}>
-          <FormControl className={classes.formControl}>
-            <InputLabel id="video-input-select">Video input</InputLabel>
-            <DeviceSelecter
-              labelId="video-input-select"
-              devices={devicesMap.video}
-              value={selectedVideo}
-              onChange={setSelectedVideo}
-            />
-          </FormControl>
-          <FormControl className={classes.formControl}>
-            <InputLabel id="audio-input-select">Audio input</InputLabel>
-            <DeviceSelecter
-              labelId="audio-input-select"
-              devices={devicesMap.audio}
-              value={selectedAudio}
-              onChange={setSelectedAudio}
-            />
-          </FormControl>
+          {useVideo && (
+            <FormControl className={classes.formControl}>
+              <InputLabel id="video-input-select">Video input</InputLabel>
+              <DeviceSelecter
+                labelId="video-input-select"
+                devices={devicesMap.video}
+                value={selectedVideo}
+                onChange={setSelectedVideo}
+              />
+            </FormControl>
+          )}
+          {useAudio && (
+            <FormControl className={classes.formControl}>
+              <InputLabel id="audio-input-select">Audio input</InputLabel>
+              <DeviceSelecter
+                labelId="audio-input-select"
+                devices={devicesMap.audio}
+                value={selectedAudio}
+                onChange={setSelectedAudio}
+              />
+            </FormControl>
+          )}
           <FormControl className={classes.formButtonControl}>
             <Button type="submit" variant="contained" color="primary">
               OK
@@ -201,6 +212,8 @@ const DeviceSelectPopper = ({
 };
 
 interface DeviceSelectorProps {
+  useVideo: boolean;
+  useAudio: boolean;
   value: {
     video: MediaDeviceInfo | null;
     audio: MediaDeviceInfo | null;
@@ -210,7 +223,12 @@ interface DeviceSelectorProps {
     audio: MediaDeviceInfo | null
   ) => void;
 }
-const DeviceSelector = ({ value, onSelect }: DeviceSelectorProps) => {
+const DeviceSelector = ({
+  useVideo,
+  useAudio,
+  value,
+  onSelect,
+}: DeviceSelectorProps) => {
   const [open, setOpen] = useState(false);
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
   const [devicesMap, setDevicesMap] = useState<DevicesMap>();
@@ -245,7 +263,7 @@ const DeviceSelector = ({ value, onSelect }: DeviceSelectorProps) => {
   const onClose = useCallback(() => setOpen(false), []);
 
   const onSubmit = useCallback(
-    (video, audio) => {
+    (video: MediaDeviceInfo | null, audio: MediaDeviceInfo | null) => {
       setDevicesMap(undefined);
       setOpen(false);
       onSelect(video, audio);
@@ -260,6 +278,8 @@ const DeviceSelector = ({ value, onSelect }: DeviceSelectorProps) => {
         <DeviceSelectPopper
           open={open}
           anchorEl={anchorEl}
+          useVideo={useVideo}
+          useAudio={useAudio}
           value={value}
           devicesMap={devicesMap}
           onSubmit={onSubmit}

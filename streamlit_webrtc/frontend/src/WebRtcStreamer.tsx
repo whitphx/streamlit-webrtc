@@ -21,6 +21,16 @@ const isReceivable = (mode: WebRtcMode): boolean =>
 const isTransmittable = (mode: WebRtcMode): boolean =>
   mode === "SENDRECV" || mode === "SENDONLY";
 
+const getVideoAudioUsage = (
+  args: any
+): { useVideo: boolean; useAudio: boolean } => {
+  const constraintsFromPython = args.settings?.media_stream_constraints;
+  const useVideo = constraintsFromPython ? constraintsFromPython.video : true;
+  const useAudio = constraintsFromPython ? constraintsFromPython.audio : true;
+
+  return { useVideo, useAudio };
+};
+
 const setupOffer = (
   pc: RTCPeerConnection
 ): Promise<RTCSessionDescription | null> => {
@@ -137,14 +147,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
 
     // Set up transceivers
     if (mode === "SENDRECV" || mode === "SENDONLY") {
-      const constraintsFromPython = this.props.args.settings
-        ?.media_stream_constraints;
-      const useAudio = constraintsFromPython
-        ? constraintsFromPython.audio
-        : true;
-      const useVideo = constraintsFromPython
-        ? constraintsFromPython.video
-        : true;
+      const { useVideo, useAudio } = getVideoAudioUsage(this.props.args);
       const constraints: MediaStreamConstraints = {};
       if (useAudio) {
         constraints.audio = this.state.audioInput
@@ -283,6 +286,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     const buttonDisabled =
       this.props.disabled || this.state.signaling || this.state.stopping;
     const mode = this.props.args["mode"];
+    const { useVideo, useAudio } = getVideoAudioUsage(this.props.args);
     const receivable = isWebRtcMode(mode) && isReceivable(mode);
     const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
 
@@ -322,6 +326,8 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
             )}
             {transmittable && (
               <DeviceSelector
+                useVideo={useVideo}
+                useAudio={useAudio}
                 onSelect={this.handleDeviceSelect}
                 value={{
                   video: this.state.videoInput,
