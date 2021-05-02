@@ -90,8 +90,8 @@ const DeviceSelecter = ({
 interface DeviceSelectPopperProps {
   open: boolean;
   anchorEl: PopperProps["anchorEl"];
-  useVideo: boolean;
-  useAudio: boolean;
+  videoEnabled: boolean;
+  audioEnabled: boolean;
   value: {
     video: MediaDeviceInfo | null;
     audio: MediaDeviceInfo | null;
@@ -105,8 +105,8 @@ interface DeviceSelectPopperProps {
 const DeviceSelectPopper = ({
   open,
   anchorEl,
-  useVideo,
-  useAudio,
+  videoEnabled,
+  audioEnabled,
   value,
   devicesMap,
   onSubmit,
@@ -133,11 +133,11 @@ const DeviceSelectPopper = ({
     (e) => {
       e.preventDefault();
       onSubmit(
-        useVideo ? selectedVideo : null,
-        useAudio ? selectedAudio : null
+        videoEnabled ? selectedVideo : null,
+        audioEnabled ? selectedAudio : null
       );
     },
-    [onSubmit, useVideo, useAudio, selectedVideo, selectedAudio]
+    [onSubmit, videoEnabled, audioEnabled, selectedVideo, selectedAudio]
   );
 
   const classes = useStyles();
@@ -178,7 +178,7 @@ const DeviceSelectPopper = ({
     >
       <Paper className={classes.paper}>
         <form onSubmit={handleSubmit}>
-          {useVideo && (
+          {videoEnabled && (
             <FormControl className={classes.formControl}>
               <InputLabel id="video-input-select">Video input</InputLabel>
               <DeviceSelecter
@@ -189,7 +189,7 @@ const DeviceSelectPopper = ({
               />
             </FormControl>
           )}
-          {useAudio && (
+          {audioEnabled && (
             <FormControl className={classes.formControl}>
               <InputLabel id="audio-input-select">Audio input</InputLabel>
               <DeviceSelecter
@@ -212,8 +212,8 @@ const DeviceSelectPopper = ({
 };
 
 interface DeviceSelectorProps {
-  useVideo: boolean;
-  useAudio: boolean;
+  videoEnabled: boolean;
+  audioEnabled: boolean;
   value: {
     video: MediaDeviceInfo | null;
     audio: MediaDeviceInfo | null;
@@ -224,8 +224,8 @@ interface DeviceSelectorProps {
   ) => void;
 }
 const DeviceSelector = ({
-  useVideo,
-  useAudio,
+  videoEnabled,
+  audioEnabled,
   value,
   onSelect,
 }: DeviceSelectorProps) => {
@@ -278,8 +278,8 @@ const DeviceSelector = ({
         <DeviceSelectPopper
           open={open}
           anchorEl={anchorEl}
-          useVideo={useVideo}
-          useAudio={useAudio}
+          videoEnabled={videoEnabled}
+          audioEnabled={audioEnabled}
           value={value}
           devicesMap={devicesMap}
           onSubmit={onSubmit}

@@ -23,12 +23,16 @@ const isTransmittable = (mode: WebRtcMode): boolean =>
 
 const getVideoAudioUsage = (
   args: any
-): { useVideo: boolean; useAudio: boolean } => {
+): { videoEnabled: boolean; audioEnabled: boolean } => {
   const constraintsFromPython = args.settings?.media_stream_constraints;
-  const useVideo = constraintsFromPython ? constraintsFromPython.video : true;
-  const useAudio = constraintsFromPython ? constraintsFromPython.audio : true;
+  const videoEnabled = constraintsFromPython
+    ? constraintsFromPython.video
+    : true;
+  const audioEnabled = constraintsFromPython
+    ? constraintsFromPython.audio
+    : true;
 
-  return { useVideo, useAudio };
+  return { videoEnabled, audioEnabled };
 };
 
 const setupOffer = (
@@ -147,16 +151,18 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
 
     // Set up transceivers
     if (mode === "SENDRECV" || mode === "SENDONLY") {
-      const { useVideo, useAudio } = getVideoAudioUsage(this.props.args);
+      const { videoEnabled, audioEnabled } = getVideoAudioUsage(
+        this.props.args
+      );
       const constraints: MediaStreamConstraints = {};
-      if (useAudio) {
+      if (audioEnabled) {
         constraints.audio = this.state.audioInput
           ? {
               deviceId: this.state.audioInput.deviceId,
             }
           : true;
       }
-      if (useVideo) {
+      if (videoEnabled) {
         constraints.video = this.state.videoInput
           ? {
               deviceId: this.state.videoInput.deviceId,
@@ -286,7 +292,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     const buttonDisabled =
       this.props.disabled || this.state.signaling || this.state.stopping;
     const mode = this.props.args["mode"];
-    const { useVideo, useAudio } = getVideoAudioUsage(this.props.args);
+    const { videoEnabled, audioEnabled } = getVideoAudioUsage(this.props.args);
     const receivable = isWebRtcMode(mode) && isReceivable(mode);
     const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
 
@@ -326,8 +332,8 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
             )}
             {transmittable && (
               <DeviceSelector
-                useVideo={useVideo}
-                useAudio={useAudio}
+                videoEnabled={videoEnabled}
+                audioEnabled={audioEnabled}
                 onSelect={this.handleDeviceSelect}
                 value={{
                   video: this.state.videoInput,
