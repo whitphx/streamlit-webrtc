@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import weakref
-from typing import Dict, Hashable, NamedTuple, Optional, Union
+from typing import Dict, Generic, Hashable, NamedTuple, Optional, Union
 
 try:
     from typing import TypedDict
@@ -30,6 +30,7 @@ from .webrtc import (
     VideoReceiver,
     VideoTransformerBase,
     VideoTransformerFactory,
+    VideoTransformerT,
     WebRtcMode,
     WebRtcWorker,
 )
@@ -87,21 +88,23 @@ class WebRtcStreamerState(NamedTuple):
     playing: bool
 
 
-class WebRtcStreamerContext:
+class WebRtcStreamerContext(Generic[VideoTransformerT]):
     state: WebRtcStreamerState
-    _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker]]"
+    _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker[VideoTransformerT]]]"
 
     def __init__(
-        self, worker: Optional[WebRtcWorker], state: WebRtcStreamerState
+        self,
+        worker: Optional[WebRtcWorker[VideoTransformerT]],
+        state: WebRtcStreamerState,
     ) -> None:
         self._worker_ref = weakref.ref(worker) if worker else None
         self.state = state
 
-    def _get_worker(self) -> Optional[WebRtcWorker]:
+    def _get_worker(self) -> Optional[WebRtcWorker[VideoTransformerT]]:
         return self._worker_ref() if self._worker_ref else None
 
     @property
-    def video_transformer(self) -> Optional[VideoTransformerBase]:
+    def video_transformer(self) -> Optional[VideoTransformerT]:
         worker = self._get_worker()
         return worker.video_transformer if worker else None
 
@@ -118,9 +121,11 @@ def webrtc_streamer(
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
-    video_transformer_factory: Optional[VideoTransformerFactory] = None,
+    video_transformer_factory: Optional[
+        VideoTransformerFactory[VideoTransformerT]
+    ] = None,
     async_transform: bool = True,
-) -> WebRtcStreamerContext:
+) -> WebRtcStreamerContext[VideoTransformerT]:
     webrtc_worker = _get_webrtc_worker(key)
 
     sdp_answer_json = None
@@ -169,3 +174,15 @@ def webrtc_streamer(
     )
 
     return ctx
+
+
+__all__ = [
+    "MediaPlayerFactory",
+    "MediaRecorderFactory",
+    "VideoReceiver",
+    "VideoTransformerBase",
+    "VideoTransformerFactory",
+    "WebRtcMode",
+    "ClientSettings",
+    "webrtc_streamer",
+]
