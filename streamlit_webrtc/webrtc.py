@@ -11,7 +11,7 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRecorder
 
 from .receive import VideoReceiver
-from .transform import (
+from .process import (
     AsyncVideoProcessTrack,
     VideoProcessor,
     VideoProcessorBase,
