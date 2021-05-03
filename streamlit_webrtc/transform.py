@@ -18,28 +18,37 @@ logger.addHandler(logging.NullHandler())
 class VideoTransformerBase(abc.ABC):
     @abc.abstractmethod
     def transform(self, frame: av.VideoFrame) -> np.ndarray:
-        """ Returns a new video frame in bgr24 format """
+        """ Backward compatibility; Returns a new video frame in bgr24 format """
 
 
-class NoOpVideoTransformer(VideoTransformerBase):
-    def transform(self, frame: av.VideoFrame) -> np.ndarray:
-        return frame.to_ndarray(format="bgr24")
+class VideoProcessorBase(abc.ABC):
+    @abc.abstractmethod
+    def recv(self, frame: av.VideoFrame) -> np.ndarray:
+        """ Processes the received frame and returns a frame in bgr24 format """
 
 
-class VideoTransformTrack(MediaStreamTrack):
+VideoProcessor = Union[
+    VideoProcessorBase, VideoTransformerBase
+]  # Backward compatibility
+
+
+class VideoProcessTrack(MediaStreamTrack):
     kind = "video"
 
-    def __init__(
-        self, track: MediaStreamTrack, video_transformer: VideoTransformerBase
-    ):
+    def __init__(self, track: MediaStreamTrack, video_processor: VideoProcessorBase):
         super().__init__()  # don't forget this!
         self.track = track
-        self.transformer = video_transformer
+        self.processor = video_processor
 
     async def recv(self):
         frame = await self.track.recv()
 
-        img = self.transformer.transform(frame)
+        # XXX: Backward compatibility
+        if hasattr(self.processor, "recv"):
+            img = self.processor.recv(frame)
+        else:
+            logger.warning(".transform() is deprecated. Use .recv() instead.")
+            img = self.processor.transform(frame)
 
         # rebuild a av.VideoFrame, preserving timing information
         new_frame = av.VideoFrame.from_ndarray(img, format="bgr24")
@@ -51,10 +60,10 @@ class VideoTransformTrack(MediaStreamTrack):
 __SENTINEL__ = "__SENTINEL__"
 
 # See https://stackoverflow.com/a/42007659
-video_transform_thread_id_generator = itertools.count()
+video_processing_thread_id_generator = itertools.count()
 
 
-class AsyncVideoTransformTrack(MediaStreamTrack):
+class AsyncVideoProcessTrack(MediaStreamTrack):
     kind = "video"
 
     _in_queue: queue.Queue
@@ -62,16 +71,16 @@ class AsyncVideoTransformTrack(MediaStreamTrack):
     def __init__(
         self,
         track: MediaStreamTrack,
-        video_transformer: VideoTransformerBase,
+        video_processor: VideoProcessorBase,
         stop_timeout: Optional[float] = None,
     ):
         super().__init__()  # don't forget this!
         self.track = track
-        self.transformer = video_transformer
+        self.processor = video_processor
 
         self._thread = threading.Thread(
             target=self._run_worker_thread,
-            name=f"async_video_transformer_{next(video_transform_thread_id_generator)}",
+            name=f"async_video_processor_{next(video_processing_thread_id_generator)}",
         )
         self._in_queue = queue.Queue()
         self._latest_result_img_lock = threading.Lock()
@@ -111,7 +120,12 @@ class AsyncVideoTransformTrack(MediaStreamTrack):
             if item is None:
                 raise Exception("A queued item is unexpectedly None")
 
-            result_img = self.transformer.transform(item)
+            # XXX: Backward compatibility
+            if hasattr(self.processor, "recv"):
+                result_img = self.processor.recv(item)
+            else:
+                logger.warning(".transform() is deprecated. Use .recv() instead.")
+                result_img = self.processor.transform(item)
 
             with self._latest_result_img_lock:
                 self._latest_result_img = result_img
