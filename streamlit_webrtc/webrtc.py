@@ -10,7 +10,6 @@ from typing import Callable, Generic, Optional, TypeVar, Union
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRecorder
 
-from .receive import VideoReceiver
 from .process import (
     AsyncVideoProcessTrack,
     VideoProcessor,
@@ -18,6 +17,7 @@ from .process import (
     VideoProcessTrack,
     VideoTransformerBase,
 )
+from .receive import VideoReceiver
 
 __all__ = [
     "VideoProcessor",
