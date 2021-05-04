@@ -19,7 +19,7 @@ from aiortc.contrib.media import MediaPlayer
 
 from streamlit_webrtc import (
     ClientSettings,
-    VideoTransformerBase,
+    VideoProcessorBase,
     WebRtcMode,
     webrtc_streamer,
 )
@@ -128,20 +128,20 @@ def app_loopback():
         key="loopback",
         mode=WebRtcMode.SENDRECV,
         client_settings=WEBRTC_CLIENT_SETTINGS,
-        video_transformer_factory=None,  # NoOp
+        video_processor_factory=None,  # NoOp
     )
 
 
 def app_video_filters():
     """ Video transforms with OpenCV """
 
-    class OpenCVVideoTransformer(VideoTransformerBase):
+    class OpenCVVideoProcessor(VideoProcessorBase):
         type: Literal["noop", "cartoon", "edges", "rotate"]
 
         def __init__(self) -> None:
             self.type = "noop"
 
-        def transform(self, frame: av.VideoFrame) -> av.VideoFrame:
+        def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
             img = frame.to_ndarray(format="bgr24")
 
             if self.type == "noop":
@@ -182,12 +182,12 @@ def app_video_filters():
         key="opencv-filter",
         mode=WebRtcMode.SENDRECV,
         client_settings=WEBRTC_CLIENT_SETTINGS,
-        video_transformer_factory=OpenCVVideoTransformer,
-        async_transform=True,
+        video_processor_factory=OpenCVVideoProcessor,
+        async_video_processing=True,
     )
 
-    if webrtc_ctx.video_transformer:
-        webrtc_ctx.video_transformer.type = st.radio(
+    if webrtc_ctx.video_processor:
+        webrtc_ctx.video_processor.type = st.radio(
             "Select transform type", ("noop", "cartoon", "edges", "rotate")
         )
 
@@ -242,7 +242,7 @@ def app_object_detection():
         name: str
         prob: float
 
-    class MobileNetSSDVideoTransformer(VideoTransformerBase):
+    class MobileNetSSDVideoProcessor(VideoProcessorBase):
         confidence_threshold: float
         result_queue: "queue.Queue[List[Detection]]"
 
@@ -286,7 +286,7 @@ def app_object_detection():
                     )
             return image, result
 
-        def transform(self, frame: av.VideoFrame) -> np.ndarray:
+        def recv(self, frame: av.VideoFrame) -> np.ndarray:
             image = frame.to_ndarray(format="bgr24")
             blob = cv2.dnn.blobFromImage(
                 cv2.resize(image, (300, 300)), 0.007843, (300, 300), 127.5
@@ -295,7 +295,7 @@ def app_object_detection():
             detections = self._net.forward()
             annotated_image, result = self._annotate_image(image, detections)
 
-            # NOTE: This `transform` method is called in another thread,
+            # NOTE: This `recv` method is called in another thread,
             # so it must be thread-safe.
             self.result_queue.put(result)
 
@@ -305,15 +305,15 @@ def app_object_detection():
         key="object-detection",
         mode=WebRtcMode.SENDRECV,
         client_settings=WEBRTC_CLIENT_SETTINGS,
-        video_transformer_factory=MobileNetSSDVideoTransformer,
-        async_transform=True,
+        video_processor_factory=MobileNetSSDVideoProcessor,
+        async_video_processing=True,
     )
 
     confidence_threshold = st.slider(
         "Confidence threshold", 0.0, 1.0, DEFAULT_CONFIDENCE_THRESHOLD, 0.05
     )
-    if webrtc_ctx.video_transformer:
-        webrtc_ctx.video_transformer.confidence_threshold = confidence_threshold
+    if webrtc_ctx.video_processor:
+        webrtc_ctx.video_processor.confidence_threshold = confidence_threshold
 
     if st.checkbox("Show the detected labels", value=True):
         if webrtc_ctx.state.playing:
@@ -324,9 +324,9 @@ def app_object_detection():
             # Then the rendered video frames and the labels displayed here
             # are not strictly synchronized.
             while True:
-                if webrtc_ctx.video_transformer:
+                if webrtc_ctx.video_processor:
                     try:
-                        result = webrtc_ctx.video_transformer.result_queue.get(
+                        result = webrtc_ctx.video_processor.result_queue.get(
                             timeout=1.0
                         )
                     except queue.Empty:

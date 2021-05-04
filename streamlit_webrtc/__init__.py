@@ -27,10 +27,11 @@ from .config import MediaStreamConstraints, RTCConfiguration
 from .webrtc import (
     MediaPlayerFactory,
     MediaRecorderFactory,
+    VideoProcessorBase,
+    VideoProcessorFactory,
+    VideoProcessorT,
     VideoReceiver,
     VideoTransformerBase,
-    VideoTransformerFactory,
-    VideoTransformerT,
     WebRtcMode,
     WebRtcWorker,
 )
@@ -88,25 +89,31 @@ class WebRtcStreamerState(NamedTuple):
     playing: bool
 
 
-class WebRtcStreamerContext(Generic[VideoTransformerT]):
+class WebRtcStreamerContext(Generic[VideoProcessorT]):
     state: WebRtcStreamerState
-    _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker[VideoTransformerT]]]"
+    _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker[VideoProcessorT]]]"
 
     def __init__(
         self,
-        worker: Optional[WebRtcWorker[VideoTransformerT]],
+        worker: Optional[WebRtcWorker[VideoProcessorT]],
         state: WebRtcStreamerState,
     ) -> None:
         self._worker_ref = weakref.ref(worker) if worker else None
         self.state = state
 
-    def _get_worker(self) -> Optional[WebRtcWorker[VideoTransformerT]]:
+    def _get_worker(self) -> Optional[WebRtcWorker[VideoProcessorT]]:
         return self._worker_ref() if self._worker_ref else None
 
     @property
-    def video_transformer(self) -> Optional[VideoTransformerT]:
+    def video_processor(self) -> Optional[VideoProcessorT]:
         worker = self._get_worker()
-        return worker.video_transformer if worker else None
+        return worker.video_processor if worker else None
+
+    # Backward compatibility
+    @property
+    def video_transformer(self) -> Optional[VideoProcessorT]:
+        worker = self._get_worker()
+        return worker.video_processor if worker else None
 
     @property
     def video_receiver(self) -> Optional[VideoReceiver]:
@@ -121,11 +128,18 @@ def webrtc_streamer(
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
-    video_transformer_factory: Optional[
-        VideoTransformerFactory[VideoTransformerT]
-    ] = None,
-    async_transform: bool = True,
-) -> WebRtcStreamerContext[VideoTransformerT]:
+    video_processor_factory: Optional[VideoProcessorFactory[VideoProcessorT]] = None,
+    async_video_processing: bool = True,
+    # Deprecated. Just for backward compatibility
+    video_transformer_factory: Optional[VideoProcessorFactory[VideoProcessorT]] = None,
+    async_transform: Optional[bool] = None,
+) -> WebRtcStreamerContext[VideoProcessorT]:
+    # Backward compatibility
+    if video_transformer_factory is not None:
+        video_processor_factory = video_transformer_factory
+    if async_transform is not None:
+        async_video_processing = async_transform
+
     webrtc_worker = _get_webrtc_worker(key)
 
     sdp_answer_json = None
@@ -161,8 +175,8 @@ def webrtc_streamer(
                     player_factory=player_factory,
                     in_recorder_factory=in_recorder_factory,
                     out_recorder_factory=out_recorder_factory,
-                    video_transformer_factory=video_transformer_factory,
-                    async_transform=async_transform,
+                    video_processor_factory=video_processor_factory,
+                    async_video_processing=async_video_processing,
                 )
                 webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
                 _set_webrtc_worker(key, webrtc_worker)
@@ -176,12 +190,18 @@ def webrtc_streamer(
     return ctx
 
 
+# For backward compatibility
+VideoTransformerFactory = VideoProcessorFactory
+
+
 __all__ = [
     "MediaPlayerFactory",
     "MediaRecorderFactory",
     "VideoReceiver",
     "VideoTransformerBase",
     "VideoTransformerFactory",
+    "VideoProcessorBase",
+    "VideoProcessorFactory",
     "WebRtcMode",
     "ClientSettings",
     "webrtc_streamer",
