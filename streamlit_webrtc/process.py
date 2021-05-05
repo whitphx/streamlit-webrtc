@@ -27,6 +27,12 @@ class VideoProcessorBase(abc.ABC):
         """ Processes the received frame and returns a frame in bgr24 format """
 
 
+class AudioProcessorBase(abc.ABC):
+    @abc.abstractmethod
+    def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
+        """ Processes the received frame and returns a new frame """
+
+
 VideoProcessor = Union[
     VideoProcessorBase, VideoTransformerBase
 ]  # Backward compatibility
@@ -151,3 +157,19 @@ class AsyncVideoProcessTrack(MediaStreamTrack):
                 return new_frame
             else:
                 return frame
+
+
+class AudioProcessTrack(MediaStreamTrack):
+    kind = "audio"
+
+    def __init__(self, track: MediaStreamTrack, audio_processor: AudioProcessorBase):
+        super().__init__()  # don't forget this!
+        self.track = track
+        self.processor = audio_processor
+
+    async def recv(self):
+        frame = await self.track.recv()
+
+        new_frame = self.processor.recv(frame)
+
+        return new_frame

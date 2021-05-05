@@ -20,6 +20,7 @@ import streamlit as st
 from aiortc.contrib.media import MediaPlayer
 
 from streamlit_webrtc import (
+    AudioProcessorBase,
     ClientSettings,
     VideoProcessorBase,
     WebRtcMode,
@@ -90,6 +91,7 @@ def main():
     video_filters_page = (
         "Real time video transform with simple OpenCV filters (sendrecv)"
     )
+    audio_filter_page = "Real time audio filter (sendrecv)"
     streaming_page = (
         "Consuming media files on server-side and streaming it to browser (recvonly)"
     )
@@ -100,6 +102,7 @@ def main():
         [
             object_detection_page,
             video_filters_page,
+            audio_filter_page,
             streaming_page,
             sendonly_page,
             loopback_page,
@@ -111,6 +114,8 @@ def main():
         app_video_filters()
     elif app_mode == object_detection_page:
         app_object_detection()
+    elif app_mode == audio_filter_page:
+        app_audio_filter()
     elif app_mode == streaming_page:
         app_streaming()
     elif app_mode == sendonly_page:
@@ -197,6 +202,39 @@ def app_video_filters():
         "This demo is based on "
         "https://github.com/aiortc/aiortc/blob/2362e6d1f0c730a0f8c387bbea76546775ad2fe8/examples/server/server.py#L34. "  # noqa: E501
         "Many thanks to the project."
+    )
+
+
+def app_audio_filter():
+    class AudioProcessor(AudioProcessorBase):
+        def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
+            raw_samples = frame.to_ndarray()
+            sound = pydub.AudioSegment(
+                data=raw_samples.tobytes(),
+                sample_width=frame.format.bytes,
+                frame_rate=frame.sample_rate,
+                channels=len(frame.layout.channels),
+            )
+
+            channel_sounds = sound.split_to_mono()
+            new_samples = [s.get_array_of_samples() for s in channel_sounds]
+            new_samples = np.array(new_samples).T
+            new_samples = new_samples.reshape(raw_samples.shape)
+
+            new_frame = av.AudioFrame.from_ndarray(
+                new_samples, layout=frame.layout.name
+            )
+            new_frame.sample_rate = frame.sample_rate
+            new_frame.pts = frame.pts
+            new_frame.time_base = frame.time_base
+            return new_frame
+
+    webrtc_streamer(
+        key="audio-filter",
+        mode=WebRtcMode.SENDRECV,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+        audio_processor_factory=AudioProcessor,
+        async_video_processing=True,
     )
 
 
