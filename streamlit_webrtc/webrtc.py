@@ -317,7 +317,9 @@ class WebRtcWorker(Generic[VideoProcessorT]):
         audio_receiver = None
         if self.mode == WebRtcMode.SENDONLY:
             video_receiver = VideoReceiver(queue_maxsize=1)
-            audio_receiver = AudioReceiver(queue_maxsize=128)
+            audio_receiver = AudioReceiver(
+                queue_maxsize=128
+            )  # TODO: Reasonable queue size
 
         self._video_processor = video_processor
         self._video_receiver = video_receiver

@@ -13,6 +13,7 @@ except ImportError:
 
 import av
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import pydub
 import streamlit as st
@@ -410,9 +411,14 @@ def app_sendonly():
     )
 
     image_loc = st.empty()
-    audio_frames_info = st.empty()
+
+    wave_figure = st.empty()
     sample_audio_frame_info = st.empty()
-    audio_dBFS = st.empty()
+
+    fig, ax = plt.subplots()
+
+    sound_window_len = 5000  # 5s
+    sound_window_buffer = None
     while True:
         if webrtc_ctx.video_receiver:
             try:
@@ -427,10 +433,12 @@ def app_sendonly():
             image_loc.image(img_rgb)
 
         if webrtc_ctx.audio_receiver:
-            sound_buf = pydub.AudioSegment.empty()
+            sound_chunk = pydub.AudioSegment.empty()
             audio_frame_cnt = 0
             audio_frame = None
-            while not webrtc_ctx.audio_receiver._frames_queue.empty():  # TODO: Private API is used. Consider API design.
+            while (
+                not webrtc_ctx.audio_receiver._frames_queue.empty()
+            ):  # TODO: Private API is used. Consider API design.
                 audio_frame = webrtc_ctx.audio_receiver.get_frame()
                 sound = pydub.AudioSegment(
                     data=audio_frame.to_ndarray().tobytes(),
@@ -438,10 +446,26 @@ def app_sendonly():
                     frame_rate=audio_frame.sample_rate,
                     channels=len(audio_frame.layout.channels),
                 )
-                sound_buf += sound
+                sound_chunk += sound
                 audio_frame_cnt += 1
 
-            audio_frames_info.write({"num": audio_frame_cnt})
+            if len(sound_chunk) > 0:
+                if sound_window_buffer is None:
+                    sound_window_buffer = pydub.AudioSegment.silent(
+                        duration=sound_window_len
+                    )
+
+                sound_window_buffer += sound_chunk
+                if len(sound_window_buffer) > sound_window_len:
+                    sound_window_buffer = sound_window_buffer[-sound_window_len:]
+
+            if sound_window_buffer:
+                # Ref: https://own-search-and-study.xyz/2017/10/27/python%E3%82%92%E4%BD%BF%E3%81%A3%E3%81%A6%E9%9F%B3%E5%A3%B0%E3%83%87%E3%83%BC%E3%82%BF%E3%81%8B%E3%82%89%E3%82%B9%E3%83%9A%E3%82%AF%E3%83%88%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0%E3%82%92%E4%BD%9C/  # noqa
+                samples = np.array(sound_window_buffer.get_array_of_samples())
+                sample = samples[:: sound_window_buffer.channels]
+                ax.cla()
+                ax.plot(sample[::10])
+                wave_figure.pyplot(fig)
 
             # For debug
             if audio_frame:
@@ -466,8 +490,6 @@ def app_sendonly():
                         "samples": audio_frame.samples,
                     }
                 )
-
-            audio_dBFS.write(f"dBFS = {sound_buf.dBFS}")
         else:
             break
 
