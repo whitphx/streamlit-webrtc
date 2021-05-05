@@ -25,6 +25,7 @@ import streamlit.components.v1 as components
 from . import SessionState
 from .config import MediaStreamConstraints, RTCConfiguration
 from .webrtc import (
+    AudioReceiver,
     MediaPlayerFactory,
     MediaRecorderFactory,
     VideoProcessorBase,
@@ -119,6 +120,11 @@ class WebRtcStreamerContext(Generic[VideoProcessorT]):
     def video_receiver(self) -> Optional[VideoReceiver]:
         worker = self._get_worker()
         return worker.video_receiver if worker else None
+
+    @property
+    def audio_receiver(self) -> Optional[AudioReceiver]:
+        worker = self._get_worker()
+        return worker.audio_receiver if worker else None
 
 
 def webrtc_streamer(

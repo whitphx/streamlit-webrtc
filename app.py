@@ -14,6 +14,7 @@ except ImportError:
 import av
 import cv2
 import numpy as np
+import pydub
 import streamlit as st
 from aiortc.contrib.media import MediaPlayer
 
@@ -408,18 +409,67 @@ def app_sendonly():
         client_settings=WEBRTC_CLIENT_SETTINGS,
     )
 
-    if webrtc_ctx.video_receiver:
-        image_loc = st.empty()
-        while True:
+    image_loc = st.empty()
+    audio_frames_info = st.empty()
+    sample_audio_frame_info = st.empty()
+    audio_dBFS = st.empty()
+    while True:
+        if webrtc_ctx.video_receiver:
             try:
-                frame = webrtc_ctx.video_receiver.get_frame(timeout=1)
+                video_frame = webrtc_ctx.video_receiver.get_frame(timeout=1)
             except queue.Empty:
                 print("Queue is empty. Stop the loop.")
                 webrtc_ctx.video_receiver.stop()
+                webrtc_ctx.audio_receiver.stop()
                 break
 
-            img_rgb = frame.to_ndarray(format="rgb24")
+            img_rgb = video_frame.to_ndarray(format="rgb24")
             image_loc.image(img_rgb)
+
+        if webrtc_ctx.audio_receiver:
+            sound_buf = pydub.AudioSegment.empty()
+            audio_frame_cnt = 0
+            audio_frame = None
+            while not webrtc_ctx.audio_receiver._frames_queue.empty():  # TODO: Private API is used. Consider API design.
+                audio_frame = webrtc_ctx.audio_receiver.get_frame()
+                sound = pydub.AudioSegment(
+                    data=audio_frame.to_ndarray().tobytes(),
+                    sample_width=audio_frame.format.bytes,
+                    frame_rate=audio_frame.sample_rate,
+                    channels=len(audio_frame.layout.channels),
+                )
+                sound_buf += sound
+                audio_frame_cnt += 1
+
+            audio_frames_info.write({"num": audio_frame_cnt})
+
+            # For debug
+            if audio_frame:
+                sample_audio_frame_info.write(
+                    {
+                        "format": {
+                            "bits": audio_frame.format.bits,
+                            "bytes": audio_frame.format.bytes,
+                            "container_name": audio_frame.format.container_name,
+                            "is_packed": audio_frame.format.is_packed,
+                            "is_planar": audio_frame.format.is_planar,
+                            "packed": audio_frame.format.packed,
+                            "planar": audio_frame.format.planar,
+                        },
+                        "layout": {
+                            "channels": audio_frame.layout.channels,
+                            "name": audio_frame.layout.name,
+                        },
+                        "planes": audio_frame.planes,
+                        "rate": audio_frame.rate,
+                        "sample_rate": audio_frame.sample_rate,
+                        "samples": audio_frame.samples,
+                    }
+                )
+
+            audio_dBFS.write(f"dBFS = {sound_buf.dBFS}")
+        else:
+            break
 
 
 if __name__ == "__main__":
