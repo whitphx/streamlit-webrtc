@@ -206,7 +206,11 @@ def app_video_filters():
 
 
 def app_audio_filter():
+    DEFAULT_GAIN = 1.0
+
     class AudioProcessor(AudioProcessorBase):
+        gain = DEFAULT_GAIN
+
         def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
             raw_samples = frame.to_ndarray()
             sound = pydub.AudioSegment(
@@ -215,6 +219,8 @@ def app_audio_filter():
                 frame_rate=frame.sample_rate,
                 channels=len(frame.layout.channels),
             )
+
+            sound = sound.apply_gain(self.gain)
 
             channel_sounds = sound.split_to_mono()
             new_samples = [s.get_array_of_samples() for s in channel_sounds]
@@ -229,13 +235,18 @@ def app_audio_filter():
             new_frame.time_base = frame.time_base
             return new_frame
 
-    webrtc_streamer(
+    webrtc_ctx = webrtc_streamer(
         key="audio-filter",
         mode=WebRtcMode.SENDRECV,
         client_settings=WEBRTC_CLIENT_SETTINGS,
         audio_processor_factory=AudioProcessor,
         async_video_processing=True,
     )
+
+    if webrtc_ctx.audio_processor:
+        webrtc_ctx.audio_processor.gain = st.slider(
+            "Gain", -10.0, +20.0, DEFAULT_GAIN, 0.05
+        )
 
 
 def app_object_detection():
