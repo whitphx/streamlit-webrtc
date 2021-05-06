@@ -45,7 +45,12 @@ class MediaReceiver(Generic[FrameT]):
     def get_frame(self, block: bool = True, timeout: Optional[float] = None) -> FrameT:
         return self._frames_queue.get(block=block, timeout=timeout)
 
-    def get_frames(self) -> List[FrameT]:
+    def get_frames(
+        self, block: bool = True, timeout: Optional[float] = None
+    ) -> List[FrameT]:
+        if self._frames_queue.empty():
+            return [self.get_frame(block=block, timeout=timeout)]
+
         frames: List[FrameT] = []
         while not self._frames_queue.empty():
             frames.append(self._frames_queue.get_nowait())
