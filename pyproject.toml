@@ -21,6 +21,8 @@ isort = "^5.8.0"
 flake8 = "^3.9.1"
 opencv-python = "^4.5.1"
 mypy = "^0.812"
+pydub = "^0.25.1"
+matplotlib = "^3.3.4"
 
 [tool.black]
 line-length = 88

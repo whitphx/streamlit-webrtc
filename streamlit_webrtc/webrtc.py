@@ -12,14 +12,18 @@ from aiortc.contrib.media import MediaPlayer, MediaRecorder
 
 from .process import (
     AsyncVideoProcessTrack,
+    AudioProcessorBase,
+    AudioProcessTrack,
     VideoProcessor,
     VideoProcessorBase,
     VideoProcessTrack,
     VideoTransformerBase,
 )
-from .receive import VideoReceiver
+from .receive import AudioReceiver, VideoReceiver
 
 __all__ = [
+    "AudioProcessorBase",
+    "AudioProcessorFactory",
     "VideoProcessor",
     "VideoTransformerBase",
     "VideoProcessorBase",
@@ -37,10 +41,12 @@ logger.addHandler(logging.NullHandler())
 
 
 VideoProcessorT = TypeVar("VideoProcessorT", bound=VideoProcessorBase)
+AudioProcessorT = TypeVar("AudioProcessorT", bound=AudioProcessorBase)
 
 MediaPlayerFactory = Callable[[], MediaPlayer]
 MediaRecorderFactory = Callable[[], MediaRecorder]
 VideoProcessorFactory = Callable[[], VideoProcessorT]
+AudioProcessorFactory = Callable[[], AudioProcessorT]
 
 
 class WebRtcMode(enum.Enum):
@@ -61,7 +67,9 @@ async def _process_offer(
     in_recorder_factory: Optional[MediaRecorderFactory],
     out_recorder_factory: Optional[MediaRecorderFactory],
     video_processor: Optional[VideoProcessor],
+    audio_processor: Optional[AudioProcessorBase],
     video_receiver: Optional[VideoReceiver],
+    audio_receiver: Optional[AudioReceiver],
     async_video_processing: bool,
     callback: Callable[[Union[RTCSessionDescription, Exception]], None],
 ):
@@ -96,6 +104,14 @@ async def _process_offer(
                     if player and player.audio:
                         logger.info("Add player to audio track")
                         output_track = player.audio
+                    elif audio_processor:
+                        logger.info(
+                            "Add a input audio track %s to " "output track", input_track
+                        )
+                        output_track = AudioProcessTrack(
+                            track=input_track, audio_processor=audio_processor
+                        )
+                        logger.info("Add the audio track with processor to %s", pc)
                     else:
                         # Processing audio is not supported yet.
                         output_track = input_track  # passthrough
@@ -115,11 +131,10 @@ async def _process_offer(
                             input_track,
                             VideoTrack,
                         )
-                        local_video = VideoTrack(
+                        output_track = VideoTrack(
                             track=input_track, video_processor=video_processor
                         )
-                        logger.info("Add the video track with transfomer to %s", pc)
-                        output_track = local_video
+                        logger.info("Add the video track with processor to %s", pc)
                     else:
                         output_track = input_track
 
@@ -152,8 +167,11 @@ async def _process_offer(
                 logger.info("Track %s received", input_track.kind)
 
                 if input_track.kind == "audio":
-                    # Not supported yet
-                    pass
+                    if audio_receiver:
+                        logger.info(
+                            "Add a track %s to receiver %s", input_track, audio_receiver
+                        )
+                        audio_receiver.addTrack(input_track)
                 elif input_track.kind == "video":
                     if video_receiver:
                         logger.info(
@@ -170,6 +188,8 @@ async def _process_offer(
                     logger.info("Track %s ended", input_track.kind)
                     if video_receiver:
                         video_receiver.stop()
+                    if audio_receiver:
+                        audio_receiver.stop()
                     if in_recorder:
                         await in_recorder.stop()
 
@@ -194,6 +214,8 @@ async def _process_offer(
 
         if video_receiver and video_receiver.hasTrack():
             video_receiver.start()
+        if audio_receiver and audio_receiver.hasTrack():
+            audio_receiver.start()
 
         if in_recorder:
             await in_recorder.start()
@@ -214,20 +236,30 @@ async def _process_offer(
 webrtc_thread_id_generator = itertools.count()
 
 
-class WebRtcWorker(Generic[VideoProcessorT]):
+class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _webrtc_thread: Union[threading.Thread, None]
     _loop: Union[AbstractEventLoop, None]
     _answer_queue: queue.Queue
     _video_processor: Optional[VideoProcessorT]
+    _audio_processor: Optional[AudioProcessorT]
     _video_receiver: Optional[VideoReceiver]
+    _audio_receiver: Optional[AudioReceiver]
 
     @property
     def video_processor(self) -> Optional[VideoProcessorT]:
         return self._video_processor
 
     @property
+    def audio_processor(self) -> Optional[AudioProcessorT]:
+        return self._audio_processor
+
+    @property
     def video_receiver(self) -> Optional[VideoReceiver]:
         return self._video_receiver
+
+    @property
+    def audio_receiver(self) -> Optional[AudioReceiver]:
+        return self._audio_receiver
 
     def __init__(
         self,
@@ -237,6 +269,9 @@ class WebRtcWorker(Generic[VideoProcessorT]):
         out_recorder_factory: Optional[MediaRecorderFactory] = None,
         video_processor_factory: Optional[
             VideoProcessorFactory[VideoProcessorT]
+        ] = None,
+        audio_processor_factory: Optional[
+            AudioProcessorFactory[AudioProcessorT]
         ] = None,
         async_video_processing: bool = True,
     ) -> None:
@@ -250,10 +285,13 @@ class WebRtcWorker(Generic[VideoProcessorT]):
         self.in_recorder_factory = in_recorder_factory
         self.out_recorder_factory = out_recorder_factory
         self.video_processor_factory = video_processor_factory
+        self.audio_processor_factory = audio_processor_factory
         self.async_video_processing = async_video_processing
 
         self._video_processor = None
+        self._audio_processor = None
         self._video_receiver = None
+        self._audio_receiver = None
 
     def _run_webrtc_thread(
         self,
@@ -299,12 +337,22 @@ class WebRtcWorker(Generic[VideoProcessorT]):
         if self.video_processor_factory:
             video_processor = self.video_processor_factory()
 
+        audio_processor = None
+        if self.audio_processor_factory:
+            audio_processor = self.audio_processor_factory()
+
         video_receiver = None
+        audio_receiver = None
         if self.mode == WebRtcMode.SENDONLY:
             video_receiver = VideoReceiver(queue_maxsize=1)
+            audio_receiver = AudioReceiver(
+                queue_maxsize=128
+            )  # TODO: Reasonable queue size
 
         self._video_processor = video_processor
+        self._audio_processor = audio_processor
         self._video_receiver = video_receiver
+        self._audio_receiver = audio_receiver
 
         @self.pc.on("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
@@ -321,7 +369,9 @@ class WebRtcWorker(Generic[VideoProcessorT]):
                 in_recorder_factory=self.in_recorder_factory,
                 out_recorder_factory=self.out_recorder_factory,
                 video_processor=video_processor,
+                audio_processor=audio_processor,
                 video_receiver=video_receiver,
+                audio_receiver=audio_receiver,
                 async_video_processing=self.async_video_processing,
                 callback=callback,
             )
@@ -366,7 +416,9 @@ class WebRtcWorker(Generic[VideoProcessorT]):
 
     def _unset_processors(self):
         self._video_processor = None
+        self._audio_processor = None
         self._video_receiver = None
+        self._audio_receiver = None
 
     def stop(self, timeout: Union[float, None] = 1.0):
         self._unset_processors()

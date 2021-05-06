@@ -13,11 +13,14 @@ except ImportError:
 
 import av
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
+import pydub
 import streamlit as st
 from aiortc.contrib.media import MediaPlayer
 
 from streamlit_webrtc import (
+    AudioProcessorBase,
     ClientSettings,
     VideoProcessorBase,
     WebRtcMode,
@@ -88,18 +91,26 @@ def main():
     video_filters_page = (
         "Real time video transform with simple OpenCV filters (sendrecv)"
     )
+    audio_filter_page = "Real time audio filter (sendrecv)"
     streaming_page = (
         "Consuming media files on server-side and streaming it to browser (recvonly)"
     )
-    sendonly_page = "WebRTC is sendonly and images are shown via st.image() (sendonly)"
+    video_sendonly_page = (
+        "WebRTC is sendonly and images are shown via st.image() (sendonly)"
+    )
+    audio_sendonly_page = (
+        "WebRTC is sendonly and audio frames are visualized with matplotlib (sendonly)"
+    )
     loopback_page = "Simple video loopback (sendrecv)"
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
         [
             object_detection_page,
             video_filters_page,
+            audio_filter_page,
             streaming_page,
-            sendonly_page,
+            video_sendonly_page,
+            audio_sendonly_page,
             loopback_page,
         ],
     )
@@ -109,10 +120,14 @@ def main():
         app_video_filters()
     elif app_mode == object_detection_page:
         app_object_detection()
+    elif app_mode == audio_filter_page:
+        app_audio_filter()
     elif app_mode == streaming_page:
         app_streaming()
-    elif app_mode == sendonly_page:
-        app_sendonly()
+    elif app_mode == video_sendonly_page:
+        app_sendonly_video()
+    elif app_mode == audio_sendonly_page:
+        app_sendonly_audio()
     elif app_mode == loopback_page:
         app_loopback()
 
@@ -196,6 +211,49 @@ def app_video_filters():
         "https://github.com/aiortc/aiortc/blob/2362e6d1f0c730a0f8c387bbea76546775ad2fe8/examples/server/server.py#L34. "  # noqa: E501
         "Many thanks to the project."
     )
+
+
+def app_audio_filter():
+    DEFAULT_GAIN = 1.0
+
+    class AudioProcessor(AudioProcessorBase):
+        gain = DEFAULT_GAIN
+
+        def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
+            raw_samples = frame.to_ndarray()
+            sound = pydub.AudioSegment(
+                data=raw_samples.tobytes(),
+                sample_width=frame.format.bytes,
+                frame_rate=frame.sample_rate,
+                channels=len(frame.layout.channels),
+            )
+
+            sound = sound.apply_gain(self.gain)
+
+            # Ref: https://github.com/jiaaro/pydub/blob/master/API.markdown#audiosegmentget_array_of_samples  # noqa
+            channel_sounds = sound.split_to_mono()
+            channel_samples = [s.get_array_of_samples() for s in channel_sounds]
+            new_samples: np.ndarray = np.array(channel_samples).T
+            new_samples = new_samples.reshape(raw_samples.shape)
+
+            new_frame = av.AudioFrame.from_ndarray(
+                new_samples, layout=frame.layout.name
+            )
+            new_frame.sample_rate = frame.sample_rate
+            return new_frame
+
+    webrtc_ctx = webrtc_streamer(
+        key="audio-filter",
+        mode=WebRtcMode.SENDRECV,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+        audio_processor_factory=AudioProcessor,
+        async_video_processing=True,
+    )
+
+    if webrtc_ctx.audio_processor:
+        webrtc_ctx.audio_processor.gain = st.slider(
+            "Gain", -10.0, +20.0, DEFAULT_GAIN, 0.05
+        )
 
 
 def app_object_detection():
@@ -399,7 +457,7 @@ def app_streaming():
     )
 
 
-def app_sendonly():
+def app_sendonly_video():
     """A sample to use WebRTC in sendonly mode to transfer frames
     from the browser to the server and to render frames via `st.image`."""
     webrtc_ctx = webrtc_streamer(
@@ -408,18 +466,78 @@ def app_sendonly():
         client_settings=WEBRTC_CLIENT_SETTINGS,
     )
 
+    image_loc = st.empty()
+
     if webrtc_ctx.video_receiver:
-        image_loc = st.empty()
         while True:
             try:
-                frame = webrtc_ctx.video_receiver.get_frame(timeout=1)
+                video_frame = webrtc_ctx.video_receiver.get_frame(timeout=1)
             except queue.Empty:
-                print("Queue is empty. Stop the loop.")
+                logger.warning("Queue is empty. Abort.")
                 webrtc_ctx.video_receiver.stop()
+                webrtc_ctx.audio_receiver.stop()
                 break
 
-            img_rgb = frame.to_ndarray(format="rgb24")
+            img_rgb = video_frame.to_ndarray(format="rgb24")
             image_loc.image(img_rgb)
+
+
+def app_sendonly_audio():
+    """A sample to use WebRTC in sendonly mode to transfer audio frames
+    from the browser to the server and visualize them with matplotlib
+    and `st.pyplog`."""
+    webrtc_ctx = webrtc_streamer(
+        key="loopback",
+        mode=WebRtcMode.SENDONLY,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+    )
+
+    wave_figure = st.empty()
+
+    fig, ax = plt.subplots()
+
+    sound_window_len = 5000  # 5s
+    sound_window_buffer = None
+    while True:
+        if webrtc_ctx.audio_receiver:
+            sound_chunk = pydub.AudioSegment.empty()
+            try:
+                audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
+            except queue.Empty:
+                logger.warning("Queue is empty. Abort.")
+                webrtc_ctx.video_receiver.stop()
+                webrtc_ctx.audio_receiver.stop()
+                break
+
+            for audio_frame in audio_frames:
+                sound = pydub.AudioSegment(
+                    data=audio_frame.to_ndarray().tobytes(),
+                    sample_width=audio_frame.format.bytes,
+                    frame_rate=audio_frame.sample_rate,
+                    channels=len(audio_frame.layout.channels),
+                )
+                sound_chunk += sound
+
+            if len(sound_chunk) > 0:
+                if sound_window_buffer is None:
+                    sound_window_buffer = pydub.AudioSegment.silent(
+                        duration=sound_window_len
+                    )
+
+                sound_window_buffer += sound_chunk
+                if len(sound_window_buffer) > sound_window_len:
+                    sound_window_buffer = sound_window_buffer[-sound_window_len:]
+
+            if sound_window_buffer:
+                # Ref: https://own-search-and-study.xyz/2017/10/27/python%E3%82%92%E4%BD%BF%E3%81%A3%E3%81%A6%E9%9F%B3%E5%A3%B0%E3%83%87%E3%83%BC%E3%82%BF%E3%81%8B%E3%82%89%E3%82%B9%E3%83%9A%E3%82%AF%E3%83%88%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0%E3%82%92%E4%BD%9C/  # noqa
+                samples = np.array(sound_window_buffer.get_array_of_samples())
+                sample = samples[:: sound_window_buffer.channels]
+                ax.cla()
+                ax.plot(sample[::10])
+                wave_figure.pyplot(fig)
+        else:
+            logger.warning("AudioReciver is not set. Abort.")
+            break
 
 
 if __name__ == "__main__":

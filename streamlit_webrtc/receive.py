@@ -1,15 +1,19 @@
 import asyncio
 import queue
-from typing import Optional, Union
+from typing import Generic, List, Optional, TypeVar, Union
 
 import av
 from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
+# Type inference does not work on PyAV, which is a Python wrapper of C library.
+# TODO: Write stubs
+FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
+
 
 # Inspired by `aiortc.contrib.media.MediaRecorder`:
 # https://github.com/aiortc/aiortc/blob/2362e6d1f0c730a0f8c387bbea76546775ad2fe8/src/aiortc/contrib/media.py#L304  # noqa: E501
-class VideoReceiver:
+class MediaReceiver(Generic[FrameT]):
     _frames_queue: queue.Queue
     _track: Union[MediaStreamTrack, None]
     _task: Union[asyncio.Task, None]
@@ -38,10 +42,19 @@ class VideoReceiver:
             self._task.cancel()
             self._task = None
 
-    def get_frame(
-        self, block: bool = True, timeout: Optional[float] = None
-    ) -> av.VideoFrame:
+    def get_frame(self, block: bool = True, timeout: Optional[float] = None) -> FrameT:
         return self._frames_queue.get(block=block, timeout=timeout)
+
+    def get_frames(
+        self, block: bool = True, timeout: Optional[float] = None
+    ) -> List[FrameT]:
+        if self._frames_queue.empty():
+            return [self.get_frame(block=block, timeout=timeout)]
+
+        frames: List[FrameT] = []
+        while not self._frames_queue.empty():
+            frames.append(self._frames_queue.get_nowait())
+        return frames
 
     async def _run_track(self, track: MediaStreamTrack):
         while True:
@@ -49,4 +62,11 @@ class VideoReceiver:
                 frame = await track.recv()
             except MediaStreamError:
                 return
+            # TODO: Find more performant way
+            if self._frames_queue.full():
+                self._frames_queue.get_nowait()
             self._frames_queue.put(frame)
+
+
+VideoReceiver = MediaReceiver[av.VideoFrame]
+AudioReceiver = MediaReceiver[av.AudioFrame]
