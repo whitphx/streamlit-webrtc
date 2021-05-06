@@ -95,7 +95,8 @@ def main():
     streaming_page = (
         "Consuming media files on server-side and streaming it to browser (recvonly)"
     )
-    sendonly_page = "WebRTC is sendonly and images are shown via st.image() (sendonly)"
+    video_sendonly_page = "WebRTC is sendonly and images are shown via st.image() (sendonly)"
+    audio_sendonly_page = "WebRTC is sendonly and audio frames are visualized with matplotlib (sendonly)"
     loopback_page = "Simple video loopback (sendrecv)"
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
@@ -104,7 +105,8 @@ def main():
             video_filters_page,
             audio_filter_page,
             streaming_page,
-            sendonly_page,
+            video_sendonly_page,
+            audio_sendonly_page,
             loopback_page,
         ],
     )
@@ -118,8 +120,10 @@ def main():
         app_audio_filter()
     elif app_mode == streaming_page:
         app_streaming()
-    elif app_mode == sendonly_page:
-        app_sendonly()
+    elif app_mode == video_sendonly_page:
+        app_sendonly_video()
+    elif app_mode == audio_sendonly_page:
+        app_sendonly_audio()
     elif app_mode == loopback_page:
         app_loopback()
 
@@ -450,7 +454,7 @@ def app_streaming():
     )
 
 
-def app_sendonly():
+def app_sendonly_video():
     """A sample to use WebRTC in sendonly mode to transfer frames
     from the browser to the server and to render frames via `st.image`."""
     webrtc_ctx = webrtc_streamer(
@@ -461,13 +465,6 @@ def app_sendonly():
 
     image_loc = st.empty()
 
-    wave_figure = st.empty()
-    sample_audio_frame_info = st.empty()
-
-    fig, ax = plt.subplots()
-
-    sound_window_len = 5000  # 5s
-    sound_window_buffer = None
     while True:
         if webrtc_ctx.video_receiver:
             try:
@@ -481,6 +478,23 @@ def app_sendonly():
             img_rgb = video_frame.to_ndarray(format="rgb24")
             image_loc.image(img_rgb)
 
+
+def app_sendonly_audio():
+    """A sample to use WebRTC in sendonly mode to transfer audio frames
+    from the browser to the server and to visualize them with matplotlib and `st.pyplog`."""
+    webrtc_ctx = webrtc_streamer(
+        key="loopback",
+        mode=WebRtcMode.SENDONLY,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+    )
+
+    wave_figure = st.empty()
+
+    fig, ax = plt.subplots()
+
+    sound_window_len = 5000  # 5s
+    sound_window_buffer = None
+    while True:
         if webrtc_ctx.audio_receiver:
             sound_chunk = pydub.AudioSegment.empty()
             audio_frame_cnt = 0
