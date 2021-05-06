@@ -474,8 +474,6 @@ def app_sendonly_video():
                 video_frame = webrtc_ctx.video_receiver.get_frame(timeout=1)
             except queue.Empty:
                 logger.warning("Queue is empty. Abort.")
-                webrtc_ctx.video_receiver.stop()
-                webrtc_ctx.audio_receiver.stop()
                 break
 
             img_rgb = video_frame.to_ndarray(format="rgb24")
@@ -505,8 +503,6 @@ def app_sendonly_audio():
                 audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
             except queue.Empty:
                 logger.warning("Queue is empty. Abort.")
-                webrtc_ctx.video_receiver.stop()
-                webrtc_ctx.audio_receiver.stop()
                 break
 
             for audio_frame in audio_frames:

@@ -417,7 +417,11 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     def _unset_processors(self):
         self._video_processor = None
         self._audio_processor = None
+        if self._video_receiver:
+            self._video_receiver.stop()
         self._video_receiver = None
+        if self._audio_receiver:
+            self._audio_receiver.stop()
         self._audio_receiver = None
 
     def stop(self, timeout: Union[float, None] = 1.0):
