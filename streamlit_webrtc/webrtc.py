@@ -274,6 +274,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             AudioProcessorFactory[AudioProcessorT]
         ] = None,
         async_video_processing: bool = True,
+        video_receiver_size: int = 4,
+        audio_receiver_size: int = 4,
     ) -> None:
         self._webrtc_thread = None
         self._loop = None
@@ -287,6 +289,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self.video_processor_factory = video_processor_factory
         self.audio_processor_factory = audio_processor_factory
         self.async_video_processing = async_video_processing
+        self.video_receiver_size = video_receiver_size
+        self.audio_receiver_size = audio_receiver_size
 
         self._video_processor = None
         self._audio_processor = None
@@ -344,10 +348,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         video_receiver = None
         audio_receiver = None
         if self.mode == WebRtcMode.SENDONLY:
-            video_receiver = VideoReceiver(queue_maxsize=1)
-            audio_receiver = AudioReceiver(
-                queue_maxsize=128
-            )  # TODO: Reasonable queue size
+            video_receiver = VideoReceiver(queue_maxsize=self.video_receiver_size)
+            audio_receiver = AudioReceiver(queue_maxsize=self.audio_receiver_size)
 
         self._video_processor = video_processor
         self._audio_processor = audio_processor

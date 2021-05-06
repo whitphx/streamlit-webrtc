@@ -1,10 +1,13 @@
 import asyncio
+import logging
 import queue
 from typing import Generic, List, Optional, TypeVar, Union
 
 import av
 from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
+
+logger = logging.getLogger(__name__)
 
 # Type inference does not work on PyAV, which is a Python wrapper of C library.
 # TODO: Write stubs
@@ -17,11 +20,13 @@ class MediaReceiver(Generic[FrameT]):
     _frames_queue: queue.Queue
     _track: Union[MediaStreamTrack, None]
     _task: Union[asyncio.Task, None]
+    _frame_read: bool
 
     def __init__(self, queue_maxsize: int = 1) -> None:
         self._frames_queue = queue.Queue(maxsize=queue_maxsize)
         self._track = None
         self._task = None
+        self._frame_read = False
 
     def addTrack(self, track: MediaStreamTrack):
         if self._track is not None:
@@ -43,11 +48,15 @@ class MediaReceiver(Generic[FrameT]):
             self._task = None
 
     def get_frame(self, block: bool = True, timeout: Optional[float] = None) -> FrameT:
+        self._frame_read = True
+
         return self._frames_queue.get(block=block, timeout=timeout)
 
     def get_frames(
         self, block: bool = True, timeout: Optional[float] = None
     ) -> List[FrameT]:
+        self._frame_read = True
+
         if self._frames_queue.empty():
             return [self.get_frame(block=block, timeout=timeout)]
 
@@ -64,6 +73,12 @@ class MediaReceiver(Generic[FrameT]):
                 return
             # TODO: Find more performant way
             if self._frames_queue.full():
+                if self._frame_read:
+                    logger.warning(
+                        "Queue overflow. Consider to set receiver size bigger. "
+                        "Current size is %d.",
+                        self._frames_queue.maxsize,
+                    )
                 self._frames_queue.get_nowait()
             self._frames_queue.put(frame)
 
