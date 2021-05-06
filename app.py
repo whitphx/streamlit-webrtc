@@ -503,7 +503,6 @@ def app_sendonly_audio():
     while True:
         if webrtc_ctx.audio_receiver:
             sound_chunk = pydub.AudioSegment.empty()
-            audio_frame_cnt = 0
             audio_frame = None
             while (
                 not webrtc_ctx.audio_receiver._frames_queue.empty()
@@ -516,7 +515,6 @@ def app_sendonly_audio():
                     channels=len(audio_frame.layout.channels),
                 )
                 sound_chunk += sound
-                audio_frame_cnt += 1
 
             if len(sound_chunk) > 0:
                 if sound_window_buffer is None:
