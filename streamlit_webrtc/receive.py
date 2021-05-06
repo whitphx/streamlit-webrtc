@@ -1,6 +1,6 @@
 import asyncio
 import queue
-from typing import Generic, Optional, TypeVar, Union
+from typing import Generic, List, Optional, TypeVar, Union
 
 import av
 from aiortc import MediaStreamTrack
@@ -44,6 +44,12 @@ class MediaReceiver(Generic[FrameT]):
 
     def get_frame(self, block: bool = True, timeout: Optional[float] = None) -> FrameT:
         return self._frames_queue.get(block=block, timeout=timeout)
+
+    def get_frames(self) -> List[FrameT]:
+        frames: List[FrameT] = []
+        while not self._frames_queue.empty():
+            frames.append(self._frames_queue.get_nowait())
+        return frames
 
     async def _run_track(self, track: MediaStreamTrack):
         while True:
