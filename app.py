@@ -473,7 +473,7 @@ def app_sendonly():
             try:
                 video_frame = webrtc_ctx.video_receiver.get_frame(timeout=1)
             except queue.Empty:
-                print("Queue is empty. Stop the loop.")
+                logger.warning("Queue is empty. Abort.")
                 webrtc_ctx.video_receiver.stop()
                 webrtc_ctx.audio_receiver.stop()
                 break
@@ -515,31 +515,8 @@ def app_sendonly():
                 ax.cla()
                 ax.plot(sample[::10])
                 wave_figure.pyplot(fig)
-
-            # For debug
-            if audio_frame:
-                sample_audio_frame_info.write(
-                    {
-                        "format": {
-                            "bits": audio_frame.format.bits,
-                            "bytes": audio_frame.format.bytes,
-                            "container_name": audio_frame.format.container_name,
-                            "is_packed": audio_frame.format.is_packed,
-                            "is_planar": audio_frame.format.is_planar,
-                            "packed": audio_frame.format.packed,
-                            "planar": audio_frame.format.planar,
-                        },
-                        "layout": {
-                            "channels": audio_frame.layout.channels,
-                            "name": audio_frame.layout.name,
-                        },
-                        "planes": audio_frame.planes,
-                        "rate": audio_frame.rate,
-                        "sample_rate": audio_frame.sample_rate,
-                        "samples": audio_frame.samples,
-                    }
-                )
         else:
+            logger.warning("AudioReciver is not set. Abort.")
             break
 
 
