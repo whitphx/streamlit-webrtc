@@ -487,6 +487,7 @@ def app_sendonly_audio():
     webrtc_ctx = webrtc_streamer(
         key="loopback",
         mode=WebRtcMode.SENDONLY,
+        audio_receiver_size=16,
         client_settings=WEBRTC_CLIENT_SETTINGS,
     )
 
