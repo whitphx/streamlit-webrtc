@@ -171,5 +171,7 @@ class AudioProcessTrack(MediaStreamTrack):
         frame = await self.track.recv()
 
         new_frame = self.processor.recv(frame)
+        new_frame.pts = frame.pts
+        new_frame.time_base = frame.time_base
 
         return new_frame

@@ -240,8 +240,6 @@ def app_audio_filter():
                 new_samples, layout=frame.layout.name
             )
             new_frame.sample_rate = frame.sample_rate
-            new_frame.pts = frame.pts
-            new_frame.time_base = frame.time_base
             return new_frame
 
     webrtc_ctx = webrtc_streamer(
