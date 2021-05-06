@@ -95,8 +95,12 @@ def main():
     streaming_page = (
         "Consuming media files on server-side and streaming it to browser (recvonly)"
     )
-    video_sendonly_page = "WebRTC is sendonly and images are shown via st.image() (sendonly)"
-    audio_sendonly_page = "WebRTC is sendonly and audio frames are visualized with matplotlib (sendonly)"
+    video_sendonly_page = (
+        "WebRTC is sendonly and images are shown via st.image() (sendonly)"
+    )
+    audio_sendonly_page = (
+        "WebRTC is sendonly and audio frames are visualized with matplotlib (sendonly)"
+    )
     loopback_page = "Simple video loopback (sendrecv)"
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
@@ -226,9 +230,10 @@ def app_audio_filter():
 
             sound = sound.apply_gain(self.gain)
 
+            # Ref: https://github.com/jiaaro/pydub/blob/master/API.markdown#audiosegmentget_array_of_samples  # noqa
             channel_sounds = sound.split_to_mono()
-            new_samples = [s.get_array_of_samples() for s in channel_sounds]
-            new_samples = np.array(new_samples).T
+            channel_samples = [s.get_array_of_samples() for s in channel_sounds]
+            new_samples: np.ndarray = np.array(channel_samples).T
             new_samples = new_samples.reshape(raw_samples.shape)
 
             new_frame = av.AudioFrame.from_ndarray(
@@ -481,7 +486,8 @@ def app_sendonly_video():
 
 def app_sendonly_audio():
     """A sample to use WebRTC in sendonly mode to transfer audio frames
-    from the browser to the server and to visualize them with matplotlib and `st.pyplog`."""
+    from the browser to the server and visualize them with matplotlib
+    and `st.pyplog`."""
     webrtc_ctx = webrtc_streamer(
         key="loopback",
         mode=WebRtcMode.SENDONLY,
