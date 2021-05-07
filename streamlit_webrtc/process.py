@@ -204,7 +204,7 @@ class AsyncAudioProcessTrack(MediaStreamTrack):
             target=self._run_worker_thread,
             name=f"async_audio_processor_{next(audio_processing_thread_id_generator)}",
         )
-        self._in_queue = queue.Queue()
+        self._in_queue: queue.Queue = queue.Queue()
 
         self._out_lock = threading.Lock()
         self._out_deque: deque = deque([])
