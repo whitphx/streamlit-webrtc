@@ -33,9 +33,10 @@ class AudioProcessorBase(abc.ABC):
     def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
         """ Processes the received frame and returns a new frame """
 
-    @abc.abstractmethod
     def recv_queued(self, frames: List[av.AudioFrame]) -> av.AudioFrame:
-        """  """
+        """Processes all the frames received and queued since the previous call in async mode.
+        If not implemented, delegated to recv() by default."""
+        return [self.recv(frames[-1])]
 
 
 VideoProcessor = Union[
