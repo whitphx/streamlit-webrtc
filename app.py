@@ -198,7 +198,7 @@ def app_video_filters():
         mode=WebRtcMode.SENDRECV,
         client_settings=WEBRTC_CLIENT_SETTINGS,
         video_processor_factory=OpenCVVideoProcessor,
-        async_video_processing=True,
+        async_processing=True,
     )
 
     if webrtc_ctx.video_processor:
@@ -247,7 +247,7 @@ def app_audio_filter():
         mode=WebRtcMode.SENDRECV,
         client_settings=WEBRTC_CLIENT_SETTINGS,
         audio_processor_factory=AudioProcessor,
-        async_video_processing=True,
+        async_processing=True,
     )
 
     if webrtc_ctx.audio_processor:
@@ -364,7 +364,7 @@ def app_object_detection():
         mode=WebRtcMode.SENDRECV,
         client_settings=WEBRTC_CLIENT_SETTINGS,
         video_processor_factory=MobileNetSSDVideoProcessor,
-        async_video_processing=True,
+        async_processing=True,
     )
 
     confidence_threshold = st.slider(

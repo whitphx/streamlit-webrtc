@@ -11,6 +11,7 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRecorder
 
 from .process import (
+    AsyncAudioProcessTrack,
     AsyncVideoProcessTrack,
     AudioProcessorBase,
     AudioProcessTrack,
@@ -70,7 +71,7 @@ async def _process_offer(
     audio_processor: Optional[AudioProcessorBase],
     video_receiver: Optional[VideoReceiver],
     audio_receiver: Optional[AudioReceiver],
-    async_video_processing: bool,
+    async_processing: bool,
     callback: Callable[[Union[RTCSessionDescription, Exception]], None],
 ):
     try:
@@ -105,10 +106,18 @@ async def _process_offer(
                         logger.info("Add player to audio track")
                         output_track = player.audio
                     elif audio_processor:
-                        logger.info(
-                            "Add a input audio track %s to " "output track", input_track
+                        AudioTrack = (
+                            AsyncAudioProcessTrack
+                            if async_processing
+                            else AudioProcessTrack
                         )
-                        output_track = AudioProcessTrack(
+                        logger.info(
+                            "Add a input audio track %s to "
+                            "output track with audio_processor %s",
+                            input_track,
+                            AudioTrack,
+                        )
+                        output_track = AudioTrack(
                             track=input_track, audio_processor=audio_processor
                         )
                         logger.info("Add the audio track with processor to %s", pc)
@@ -122,7 +131,7 @@ async def _process_offer(
                     elif video_processor:
                         VideoTrack = (
                             AsyncVideoProcessTrack
-                            if async_video_processing
+                            if async_processing
                             else VideoProcessTrack
                         )
                         logger.info(
@@ -273,7 +282,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         audio_processor_factory: Optional[
             AudioProcessorFactory[AudioProcessorT]
         ] = None,
-        async_video_processing: bool = True,
+        async_processing: bool = True,
         video_receiver_size: int = 4,
         audio_receiver_size: int = 4,
     ) -> None:
@@ -288,7 +297,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self.out_recorder_factory = out_recorder_factory
         self.video_processor_factory = video_processor_factory
         self.audio_processor_factory = audio_processor_factory
-        self.async_video_processing = async_video_processing
+        self.async_processing = async_processing
         self.video_receiver_size = video_receiver_size
         self.audio_receiver_size = audio_receiver_size
 
@@ -374,7 +383,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 audio_processor=audio_processor,
                 video_receiver=video_receiver,
                 audio_receiver=audio_receiver,
-                async_video_processing=self.async_video_processing,
+                async_processing=self.async_processing,
                 callback=callback,
             )
         )
