@@ -92,6 +92,7 @@ def main():
         "Real time video transform with simple OpenCV filters (sendrecv)"
     )
     audio_filter_page = "Real time audio filter (sendrecv)"
+    speech_to_text_page = "Real time speech-to-text with DeepSpeech (sendonly)"
     streaming_page = (
         "Consuming media files on server-side and streaming it to browser (recvonly)"
     )
@@ -108,6 +109,7 @@ def main():
             object_detection_page,
             video_filters_page,
             audio_filter_page,
+            speech_to_text_page,
             streaming_page,
             video_sendonly_page,
             audio_sendonly_page,
@@ -122,6 +124,8 @@ def main():
         app_object_detection()
     elif app_mode == audio_filter_page:
         app_audio_filter()
+    elif app_mode == speech_to_text_page:
+        app_speech_to_text()
     elif app_mode == streaming_page:
         app_streaming()
     elif app_mode == video_sendonly_page:
@@ -254,6 +258,66 @@ def app_audio_filter():
         webrtc_ctx.audio_processor.gain = st.slider(
             "Gain", -10.0, +20.0, DEFAULT_GAIN, 0.05
         )
+
+
+def app_speech_to_text():
+    # https://github.com/mozilla/DeepSpeech/releases/tag/v0.9.3
+    MODEL_URL = "https://github.com/mozilla/DeepSpeech/releases/download/v0.9.3/deepspeech-0.9.3-models.pbmm"  # noqa
+    LANG_MODEL_URL = "https://github.com/mozilla/DeepSpeech/releases/download/v0.9.3/deepspeech-0.9.3-models.scorer"  # noqa
+    MODEL_LOCAL_PATH = HERE / "models/deepspeech-0.9.3-models.pbmm"
+    LANG_MODEL_LOCAL_PATH = HERE / "models/deepspeech-0.9.3-models.scorer"
+
+    download_file(MODEL_URL, MODEL_LOCAL_PATH, expected_size=188915987)
+    download_file(LANG_MODEL_URL, LANG_MODEL_LOCAL_PATH, expected_size=953363776)
+
+    lm_alpha = 0.931289039105002
+    lm_beta = 1.1834137581510284
+    beam = 10
+
+    webrtc_ctx = webrtc_streamer(
+        key="speech-to-text",
+        mode=WebRtcMode.SENDONLY,
+        audio_receiver_size=1024,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+    )
+    if webrtc_ctx.state.playing:
+        from deepspeech import Model
+
+        model = Model(MODEL_LOCAL_PATH)
+        model.enableExternalScorer(LANG_MODEL_LOCAL_PATH)
+        model.setScorerAlphaBeta(lm_alpha, lm_beta)
+        model.setBeamWidth(beam)
+
+        stream = model.createStream()
+
+        text_output = st.empty()
+
+        while True:
+            if webrtc_ctx.audio_receiver:
+                sound_chunk = pydub.AudioSegment.empty()
+                try:
+                    audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
+                except queue.Empty:
+                    logger.warning("Queue is empty. Abort.")
+                    break
+
+                for audio_frame in audio_frames:
+                    sound = pydub.AudioSegment(
+                        data=audio_frame.to_ndarray().tobytes(),
+                        sample_width=audio_frame.format.bytes,
+                        frame_rate=audio_frame.sample_rate,
+                        channels=len(audio_frame.layout.channels),
+                    )
+                    sound_chunk += sound
+
+                if len(sound_chunk) > 0:
+                    sound_chunk.set_channels(1)
+                    stream.feedAudioContent(sound_chunk.get_array_of_samples())
+                    text = stream.intermediateDecode()
+                    text_output.write(text)
+            else:
+                logger.warning("AudioReciver is not set. Abort.")
+                break
 
 
 def app_object_detection():
