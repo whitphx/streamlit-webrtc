@@ -4,6 +4,7 @@ import logging
 import queue
 import sys
 import threading
+import time
 import traceback
 from collections import deque
 from typing import List, Optional, Union
@@ -246,8 +247,21 @@ class AsyncAudioProcessTrack(MediaStreamTrack):
             if len(queued_frames) == 0:
                 raise Exception("Unexpectedly, queued frames do not exist")
 
-            # TODO: Monitor if execution time grows exponentially
+            # NOTE: If the execution time of recv_queued() increases
+            #       with the length of the input frames,
+            #       it increases exponentially over the calls.
+            #       Then, the execution time has to be monitored.
+            start_time = time.monotonic()
             new_frames = self.processor.recv_queued(queued_frames)
+            elapsed_time = time.monotonic() - start_time
+
+            if (
+                elapsed_time > 10
+            ):  # No reason for 10 seconds... It's an ad-hoc decision.
+                raise Exception(
+                    "recv_queued() or recv() is taking too long to execute, "
+                    f"{elapsed_time}s."
+                )
 
             with self._out_lock:
                 for new_frame in new_frames:
