@@ -144,7 +144,7 @@ def webrtc_streamer(
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
     video_processor_factory: Optional[VideoProcessorFactory[VideoProcessorT]] = None,
     audio_processor_factory: Optional[AudioProcessorFactory[AudioProcessorT]] = None,
-    async_video_processing: bool = True,
+    async_processing: bool = True,
     video_receiver_size: int = 4,
     audio_receiver_size: int = 4,
     # Deprecated. Just for backward compatibility
@@ -155,7 +155,7 @@ def webrtc_streamer(
     if video_transformer_factory is not None:
         video_processor_factory = video_transformer_factory
     if async_transform is not None:
-        async_video_processing = async_transform
+        async_processing = async_transform
 
     webrtc_worker = _get_webrtc_worker(key)
 
@@ -194,7 +194,7 @@ def webrtc_streamer(
                     out_recorder_factory=out_recorder_factory,
                     video_processor_factory=video_processor_factory,
                     audio_processor_factory=audio_processor_factory,
-                    async_video_processing=async_video_processing,
+                    async_processing=async_processing,
                     video_receiver_size=video_receiver_size,
                     audio_receiver_size=audio_receiver_size,
                 )
