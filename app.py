@@ -466,7 +466,7 @@ def app_sendonly_video():
         client_settings=WEBRTC_CLIENT_SETTINGS,
     )
 
-    image_loc = st.empty()
+    image_place = st.empty()
 
     if webrtc_ctx.video_receiver:
         while True:
@@ -477,7 +477,7 @@ def app_sendonly_video():
                 break
 
             img_rgb = video_frame.to_ndarray(format="rgb24")
-            image_loc.image(img_rgb)
+            image_place.image(img_rgb)
 
 
 def app_sendonly_audio():
@@ -487,13 +487,13 @@ def app_sendonly_audio():
     webrtc_ctx = webrtc_streamer(
         key="loopback",
         mode=WebRtcMode.SENDONLY,
-        audio_receiver_size=16,
+        audio_receiver_size=64,
         client_settings=WEBRTC_CLIENT_SETTINGS,
     )
 
-    wave_figure = st.empty()
+    fig_place = st.empty()
 
-    fig, ax = plt.subplots()
+    fig, [ax_time, ax_freq] = plt.subplots(2, 1)
 
     sound_window_len = 5000  # 5s
     sound_window_buffer = None
@@ -529,9 +529,21 @@ def app_sendonly_audio():
                 # Ref: https://own-search-and-study.xyz/2017/10/27/python%E3%82%92%E4%BD%BF%E3%81%A3%E3%81%A6%E9%9F%B3%E5%A3%B0%E3%83%87%E3%83%BC%E3%82%BF%E3%81%8B%E3%82%89%E3%82%B9%E3%83%9A%E3%82%AF%E3%83%88%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0%E3%82%92%E4%BD%9C/  # noqa
                 samples = np.array(sound_window_buffer.get_array_of_samples())
                 sample = samples[:: sound_window_buffer.channels]
-                ax.cla()
-                ax.plot(sample[::10])
-                wave_figure.pyplot(fig)
+
+                ax_time.cla()
+                ax_time.plot(sample[::10])
+
+                spec = np.fft.fft(sample)
+                freq = np.fft.fftfreq(sample.shape[0], 1.0 / sound_chunk.frame_rate)
+                freq = freq[: int(freq.shape[0] / 2)]
+                spec = spec[: int(spec.shape[0] / 2)]
+                spec[0] = spec[0] / 2
+
+                ax_freq.cla()
+                ax_freq.set_yscale("log")
+                ax_freq.plot(freq, np.abs(spec))
+
+                fig_place.pyplot(fig)
         else:
             logger.warning("AudioReciver is not set. Abort.")
             break
