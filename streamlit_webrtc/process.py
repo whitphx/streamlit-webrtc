@@ -21,6 +21,7 @@ class VideoProcessorBase(abc.ABC):
     def transform(self, frame: av.VideoFrame) -> np.ndarray:
         """@deprecated Backward compatibility;
         Returns a new video frame in bgr24 format"""
+        raise NotImplementedError("transform() is not implemented.")
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         """ Processes the received frame and returns a new frame """
@@ -38,9 +39,9 @@ VideoTransformerBase = VideoProcessorBase  # Backward compatiblity
 
 
 class AudioProcessorBase(abc.ABC):
-    @abc.abstractmethod
     def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
         """ Processes the received frame and returns a new frame """
+        raise NotImplementedError("recv() is not implemented.")
 
     def recv_queued(self, frames: List[av.AudioFrame]) -> av.AudioFrame:
         """Processes all the frames received and queued since the previous call in async mode.
