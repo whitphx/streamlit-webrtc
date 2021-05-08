@@ -191,7 +191,7 @@ def app_video_filters():
                 M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
                 img = cv2.warpAffine(img, M, (cols, rows))
 
-            return img
+            return av.VideoFrame.from_ndarray(img, format="bgr24")
 
     webrtc_ctx = webrtc_streamer(
         key="opencv-filter",
@@ -344,7 +344,7 @@ def app_object_detection():
                     )
             return image, result
 
-        def recv(self, frame: av.VideoFrame) -> np.ndarray:
+        def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
             image = frame.to_ndarray(format="bgr24")
             blob = cv2.dnn.blobFromImage(
                 cv2.resize(image, (300, 300)), 0.007843, (300, 300), 127.5
@@ -357,7 +357,7 @@ def app_object_detection():
             # so it must be thread-safe.
             self.result_queue.put(result)
 
-            return annotated_image
+            return av.VideoFrame.from_ndarray(annotated_image, format="bgr24")
 
     webrtc_ctx = webrtc_streamer(
         key="object-detection",
