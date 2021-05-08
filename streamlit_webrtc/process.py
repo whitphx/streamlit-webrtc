@@ -48,38 +48,15 @@ class AudioProcessorBase(abc.ABC):
         return [self.recv(frames[-1])]
 
 
-class VideoProcessTrack(MediaStreamTrack):
-    kind = "video"
+ProcessorT = TypeVar("ProcessorT", VideoProcessorBase, AudioProcessorBase)
+FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
 
-    def __init__(self, track: MediaStreamTrack, video_processor: VideoProcessorBase):
+
+class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
+    def __init__(self, track: MediaStreamTrack, processor: ProcessorT):
         super().__init__()  # don't forget this!
         self.track = track
-        self.processor = video_processor
-
-    async def recv(self):
-        frame = await self.track.recv()
-
-        # XXX: Backward compatibility
-        if hasattr(self.processor, "recv"):
-            img = self.processor.recv(frame)
-        else:
-            logger.warning(".transform() is deprecated. Use .recv() instead.")
-            img = self.processor.transform(frame)
-
-        # rebuild a av.VideoFrame, preserving timing information
-        new_frame = av.VideoFrame.from_ndarray(img, format="bgr24")
-        new_frame.pts = frame.pts
-        new_frame.time_base = frame.time_base
-        return new_frame
-
-
-class AudioProcessTrack(MediaStreamTrack):
-    kind = "audio"
-
-    def __init__(self, track: MediaStreamTrack, audio_processor: AudioProcessorBase):
-        super().__init__()  # don't forget this!
-        self.track = track
-        self.processor = audio_processor
+        self.processor = processor
 
     async def recv(self):
         frame = await self.track.recv()
@@ -91,13 +68,18 @@ class AudioProcessTrack(MediaStreamTrack):
         return new_frame
 
 
+class VideoProcessTrack(MediaProcessTrack[AudioProcessorBase, av.AudioFrame]):
+    kind = "video"
+
+
+class AudioProcessTrack(MediaProcessTrack[AudioProcessorBase, av.AudioFrame]):
+    kind = "audio"
+
+
 __SENTINEL__ = "__SENTINEL__"
 
 # See https://stackoverflow.com/a/42007659
 media_processing_thread_id_generator = itertools.count()
-
-ProcessorT = TypeVar("ProcessorT", VideoProcessorBase, AudioProcessorBase)
-FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
 
 
 class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
