@@ -185,11 +185,15 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             new_frames = finished.result()
 
             with self._out_lock:
-                if len(self._out_deque) > 0:
+                if len(self._out_deque) > 1:
                     logger.warning(
-                        "Not all queued frames have been consumed, which means processing and consuming seem not to be synchronized."
+                        "Not all the queued frames have been consumed, "
+                        "which means the processing and consuming threads "
+                        "seem not to be synchronized."
                     )
-                self._out_deque.clear()
+                    firstitem = self._out_deque.popleft()
+                    self._out_deque.clear()
+                    self._out_deque.append(firstitem)
                 for new_frame in new_frames:
                     self._out_deque.append(new_frame)
 
