@@ -15,7 +15,6 @@ from .process import (
     AsyncVideoProcessTrack,
     AudioProcessorBase,
     AudioProcessTrack,
-    VideoProcessor,
     VideoProcessorBase,
     VideoProcessTrack,
     VideoTransformerBase,
@@ -25,7 +24,6 @@ from .receive import AudioReceiver, VideoReceiver
 __all__ = [
     "AudioProcessorBase",
     "AudioProcessorFactory",
-    "VideoProcessor",
     "VideoTransformerBase",
     "VideoProcessorBase",
     "MediaPlayerFactory",
@@ -67,7 +65,7 @@ async def _process_offer(
     player_factory: Optional[MediaPlayerFactory],
     in_recorder_factory: Optional[MediaRecorderFactory],
     out_recorder_factory: Optional[MediaRecorderFactory],
-    video_processor: Optional[VideoProcessor],
+    video_processor: Optional[VideoProcessorBase],
     audio_processor: Optional[AudioProcessorBase],
     video_receiver: Optional[VideoReceiver],
     audio_receiver: Optional[AudioReceiver],
@@ -118,7 +116,7 @@ async def _process_offer(
                             AudioTrack,
                         )
                         output_track = AudioTrack(
-                            track=input_track, audio_processor=audio_processor
+                            track=input_track, processor=audio_processor
                         )
                         logger.info("Add the audio track with processor to %s", pc)
                     else:
@@ -141,7 +139,7 @@ async def _process_offer(
                             VideoTrack,
                         )
                         output_track = VideoTrack(
-                            track=input_track, video_processor=video_processor
+                            track=input_track, processor=video_processor
                         )
                         logger.info("Add the video track with processor to %s", pc)
                     else:

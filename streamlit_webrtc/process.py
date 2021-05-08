@@ -7,7 +7,7 @@ import threading
 import time
 import traceback
 from collections import deque
-from typing import List, Optional, Union
+from typing import Generic, List, Optional, TypeVar, Union
 
 import av
 import numpy as np
@@ -17,22 +17,31 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-class VideoTransformerBase(abc.ABC):
-    @abc.abstractmethod
-    def transform(self, frame: av.VideoFrame) -> np.ndarray:
-        """ Backward compatibility; Returns a new video frame in bgr24 format """
-
-
 class VideoProcessorBase(abc.ABC):
-    @abc.abstractmethod
-    def recv(self, frame: av.VideoFrame) -> np.ndarray:
-        """ Processes the received frame and returns a frame in bgr24 format """
+    def transform(self, frame: av.VideoFrame) -> np.ndarray:
+        """@deprecated Backward compatibility;
+        Returns a new video frame in bgr24 format"""
+        raise NotImplementedError("transform() is not implemented.")
+
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        """ Processes the received frame and returns a new frame """
+        logger.warning("transform() is deprecated. Implement recv() instead.")
+        new_image = self.transform(frame)
+        return av.VideoFrame.from_ndarray(new_image, format="bgr24")
+
+    def recv_queued(self, frames: List[av.AudioFrame]) -> av.VideoFrame:
+        """Processes all the frames received and queued since the previous call in async mode.
+        If not implemented, delegated to recv() by default."""
+        return [self.recv(frames[-1])]
+
+
+VideoTransformerBase = VideoProcessorBase  # Backward compatiblity
 
 
 class AudioProcessorBase(abc.ABC):
-    @abc.abstractmethod
     def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
         """ Processes the received frame and returns a new frame """
+        raise NotImplementedError("recv() is not implemented.")
 
     def recv_queued(self, frames: List[av.AudioFrame]) -> av.AudioFrame:
         """Processes all the frames received and queued since the previous call in async mode.
@@ -40,138 +49,15 @@ class AudioProcessorBase(abc.ABC):
         return [self.recv(frames[-1])]
 
 
-VideoProcessor = Union[
-    VideoProcessorBase, VideoTransformerBase
-]  # Backward compatibility
+ProcessorT = TypeVar("ProcessorT", VideoProcessorBase, AudioProcessorBase)
+FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
 
 
-class VideoProcessTrack(MediaStreamTrack):
-    kind = "video"
-
-    def __init__(self, track: MediaStreamTrack, video_processor: VideoProcessorBase):
+class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
+    def __init__(self, track: MediaStreamTrack, processor: ProcessorT):
         super().__init__()  # don't forget this!
         self.track = track
-        self.processor = video_processor
-
-    async def recv(self):
-        frame = await self.track.recv()
-
-        # XXX: Backward compatibility
-        if hasattr(self.processor, "recv"):
-            img = self.processor.recv(frame)
-        else:
-            logger.warning(".transform() is deprecated. Use .recv() instead.")
-            img = self.processor.transform(frame)
-
-        # rebuild a av.VideoFrame, preserving timing information
-        new_frame = av.VideoFrame.from_ndarray(img, format="bgr24")
-        new_frame.pts = frame.pts
-        new_frame.time_base = frame.time_base
-        return new_frame
-
-
-__SENTINEL__ = "__SENTINEL__"
-
-# See https://stackoverflow.com/a/42007659
-video_processing_thread_id_generator = itertools.count()
-
-
-class AsyncVideoProcessTrack(MediaStreamTrack):
-    kind = "video"
-
-    _in_queue: queue.Queue
-
-    def __init__(
-        self,
-        track: MediaStreamTrack,
-        video_processor: VideoProcessorBase,
-        stop_timeout: Optional[float] = None,
-    ):
-        super().__init__()  # don't forget this!
-        self.track = track
-        self.processor = video_processor
-
-        self._thread = threading.Thread(
-            target=self._run_worker_thread,
-            name=f"async_video_processor_{next(video_processing_thread_id_generator)}",
-        )
-        self._in_queue = queue.Queue()
-        self._latest_result_img_lock = threading.Lock()
-
-        self._latest_result_img: Union[np.ndarray, None] = None
-
-        self._thread.start()
-
-        self.stop_timeout = stop_timeout
-
-    def _run_worker_thread(self):
-        try:
-            self._worker_thread()
-        except Exception:
-            logger.error("Error occurred in the WebRTC thread:")
-
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            for tb in traceback.format_exception(exc_type, exc_value, exc_traceback):
-                for tbline in tb.rstrip().splitlines():
-                    logger.error(tbline.rstrip())
-
-    def _worker_thread(self):
-        while True:
-            item = self._in_queue.get()
-            if item == __SENTINEL__:
-                break
-
-            stop_requested = False
-            while not self._in_queue.empty():
-                item = self._in_queue.get_nowait()
-                if item == __SENTINEL__:
-                    stop_requested = True
-            if stop_requested:
-                break
-
-            if item is None:
-                raise Exception("A queued item is unexpectedly None")
-
-            # XXX: Backward compatibility
-            if hasattr(self.processor, "recv"):
-                result_img = self.processor.recv(item)
-            else:
-                logger.warning(".transform() is deprecated. Use .recv() instead.")
-                result_img = self.processor.transform(item)
-
-            with self._latest_result_img_lock:
-                self._latest_result_img = result_img
-
-    def stop(self):
-        self._in_queue.put(__SENTINEL__)
-        self._thread.join(self.stop_timeout)
-
-        return super().stop()
-
-    async def recv(self):
-        frame = await self.track.recv()
-        self._in_queue.put(frame)
-
-        with self._latest_result_img_lock:
-            if self._latest_result_img is not None:
-                # rebuild a av.VideoFrame, preserving timing information
-                new_frame = av.VideoFrame.from_ndarray(
-                    self._latest_result_img, format="bgr24"
-                )
-                new_frame.pts = frame.pts
-                new_frame.time_base = frame.time_base
-                return new_frame
-            else:
-                return frame
-
-
-class AudioProcessTrack(MediaStreamTrack):
-    kind = "audio"
-
-    def __init__(self, track: MediaStreamTrack, audio_processor: AudioProcessorBase):
-        super().__init__()  # don't forget this!
-        self.track = track
-        self.processor = audio_processor
+        self.processor: ProcessorT = processor
 
     async def recv(self):
         frame = await self.track.recv()
@@ -183,32 +69,40 @@ class AudioProcessTrack(MediaStreamTrack):
         return new_frame
 
 
-# See https://stackoverflow.com/a/42007659
-audio_processing_thread_id_generator = itertools.count()
+class VideoProcessTrack(MediaProcessTrack[AudioProcessorBase, av.AudioFrame]):
+    kind = "video"
 
 
-class AsyncAudioProcessTrack(MediaStreamTrack):
+class AudioProcessTrack(MediaProcessTrack[AudioProcessorBase, av.AudioFrame]):
     kind = "audio"
 
+
+__SENTINEL__ = "__SENTINEL__"
+
+# See https://stackoverflow.com/a/42007659
+media_processing_thread_id_generator = itertools.count()
+
+
+class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
     def __init__(
         self,
         track: MediaStreamTrack,
-        audio_processor: AudioProcessorBase,
+        processor: ProcessorT,
         stop_timeout: Optional[float] = None,
     ):
         super().__init__()  # don't forget this!
         self.track = track
-        self.processor = audio_processor
+        self.processor: ProcessorT = processor
 
         self._thread = threading.Thread(
             target=self._run_worker_thread,
-            name=f"async_audio_processor_{next(audio_processing_thread_id_generator)}",
+            name=f"async_media_processor_{next(media_processing_thread_id_generator)}",
         )
         self._in_queue: queue.Queue = queue.Queue()
 
         self._out_lock = threading.Lock()
         self._out_deque: deque = deque([])
-        self._last_out_frame: Union[av.AudioFrame, None] = None
+        self._last_out_frame: Union[FrameT, None] = None
 
         self._thread.start()
 
@@ -293,3 +187,11 @@ class AsyncAudioProcessTrack(MediaStreamTrack):
             return new_frame
 
         return frame
+
+
+class AsyncVideoProcessTrack(AsyncMediaProcessTrack[VideoProcessorBase, av.VideoFrame]):
+    kind = "video"
+
+
+class AsyncAudioProcessTrack(AsyncMediaProcessTrack[AudioProcessorBase, av.AudioFrame]):
+    kind = "audio"
