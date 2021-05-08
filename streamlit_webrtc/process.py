@@ -57,7 +57,7 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
     def __init__(self, track: MediaStreamTrack, processor: ProcessorT):
         super().__init__()  # don't forget this!
         self.track = track
-        self.processor = processor
+        self.processor: ProcessorT = processor
 
     async def recv(self):
         frame = await self.track.recv()
