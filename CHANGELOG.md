@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ### BREAKING CHANGES
 - `VideoTransformer` is deprecated. Use `VideoProcessor` instead. Related method names has also been changed. `VideoTransformer` API will be maintained for some releases, but be removed in the future.
 
+### Add
+- Experimental audio support with `audio_processor` and `audio_receiver` of `webrtc_streamer()`.
+
 ## [0.12.0]
 ### Added
 - Type annotations around `VideoTransformer` with generics, which enable type inference, for example, on `ctx.video_transformer`, #163.

@@ -25,6 +25,14 @@ You can also try it out on [Streamlit Sharing](https://share.streamlit.io/whitph
 
 The deployment of this sample app is managed in this repository: https://github.com/whitphx/streamlit-webrtc-example/.
 
+## API
+Currently there is no documentation about the interface. See the example [app.py](./app.py) for the usage.
+The API is not finalized yet and can be changed without backward compatiblity in the future releases until v1.0.
+
+### For users since versions `<0.20`
+`VideoTransformerBase` and its `transform` method have been marked as deprecated in v0.20.0. Please use `VideoProcessorBase#recv()` instead.
+Note that the signature of the `recv` method is different from the `transform` in that the `recv` has to return an instance of `av.VideoFrame` or `av.AudioFrame`. See the samples in [app.py](./app.py).
+
 ## Resources
 * [Building a Web-Based Real-Time Computer Vision App with Streamlit (dev.to)](https://dev.to/whitphx/build-a-web-based-real-time-computer-vision-app-with-streamlit-57l2)
   * This post explains how to use `streamlit-webrtc` to build a real-time computer vision app.
