@@ -272,7 +272,7 @@ def app_speech_to_text():
 
     lm_alpha = 0.931289039105002
     lm_beta = 1.1834137581510284
-    beam = 10
+    beam = 100
 
     webrtc_ctx = webrtc_streamer(
         key="speech-to-text",
@@ -281,19 +281,21 @@ def app_speech_to_text():
         client_settings=WEBRTC_CLIENT_SETTINGS,
     )
     if webrtc_ctx.state.playing:
-        from deepspeech import Model
-
-        model = Model(MODEL_LOCAL_PATH)
-        model.enableExternalScorer(LANG_MODEL_LOCAL_PATH)
-        model.setScorerAlphaBeta(lm_alpha, lm_beta)
-        model.setBeamWidth(beam)
-
-        stream = model.createStream()
-
         text_output = st.empty()
+        stream = None
 
         while True:
             if webrtc_ctx.audio_receiver:
+                if stream is None:
+                    from deepspeech import Model
+
+                    model = Model(str(MODEL_LOCAL_PATH))
+                    model.enableExternalScorer(str(LANG_MODEL_LOCAL_PATH))
+                    model.setScorerAlphaBeta(lm_alpha, lm_beta)
+                    model.setBeamWidth(beam)
+
+                    stream = model.createStream()
+
                 sound_chunk = pydub.AudioSegment.empty()
                 try:
                     audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
@@ -311,8 +313,11 @@ def app_speech_to_text():
                     sound_chunk += sound
 
                 if len(sound_chunk) > 0:
-                    sound_chunk.set_channels(1)
-                    stream.feedAudioContent(sound_chunk.get_array_of_samples())
+                    sound_chunk = sound_chunk.set_channels(1).set_frame_rate(
+                        model.sampleRate()
+                    )
+                    buffer = np.array(sound_chunk.get_array_of_samples())
+                    stream.feedAudioContent(buffer)
                     text = stream.intermediateDecode()
                     text_output.write(text)
             else:
