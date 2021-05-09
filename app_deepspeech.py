@@ -102,52 +102,54 @@ def app_sst():
 
     status_indicator = st.empty()
 
-    if webrtc_ctx.state.playing:
-        status_indicator.write("Loading...")
-        text_output = st.empty()
-        stream = None
+    if not webrtc_ctx.state.playing:
+        return
 
-        while True:
-            if webrtc_ctx.audio_receiver:
-                if stream is None:
-                    from deepspeech import Model
+    status_indicator.write("Loading...")
+    text_output = st.empty()
+    stream = None
 
-                    model = Model(str(MODEL_LOCAL_PATH))
-                    model.enableExternalScorer(str(LANG_MODEL_LOCAL_PATH))
-                    model.setScorerAlphaBeta(lm_alpha, lm_beta)
-                    model.setBeamWidth(beam)
+    while True:
+        if webrtc_ctx.audio_receiver:
+            if stream is None:
+                from deepspeech import Model
 
-                    stream = model.createStream()
+                model = Model(str(MODEL_LOCAL_PATH))
+                model.enableExternalScorer(str(LANG_MODEL_LOCAL_PATH))
+                model.setScorerAlphaBeta(lm_alpha, lm_beta)
+                model.setBeamWidth(beam)
 
-                    status_indicator.write("Model loaded. Say something!")
+                stream = model.createStream()
 
-                sound_chunk = pydub.AudioSegment.empty()
-                try:
-                    audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
-                except queue.Empty:
-                    logger.warning("Queue is empty. Abort.")
-                    break
+                status_indicator.write("Model loaded. Say something!")
 
-                for audio_frame in audio_frames:
-                    sound = pydub.AudioSegment(
-                        data=audio_frame.to_ndarray().tobytes(),
-                        sample_width=audio_frame.format.bytes,
-                        frame_rate=audio_frame.sample_rate,
-                        channels=len(audio_frame.layout.channels),
-                    )
-                    sound_chunk += sound
-
-                if len(sound_chunk) > 0:
-                    sound_chunk = sound_chunk.set_channels(1).set_frame_rate(
-                        model.sampleRate()
-                    )
-                    buffer = np.array(sound_chunk.get_array_of_samples())
-                    stream.feedAudioContent(buffer)
-                    text = stream.intermediateDecode()
-                    text_output.markdown(f"**Text:** {text}")
-            else:
-                logger.warning("AudioReciver is not set. Abort.")
+            sound_chunk = pydub.AudioSegment.empty()
+            try:
+                audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
+            except queue.Empty:
+                logger.warning("Queue is empty. Abort.")
                 break
+
+            for audio_frame in audio_frames:
+                sound = pydub.AudioSegment(
+                    data=audio_frame.to_ndarray().tobytes(),
+                    sample_width=audio_frame.format.bytes,
+                    frame_rate=audio_frame.sample_rate,
+                    channels=len(audio_frame.layout.channels),
+                )
+                sound_chunk += sound
+
+            if len(sound_chunk) > 0:
+                sound_chunk = sound_chunk.set_channels(1).set_frame_rate(
+                    model.sampleRate()
+                )
+                buffer = np.array(sound_chunk.get_array_of_samples())
+                stream.feedAudioContent(buffer)
+                text = stream.intermediateDecode()
+                text_output.markdown(f"**Text:** {text}")
+        else:
+            logger.warning("AudioReciver is not set. Abort.")
+            break
 
 
 if __name__ == "__main__":
