@@ -506,8 +506,8 @@ def app_sendonly_video():
 
     image_place = st.empty()
 
-    if webrtc_ctx.video_receiver:
-        while True:
+    while True:
+        if webrtc_ctx.video_receiver:
             try:
                 video_frame = webrtc_ctx.video_receiver.get_frame(timeout=1)
             except queue.Empty:
@@ -516,6 +516,9 @@ def app_sendonly_video():
 
             img_rgb = video_frame.to_ndarray(format="rgb24")
             image_place.image(img_rgb)
+        else:
+            logger.warning("AudioReciver is not set. Abort.")
+            break
 
 
 def app_sendonly_audio():

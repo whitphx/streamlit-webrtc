@@ -151,8 +151,9 @@ def app_sst(model_path: str, lm_path: str, lm_alpha: float, lm_beta: float, beam
             try:
                 audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
             except queue.Empty:
-                status_indicator.write("Queue is empty. Abort.")
-                break
+                time.sleep(0.1)
+                status_indicator.write("No frame arrived.")
+                continue
 
             status_indicator.write("Running. Say something!")
 
