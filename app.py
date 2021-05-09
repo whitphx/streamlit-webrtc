@@ -507,28 +507,17 @@ def app_sendonly_audio():
                 logger.warning("Queue is empty. Abort.")
                 break
 
-            sound_chunk = None
+            sound_chunk = pydub.AudioSegment.empty()
             for audio_frame in audio_frames:
-                if sound_chunk is None:
-                    sound_chunk = pydub.AudioSegment.empty()
-                    sound_chunk = (
-                        sound_chunk.set_channels(len(audio_frame.layout.channels))
-                        .set_sample_width(audio_frame.format.bytes)
-                        .set_frame_rate(audio_frame.sample_rate)
-                    )
-
-                data = audio_frame.to_ndarray().reshape(
-                    (len(audio_frame.layout.channels), -1)
-                )
                 sound = pydub.AudioSegment(
-                    data=data.T.tobytes(),
+                    data=audio_frame.to_ndarray().tobytes(),
                     sample_width=audio_frame.format.bytes,
                     frame_rate=audio_frame.sample_rate,
                     channels=len(audio_frame.layout.channels),
                 )
                 sound_chunk += sound
 
-            if sound_chunk:
+            if len(sound_chunk) > 0:
                 if sound_window_buffer is None:
                     sound_window_buffer = pydub.AudioSegment.silent(
                         duration=sound_window_len
@@ -543,9 +532,7 @@ def app_sendonly_audio():
                 sound_window_buffer = sound_window_buffer.set_channels(
                     1
                 )  # Stereo to mono
-                sample = np.array(
-                    sound_window_buffer.set_channels(1).get_array_of_samples()
-                )
+                sample = np.array(sound_window_buffer.get_array_of_samples())
 
                 ax_time.cla()
                 times = (np.arange(-len(sample), 0)) / sound_window_buffer.frame_rate
@@ -563,9 +550,7 @@ def app_sendonly_audio():
                 ax_freq.plot(freq, np.abs(spec))
                 ax_freq.set_xlabel("Frequency")
                 ax_freq.set_yscale("log")
-                ax_freq.set_ylabel("Magnitude (log)")
-
-                fig.subplots_adjust()
+                ax_freq.set_ylabel("Magnitude")
 
                 fig_place.pyplot(fig)
         else:
