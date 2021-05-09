@@ -51,11 +51,6 @@ class VideoProcessorBase(abc.ABC):
         and returns new frames when running in async mode.
         If not implemented, delegated to the recv() method by default.
         """
-        if len(frames) > 1:
-            logger.warning(
-                "Some frames have been dropped. "
-                "`recv_queued` is recommended to use instead."
-            )
         return [self.recv(frames[-1])]
 
 
@@ -90,6 +85,11 @@ class AudioProcessorBase(abc.ABC):
         and returns new frames when running in async mode.
         If not implemented, delegated to the recv() method by default.
         """
+        if len(frames) > 1:
+            logger.warning(
+                "Some frames have been dropped during audio processing. "
+                "`recv_queued` is recommended to use instead."
+            )
         return [self.recv(frames[-1])]
 
 
