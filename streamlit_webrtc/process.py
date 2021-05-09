@@ -51,6 +51,11 @@ class VideoProcessorBase(abc.ABC):
         and returns new frames when running in async mode.
         If not implemented, delegated to the recv() method by default.
         """
+        if len(frames) > 1:
+            logger.warning(
+                "Some frames have been dropped. "
+                "`recv_queued` is recommended to use instead."
+            )
         return [self.recv(frames[-1])]
 
 
@@ -162,6 +167,11 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         """
         Used as a fallback when the processor does not have its own `recv_queued`.
         """
+        if len(frames) > 1:
+            logger.warning(
+                "Some frames have been dropped. "
+                "`recv_queued` is recommended to use instead."
+            )
         return [self.processor.recv(frames[-1])]
 
     def _worker_thread(self):
