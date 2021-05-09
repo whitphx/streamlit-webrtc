@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import logging.handlers
 import queue
@@ -92,6 +93,7 @@ def main():
         "Real time video transform with simple OpenCV filters (sendrecv)"
     )
     audio_filter_page = "Real time audio filter (sendrecv)"
+    delayed_echo_page = "Delayed echo (sendrecv)"
     streaming_page = (
         "Consuming media files on server-side and streaming it to browser (recvonly)"
     )
@@ -101,13 +103,14 @@ def main():
     audio_sendonly_page = (
         "WebRTC is sendonly and audio frames are visualized with matplotlib (sendonly)"
     )
-    loopback_page = "Simple video loopback (sendrecv)"
+    loopback_page = "Simple video and audio loopback (sendrecv)"
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
         [
             object_detection_page,
             video_filters_page,
             audio_filter_page,
+            delayed_echo_page,
             streaming_page,
             video_sendonly_page,
             audio_sendonly_page,
@@ -122,6 +125,8 @@ def main():
         app_object_detection()
     elif app_mode == audio_filter_page:
         app_audio_filter()
+    elif app_mode == delayed_echo_page:
+        app_delayed_echo()
     elif app_mode == streaming_page:
         app_streaming()
     elif app_mode == video_sendonly_page:
@@ -254,6 +259,39 @@ def app_audio_filter():
         webrtc_ctx.audio_processor.gain = st.slider(
             "Gain", -10.0, +20.0, DEFAULT_GAIN, 0.05
         )
+
+
+def app_delayed_echo():
+    DEFAULT_DELAY = 1.0
+
+    class VideoProcessor(VideoProcessorBase):
+        delay = DEFAULT_DELAY
+
+        async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
+            logger.debug("Delay:", self.delay)
+            await asyncio.sleep(self.delay)
+            return frames
+
+    class AudioProcessor(AudioProcessorBase):
+        delay = DEFAULT_DELAY
+
+        async def recv_queued(self, frames: List[av.AudioFrame]) -> List[av.AudioFrame]:
+            await asyncio.sleep(self.delay)
+            return frames
+
+    webrtc_ctx = webrtc_streamer(
+        key="delay",
+        mode=WebRtcMode.SENDRECV,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+        video_processor_factory=VideoProcessor,
+        audio_processor_factory=AudioProcessor,
+        async_processing=True,
+    )
+
+    if webrtc_ctx.video_processor and webrtc_ctx.audio_processor:
+        delay = st.slider("Delay", 0.0, 5.0, DEFAULT_DELAY, 0.05)
+        webrtc_ctx.video_processor.delay = delay
+        webrtc_ctx.audio_processor.delay = delay
 
 
 def app_object_detection():
@@ -493,19 +531,21 @@ def app_sendonly_audio():
 
     fig_place = st.empty()
 
-    fig, [ax_time, ax_freq] = plt.subplots(2, 1)
+    fig, [ax_time, ax_freq] = plt.subplots(
+        2, 1, gridspec_kw={"top": 1.5, "bottom": 0.2}
+    )
 
     sound_window_len = 5000  # 5s
     sound_window_buffer = None
     while True:
         if webrtc_ctx.audio_receiver:
-            sound_chunk = pydub.AudioSegment.empty()
             try:
                 audio_frames = webrtc_ctx.audio_receiver.get_frames(timeout=1)
             except queue.Empty:
                 logger.warning("Queue is empty. Abort.")
                 break
 
+            sound_chunk = pydub.AudioSegment.empty()
             for audio_frame in audio_frames:
                 sound = pydub.AudioSegment(
                     data=audio_frame.to_ndarray().tobytes(),
@@ -527,11 +567,16 @@ def app_sendonly_audio():
 
             if sound_window_buffer:
                 # Ref: https://own-search-and-study.xyz/2017/10/27/python%E3%82%92%E4%BD%BF%E3%81%A3%E3%81%A6%E9%9F%B3%E5%A3%B0%E3%83%87%E3%83%BC%E3%82%BF%E3%81%8B%E3%82%89%E3%82%B9%E3%83%9A%E3%82%AF%E3%83%88%E3%83%AD%E3%82%B0%E3%83%A9%E3%83%A0%E3%82%92%E4%BD%9C/  # noqa
-                samples = np.array(sound_window_buffer.get_array_of_samples())
-                sample = samples[:: sound_window_buffer.channels]
+                sound_window_buffer = sound_window_buffer.set_channels(
+                    1
+                )  # Stereo to mono
+                sample = np.array(sound_window_buffer.get_array_of_samples())
 
                 ax_time.cla()
-                ax_time.plot(sample[::10])
+                times = (np.arange(-len(sample), 0)) / sound_window_buffer.frame_rate
+                ax_time.plot(times, sample)
+                ax_time.set_xlabel("Time")
+                ax_time.set_ylabel("Magnitude")
 
                 spec = np.fft.fft(sample)
                 freq = np.fft.fftfreq(sample.shape[0], 1.0 / sound_chunk.frame_rate)
@@ -540,8 +585,10 @@ def app_sendonly_audio():
                 spec[0] = spec[0] / 2
 
                 ax_freq.cla()
-                ax_freq.set_yscale("log")
                 ax_freq.plot(freq, np.abs(spec))
+                ax_freq.set_xlabel("Frequency")
+                ax_freq.set_yscale("log")
+                ax_freq.set_ylabel("Magnitude")
 
                 fig_place.pyplot(fig)
         else:
