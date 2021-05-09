@@ -207,7 +207,6 @@ def app_sst_with_video(
     webrtc_ctx = webrtc_streamer(
         key="speech-to-text-w-video",
         mode=WebRtcMode.SENDRECV,
-        audio_receiver_size=1024,
         audio_processor_factory=AudioProcessor,
         client_settings=ClientSettings(
             rtc_configuration={
