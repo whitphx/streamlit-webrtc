@@ -285,7 +285,11 @@ def app_speech_to_text():
         audio_receiver_size=1024,
         client_settings=WEBRTC_CLIENT_SETTINGS,
     )
+
+    status_indicator = st.empty()
+
     if webrtc_ctx.state.playing:
+        status_indicator.write("Loading...")
         text_output = st.empty()
         stream = None
 
@@ -300,6 +304,8 @@ def app_speech_to_text():
                     model.setBeamWidth(beam)
 
                     stream = model.createStream()
+
+                    status_indicator.write("Model loaded. Say something!")
 
                 sound_chunk = pydub.AudioSegment.empty()
                 try:
@@ -324,7 +330,7 @@ def app_speech_to_text():
                     buffer = np.array(sound_chunk.get_array_of_samples())
                     stream.feedAudioContent(buffer)
                     text = stream.intermediateDecode()
-                    text_output.write(text)
+                    text_output.markdown(f"**Text:** {text}")
             else:
                 logger.warning("AudioReciver is not set. Abort.")
                 break
