@@ -171,15 +171,15 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                     f"{elapsed_time}s."
                 )
 
+            if len(done) > 1:
+                raise Exception("Unexpectedly multiple futures have finished")
+
             done_idx = futures.index(future)
             old_futures = futures[:done_idx]
             for old_future in old_futures:
                 logger.info("Cancel an old future %s", future)
                 old_future.cancel()
             futures = [f for f in futures if not f.done()]
-
-            if len(done) > 1:
-                raise Exception("Unexpectedly multiple futures have finished")
 
             finished = done.pop()
             new_frames = finished.result()

@@ -289,7 +289,7 @@ def app_delayed_echo():
     )
 
     if webrtc_ctx.video_processor and webrtc_ctx.audio_processor:
-        delay = st.slider("Delay", 0.0, 10.0, DEFAULT_DELAY, 0.05)
+        delay = st.slider("Delay", 0.0, 5.0, DEFAULT_DELAY, 0.05)
         webrtc_ctx.video_processor.delay = delay
         webrtc_ctx.audio_processor.delay = delay
 
