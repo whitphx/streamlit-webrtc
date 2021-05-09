@@ -251,8 +251,8 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                     firstitem = self._out_deque.popleft()
                     self._out_deque.clear()
                     self._out_deque.append(firstitem)
-                for new_frame in new_frames:
-                    self._out_deque.append(new_frame)
+
+                self._out_deque.extend(new_frames)
 
     def stop(self):
         self._in_queue.put(__SENTINEL__)
