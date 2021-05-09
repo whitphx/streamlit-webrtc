@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import logging.handlers
 import queue
@@ -92,6 +93,7 @@ def main():
         "Real time video transform with simple OpenCV filters (sendrecv)"
     )
     audio_filter_page = "Real time audio filter (sendrecv)"
+    delayed_echo_page = "Delayed echo (sendrecv)"
     streaming_page = (
         "Consuming media files on server-side and streaming it to browser (recvonly)"
     )
@@ -101,13 +103,14 @@ def main():
     audio_sendonly_page = (
         "WebRTC is sendonly and audio frames are visualized with matplotlib (sendonly)"
     )
-    loopback_page = "Simple video loopback (sendrecv)"
+    loopback_page = "Simple video and audio loopback (sendrecv)"
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
         [
             object_detection_page,
             video_filters_page,
             audio_filter_page,
+            delayed_echo_page,
             streaming_page,
             video_sendonly_page,
             audio_sendonly_page,
@@ -122,6 +125,8 @@ def main():
         app_object_detection()
     elif app_mode == audio_filter_page:
         app_audio_filter()
+    elif app_mode == delayed_echo_page:
+        app_delayed_echo()
     elif app_mode == streaming_page:
         app_streaming()
     elif app_mode == video_sendonly_page:
@@ -254,6 +259,39 @@ def app_audio_filter():
         webrtc_ctx.audio_processor.gain = st.slider(
             "Gain", -10.0, +20.0, DEFAULT_GAIN, 0.05
         )
+
+
+def app_delayed_echo():
+    DEFAULT_DELAY = 1.0
+
+    class VideoProcessor(VideoProcessorBase):
+        delay = DEFAULT_DELAY
+
+        async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
+            logger.debug("Delay:", self.delay)
+            await asyncio.sleep(self.delay)
+            return frames
+
+    class AudioProcessor(AudioProcessorBase):
+        delay = DEFAULT_DELAY
+
+        async def recv_queued(self, frames: List[av.AudioFrame]) -> List[av.AudioFrame]:
+            await asyncio.sleep(self.delay)
+            return frames
+
+    webrtc_ctx = webrtc_streamer(
+        key="delay",
+        mode=WebRtcMode.SENDRECV,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+        video_processor_factory=VideoProcessor,
+        audio_processor_factory=AudioProcessor,
+        async_processing=True,
+    )
+
+    if webrtc_ctx.video_processor and webrtc_ctx.audio_processor:
+        delay = st.slider("Delay", 0.0, 5.0, DEFAULT_DELAY, 0.05)
+        webrtc_ctx.video_processor.delay = delay
+        webrtc_ctx.audio_processor.delay = delay
 
 
 def app_object_detection():

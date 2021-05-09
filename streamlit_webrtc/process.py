@@ -1,4 +1,5 @@
 import abc
+import asyncio
 import itertools
 import logging
 import queue
@@ -29,7 +30,7 @@ class VideoProcessorBase(abc.ABC):
         new_image = self.transform(frame)
         return av.VideoFrame.from_ndarray(new_image, format="bgr24")
 
-    def recv_queued(self, frames: List[av.AudioFrame]) -> av.VideoFrame:
+    async def recv_queued(self, frames: List[av.AudioFrame]) -> av.VideoFrame:
         """Processes all the frames received and queued since the previous call in async mode.
         If not implemented, delegated to recv() by default."""
         return [self.recv(frames[-1])]
@@ -43,7 +44,7 @@ class AudioProcessorBase(abc.ABC):
         """ Processes the received frame and returns a new frame """
         raise NotImplementedError("recv() is not implemented.")
 
-    def recv_queued(self, frames: List[av.AudioFrame]) -> av.AudioFrame:
+    async def recv_queued(self, frames: List[av.AudioFrame]) -> av.AudioFrame:
         """Processes all the frames received and queued since the previous call in async mode.
         If not implemented, delegated to recv() by default."""
         return [self.recv(frames[-1])]
@@ -120,7 +121,12 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                     logger.error(tbline.rstrip())
 
     def _worker_thread(self):
+        loop = asyncio.new_event_loop()
+
+        futures: List[asyncio.futures.Future] = []
+
         while True:
+            # Read frames from the queue
             item = self._in_queue.get()
             if item == __SENTINEL__:
                 break
@@ -141,12 +147,20 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             if len(queued_frames) == 0:
                 raise Exception("Unexpectedly, queued frames do not exist")
 
+            # Set up a future, providing the frames.
+            future = asyncio.ensure_future(
+                self.processor.recv_queued(queued_frames), loop=loop
+            )
+            futures.append(future)
+
             # NOTE: If the execution time of recv_queued() increases
             #       with the length of the input frames,
             #       it increases exponentially over the calls.
             #       Then, the execution time has to be monitored.
             start_time = time.monotonic()
-            new_frames = self.processor.recv_queued(queued_frames)
+            done, not_done = loop.run_until_complete(
+                asyncio.wait(futures, return_when=asyncio.FIRST_COMPLETED)
+            )
             elapsed_time = time.monotonic() - start_time
 
             if (
@@ -157,7 +171,29 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                     f"{elapsed_time}s."
                 )
 
+            if len(done) > 1:
+                raise Exception("Unexpectedly multiple futures have finished")
+
+            done_idx = futures.index(future)
+            old_futures = futures[:done_idx]
+            for old_future in old_futures:
+                logger.info("Cancel an old future %s", future)
+                old_future.cancel()
+            futures = [f for f in futures if not f.done()]
+
+            finished = done.pop()
+            new_frames = finished.result()
+
             with self._out_lock:
+                if len(self._out_deque) > 1:
+                    logger.warning(
+                        "Not all the queued frames have been consumed, "
+                        "which means the processing and consuming threads "
+                        "seem not to be synchronized."
+                    )
+                    firstitem = self._out_deque.popleft()
+                    self._out_deque.clear()
+                    self._out_deque.append(firstitem)
                 for new_frame in new_frames:
                     self._out_deque.append(new_frame)
 
