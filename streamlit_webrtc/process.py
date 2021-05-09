@@ -51,6 +51,11 @@ class VideoProcessorBase(abc.ABC):
         and returns new frames when running in async mode.
         If not implemented, delegated to the recv() method by default.
         """
+        if len(frames) > 1:
+            logger.warning(
+                "Some frames have been dropped. "
+                "`recv_queued` is recommended to use instead."
+            )
         return [self.recv(frames[-1])]
 
 
@@ -158,6 +163,17 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                 for tbline in tb.rstrip().splitlines():
                     logger.error(tbline.rstrip())
 
+    async def _fallback_recv_queued(self, frames: List[FrameT]) -> FrameT:
+        """
+        Used as a fallback when the processor does not have its own `recv_queued`.
+        """
+        if len(frames) > 1:
+            logger.warning(
+                "Some frames have been dropped. "
+                "`recv_queued` is recommended to use instead."
+            )
+        return [self.processor.recv(frames[-1])]
+
     def _worker_thread(self):
         loop = asyncio.new_event_loop()
 
@@ -186,9 +202,12 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                 raise Exception("Unexpectedly, queued frames do not exist")
 
             # Set up a future, providing the frames.
-            future = asyncio.ensure_future(
-                self.processor.recv_queued(queued_frames), loop=loop
-            )
+            if hasattr(self.processor, "recv_queued"):
+                coro = self.processor.recv_queued(queued_frames)
+            else:
+                coro = self._fallback_recv_queued(queued_frames)
+
+            future = asyncio.ensure_future(coro, loop=loop)
             futures.append(future)
 
             # NOTE: If the execution time of recv_queued() increases
