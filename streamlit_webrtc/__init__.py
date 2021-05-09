@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import weakref
-from typing import Dict, Generic, Hashable, NamedTuple, Optional, Union
+from typing import Any, Dict, Generic, Hashable, NamedTuple, Optional, Union, overload
 
 try:
     from typing import TypedDict
@@ -151,6 +151,71 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         return worker.audio_receiver if worker else None
 
 
+@overload
+def webrtc_streamer(
+    key: str,
+    mode: WebRtcMode = WebRtcMode.SENDRECV,
+    client_settings: Optional[ClientSettings] = None,
+    player_factory: Optional[MediaPlayerFactory] = None,
+    in_recorder_factory: Optional[MediaRecorderFactory] = None,
+    out_recorder_factory: Optional[MediaRecorderFactory] = None,
+    video_processor_factory: None = None,
+    audio_processor_factory: None = None,
+    async_processing: bool = True,
+    video_receiver_size: int = 4,
+    audio_receiver_size: int = 4,
+    # Deprecated. Just for backward compatibility
+    video_transformer_factory: None = None,
+    async_transform: Optional[bool] = None,
+) -> WebRtcStreamerContext:
+    # XXX: We wanted something like `WebRtcStreamerContext[None, None]`
+    # as the return value, but could not find a good solution
+    # and use `Any` instaed as `WebRtcStreamerContext[Any, Any]`.
+    # `WebRtcStreamerContext` is a shorthand of `WebRtcStreamerContext[Any, Any]`.
+    pass
+
+
+@overload
+def webrtc_streamer(
+    key: str,
+    mode: WebRtcMode = WebRtcMode.SENDRECV,
+    client_settings: Optional[ClientSettings] = None,
+    player_factory: Optional[MediaPlayerFactory] = None,
+    in_recorder_factory: Optional[MediaRecorderFactory] = None,
+    out_recorder_factory: Optional[MediaRecorderFactory] = None,
+    video_processor_factory: Optional[VideoProcessorFactory[VideoProcessorT]] = None,
+    audio_processor_factory: None = None,
+    async_processing: bool = True,
+    video_receiver_size: int = 4,
+    audio_receiver_size: int = 4,
+    # Deprecated. Just for backward compatibility
+    video_transformer_factory: None = None,
+    async_transform: Optional[bool] = None,
+) -> WebRtcStreamerContext[VideoProcessorT, Any]:
+    pass
+
+
+@overload
+def webrtc_streamer(
+    key: str,
+    mode: WebRtcMode = WebRtcMode.SENDRECV,
+    client_settings: Optional[ClientSettings] = None,
+    player_factory: Optional[MediaPlayerFactory] = None,
+    in_recorder_factory: Optional[MediaRecorderFactory] = None,
+    out_recorder_factory: Optional[MediaRecorderFactory] = None,
+    video_processor_factory: None = None,
+    audio_processor_factory: Optional[AudioProcessorFactory[AudioProcessorT]] = None,
+    async_processing: bool = True,
+    video_receiver_size: int = 4,
+    audio_receiver_size: int = 4,
+    # Deprecated. Just for backward compatibility
+    video_transformer_factory: None = None,
+    async_transform: Optional[bool] = None,
+) -> WebRtcStreamerContext[Any, AudioProcessorT]:
+    pass
+
+
+@overload
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
@@ -164,7 +229,26 @@ def webrtc_streamer(
     video_receiver_size: int = 4,
     audio_receiver_size: int = 4,
     # Deprecated. Just for backward compatibility
-    video_transformer_factory: Optional[VideoProcessorFactory[VideoProcessorT]] = None,
+    video_transformer_factory: None = None,
+    async_transform: Optional[bool] = None,
+) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
+    pass
+
+
+def webrtc_streamer(
+    key: str,
+    mode: WebRtcMode = WebRtcMode.SENDRECV,
+    client_settings: Optional[ClientSettings] = None,
+    player_factory: Optional[MediaPlayerFactory] = None,
+    in_recorder_factory: Optional[MediaRecorderFactory] = None,
+    out_recorder_factory: Optional[MediaRecorderFactory] = None,
+    video_processor_factory=None,
+    audio_processor_factory=None,
+    async_processing: bool = True,
+    video_receiver_size: int = 4,
+    audio_receiver_size: int = 4,
+    # Deprecated. Just for backward compatibility
+    video_transformer_factory=None,
     async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     # Backward compatibility
