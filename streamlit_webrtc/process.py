@@ -1,4 +1,5 @@
 import abc
+import asyncio
 import itertools
 import logging
 import queue
@@ -18,34 +19,77 @@ logger.addHandler(logging.NullHandler())
 
 
 class VideoProcessorBase(abc.ABC):
+    """
+    A base class for video processors.
+    """
+
     def transform(self, frame: av.VideoFrame) -> np.ndarray:
-        """@deprecated Backward compatibility;
-        Returns a new video frame in bgr24 format"""
+        """
+        Receives a video frame, and returns a numpy array representing
+        an image for a new frame in bgr24 format.
+
+        .. deprecated:: 0.20.0
+        """
         raise NotImplementedError("transform() is not implemented.")
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-        """ Processes the received frame and returns a new frame """
+        """
+        Receives a video frame, and returns a new video frame.
+
+        When running in async mode, only the latest frame is provided and
+        other frames are dropped which have arrived after the previous recv() call
+        and before the latest one.
+        In order to process all the frames, use recv_queued() instead.
+        """
         logger.warning("transform() is deprecated. Implement recv() instead.")
         new_image = self.transform(frame)
         return av.VideoFrame.from_ndarray(new_image, format="bgr24")
 
-    def recv_queued(self, frames: List[av.AudioFrame]) -> av.VideoFrame:
-        """Processes all the frames received and queued since the previous call in async mode.
-        If not implemented, delegated to recv() by default."""
+    async def recv_queued(self, frames: List[av.AudioFrame]) -> av.VideoFrame:
+        """
+        Receives all the frames arrived after the previous recv_queued() call
+        and returns new frames when running in async mode.
+        If not implemented, delegated to the recv() method by default.
+        """
+        if len(frames) > 1:
+            logger.warning(
+                "Some frames have been dropped. "
+                "`recv_queued` is recommended to use instead."
+            )
         return [self.recv(frames[-1])]
 
 
-VideoTransformerBase = VideoProcessorBase  # Backward compatiblity
+class VideoTransformerBase(VideoProcessorBase):  # Backward compatiblity
+    """
+    A base class for video transformers.
+    This interface is deprecated. Use VideoProcessorBase instead.
+
+    .. deprecated:: 0.20.0
+    """
 
 
 class AudioProcessorBase(abc.ABC):
+    """
+    A base class for audio processors.
+    """
+
     def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
-        """ Processes the received frame and returns a new frame """
+        """
+        Receives a audio frame, and returns a new audio frame.
+
+        When running in async mode, only the latest frame is provided and
+        other frames are dropped which have arrived after the previous recv() call
+        and before the latest one.
+        In order to process all the frames, use recv_queued() instead.
+        """
         raise NotImplementedError("recv() is not implemented.")
 
-    def recv_queued(self, frames: List[av.AudioFrame]) -> av.AudioFrame:
-        """Processes all the frames received and queued since the previous call in async mode.
-        If not implemented, delegated to recv() by default."""
+    async def recv_queued(self, frames: List[av.AudioFrame]) -> av.AudioFrame:
+        """
+        Receives all the frames arrived after the previous recv_queued() call
+        and returns new frames when running in async mode.
+        If not implemented, delegated to the recv() method by default.
+        """
         return [self.recv(frames[-1])]
 
 
@@ -119,8 +163,24 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                 for tbline in tb.rstrip().splitlines():
                     logger.error(tbline.rstrip())
 
+    async def _fallback_recv_queued(self, frames: List[FrameT]) -> FrameT:
+        """
+        Used as a fallback when the processor does not have its own `recv_queued`.
+        """
+        if len(frames) > 1:
+            logger.warning(
+                "Some frames have been dropped. "
+                "`recv_queued` is recommended to use instead."
+            )
+        return [self.processor.recv(frames[-1])]
+
     def _worker_thread(self):
+        loop = asyncio.new_event_loop()
+
+        futures: List[asyncio.futures.Future] = []
+
         while True:
+            # Read frames from the queue
             item = self._in_queue.get()
             if item == __SENTINEL__:
                 break
@@ -141,12 +201,23 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             if len(queued_frames) == 0:
                 raise Exception("Unexpectedly, queued frames do not exist")
 
+            # Set up a future, providing the frames.
+            if hasattr(self.processor, "recv_queued"):
+                coro = self.processor.recv_queued(queued_frames)
+            else:
+                coro = self._fallback_recv_queued(queued_frames)
+
+            future = asyncio.ensure_future(coro, loop=loop)
+            futures.append(future)
+
             # NOTE: If the execution time of recv_queued() increases
             #       with the length of the input frames,
             #       it increases exponentially over the calls.
             #       Then, the execution time has to be monitored.
             start_time = time.monotonic()
-            new_frames = self.processor.recv_queued(queued_frames)
+            done, not_done = loop.run_until_complete(
+                asyncio.wait(futures, return_when=asyncio.FIRST_COMPLETED)
+            )
             elapsed_time = time.monotonic() - start_time
 
             if (
@@ -157,7 +228,29 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                     f"{elapsed_time}s."
                 )
 
+            if len(done) > 1:
+                raise Exception("Unexpectedly multiple futures have finished")
+
+            done_idx = futures.index(future)
+            old_futures = futures[:done_idx]
+            for old_future in old_futures:
+                logger.info("Cancel an old future %s", future)
+                old_future.cancel()
+            futures = [f for f in futures if not f.done()]
+
+            finished = done.pop()
+            new_frames = finished.result()
+
             with self._out_lock:
+                if len(self._out_deque) > 1:
+                    logger.warning(
+                        "Not all the queued frames have been consumed, "
+                        "which means the processing and consuming threads "
+                        "seem not to be synchronized."
+                    )
+                    firstitem = self._out_deque.popleft()
+                    self._out_deque.clear()
+                    self._out_deque.append(firstitem)
                 for new_frame in new_frames:
                     self._out_deque.append(new_frame)
 
