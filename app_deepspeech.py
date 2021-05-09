@@ -64,7 +64,11 @@ def download_file(url, download_to: Path, expected_size=None):
 def main():
     st.header("Real time Speech-to-Text")
     st.markdown(
-        """This demo app is using [DeepSpeech](https://github.com/mozilla/DeepSpeech)."""  # noqa
+        """
+This demo app is using [DeepSpeech](https://github.com/mozilla/DeepSpeech), an open speech-to-text engine.
+
+A pre-trained model released with v0.9.3, trained on American English, is being served.
+"""
     )
 
     app_sst()
