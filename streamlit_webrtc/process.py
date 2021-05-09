@@ -19,34 +19,72 @@ logger.addHandler(logging.NullHandler())
 
 
 class VideoProcessorBase(abc.ABC):
+    """
+    A base class for video processors.
+    """
+
     def transform(self, frame: av.VideoFrame) -> np.ndarray:
-        """@deprecated Backward compatibility;
-        Returns a new video frame in bgr24 format"""
+        """
+        Receives a video frame, and returns a numpy array representing
+        an image for a new frame in bgr24 format.
+
+        .. deprecated:: 0.20.0
+        """
         raise NotImplementedError("transform() is not implemented.")
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-        """ Processes the received frame and returns a new frame """
+        """
+        Receives a video frame, and returns a new video frame.
+
+        When running in async mode, only the latest frame is provided and
+        other frames are dropped which have arrived after the previous recv() call
+        and before the latest one.
+        In order to process all the frames, use recv_queued() instead.
+        """
         logger.warning("transform() is deprecated. Implement recv() instead.")
         new_image = self.transform(frame)
         return av.VideoFrame.from_ndarray(new_image, format="bgr24")
 
     async def recv_queued(self, frames: List[av.AudioFrame]) -> av.VideoFrame:
-        """Processes all the frames received and queued since the previous call in async mode.
-        If not implemented, delegated to recv() by default."""
+        """
+        Receives all the frames arrived after the previous recv_queued() call
+        and returns new frames when running in async mode.
+        If not implemented, delegated to the recv() method by default.
+        """
         return [self.recv(frames[-1])]
 
 
-VideoTransformerBase = VideoProcessorBase  # Backward compatiblity
+class VideoTransformerBase(VideoProcessorBase):  # Backward compatiblity
+    """
+    A base class for video transformers.
+    This interface is deprecated. Use VideoProcessorBase instead.
+
+    .. deprecated:: 0.20.0
+    """
 
 
 class AudioProcessorBase(abc.ABC):
+    """
+    A base class for audio processors.
+    """
+
     def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
-        """ Processes the received frame and returns a new frame """
+        """
+        Receives a audio frame, and returns a new audio frame.
+
+        When running in async mode, only the latest frame is provided and
+        other frames are dropped which have arrived after the previous recv() call
+        and before the latest one.
+        In order to process all the frames, use recv_queued() instead.
+        """
         raise NotImplementedError("recv() is not implemented.")
 
     async def recv_queued(self, frames: List[av.AudioFrame]) -> av.AudioFrame:
-        """Processes all the frames received and queued since the previous call in async mode.
-        If not implemented, delegated to recv() by default."""
+        """
+        Receives all the frames arrived after the previous recv_queued() call
+        and returns new frames when running in async mode.
+        If not implemented, delegated to the recv() method by default.
+        """
         return [self.recv(frames[-1])]
 
 
