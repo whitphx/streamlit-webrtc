@@ -110,17 +110,33 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
 
     @property
     def video_processor(self) -> Optional[VideoProcessorT]:
+        """
+        A video processor instance which has been created through
+        the callable provided as `video_processor_factory` argument
+        to `webrtc_streamer()`.
+        """
         worker = self._get_worker()
         return worker.video_processor if worker else None
 
     @property
     def audio_processor(self) -> Optional[AudioProcessorT]:
+        """
+        A audio processor instance which has been created through
+        the callable provided as `audio_processor_factory` argument
+        to `webrtc_streamer()`.
+        """
         worker = self._get_worker()
         return worker.audio_processor if worker else None
 
-    # Backward compatibility
     @property
     def video_transformer(self) -> Optional[VideoProcessorT]:
+        """
+        A video transformer instance which has been created through
+        the callable provided as `video_transformer_factory` argument
+        to `webrtc_streamer()`.
+
+        .. deprecated:: 0.20.0
+        """
         worker = self._get_worker()
         return worker.video_processor if worker else None
 
