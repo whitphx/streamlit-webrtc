@@ -78,7 +78,7 @@ def main():
 This demo app is using [DeepSpeech](https://github.com/mozilla/DeepSpeech),
 an open speech-to-text engine.
 
-A pre-trained model released with v0.9.3, trained on American English, is being served.
+A pre-trained model released with v0.9.3, trained on American English is being served.
 """
     )
 
