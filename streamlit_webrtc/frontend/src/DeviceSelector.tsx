@@ -111,12 +111,10 @@ const DeviceSelectPopper = ({
   devicesMap,
   onSubmit,
 }: DeviceSelectPopperProps) => {
-  const [selectedVideo, setSelectedVideo] = useState<MediaDeviceInfo | null>(
-    null
-  );
-  const [selectedAudio, setSelectedAudio] = useState<MediaDeviceInfo | null>(
-    null
-  );
+  const [selectedVideo, setSelectedVideo] =
+    useState<MediaDeviceInfo | null>(null);
+  const [selectedAudio, setSelectedAudio] =
+    useState<MediaDeviceInfo | null>(null);
 
   useEffect(() => {
     setSelectedVideo(
