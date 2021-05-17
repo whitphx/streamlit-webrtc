@@ -285,6 +285,8 @@ def webrtc_streamer(
                 webrtc_worker.stop()
                 _unset_webrtc_worker(key)
                 webrtc_worker = None
+                # Rerun to unset the SDP answer from the frontend args
+                st.experimental_rerun()
         else:
             if sdp_offer:
                 webrtc_worker = WebRtcWorker(
@@ -300,7 +302,8 @@ def webrtc_streamer(
                 )
                 webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
                 _set_webrtc_worker(key, webrtc_worker)
-                st.experimental_rerun()  # Rerun to send the SDP answer to frontend
+                # Rerun to send the SDP answer to frontend
+                st.experimental_rerun()
 
     ctx = WebRtcStreamerContext(
         state=WebRtcStreamerState(playing=playing),
