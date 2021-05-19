@@ -28,6 +28,11 @@ except Exception:
     from streamlit.server.server import Server
 
 
+# This is a unique ID of the SessionState of this library
+# to avoid conflict with other SessionState instances.
+SESSION_STATE_NAME = "streamlit-webrtc-session-state"
+
+
 class SessionState(object):
     def __init__(self, **kwargs):
         """A new SessionState object.
@@ -115,7 +120,7 @@ def get(**kwargs):
 
     # Got the session object! Now let's attach some state into it.
 
-    if not hasattr(this_session, "_custom_session_state"):
-        this_session._custom_session_state = SessionState(**kwargs)
+    if not hasattr(this_session, SESSION_STATE_NAME):
+        setattr(this_session, SESSION_STATE_NAME, SessionState(**kwargs))
 
-    return this_session._custom_session_state
+    return getattr(this_session, SESSION_STATE_NAME)
