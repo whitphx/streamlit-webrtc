@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.20.1] - 2021-05-19
 ### Fix
 - Fix to unset the answer SDP after a WebRTC session closed, #206.
 - Fix `SessionState` to have a unique ID of this specific library to avoid conflicts with other SessionState instances, #210.
