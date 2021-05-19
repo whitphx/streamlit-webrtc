@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fix
+- Fix to unset the answer SDP after a WebRTC session closed, #206.
+
 ## [0.20.0] - 2021-05-09
 ### BREAKING CHANGES
 - `VideoTransformer` is deprecated. Use `VideoProcessor` instead. Related method names has also been changed. `VideoTransformer` API will be maintained for some releases, but be removed in the future.
