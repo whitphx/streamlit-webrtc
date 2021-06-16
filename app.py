@@ -27,6 +27,11 @@ from streamlit_webrtc import (
     WebRtcMode,
     webrtc_streamer,
 )
+from streamlit_webrtc.config import (
+    ConstrainDoubleRange,
+    MediaStreamConstraints,
+    MediaTrackConstraints,
+)
 
 HERE = Path(__file__).parent
 
@@ -81,7 +86,10 @@ def download_file(url, download_to: Path, expected_size=None):
 
 WEBRTC_CLIENT_SETTINGS = ClientSettings(
     rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-    media_stream_constraints={"video": True, "audio": True},
+    media_stream_constraints=MediaStreamConstraints(
+        video=True,
+        audio=True,
+    ),
 )
 
 

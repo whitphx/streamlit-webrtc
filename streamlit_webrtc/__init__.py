@@ -84,9 +84,9 @@ def _unset_webrtc_worker(key: Hashable) -> None:
     del session_state.webrtc_workers[key]
 
 
-class ClientSettings(TypedDict):
-    rtc_configuration: Optional[RTCConfiguration]
-    media_stream_constraints: Optional[MediaStreamConstraints]
+class ClientSettings(TypedDict, total=False):
+    rtc_configuration: RTCConfiguration
+    media_stream_constraints: MediaStreamConstraints
 
 
 class WebRtcStreamerState(NamedTuple):
