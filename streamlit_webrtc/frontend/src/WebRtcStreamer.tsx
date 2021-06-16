@@ -12,6 +12,7 @@ import DeviceSelector from "./DeviceSelector";
 import ThemeProvider from "./ThemeProvider";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
+import { compileMediaConstraint } from "./media-constraint";
 
 type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -151,24 +152,11 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
 
     // Set up transceivers
     if (mode === "SENDRECV" || mode === "SENDONLY") {
-      const { videoEnabled, audioEnabled } = getVideoAudioUsage(
-        this.props.args
+      const constraints = compileMediaConstraint(
+        this.props.args.settings?.media_stream_constraints,
+        this.state.videoInput?.deviceId,
+        this.state.audioInput?.deviceId
       );
-      const constraints: MediaStreamConstraints = {};
-      if (audioEnabled) {
-        constraints.audio = this.state.audioInput
-          ? {
-              deviceId: this.state.audioInput.deviceId,
-            }
-          : true;
-      }
-      if (videoEnabled) {
-        constraints.video = this.state.videoInput
-          ? {
-              deviceId: this.state.videoInput.deviceId,
-            }
-          : true;
-      }
       console.log("MediaStreamConstraints:", constraints);
 
       if (constraints.audio || constraints.video) {

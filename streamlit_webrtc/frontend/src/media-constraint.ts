@@ -1,0 +1,39 @@
+export function compileMediaConstraint(
+  src: MediaStreamConstraints | undefined,
+  videoDeviceId: string | undefined,
+  audioDeviceId: string | undefined
+): MediaStreamConstraints {
+  const constraints = src || {};
+  if (audioDeviceId) {
+    if (constraints.audio === true) {
+      constraints.audio = {
+        deviceId: audioDeviceId,
+      };
+    } else if (
+      typeof constraints.audio === "object" ||
+      constraints.audio == null
+    ) {
+      constraints.audio = {
+        ...constraints.audio,
+        deviceId: audioDeviceId,
+      };
+    }
+  }
+  if (videoDeviceId) {
+    if (constraints.video === true) {
+      constraints.video = {
+        deviceId: videoDeviceId,
+      };
+    } else if (
+      typeof constraints.video === "object" ||
+      constraints.video == null
+    ) {
+      constraints.video = {
+        ...constraints.video,
+        deviceId: videoDeviceId,
+      };
+    }
+  }
+
+  return constraints;
+}
