@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Add
+- Support setting a complex `MediaStreamConstraints` object through `ClientSettings.media_stream_constraints`, #243.
+
 ## [0.20.1] - 2021-05-19
 ### Fix
 - Fix to unset the answer SDP after a WebRTC session closed, #206.
