@@ -1,4 +1,4 @@
-import { compileMediaConstraint } from "./media-constraint";
+import { compileMediaConstraint, getMediaUsage } from "./media-constraint";
 
 describe("compileMediaConstraint()", () => {
   describe("when the source object is undefined", () => {
@@ -72,6 +72,63 @@ describe("compileMediaConstraint()", () => {
           echoCancellation: true,
           deviceId: "audioid",
         },
+      });
+    });
+  });
+});
+
+describe("getMediaUsage()", () => {
+  describe("when the input is undefined", () => {
+    const constraintsFromPython = undefined;
+
+    it("returns true for both video and audio", () => {
+      expect(getMediaUsage(constraintsFromPython)).toEqual({
+        videoEnabled: true,
+        audioEnabled: true,
+      });
+    });
+  });
+
+  describe("when the input contains true values", () => {
+    const constraintsFromPython: MediaStreamConstraints = {
+      video: true,
+      audio: true,
+    };
+
+    it("reflects the input constrants", () => {
+      expect(getMediaUsage(constraintsFromPython)).toEqual({
+        videoEnabled: true,
+        audioEnabled: true,
+      });
+    });
+  });
+
+  describe("when the input contains false values", () => {
+    const constraintsFromPython: MediaStreamConstraints = {
+      video: false,
+      audio: false,
+    };
+
+    it("reflects the input constrants", () => {
+      expect(getMediaUsage(constraintsFromPython)).toEqual({
+        videoEnabled: false,
+        audioEnabled: false,
+      });
+    });
+  });
+
+  describe("when the input contains complex objects", () => {
+    const constraintsFromPython: MediaStreamConstraints = {
+      video: {
+        frameRate: { min: 10, max: 15 },
+      },
+      audio: { echoCancellation: true },
+    };
+
+    it("reflects the input constrants", () => {
+      expect(getMediaUsage(constraintsFromPython)).toEqual({
+        videoEnabled: true,
+        audioEnabled: true,
       });
     });
   });

@@ -37,3 +37,18 @@ export function compileMediaConstraint(
 
   return constraints;
 }
+
+interface MediaUsage {
+  videoEnabled: boolean;
+  audioEnabled: boolean;
+}
+export function getMediaUsage(constraintsFromPython: any): MediaUsage {
+  const videoEnabled = constraintsFromPython
+    ? !!constraintsFromPython.video
+    : true;
+  const audioEnabled = constraintsFromPython
+    ? !!constraintsFromPython.audio
+    : true;
+
+  return { videoEnabled, audioEnabled };
+}

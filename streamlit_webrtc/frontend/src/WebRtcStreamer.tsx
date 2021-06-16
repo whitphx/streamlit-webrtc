@@ -12,7 +12,7 @@ import DeviceSelector from "./DeviceSelector";
 import ThemeProvider from "./ThemeProvider";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
-import { compileMediaConstraint } from "./media-constraint";
+import { compileMediaConstraint, getMediaUsage } from "./media-constraint";
 
 type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -21,20 +21,6 @@ const isReceivable = (mode: WebRtcMode): boolean =>
   mode === "SENDRECV" || mode === "RECVONLY";
 const isTransmittable = (mode: WebRtcMode): boolean =>
   mode === "SENDRECV" || mode === "SENDONLY";
-
-const getVideoAudioUsage = (
-  args: any
-): { videoEnabled: boolean; audioEnabled: boolean } => {
-  const constraintsFromPython = args.settings?.media_stream_constraints;
-  const videoEnabled = constraintsFromPython
-    ? constraintsFromPython.video
-    : true;
-  const audioEnabled = constraintsFromPython
-    ? constraintsFromPython.audio
-    : true;
-
-  return { videoEnabled, audioEnabled };
-};
 
 const setupOffer = (
   pc: RTCPeerConnection
@@ -280,7 +266,9 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     const buttonDisabled =
       this.props.disabled || this.state.signaling || this.state.stopping;
     const mode = this.props.args["mode"];
-    const { videoEnabled, audioEnabled } = getVideoAudioUsage(this.props.args);
+    const { videoEnabled, audioEnabled } = getMediaUsage(
+      this.props.args.settings?.media_stream_constraints
+    );
     const receivable = isWebRtcMode(mode) && isReceivable(mode);
     const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
 
