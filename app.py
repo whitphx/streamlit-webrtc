@@ -81,7 +81,10 @@ def download_file(url, download_to: Path, expected_size=None):
 
 WEBRTC_CLIENT_SETTINGS = ClientSettings(
     rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-    media_stream_constraints={"video": True, "audio": True},
+    media_stream_constraints={
+        "video": True,
+        "audio": True,
+    },
 )
 
 
