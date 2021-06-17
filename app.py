@@ -107,6 +107,7 @@ def main():
         "WebRTC is sendonly and audio frames are visualized with matplotlib (sendonly)"
     )
     loopback_page = "Simple video and audio loopback (sendrecv)"
+    media_constraints_page = "Configure media constraints with loopback (sendrecv)"
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
         [
@@ -118,6 +119,7 @@ def main():
             video_sendonly_page,
             audio_sendonly_page,
             loopback_page,
+            media_constraints_page,
         ],
     )
     st.subheader(app_mode)
@@ -138,6 +140,8 @@ def main():
         app_sendonly_audio()
     elif app_mode == loopback_page:
         app_loopback()
+    elif app_mode == media_constraints_page:
+        app_media_constraints()
 
     logger.debug("=== Alive threads ===")
     for thread in threading.enumerate():
@@ -502,7 +506,7 @@ def app_sendonly_video():
     """A sample to use WebRTC in sendonly mode to transfer frames
     from the browser to the server and to render frames via `st.image`."""
     webrtc_ctx = webrtc_streamer(
-        key="loopback",
+        key="video-sendonly",
         mode=WebRtcMode.SENDONLY,
         client_settings=WEBRTC_CLIENT_SETTINGS,
     )
@@ -529,7 +533,7 @@ def app_sendonly_audio():
     from the browser to the server and visualize them with matplotlib
     and `st.pyplog`."""
     webrtc_ctx = webrtc_streamer(
-        key="loopback",
+        key="sendonly-audio",
         mode=WebRtcMode.SENDONLY,
         audio_receiver_size=256,
         client_settings=WEBRTC_CLIENT_SETTINGS,
@@ -600,6 +604,24 @@ def app_sendonly_audio():
         else:
             logger.warning("AudioReciver is not set. Abort.")
             break
+
+
+def app_media_constraints():
+    """ A sample to configure MediaStreamConstraints object """
+    frame_rate = 5
+    WEBRTC_CLIENT_SETTINGS.update(
+        ClientSettings(
+            media_stream_constraints={
+                "video": {"frameRate": {"ideal": frame_rate}},
+            },
+        )
+    )
+    webrtc_streamer(
+        key="media-constraints",
+        mode=WebRtcMode.SENDRECV,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+    )
+    st.write(f"The frame rate is set as {frame_rate}")
 
 
 if __name__ == "__main__":
