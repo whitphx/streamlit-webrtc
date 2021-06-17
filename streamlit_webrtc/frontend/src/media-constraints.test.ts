@@ -1,15 +1,15 @@
-import { compileMediaConstraint, getMediaUsage } from "./media-constraint";
+import { compileMediaConstraints, getMediaUsage } from "./media-constraint";
 
-describe("compileMediaConstraint()", () => {
+describe("compileMediaConstraints()", () => {
   describe("when the source object is undefined", () => {
     const src = undefined;
 
     it("generates an empty constraint object if no device id is provided", () => {
-      expect(compileMediaConstraint(src, undefined, undefined)).toEqual({});
+      expect(compileMediaConstraints(src, undefined, undefined)).toEqual({});
     });
 
     it("sets device IDs if provided", () => {
-      expect(compileMediaConstraint(src, "videoid", "audioid")).toEqual({
+      expect(compileMediaConstraints(src, "videoid", "audioid")).toEqual({
         video: {
           deviceId: "videoid",
         },
@@ -24,7 +24,7 @@ describe("compileMediaConstraint()", () => {
     const src: MediaStreamConstraints = { video: true, audio: true };
 
     it("sets deviceIds if provided", () => {
-      expect(compileMediaConstraint(src, "videoid", "audioid")).toEqual({
+      expect(compileMediaConstraints(src, "videoid", "audioid")).toEqual({
         video: {
           deviceId: "videoid",
         },
@@ -39,7 +39,7 @@ describe("compileMediaConstraint()", () => {
     const src: MediaStreamConstraints = { video: false, audio: false };
 
     it("does not set deviceIds even if provided", () => {
-      expect(compileMediaConstraint(src, "videoid", "audioid")).toEqual({
+      expect(compileMediaConstraints(src, "videoid", "audioid")).toEqual({
         video: false,
         audio: false,
       });
@@ -60,7 +60,7 @@ describe("compileMediaConstraint()", () => {
     };
 
     it("preserves the original constrants and adds deviceIds if provided", () => {
-      expect(compileMediaConstraint(src, "videoid", "audioid")).toEqual({
+      expect(compileMediaConstraints(src, "videoid", "audioid")).toEqual({
         video: {
           frameRate: {
             min: 10,
