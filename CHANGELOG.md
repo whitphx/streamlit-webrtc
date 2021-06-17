@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.21.0] - 2021-06-17
 ### Add
 - Support setting a complex `MediaStreamConstraints` object through `ClientSettings.media_stream_constraints`, #243.
 
