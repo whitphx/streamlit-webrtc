@@ -448,22 +448,22 @@ def app_object_detection():
 def app_streaming():
     """ Media streamings """
     MEDIAFILES = {
-        "big_buck_bunny_720p_2mb.mp4": {
+        "big_buck_bunny_720p_2mb.mp4 (local)": {
             "url": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_2mb.mp4",  # noqa: E501
             "local_file_path": HERE / "data/big_buck_bunny_720p_2mb.mp4",
             "type": "video",
         },
-        "big_buck_bunny_720p_10mb.mp4": {
+        "big_buck_bunny_720p_10mb.mp4 (local)": {
             "url": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_10mb.mp4",  # noqa: E501
             "local_file_path": HERE / "data/big_buck_bunny_720p_10mb.mp4",
             "type": "video",
         },
-        "file_example_MP3_700KB.mp3": {
+        "file_example_MP3_700KB.mp3 (local)": {
             "url": "https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_700KB.mp3",  # noqa: E501
             "local_file_path": HERE / "data/file_example_MP3_700KB.mp3",
             "type": "audio",
         },
-        "file_example_MP3_5MG.mp3": {
+        "file_example_MP3_5MG.mp3 (local)": {
             "url": "https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_5MG.mp3",  # noqa: E501
             "local_file_path": HERE / "data/file_example_MP3_5MG.mp3",
             "type": "audio",
@@ -474,7 +474,7 @@ def app_streaming():
         },
     }
     media_file_label = st.radio(
-        "Select a media file to stream", tuple(MEDIAFILES.keys())
+        "Select a media source to stream", tuple(MEDIAFILES.keys())
     )
     media_file_info = MEDIAFILES[media_file_label]
     if "local_file_path" in media_file_info:
