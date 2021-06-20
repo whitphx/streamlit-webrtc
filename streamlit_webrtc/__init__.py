@@ -276,34 +276,36 @@ def webrtc_streamer(
     )
 
     playing = False
+    sdp_offer = None
     if component_value:
         playing = component_value.get("playing", False)
         sdp_offer = component_value.get("sdpOffer")
 
-        if webrtc_worker:
-            if not playing:
-                webrtc_worker.stop()
-                _unset_webrtc_worker(key)
-                webrtc_worker = None
-                # Rerun to unset the SDP answer from the frontend args
-                st.experimental_rerun()
-        else:
-            if sdp_offer:
-                webrtc_worker = WebRtcWorker(
-                    mode=mode,
-                    player_factory=player_factory,
-                    in_recorder_factory=in_recorder_factory,
-                    out_recorder_factory=out_recorder_factory,
-                    video_processor_factory=video_processor_factory,
-                    audio_processor_factory=audio_processor_factory,
-                    async_processing=async_processing,
-                    video_receiver_size=video_receiver_size,
-                    audio_receiver_size=audio_receiver_size,
-                )
-                webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
-                _set_webrtc_worker(key, webrtc_worker)
-                # Rerun to send the SDP answer to frontend
-                st.experimental_rerun()
+    if webrtc_worker and not playing:
+        LOGGER.info("A worker exists though the state not playing. Unset it.")
+        webrtc_worker.stop()
+        _unset_webrtc_worker(key)
+        webrtc_worker = None
+        # Rerun to unset the SDP answer from the frontend args
+        st.experimental_rerun()
+
+    if not webrtc_worker and sdp_offer:
+        LOGGER.info("No worker exists though Offer SDP is set. Create a new worker.")
+        webrtc_worker = WebRtcWorker(
+            mode=mode,
+            player_factory=player_factory,
+            in_recorder_factory=in_recorder_factory,
+            out_recorder_factory=out_recorder_factory,
+            video_processor_factory=video_processor_factory,
+            audio_processor_factory=audio_processor_factory,
+            async_processing=async_processing,
+            video_receiver_size=video_receiver_size,
+            audio_receiver_size=audio_receiver_size,
+        )
+        webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
+        _set_webrtc_worker(key, webrtc_worker)
+        # Rerun to send the SDP answer to frontend
+        st.experimental_rerun()
 
     ctx = WebRtcStreamerContext(
         state=WebRtcStreamerState(playing=playing),
