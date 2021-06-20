@@ -290,7 +290,7 @@ def webrtc_streamer(
         st.experimental_rerun()
 
     if not webrtc_worker and sdp_offer:
-        LOGGER.info("No worker exists though Offer SDP is set. Create a new worker.")
+        LOGGER.info("No worker exists though the offer SDP is set. Create a new worker.")
         webrtc_worker = WebRtcWorker(
             mode=mode,
             player_factory=player_factory,
