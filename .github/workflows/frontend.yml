@@ -3,8 +3,12 @@ name: Frontend tests
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'streamlit_webrtc/frontend/**'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'streamlit_webrtc/frontend/**'
 
 jobs:
   build:

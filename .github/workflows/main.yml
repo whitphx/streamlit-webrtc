@@ -3,8 +3,12 @@ name: Tests
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'streamlit_webrtc/frontend/**'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - 'streamlit_webrtc/frontend/**'
 
 jobs:
   tests:
