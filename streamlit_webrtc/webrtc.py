@@ -101,9 +101,9 @@ async def _process_offer(
 
                 if input_track.kind == "audio":
                     if player and player.audio:
-                        logger.info("Add player to audio track")
-                        output_track = player.audio
-                    elif audio_processor:
+                        logger.warn("Player is ignored in SENDRECV mode")
+
+                    if audio_processor:
                         AudioTrack = (
                             AsyncAudioProcessTrack
                             if async_processing
@@ -120,13 +120,12 @@ async def _process_offer(
                         )
                         logger.info("Add the audio track with processor to %s", pc)
                     else:
-                        # Processing audio is not supported yet.
                         output_track = input_track  # passthrough
                 elif input_track.kind == "video":
                     if player and player.video:
-                        logger.info("Add player to video track")
-                        output_track = player.video
-                    elif video_processor:
+                        logger.warn("Player is ignored in SENDRECV mode")
+
+                    if video_processor:
                         VideoTrack = (
                             AsyncVideoProcessTrack
                             if async_processing
@@ -206,12 +205,48 @@ async def _process_offer(
                 output_track = None
                 if t.kind == "audio":
                     if player and player.audio:
-                        output_track = player.audio
-                        # pc.addTrack(player.audio)
+                        input_track = player.audio
+
+                    if audio_processor:
+                        AudioTrack = (
+                            AsyncAudioProcessTrack
+                            if async_processing
+                            else AudioProcessTrack
+                        )
+                        logger.info(
+                            "Add a input audio track from a player %s to "
+                            "output track with audio_processor %s",
+                            input_track,
+                            AudioTrack,
+                        )
+                        output_track = AudioTrack(
+                            track=input_track, processor=audio_processor
+                        )
+                        logger.info("Add the audio track with processor to %s", pc)
+                    else:
+                        output_track = input_track
                 elif t.kind == "video":
                     if player and player.video:
-                        # pc.addTrack(player.video)
-                        output_track = player.video
+                        input_track = player.video
+
+                    if video_processor:
+                        VideoTrack = (
+                            AsyncVideoProcessTrack
+                            if async_processing
+                            else VideoProcessTrack
+                        )
+                        logger.info(
+                            "Add a input video track from a player %s to "
+                            "output track with video_processor %s",
+                            input_track,
+                            VideoTrack,
+                        )
+                        output_track = VideoTrack(
+                            track=input_track, processor=video_processor
+                        )
+                        logger.info("Add the video track with processor to %s", pc)
+                    else:
+                        output_track = input_track
 
                 if output_track:
                     pc.addTrack(output_track)
