@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.22.0] - 2021-06-20
 ### Add
 - Make processors effective in RECVONLY mode with a player, #254.
 
