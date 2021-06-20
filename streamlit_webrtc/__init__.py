@@ -282,7 +282,7 @@ def webrtc_streamer(
         sdp_offer = component_value.get("sdpOffer")
 
     if webrtc_worker and not playing:
-        LOGGER.info("Unset the worker because the frontend state is not playing.")
+        LOGGER.debug("Unset the worker because the frontend state is not playing.")
         webrtc_worker.stop()
         _unset_webrtc_worker(key)
         webrtc_worker = None
@@ -290,7 +290,7 @@ def webrtc_streamer(
         st.experimental_rerun()
 
     if not webrtc_worker and sdp_offer:
-        LOGGER.info("No worker exists though the offer SDP is set. Create a new worker.")
+        LOGGER.debug("No worker exists though the offer SDP is set. Create a new worker.")
         webrtc_worker = WebRtcWorker(
             mode=mode,
             player_factory=player_factory,
