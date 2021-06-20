@@ -101,9 +101,9 @@ async def _process_offer(
 
                 if input_track.kind == "audio":
                     if player and player.audio:
-                        logger.warn("Player is ignored in SENDRECV mode")
-
-                    if audio_processor:
+                        logger.info("Add player to audio track")
+                        output_track = player.audio
+                    elif audio_processor:
                         AudioTrack = (
                             AsyncAudioProcessTrack
                             if async_processing
@@ -123,9 +123,9 @@ async def _process_offer(
                         output_track = input_track  # passthrough
                 elif input_track.kind == "video":
                     if player and player.video:
-                        logger.warn("Player is ignored in SENDRECV mode")
-
-                    if video_processor:
+                        logger.info("Add player to video track")
+                        output_track = player.video
+                    elif video_processor:
                         VideoTrack = (
                             AsyncVideoProcessTrack
                             if async_processing
