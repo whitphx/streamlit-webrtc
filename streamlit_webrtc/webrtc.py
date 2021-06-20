@@ -120,7 +120,6 @@ async def _process_offer(
                         )
                         logger.info("Add the audio track with processor to %s", pc)
                     else:
-                        # Processing audio is not supported yet.
                         output_track = input_track  # passthrough
                 elif input_track.kind == "video":
                     if player and player.video:
@@ -206,12 +205,64 @@ async def _process_offer(
                 output_track = None
                 if t.kind == "audio":
                     if player and player.audio:
-                        output_track = player.audio
-                        # pc.addTrack(player.audio)
+                        if audio_processor:
+                            AudioTrack = (
+                                AsyncAudioProcessTrack
+                                if async_processing
+                                else AudioProcessTrack
+                            )
+                            logger.info(
+                                "Add a input audio track from a player %s to "
+                                "output track with audio_processor %s",
+                                player.audio,
+                                AudioTrack,
+                            )
+                            output_track = AudioTrack(
+                                track=player.audio, processor=audio_processor
+                            )
+                            logger.info("Add the audio track with processor to %s", pc)
+
+                            @output_track.on("ended")
+                            async def on_ended():
+                                logger.info(
+                                    "Track %s ended. Stop its input track %s",
+                                    output_track.kind,
+                                    player.audio,
+                                )
+                                player.audio.stop()
+
+                        else:
+                            output_track = player.audio  # passthrough
                 elif t.kind == "video":
                     if player and player.video:
-                        # pc.addTrack(player.video)
-                        output_track = player.video
+                        if video_processor:
+                            VideoTrack = (
+                                AsyncVideoProcessTrack
+                                if async_processing
+                                else VideoProcessTrack
+                            )
+                            logger.info(
+                                "Add a input video track from a player %s to "
+                                "output track with video_processor %s",
+                                player.video,
+                                VideoTrack,
+                            )
+                            output_track = VideoTrack(
+                                track=player.video, processor=video_processor
+                            )
+                            logger.info("Add the video track with processor to %s", pc)
+
+                            @output_track.on("ended")
+                            async def on_ended():
+                                logger.info(
+                                    "Track %s ended. Stop its input track %s",
+                                    output_track.kind,
+                                    player.video,
+                                )
+                                player.video.stop()
+
+                        else:
+                            output_track = player.video  # passthrough
 
                 if output_track:
                     pc.addTrack(output_track)
