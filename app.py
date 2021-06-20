@@ -594,7 +594,7 @@ def app_sendonly_video():
 def app_sendonly_audio():
     """A sample to use WebRTC in sendonly mode to transfer audio frames
     from the browser to the server and visualize them with matplotlib
-    and `st.pyplog`."""
+    and `st.pyplot`."""
     webrtc_ctx = webrtc_streamer(
         key="sendonly-audio",
         mode=WebRtcMode.SENDONLY,
