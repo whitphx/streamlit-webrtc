@@ -24,6 +24,7 @@ import streamlit.components.v1 as components
 
 from . import SessionState
 from .config import MediaStreamConstraints, RTCConfiguration
+from .eventloop import get_server_event_loop
 from .webrtc import (
     AudioProcessorBase,
     AudioProcessorFactory,
@@ -293,7 +294,9 @@ def webrtc_streamer(
         LOGGER.debug(
             "No worker exists though the offer SDP is set. Create a new worker."
         )
+        loop = get_server_event_loop()
         webrtc_worker = WebRtcWorker(
+            loop=loop,
             mode=mode,
             player_factory=player_factory,
             in_recorder_factory=in_recorder_factory,
