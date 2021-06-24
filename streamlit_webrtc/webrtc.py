@@ -8,6 +8,7 @@ from typing import Callable, Generic, Optional, TypeVar, Union
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRecorder
+from aiortc.mediastreams import MediaStreamTrack
 
 from .process import (
     AsyncAudioProcessTrack,
@@ -61,7 +62,8 @@ async def _process_offer(
     mode: WebRtcMode,
     pc: RTCPeerConnection,
     offer: RTCSessionDescription,
-    player_factory: Optional[MediaPlayerFactory],
+    in_video_stream_track: Optional[MediaStreamTrack],
+    in_audio_stream_track: Optional[MediaStreamTrack],
     in_recorder_factory: Optional[MediaRecorderFactory],
     out_recorder_factory: Optional[MediaRecorderFactory],
     video_processor: Optional[VideoProcessorBase],
@@ -72,10 +74,6 @@ async def _process_offer(
     callback: Callable[[Union[RTCSessionDescription, Exception]], None],
 ):
     try:
-        player = None
-        if player_factory:
-            player = player_factory()
-
         in_recorder = None
         if in_recorder_factory:
             in_recorder = in_recorder_factory()
@@ -99,9 +97,9 @@ async def _process_offer(
                 output_track = None
 
                 if input_track.kind == "audio":
-                    if player and player.audio:
-                        logger.info("Add player to audio track")
-                        output_track = player.audio
+                    if in_audio_stream_track:
+                        logger.info("Add %s to audio track", in_audio_stream_track)
+                        output_track = in_audio_stream_track
                     elif audio_processor:
                         AudioTrack = (
                             AsyncAudioProcessTrack
@@ -121,9 +119,9 @@ async def _process_offer(
                     else:
                         output_track = input_track  # passthrough
                 elif input_track.kind == "video":
-                    if player and player.video:
-                        logger.info("Add player to video track")
-                        output_track = player.video
+                    if in_video_stream_track:
+                        logger.info("Add %s to video track", in_audio_stream_track)
+                        output_track = in_video_stream_track
                     elif video_processor:
                         VideoTrack = (
                             AsyncVideoProcessTrack
@@ -203,7 +201,7 @@ async def _process_offer(
             for t in pc.getTransceivers():
                 output_track = None
                 if t.kind == "audio":
-                    if player and player.audio:
+                    if in_audio_stream_track:
                         if audio_processor:
                             AudioTrack = (
                                 AsyncAudioProcessTrack
@@ -211,13 +209,13 @@ async def _process_offer(
                                 else AudioProcessTrack
                             )
                             logger.info(
-                                "Add a input audio track from a player %s to "
+                                "Add a input audio track %s to "
                                 "output track with audio_processor %s",
-                                player.audio,
+                                in_audio_stream_track,
                                 AudioTrack,
                             )
                             output_track = AudioTrack(
-                                track=player.audio, processor=audio_processor
+                                track=in_audio_stream_track, processor=audio_processor
                             )
                             logger.info("Add the audio track with processor to %s", pc)
 
@@ -226,14 +224,14 @@ async def _process_offer(
                                 logger.info(
                                     "Track %s ended. Stop its input track %s",
                                     output_track.kind,
-                                    player.audio,
+                                    in_audio_stream_track,
                                 )
-                                player.audio.stop()
+                                in_audio_stream_track.stop()
 
                         else:
-                            output_track = player.audio  # passthrough
+                            output_track = in_audio_stream_track  # passthrough
                 elif t.kind == "video":
-                    if player and player.video:
+                    if in_video_stream_track:
                         if video_processor:
                             VideoTrack = (
                                 AsyncVideoProcessTrack
@@ -241,13 +239,13 @@ async def _process_offer(
                                 else VideoProcessTrack
                             )
                             logger.info(
-                                "Add a input video track from a player %s to "
+                                "Add a input video track %s to "
                                 "output track with video_processor %s",
-                                player.video,
+                                in_video_stream_track,
                                 VideoTrack,
                             )
                             output_track = VideoTrack(
-                                track=player.video, processor=video_processor
+                                track=in_video_stream_track, processor=video_processor
                             )
                             logger.info("Add the video track with processor to %s", pc)
 
@@ -256,12 +254,12 @@ async def _process_offer(
                                 logger.info(
                                     "Track %s ended. Stop its input track %s",
                                     output_track.kind,
-                                    player.video,
+                                    in_video_stream_track,
                                 )
-                                player.video.stop()
+                                in_video_stream_track.stop()
 
                         else:
-                            output_track = player.video  # passthrough
+                            output_track = in_video_stream_track  # passthrough
 
                 if output_track:
                     pc.addTrack(output_track)
@@ -379,6 +377,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         )
 
         loop = self._loop
+        asyncio.set_event_loop(loop)
 
         offer = RTCSessionDescription(sdp, type_)
 
@@ -404,6 +403,15 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._video_receiver = video_receiver
         self._audio_receiver = audio_receiver
 
+        in_audio_stream_track = None
+        in_video_stream_track = None
+        if self.player_factory:
+            player = self.player_factory()
+            if player.audio:
+                in_audio_stream_track = player.audio
+            if player.video:
+                in_video_stream_track = player.video
+
         @self.pc.on("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
             iceConnectionState = self.pc.iceConnectionState
@@ -415,7 +423,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 self.mode,
                 self.pc,
                 offer,
-                player_factory=self.player_factory,
+                in_video_stream_track=in_video_stream_track,
+                in_audio_stream_track=in_audio_stream_track,
                 in_recorder_factory=self.in_recorder_factory,
                 out_recorder_factory=self.out_recorder_factory,
                 video_processor=video_processor,
