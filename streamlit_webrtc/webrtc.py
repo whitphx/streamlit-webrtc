@@ -7,7 +7,7 @@ import threading
 from typing import Callable, Generic, Optional, TypeVar, Union
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaPlayer, MediaRecorder
+from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
 
 from .process import (
@@ -20,6 +20,7 @@ from .process import (
     VideoTransformerBase,
 )
 from .receive import AudioReceiver, VideoReceiver
+from .relay import get_relay
 
 __all__ = [
     "AudioProcessorBase",
@@ -62,6 +63,7 @@ async def _process_offer(
     mode: WebRtcMode,
     pc: RTCPeerConnection,
     offer: RTCSessionDescription,
+    relay: MediaRelay,
     in_video_stream_track: Optional[MediaStreamTrack],
     in_audio_stream_track: Optional[MediaStreamTrack],
     in_recorder_factory: Optional[MediaRecorderFactory],
@@ -72,6 +74,8 @@ async def _process_offer(
     audio_receiver: Optional[AudioReceiver],
     async_processing: bool,
     callback: Callable[[Union[RTCSessionDescription, Exception]], None],
+    on_video_output_track_created: Callable[[MediaStreamTrack], None],
+    on_audio_output_track_created: Callable[[MediaStreamTrack], None],
 ):
     try:
         in_recorder = None
@@ -98,9 +102,10 @@ async def _process_offer(
 
                 if input_track.kind == "audio":
                     if in_audio_stream_track:
-                        logger.info("Add %s to audio track", in_audio_stream_track)
-                        output_track = in_audio_stream_track
-                    elif audio_processor:
+                        logger.info("Override the input audio track with %s", in_audio_stream_track)
+                        input_track = in_audio_stream_track
+
+                    if audio_processor:
                         AudioTrack = (
                             AsyncAudioProcessTrack
                             if async_processing
@@ -120,9 +125,10 @@ async def _process_offer(
                         output_track = input_track  # passthrough
                 elif input_track.kind == "video":
                     if in_video_stream_track:
-                        logger.info("Add %s to video track", in_audio_stream_track)
-                        output_track = in_video_stream_track
-                    elif video_processor:
+                        logger.info("Override the input video track with %s", in_video_stream_track)
+                        input_track = in_video_stream_track
+
+                    if video_processor:
                         VideoTrack = (
                             AsyncVideoProcessTrack
                             if async_processing
@@ -147,13 +153,18 @@ async def _process_offer(
                         "Either factory must be set."
                     )
 
-                pc.addTrack(output_track)
+                pc.addTrack(relay.subscribe(output_track))
+                if input_track.kind == "audio":
+                    on_audio_output_track_created(output_track)
+                elif input_track.kind == "video":
+                    on_video_output_track_created(output_track)
+
                 if out_recorder:
                     logger.info("Track %s is added to out_recorder", output_track.kind)
-                    out_recorder.addTrack(output_track)
+                    out_recorder.addTrack(relay.subscribe(output_track))
                 if in_recorder:
                     logger.info("Track %s is added to in_recorder", input_track.kind)
-                    in_recorder.addTrack(input_track)
+                    in_recorder.addTrack(relay.subscribe(input_track))  # TODO: Set relay.subscrbe() to all input_track
 
                 @input_track.on("ended")
                 async def on_ended():
@@ -299,6 +310,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _audio_processor: Optional[AudioProcessorT]
     _video_receiver: Optional[VideoReceiver]
     _audio_receiver: Optional[AudioReceiver]
+    _relay: Optional[MediaRelay]
+    _video_output_track = MediaStreamTrack
+    _audio_output_track = MediaStreamTrack
 
     @property
     def video_processor(self) -> Optional[VideoProcessorT]:
@@ -316,11 +330,21 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     def audio_receiver(self) -> Optional[AudioReceiver]:
         return self._audio_receiver
 
+    @property
+    def video_output_track(self) -> Optional[MediaStreamTrack]:
+        return self._video_output_track
+
+    @property
+    def audio_output_track(self) -> Optional[MediaStreamTrack]:
+        return self._audio_output_track
+
     def __init__(
         self,
         loop: asyncio.AbstractEventLoop,
         mode: WebRtcMode,
         player_factory: Optional[MediaPlayerFactory] = None,
+        in_video_stream_track: Optional[MediaStreamTrack] = None,
+        in_audio_stream_track: Optional[MediaStreamTrack] = None,
         in_recorder_factory: Optional[MediaRecorderFactory] = None,
         out_recorder_factory: Optional[MediaRecorderFactory] = None,
         video_processor_factory: Optional[
@@ -340,6 +364,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         self.mode = mode
         self.player_factory = player_factory
+        self.in_video_stream_track = in_video_stream_track
+        self.in_audio_stream_track = in_audio_stream_track
         self.in_recorder_factory = in_recorder_factory
         self.out_recorder_factory = out_recorder_factory
         self.video_processor_factory = video_processor_factory
@@ -352,6 +378,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._audio_processor = None
         self._video_receiver = None
         self._audio_receiver = None
+
+        self._video_output_track = None
+        self._audio_output_track = None
 
     def _run_webrtc_thread(
         self,
@@ -381,9 +410,6 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         offer = RTCSessionDescription(sdp, type_)
 
-        def callback(localDescription):
-            self._answer_queue.put(localDescription)
-
         video_processor = None
         if self.video_processor_factory:
             video_processor = self.video_processor_factory()
@@ -411,6 +437,12 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 in_audio_stream_track = player.audio
             if player.video:
                 in_video_stream_track = player.video
+        else:
+            relay = get_relay(loop)
+            if self.in_audio_stream_track:
+                in_audio_stream_track = relay.subscribe(self.in_audio_stream_track)
+            if self.in_video_stream_track:
+                in_video_stream_track = relay.subscribe(self.in_video_stream_track)
 
         @self.pc.on("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
@@ -418,11 +450,21 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             if iceConnectionState == "closed" or iceConnectionState == "failed":
                 self._unset_processors()
 
+        def callback(localDescription):
+            self._answer_queue.put(localDescription)
+
+        def on_video_output_track_created(video_relay: MediaStreamTrack):
+            self._video_output_track = video_relay
+
+        def on_audio_output_track_created(audio_relay: MediaStreamTrack):
+            self._audio_output_track = audio_relay
+
         loop.create_task(
             _process_offer(
                 self.mode,
                 self.pc,
                 offer,
+                relay=relay,
                 in_video_stream_track=in_video_stream_track,
                 in_audio_stream_track=in_audio_stream_track,
                 in_recorder_factory=self.in_recorder_factory,
@@ -433,6 +475,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 audio_receiver=audio_receiver,
                 async_processing=self.async_processing,
                 callback=callback,
+                on_video_output_track_created=on_video_output_track_created,
+                on_audio_output_track_created=on_audio_output_track_created,
             )
         )
 

@@ -6,6 +6,7 @@ import logging
 import os
 import weakref
 from typing import Any, Dict, Generic, Hashable, NamedTuple, Optional, Union, overload
+from aiortc.mediastreams import MediaStreamTrack
 
 try:
     from typing import TypedDict
@@ -151,6 +152,17 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         worker = self._get_worker()
         return worker.audio_receiver if worker else None
 
+    @property
+    def video_output_track(self) -> Optional[MediaStreamTrack]:
+        worker = self._get_worker()
+        return worker.video_output_track if worker else None
+
+    @property
+    def audio_output_track(self) -> Optional[MediaStreamTrack]:
+        worker = self._get_worker()
+        return worker.audio_output_track if worker else None
+
+
 
 @overload
 def webrtc_streamer(
@@ -248,6 +260,7 @@ def webrtc_streamer(
     async_processing: bool = True,
     video_receiver_size: int = 4,
     audio_receiver_size: int = 4,
+    input: Optional[WebRtcStreamerContext] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory=None,
     async_transform: Optional[bool] = None,
@@ -306,6 +319,8 @@ def webrtc_streamer(
             async_processing=async_processing,
             video_receiver_size=video_receiver_size,
             audio_receiver_size=audio_receiver_size,
+            in_video_stream_track=input.video_output_track if input else None,
+            in_audio_stream_track=input.audio_output_track if input else None,
         )
         webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
         _set_webrtc_worker(key, webrtc_worker)
