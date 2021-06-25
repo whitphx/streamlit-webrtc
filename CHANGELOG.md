@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ### Fix
 - Fix to use `MediaRelay`, #263.
 - Fix to use the event loop attached to the Tornado app, #260.
+- Add `app_record.py` as an example of `MediaRecorder`, #264.
 
 ## [0.22.1] - 2021-06-20
 ### Fix
