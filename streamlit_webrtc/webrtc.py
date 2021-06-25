@@ -6,6 +6,11 @@ import queue
 import threading
 from typing import Callable, Generic, Optional, TypeVar, Union
 
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal  # type: ignore
+
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
@@ -59,6 +64,9 @@ class TimeoutError(Exception):
     pass
 
 
+TrackType = Literal["output:video", "output:audio"]
+
+
 async def _process_offer(
     mode: WebRtcMode,
     pc: RTCPeerConnection,
@@ -74,6 +82,7 @@ async def _process_offer(
     audio_receiver: Optional[AudioReceiver],
     async_processing: bool,
     callback: Callable[[Union[RTCSessionDescription, Exception]], None],
+    on_track_created: Callable[[TrackType, MediaStreamTrack], None],
 ):
     try:
         in_recorder = None
@@ -158,6 +167,11 @@ async def _process_offer(
                 if in_recorder:
                     logger.info("Track %s is added to in_recorder", input_track.kind)
                     in_recorder.addTrack(relay.subscribe(input_track))
+
+                if input_track.kind == "video":
+                    on_track_created("output:video", output_track)
+                elif input_track.kind == "audio":
+                    on_track_created("output:audio", output_track)
 
                 @input_track.on("ended")
                 async def on_ended():
@@ -303,6 +317,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _audio_processor: Optional[AudioProcessorT]
     _video_receiver: Optional[VideoReceiver]
     _audio_receiver: Optional[AudioReceiver]
+    _output_video_track: Optional[MediaStreamTrack]
+    _output_audio_track: Optional[MediaStreamTrack]
 
     @property
     def video_processor(self) -> Optional[VideoProcessorT]:
@@ -320,10 +336,20 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     def audio_receiver(self) -> Optional[AudioReceiver]:
         return self._audio_receiver
 
+    @property
+    def video_output_track(self) -> Optional[MediaStreamTrack]:
+        return self._video_output_track
+
+    @property
+    def audio_output_track(self) -> Optional[MediaStreamTrack]:
+        return self._audio_output_track
+
     def __init__(
         self,
         loop: asyncio.AbstractEventLoop,
         mode: WebRtcMode,
+        source_video_track: Optional[MediaStreamTrack] = None,
+        source_audio_track: Optional[MediaStreamTrack] = None,
         player_factory: Optional[MediaPlayerFactory] = None,
         in_recorder_factory: Optional[MediaRecorderFactory] = None,
         out_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -343,6 +369,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._answer_queue = queue.Queue()
 
         self.mode = mode
+        self.source_video_track = source_video_track
+        self.source_audio_track = source_audio_track
         self.player_factory = player_factory
         self.in_recorder_factory = in_recorder_factory
         self.out_recorder_factory = out_recorder_factory
@@ -356,6 +384,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._audio_processor = None
         self._video_receiver = None
         self._audio_receiver = None
+        self._video_output_track = None
+        self._audio_output_track = None
 
     def _run_webrtc_thread(
         self,
@@ -388,6 +418,12 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         def callback(localDescription):
             self._answer_queue.put(localDescription)
 
+        def on_track_created(track_type: TrackType, track: MediaStreamTrack):
+            if track_type == "output:video":
+                self._video_output_track = track
+            elif track_type == "output:audio":
+                self._audio_output_track = track
+
         video_processor = None
         if self.video_processor_factory:
             video_processor = self.video_processor_factory()
@@ -417,6 +453,11 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 in_audio_stream_track = player.audio
             if player.video:
                 in_video_stream_track = player.video
+        else:
+            if self.source_video_track:
+                in_video_stream_track = relay.subscribe(self.source_video_track)
+            if self.source_audio_track:
+                in_audio_stream_track = relay.subscribe(self.source_audio_track)
 
         @self.pc.on("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
@@ -440,6 +481,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 audio_receiver=audio_receiver,
                 async_processing=self.async_processing,
                 callback=callback,
+                on_track_created=on_track_created,
             )
         )
 
