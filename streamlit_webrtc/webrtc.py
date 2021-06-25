@@ -7,7 +7,7 @@ import threading
 from typing import Callable, Generic, Optional, TypeVar, Union
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaPlayer, MediaRecorder
+from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
 
 from .process import (
     AsyncAudioProcessTrack,
@@ -19,6 +19,7 @@ from .process import (
     VideoTransformerBase,
 )
 from .receive import AudioReceiver, VideoReceiver
+from .relay import get_relay
 
 __all__ = [
     "AudioProcessorBase",
@@ -61,6 +62,7 @@ async def _process_offer(
     mode: WebRtcMode,
     pc: RTCPeerConnection,
     offer: RTCSessionDescription,
+    relay: MediaRelay,
     player_factory: Optional[MediaPlayerFactory],
     in_recorder_factory: Optional[MediaRecorderFactory],
     out_recorder_factory: Optional[MediaRecorderFactory],
@@ -115,7 +117,8 @@ async def _process_offer(
                             AudioTrack,
                         )
                         output_track = AudioTrack(
-                            track=input_track, processor=audio_processor
+                            track=relay.subscribe(input_track),
+                            processor=audio_processor,
                         )
                         logger.info("Add the audio track with processor to %s", pc)
                     else:
@@ -137,7 +140,8 @@ async def _process_offer(
                             VideoTrack,
                         )
                         output_track = VideoTrack(
-                            track=input_track, processor=video_processor
+                            track=relay.subscribe(input_track),
+                            processor=video_processor,
                         )
                         logger.info("Add the video track with processor to %s", pc)
                     else:
@@ -149,13 +153,13 @@ async def _process_offer(
                         "Either factory must be set."
                     )
 
-                pc.addTrack(output_track)
+                pc.addTrack(relay.subscribe(output_track))
                 if out_recorder:
                     logger.info("Track %s is added to out_recorder", output_track.kind)
-                    out_recorder.addTrack(output_track)
+                    out_recorder.addTrack(relay.subscribe(output_track))
                 if in_recorder:
                     logger.info("Track %s is added to in_recorder", input_track.kind)
-                    in_recorder.addTrack(input_track)
+                    in_recorder.addTrack(relay.subscribe(input_track))
 
                 @input_track.on("ended")
                 async def on_ended():
@@ -404,6 +408,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._video_receiver = video_receiver
         self._audio_receiver = audio_receiver
 
+        relay = get_relay(loop=loop)
+
         @self.pc.on("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
             iceConnectionState = self.pc.iceConnectionState
@@ -415,6 +421,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 self.mode,
                 self.pc,
                 offer,
+                relay=relay,
                 player_factory=self.player_factory,
                 in_recorder_factory=self.in_recorder_factory,
                 out_recorder_factory=self.out_recorder_factory,

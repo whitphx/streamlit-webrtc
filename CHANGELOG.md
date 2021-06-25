@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fix
+- Fix to use `MediaRelay`, #263.
+
 ## [0.22.1] - 2021-06-20
 ### Fix
 - Fix to unset the worker when the state is not playing, #255.
