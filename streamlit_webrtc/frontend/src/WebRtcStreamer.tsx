@@ -243,8 +243,32 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       });
   };
 
+  private reconcilePlayingState = () => {
+    const desiredPlayingState = this.props.args["desired_playing_state"];
+    if (desiredPlayingState != null) {
+      if (
+        desiredPlayingState === true &&
+        !this.state.playing &&
+        !this.state.signaling
+      ) {
+        this.start();
+      } else if (
+        desiredPlayingState === false &&
+        (this.state.playing || this.state.signaling)
+      ) {
+        this.stop();
+      }
+    }
+  };
+
+  public componentDidMount() {
+    this.reconcilePlayingState();
+  }
+
   // @ts-ignore  // TODO: Fix the base class definition
   public componentDidUpdate(prevProps: ComponentProps) {
+    this.reconcilePlayingState();
+
     if (this.pc == null) {
       return;
     }
@@ -269,8 +293,12 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   };
 
   public render = (): ReactNode => {
+    const desiredPlayingState = this.props.args["desired_playing_state"];
     const buttonDisabled =
-      this.props.disabled || this.state.signaling || this.state.stopping;
+      this.props.disabled ||
+      this.state.signaling ||
+      this.state.stopping ||
+      desiredPlayingState != null;
     const mode = this.props.args["mode"];
     const { videoEnabled, audioEnabled } = getMediaUsage(
       this.props.args.settings?.media_stream_constraints

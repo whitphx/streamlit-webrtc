@@ -157,6 +157,7 @@ def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     client_settings: Optional[ClientSettings] = None,
+    desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -181,6 +182,7 @@ def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     client_settings: Optional[ClientSettings] = None,
+    desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -201,6 +203,7 @@ def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     client_settings: Optional[ClientSettings] = None,
+    desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -221,6 +224,7 @@ def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     client_settings: Optional[ClientSettings] = None,
+    desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -240,6 +244,7 @@ def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     client_settings: Optional[ClientSettings] = None,
+    desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -274,6 +279,7 @@ def webrtc_streamer(
         sdp_answer_json=sdp_answer_json,
         mode=mode.name,
         settings=client_settings,
+        desired_playing_state=desired_playing_state,
     )
 
     playing = False
