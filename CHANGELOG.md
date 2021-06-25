@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Fix
 - Fix to use `MediaRelay`, #263.
+- Fix to use the event loop attached to the Tornado app, #260.
 
 ## [0.22.1] - 2021-06-20
 ### Fix

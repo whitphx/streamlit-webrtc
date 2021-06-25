@@ -4,7 +4,6 @@ import itertools
 import logging
 import queue
 import threading
-from asyncio.events import AbstractEventLoop
 from typing import Callable, Generic, Optional, TypeVar, Union
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
@@ -300,7 +299,7 @@ webrtc_thread_id_generator = itertools.count()
 
 class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _webrtc_thread: Union[threading.Thread, None]
-    _loop: Union[AbstractEventLoop, None]
+    _loop: asyncio.AbstractEventLoop
     _answer_queue: queue.Queue
     _video_processor: Optional[VideoProcessorT]
     _audio_processor: Optional[AudioProcessorT]
@@ -325,6 +324,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
     def __init__(
         self,
+        loop: asyncio.AbstractEventLoop,
         mode: WebRtcMode,
         player_factory: Optional[MediaPlayerFactory] = None,
         in_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -340,7 +340,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         audio_receiver_size: int = 4,
     ) -> None:
         self._webrtc_thread = None
-        self._loop = None
+        self._loop = loop
         self.pc = RTCPeerConnection()
         self._answer_queue = queue.Queue()
 
@@ -371,15 +371,6 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             )
         except Exception as e:
             logger.warn("An error occurred in the WebRTC worker thread: %s", e)
-
-            if self._loop:
-                logger.warn("An event loop exists. Clean up it.")
-                loop = self._loop
-                loop.run_until_complete(self.pc.close())
-                loop.run_until_complete(loop.shutdown_asyncgens())
-                loop.close()
-                logger.warn("Event loop %s cleaned up.", loop)
-
             self._answer_queue.put(e)  # Send the error object to the main thread
 
     def _webrtc_thread_impl(
@@ -391,8 +382,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             "_webrtc_thread_impl starts",
         )
 
-        loop = asyncio.new_event_loop()
-        self._loop = loop
+        loop = self._loop
 
         offer = RTCSessionDescription(sdp, type_)
 
@@ -444,15 +434,6 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             )
         )
 
-        try:
-            loop.run_forever()
-        finally:
-            logger.debug("Event loop %s has stopped.", loop)
-            loop.run_until_complete(self.pc.close())
-            loop.run_until_complete(loop.shutdown_asyncgens())
-            loop.close()
-            logger.debug("Event loop %s cleaned up.", loop)
-
     def process_offer(
         self, sdp, type_, timeout: Union[float, None] = 10.0
     ) -> RTCSessionDescription:
@@ -493,8 +474,6 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
     def stop(self, timeout: Union[float, None] = 1.0):
         self._unset_processors()
-        if self._loop:
-            self._loop.stop()
         if self._webrtc_thread:
             self._webrtc_thread.join(timeout=timeout)
 
