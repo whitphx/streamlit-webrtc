@@ -105,7 +105,7 @@ class MediaHTMLAttributes(TypedDict, total=False):
 # Ref: https://github.com/DefinitelyTyped/DefinitelyTyped/blob/2563cecd0398fd9337b2806059446fb9d29abec2/types/react/index.d.ts#L2421  # noqa
 class VideoHTMLAttributes(MediaHTMLAttributes, total=False):
     height: Union[Number, str]
-    playsInline: bool
+    # playsInline: bool  # This field already exists in MediaHTMLAttributes and overwriting it when extending is not allowed though it is in the original TypeScript code.  # noqa
     poster: str
     width: Union[Number, str]
     disablePictureInPicture: bool
