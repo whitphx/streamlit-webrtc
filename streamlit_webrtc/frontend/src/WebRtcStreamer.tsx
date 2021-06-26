@@ -99,9 +99,12 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     pc: RTCPeerConnection,
     sdpAnswerJson: string
   ): void => {
-    this.processAnswerInner(pc, sdpAnswerJson).finally(() =>
-      this.setState({ signaling: false })
-    );
+    this.processAnswerInner(pc, sdpAnswerJson)
+      .catch((error) => {
+        this.setState({ error });
+        return this.stop();
+      })
+      .finally(() => this.setState({ signaling: false }));
   };
 
   private startInner = async () => {
