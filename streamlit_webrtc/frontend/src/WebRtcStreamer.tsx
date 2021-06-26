@@ -70,13 +70,9 @@ interface State {
 
 class WebRtcStreamer extends StreamlitComponentBase<State> {
   private pc: RTCPeerConnection | undefined;
-  private videoRef: React.RefObject<HTMLVideoElement>;
-  private audioRef: React.RefObject<HTMLAudioElement>;
 
   constructor(props: ComponentProps) {
     super(props);
-    this.videoRef = React.createRef();
-    this.audioRef = React.createRef();
 
     this.state = {
       signaling: false,
