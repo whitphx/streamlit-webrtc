@@ -175,7 +175,9 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
 
     console.log("transceivers", pc.getTransceivers());
 
-    setupOffer(pc).then((offer) => {
+    this.pc = pc;
+
+    await setupOffer(pc).then((offer) => {
       if (offer == null) {
         console.warn("Failed to create an offer SDP");
         return;
@@ -187,7 +189,6 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
         playing: true,
       });
     });
-    this.pc = pc;
   };
 
   private start = (): void => {
