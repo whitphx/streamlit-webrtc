@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Fix
 - Fix frontend to handle errors from promises properly, #267.
+- Fix to stop `AsyncMediaProcessTrack` when its input track stops, #269.
 
 ## [0.22.2] - 2021-06-26
 ### Fix
