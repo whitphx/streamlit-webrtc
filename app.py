@@ -108,6 +108,7 @@ def main():
     )
     loopback_page = "Simple video and audio loopback (sendrecv)"
     media_constraints_page = "Configure media constraints with loopback (sendrecv)"
+    programatically_control_page = "Control the playing state programatically"
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
         [
@@ -120,6 +121,7 @@ def main():
             audio_sendonly_page,
             loopback_page,
             media_constraints_page,
+            programatically_control_page,
         ],
     )
     st.subheader(app_mode)
@@ -142,6 +144,8 @@ def main():
         app_loopback()
     elif app_mode == media_constraints_page:
         app_media_constraints()
+    elif app_mode == programatically_control_page:
+        app_programatically_play()
 
     logger.debug("=== Alive threads ===")
     for thread in threading.enumerate():
@@ -685,6 +689,18 @@ def app_media_constraints():
         client_settings=WEBRTC_CLIENT_SETTINGS,
     )
     st.write(f"The frame rate is set as {frame_rate}")
+
+
+def app_programatically_play():
+    """ A sample of controlling the playing state from Python. """
+    playing = st.checkbox("Playing", value=True)
+
+    webrtc_streamer(
+        key="media-constraints",
+        desired_playing_state=playing,
+        mode=WebRtcMode.SENDRECV,
+        client_settings=WEBRTC_CLIENT_SETTINGS,
+    )
 
 
 if __name__ == "__main__":

@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Add
+- Add `desired_playing_state` argument to control the playing state programatically, #266.
+
 ## [0.22.3] - 2021-06-26
 ### Fix
 - Fix frontend to handle errors from promises properly, #267.
