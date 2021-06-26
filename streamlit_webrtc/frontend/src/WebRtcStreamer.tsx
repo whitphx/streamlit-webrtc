@@ -70,13 +70,9 @@ interface State {
 
 class WebRtcStreamer extends StreamlitComponentBase<State> {
   private pc: RTCPeerConnection | undefined;
-  private videoRef: React.RefObject<HTMLVideoElement>;
-  private audioRef: React.RefObject<HTMLAudioElement>;
 
   constructor(props: ComponentProps) {
     super(props);
-    this.videoRef = React.createRef();
-    this.audioRef = React.createRef();
 
     this.state = {
       signaling: false,
@@ -96,6 +92,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     const sdpAnswer = JSON.parse(sdpAnswerJson);
     console.log("Receive answer sdpOffer", sdpAnswer);
     await pc.setRemoteDescription(sdpAnswer);
+    console.log("Remote description is set");
   };
 
   private processAnswer = (
@@ -103,8 +100,9 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     sdpAnswerJson: string
   ): void => {
     this.processAnswerInner(pc, sdpAnswerJson)
-      .then(() => {
-        console.log("Remote description is set");
+      .catch((error) => {
+        this.setState({ error });
+        return this.stop();
       })
       .finally(() => this.setState({ signaling: false }));
   };
@@ -177,7 +175,9 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
 
     console.log("transceivers", pc.getTransceivers());
 
-    setupOffer(pc).then((offer) => {
+    this.pc = pc;
+
+    await setupOffer(pc).then((offer) => {
       if (offer == null) {
         console.warn("Failed to create an offer SDP");
         return;
@@ -189,7 +189,6 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
         playing: true,
       });
     });
-    this.pc = pc;
   };
 
   private start = (): void => {
@@ -234,23 +233,30 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
 
   private stop = () => {
     this.setState({ stopping: true });
-    this.stopInner().finally(() => {
-      this.setState({
-        stopping: false,
-        stream: null,
+    this.stopInner()
+      .catch((error) => this.setState({ error }))
+      .finally(() => {
+        this.setState({
+          stopping: false,
+          stream: null,
+        });
       });
-    });
   };
 
-  public componentDidUpdate() {
+  // @ts-ignore  // TODO: Fix the base class definition
+  public componentDidUpdate(prevProps: ComponentProps) {
     if (this.pc == null) {
       return;
     }
     const pc = this.pc;
     if (pc.remoteDescription == null) {
       const sdpAnswerJson = this.props.args["sdp_answer_json"];
-      if (sdpAnswerJson) {
-        this.processAnswer(pc, sdpAnswerJson);
+      const prevSdpAnswerJson = prevProps.args["sdp_answer_json"];
+      const sdpAnswerJsonChanged = sdpAnswerJson !== prevSdpAnswerJson;
+      if (sdpAnswerJsonChanged) {
+        if (sdpAnswerJson && this.state.signaling) {
+          this.processAnswer(pc, sdpAnswerJson);
+        }
       }
     }
   }
