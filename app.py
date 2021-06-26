@@ -553,7 +553,7 @@ def app_streaming():
         video_processor_factory=OpenCVVideoProcessor,
     )
 
-    if webrtc_ctx.video_processor:
+    if media_file_info["type"] == "video" and webrtc_ctx.video_processor:
         webrtc_ctx.video_processor.type = st.radio(
             "Select transform type", ("noop", "cartoon", "edges", "rotate")
         )
