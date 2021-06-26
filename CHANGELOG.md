@@ -4,8 +4,12 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Add
 - Add `desired_playing_state` argument to control the playing state programatically, #266.
+
+## [0.22.3] - 2021-06-26
 ### Fix
 - Fix frontend to handle errors from promises properly, #267.
+- Fix to stop `AsyncMediaProcessTrack` when its input track stops, #269.
+  - A bug introduced in v0.22.2 (#268) has been fixed.
 
 ## [0.22.2] - 2021-06-26
 ### Fix
