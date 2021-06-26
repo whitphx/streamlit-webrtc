@@ -96,17 +96,16 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     const sdpAnswer = JSON.parse(sdpAnswerJson);
     console.log("Receive answer sdpOffer", sdpAnswer);
     await pc.setRemoteDescription(sdpAnswer);
+    console.log("Remote description is set");
   };
 
   private processAnswer = (
     pc: RTCPeerConnection,
     sdpAnswerJson: string
   ): void => {
-    this.processAnswerInner(pc, sdpAnswerJson)
-      .then(() => {
-        console.log("Remote description is set");
-      })
-      .finally(() => this.setState({ signaling: false }));
+    this.processAnswerInner(pc, sdpAnswerJson).finally(() =>
+      this.setState({ signaling: false })
+    );
   };
 
   private startInner = async () => {
@@ -242,15 +241,20 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     });
   };
 
-  public componentDidUpdate() {
+  // @ts-ignore  // TODO: Fix the base class definition
+  public componentDidUpdate(prevProps: ComponentProps) {
     if (this.pc == null) {
       return;
     }
     const pc = this.pc;
     if (pc.remoteDescription == null) {
       const sdpAnswerJson = this.props.args["sdp_answer_json"];
-      if (sdpAnswerJson) {
-        this.processAnswer(pc, sdpAnswerJson);
+      const prevSdpAnswerJson = prevProps.args["sdp_answer_json"];
+      const sdpAnswerJsonChanged = sdpAnswerJson !== prevSdpAnswerJson;
+      if (sdpAnswerJsonChanged) {
+        if (sdpAnswerJson && this.state.signaling) {
+          this.processAnswer(pc, sdpAnswerJson);
+        }
       }
     }
   }
