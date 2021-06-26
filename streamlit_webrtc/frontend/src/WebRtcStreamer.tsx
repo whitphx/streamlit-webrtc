@@ -233,12 +233,14 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
 
   private stop = () => {
     this.setState({ stopping: true });
-    this.stopInner().finally(() => {
-      this.setState({
-        stopping: false,
-        stream: null,
+    this.stopInner()
+      .catch((error) => this.setState({ error }))
+      .finally(() => {
+        this.setState({
+          stopping: false,
+          stream: null,
+        });
       });
-    });
   };
 
   // @ts-ignore  // TODO: Fix the base class definition
