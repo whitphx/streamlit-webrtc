@@ -86,3 +86,32 @@ class MediaStreamConstraints(TypedDict, total=False):
     audio: Union[bool, MediaTrackConstraints]
     video: Union[bool, MediaTrackConstraints]
     peerIdentity: str
+
+
+# Ref: https://github.com/DefinitelyTyped/DefinitelyTyped/blob/2563cecd0398fd9337b2806059446fb9d29abec2/types/react/index.d.ts#L2235  # noqa
+class MediaHTMLAttributes(TypedDict, total=False):
+    autoPlay: bool
+    controls: bool
+    controlsList: str
+    crossOrigin: str
+    loop: bool
+    mediaGroup: str
+    muted: bool
+    playsInline: bool
+    preload: str
+    # src: str  # src is controlled by streamlit-webrtc
+
+
+# Ref: https://github.com/DefinitelyTyped/DefinitelyTyped/blob/2563cecd0398fd9337b2806059446fb9d29abec2/types/react/index.d.ts#L2421  # noqa
+class VideoHTMLAttributes(MediaHTMLAttributes, total=False):
+    height: Union[Number, str]
+    playsInline: bool
+    poster: str
+    width: Union[Number, str]
+    disablePictureInPicture: bool
+    disableRemotePlayback: bool
+
+
+# Ref: https://github.com/DefinitelyTyped/DefinitelyTyped/blob/2563cecd0398fd9337b2806059446fb9d29abec2/types/react/index.d.ts#L2016  # noqa
+class AudioHTMLAttributes(MediaHTMLAttributes, total=False):
+    pass
