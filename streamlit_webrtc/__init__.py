@@ -292,6 +292,13 @@ def webrtc_streamer(
             }
         )
 
+    if input:
+        desired_playing_state = input.state.playing
+        LOGGER.debug(
+            "Set desired_playing_state due to the input playing state: %s",
+            desired_playing_state,
+        )
+
     component_value: Union[Dict, None] = _component_func(
         key=key,
         sdp_answer_json=sdp_answer_json,
