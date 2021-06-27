@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fix
+- Fix to call super methods from the frontend component to adjust iframe height propery, #273.
+
 ## [0.23.0] - 2021-06-27
 ### Add
 - Add `desired_playing_state` argument to control the playing state programatically, #266.
