@@ -1,5 +1,4 @@
 import {
-  Streamlit,
   StreamlitComponentBase,
   withStreamlitConnection,
   ComponentProps,
@@ -13,6 +12,7 @@ import ThemeProvider from "./ThemeProvider";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
 import { compileMediaConstraints, getMediaUsage } from "./media-constraint";
+import { setComponentValue } from "./component-value";
 
 type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -108,7 +108,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
           clearTimeout(this.signallingTimer);
         }
         this.setState({ webRtcState: "PLAYING" }, () => {
-          Streamlit.setComponentValue({
+          setComponentValue({
             sdpOffer: null,
             playing: true,
             signalling: false,
@@ -134,7 +134,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
         error: null,
       },
       () => {
-        Streamlit.setComponentValue({
+        setComponentValue({
           sdpOffer: null,
           playing: false,
           signalling: true,
@@ -205,7 +205,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       }
 
       console.log("Send sdpOffer", offer.toJSON());
-      Streamlit.setComponentValue({
+      setComponentValue({
         sdpOffer: offer.toJSON(),
         playing: true,
         signalling: true,
@@ -225,7 +225,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
 
     this.startInner().catch((error) =>
       this.setState({ webRtcState: "STOPPED", error }, () => {
-        Streamlit.setComponentValue({
+        setComponentValue({
           sdpOffer: null,
           playing: false,
           signalling: false,
@@ -238,7 +238,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     const pc = this.pc;
     this.pc = undefined;
     this.setState({ webRtcState: "STOPPING" }, () =>
-      Streamlit.setComponentValue({
+      setComponentValue({
         sdpOffer: null,
         playing: false,
         signalling: false,
@@ -278,7 +278,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     }
 
     this.setState({ webRtcState: "STOPPING" }, () => {
-      Streamlit.setComponentValue({
+      setComponentValue({
         sdpOffer: null,
         playing: false,
         signalling: false,
@@ -293,7 +293,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
             stream: null,
           },
           () => {
-            Streamlit.setComponentValue({
+            setComponentValue({
               sdpOffer: null,
               playing: false,
               signalling: false,
