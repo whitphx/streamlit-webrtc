@@ -188,6 +188,10 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   };
 
   private start = (): void => {
+    if (this.state.webRtcState !== "STOPPED") {
+      return;
+    }
+
     this.startInner().catch((error) =>
       this.setState({ webRtcState: "STOPPED", error })
     );
@@ -228,6 +232,10 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   };
 
   private stop = () => {
+    if (this.state.webRtcState === "STOPPING") {
+      return;
+    }
+
     this.setState({ webRtcState: "STOPPING" });
     this.stopInner()
       .catch((error) => this.setState({ error }))
