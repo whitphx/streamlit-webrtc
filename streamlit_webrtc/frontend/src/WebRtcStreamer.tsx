@@ -62,20 +62,25 @@ type WebRtcState = "STOPPED" | "SIGNALLING" | "PLAYING" | "STOPPING";
 
 interface State {
   webRtcState: WebRtcState;
+  signallingTimedOut: boolean;
   videoInput: MediaDeviceInfo | null;
   audioInput: MediaDeviceInfo | null;
   stream: MediaStream | null;
   error: Error | null;
 }
 
+const SIGNALLING_TIMEOUT = 10 * 1000;
+
 class WebRtcStreamer extends StreamlitComponentBase<State> {
   private pc: RTCPeerConnection | undefined;
+  private signallingTimer: NodeJS.Timeout | undefined;
 
   constructor(props: ComponentProps) {
     super(props);
 
     this.state = {
       webRtcState: "STOPPED",
+      signallingTimedOut: false,
       videoInput: null,
       audioInput: null,
       stream: null,
@@ -98,7 +103,12 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     sdpAnswerJson: string
   ): void => {
     this.processAnswerInner(pc, sdpAnswerJson)
-      .then(() => this.setState({ webRtcState: "PLAYING" }))
+      .then(() => {
+        if (this.signallingTimer) {
+          clearTimeout(this.signallingTimer);
+        }
+        this.setState({ webRtcState: "PLAYING" });
+      })
       .catch((error) => {
         this.setState({ error });
         this.stop();
@@ -191,6 +201,11 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     if (this.state.webRtcState !== "STOPPED") {
       return;
     }
+
+    this.setState({ signallingTimedOut: false });
+    this.signallingTimer = setTimeout(() => {
+      this.setState({ signallingTimedOut: true });
+    }, SIGNALLING_TIMEOUT);
 
     this.startInner().catch((error) =>
       this.setState({ webRtcState: "STOPPED", error })
@@ -304,7 +319,9 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     const desiredPlayingState = this.props.args["desired_playing_state"];
     const buttonDisabled =
       this.props.disabled ||
-      this.state.webRtcState === "STOPPING" || // TODO: Allow to click the stop button?
+      (this.state.webRtcState === "SIGNALLING" &&
+        !this.state.signallingTimedOut) || // Users can click the stop button after signalling timed out.
+      this.state.webRtcState === "STOPPING" ||
       desiredPlayingState != null;
     const mode = this.props.args["mode"];
     const { videoEnabled, audioEnabled } = getMediaUsage(
