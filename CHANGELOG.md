@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.23.1] - 2021-06-27
 ### Fix
 - Fix to call super methods from the frontend component to adjust iframe height propery, #273.
 
