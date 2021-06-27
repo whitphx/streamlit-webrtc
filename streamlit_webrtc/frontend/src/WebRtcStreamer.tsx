@@ -58,10 +58,10 @@ const setupOffer = (
     });
 };
 
+type WebRtcState = "STOPPED" | "SIGNALLING" | "PLAYING" | "STOPPING";
+
 interface State {
-  signaling: boolean;
-  playing: boolean;
-  stopping: boolean;
+  webRtcState: WebRtcState;
   videoInput: MediaDeviceInfo | null;
   audioInput: MediaDeviceInfo | null;
   stream: MediaStream | null;
@@ -75,9 +75,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     super(props);
 
     this.state = {
-      signaling: false,
-      playing: false,
-      stopping: false,
+      webRtcState: "STOPPED",
       videoInput: null,
       audioInput: null,
       stream: null,
@@ -100,11 +98,11 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     sdpAnswerJson: string
   ): void => {
     this.processAnswerInner(pc, sdpAnswerJson)
+      .then(() => this.setState({ webRtcState: "PLAYING" }))
       .catch((error) => {
         this.setState({ error });
-        return this.stop();
-      })
-      .finally(() => this.setState({ signaling: false }));
+        this.stop();
+      });
   };
 
   private startInner = async () => {
@@ -114,7 +112,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     }
 
     this.setState({
-      signaling: true,
+      webRtcState: "SIGNALLING",
       stream: null,
       error: null,
     });
@@ -171,8 +169,6 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       pc.addTransceiver("audio", { direction: "recvonly" });
     }
 
-    this.setState({ playing: true });
-
     console.log("transceivers", pc.getTransceivers());
 
     this.pc = pc;
@@ -186,26 +182,26 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       console.log("Send sdpOffer", offer.toJSON());
       Streamlit.setComponentValue({
         sdpOffer: offer.toJSON(),
-        playing: true,
+        playing: true, // TODO: Should be "signaling"?
       });
     });
   };
 
   private start = (): void => {
     this.startInner().catch((error) =>
-      this.setState({ signaling: false, error })
+      this.setState({ webRtcState: "STOPPED", error })
     );
   };
 
   private stopInner = async (): Promise<void> => {
     const pc = this.pc;
     this.pc = undefined;
-    this.setState({ playing: false, signaling: false }, () =>
+    this.setState({ webRtcState: "STOPPING" }, () =>
       Streamlit.setComponentValue({ playing: false })
     );
 
     if (pc == null) {
-      return Promise.resolve();
+      return;
     }
 
     // close transceivers
@@ -232,12 +228,12 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   };
 
   private stop = () => {
-    this.setState({ stopping: true });
+    this.setState({ webRtcState: "STOPPING" });
     this.stopInner()
       .catch((error) => this.setState({ error }))
       .finally(() => {
         this.setState({
-          stopping: false,
+          webRtcState: "STOPPED",
           stream: null,
         });
       });
@@ -248,14 +244,13 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     if (desiredPlayingState != null) {
       if (
         desiredPlayingState === true &&
-        !this.state.playing &&
-        !this.state.signaling
+        this.state.webRtcState === "STOPPED"
       ) {
         this.start();
       } else if (
         desiredPlayingState === false &&
-        (this.state.playing || this.state.signaling) &&
-        !this.state.stopping
+        (this.state.webRtcState === "SIGNALLING" ||
+          this.state.webRtcState === "PLAYING")
       ) {
         this.stop();
       }
@@ -283,7 +278,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       const prevSdpAnswerJson = prevProps.args["sdp_answer_json"];
       const sdpAnswerJsonChanged = sdpAnswerJson !== prevSdpAnswerJson;
       if (sdpAnswerJsonChanged) {
-        if (sdpAnswerJson && this.state.signaling) {
+        if (sdpAnswerJson && this.state.webRtcState === "SIGNALLING") {
           this.processAnswer(pc, sdpAnswerJson);
         }
       }
@@ -301,8 +296,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     const desiredPlayingState = this.props.args["desired_playing_state"];
     const buttonDisabled =
       this.props.disabled ||
-      this.state.signaling ||
-      this.state.stopping ||
+      this.state.webRtcState === "STOPPING" || // TODO: Allow to click the stop button?
       desiredPlayingState != null;
     const mode = this.props.args["mode"];
     const { videoEnabled, audioEnabled } = getMediaUsage(
@@ -323,11 +317,16 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
             {this.state.stream ? (
               <MediaStreamPlayer stream={this.state.stream} />
             ) : (
-              receivable && <Placeholder loading={this.state.signaling} />
+              receivable && (
+                <Placeholder
+                  loading={this.state.webRtcState === "SIGNALLING"}
+                />
+              )
             )}
           </Box>
           <Box display="flex" justifyContent="space-between">
-            {this.state.playing ? (
+            {this.state.webRtcState === "PLAYING" ||
+            this.state.webRtcState === "SIGNALLING" ? (
               <Button
                 variant="contained"
                 onClick={this.stop}
