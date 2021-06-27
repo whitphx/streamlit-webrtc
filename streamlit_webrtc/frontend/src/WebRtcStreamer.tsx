@@ -262,11 +262,15 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   };
 
   public componentDidMount() {
+    super.componentDidMount();
+
     this.reconcilePlayingState();
   }
 
   // @ts-ignore  // TODO: Fix the base class definition
   public componentDidUpdate(prevProps: ComponentProps) {
+    super.componentDidUpdate();
+
     this.reconcilePlayingState();
 
     if (this.pc == null) {
