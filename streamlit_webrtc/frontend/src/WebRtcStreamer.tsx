@@ -200,7 +200,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   private stopInner = async (): Promise<void> => {
     const pc = this.pc;
     this.pc = undefined;
-    this.setState({ playing: false }, () =>
+    this.setState({ playing: false, signaling: false }, () =>
       Streamlit.setComponentValue({ playing: false })
     );
 
@@ -254,7 +254,8 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
         this.start();
       } else if (
         desiredPlayingState === false &&
-        (this.state.playing || this.state.signaling)
+        (this.state.playing || this.state.signaling) &&
+        !this.state.stopping
       ) {
         this.stop();
       }
