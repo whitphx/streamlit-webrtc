@@ -1,4 +1,5 @@
 import {
+  Streamlit,
   StreamlitComponentBase,
   withStreamlitConnection,
   ComponentProps,
@@ -12,7 +13,6 @@ import ThemeProvider from "./ThemeProvider";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
 import { compileMediaConstraints, getMediaUsage } from "./media-constraint";
-import { setComponentValue } from "./component-value";
 
 type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -62,6 +62,7 @@ type WebRtcState = "STOPPED" | "SIGNALLING" | "PLAYING" | "STOPPING";
 
 interface State {
   webRtcState: WebRtcState;
+  sdpOffer: RTCSessionDescription | null;
   signallingTimedOut: boolean;
   videoInput: MediaDeviceInfo | null;
   audioInput: MediaDeviceInfo | null;
@@ -80,6 +81,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
 
     this.state = {
       webRtcState: "STOPPED",
+      sdpOffer: null,
       signallingTimedOut: false,
       videoInput: null,
       audioInput: null,
@@ -107,11 +109,9 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
         if (this.signallingTimer) {
           clearTimeout(this.signallingTimer);
         }
-        this.setState({ webRtcState: "PLAYING" }, () => {
-          setComponentValue({
-            sdpOffer: null,
-            playing: true,
-          });
+        this.setState({
+          webRtcState: "PLAYING",
+          sdpOffer: null,
         });
       })
       .catch((error) => {
@@ -126,20 +126,11 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       throw new Error(`Invalid mode ${mode}`);
     }
 
-    this.setState(
-      {
-        webRtcState: "SIGNALLING",
-        stream: null,
-        error: null,
-      }
-      // NOTE: Skip setting the component value here to avoid re-rendering that may be annoying.
-      // () => {
-      //   setComponentValue({
-      //     sdpOffer: null,
-      //     playing: false,
-      //   });
-      // }
-    );
+    this.setState({
+      webRtcState: "SIGNALLING",
+      stream: null,
+      error: null,
+    });
 
     const config: RTCConfiguration =
       this.props.args.settings?.rtc_configuration || {};
@@ -203,10 +194,8 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
         return;
       }
 
-      console.log("Send sdpOffer", offer.toJSON());
-      setComponentValue({
-        sdpOffer: offer.toJSON(),
-        playing: false,
+      this.setState({
+        sdpOffer: offer,
       });
     });
   };
@@ -222,12 +211,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     }, SIGNALLING_TIMEOUT);
 
     this.startInner().catch((error) =>
-      this.setState({ webRtcState: "STOPPED", error }, () => {
-        setComponentValue({
-          sdpOffer: null,
-          playing: false,
-        });
-      })
+      this.setState({ webRtcState: "STOPPED", sdpOffer: null, error })
     );
   };
 
@@ -239,12 +223,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     const pc = this.pc;
     this.pc = undefined;
 
-    this.setState({ webRtcState: "STOPPING" }, () =>
-      setComponentValue({
-        sdpOffer: null,
-        playing: false,
-      })
-    );
+    this.setState({ webRtcState: "STOPPING", sdpOffer: null });
 
     if (pc == null) {
       return;
@@ -277,18 +256,11 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     this.stopInner()
       .catch((error) => this.setState({ error }))
       .finally(() => {
-        this.setState(
-          {
-            webRtcState: "STOPPED",
-            stream: null,
-          },
-          () => {
-            setComponentValue({
-              sdpOffer: null,
-              playing: false,
-            });
-          }
-        );
+        this.setState({
+          webRtcState: "STOPPED",
+          sdpOffer: null,
+          stream: null,
+        });
       });
   };
 
@@ -310,6 +282,30 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     }
   };
 
+  private reconcileComponentValue = (prevState: State) => {
+    if (this.state === prevState) {
+      return;
+    }
+
+    const playing = this.state.webRtcState === "PLAYING";
+    const prevPlaying = prevState.webRtcState === "PLAYING";
+    const playingChanged = playing !== prevPlaying;
+
+    const sdpOffer = this.state.sdpOffer;
+    const prevSdpOffer = prevState.sdpOffer;
+    const sdpOfferChanged = sdpOffer !== prevSdpOffer;
+
+    if (playingChanged || sdpOfferChanged) {
+      if (sdpOffer) {
+        console.log("Send SDP offer", sdpOffer);
+      }
+      Streamlit.setComponentValue({
+        playing,
+        sdpOffer: sdpOffer?.toJSON(),
+      });
+    }
+  };
+
   public componentDidMount() {
     super.componentDidMount();
 
@@ -317,10 +313,12 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   }
 
   // @ts-ignore  // TODO: Fix the base class definition
-  public componentDidUpdate(prevProps: ComponentProps) {
+  public componentDidUpdate(prevProps: ComponentProps, prevState: State) {
     super.componentDidUpdate();
 
     this.reconcilePlayingState();
+
+    this.reconcileComponentValue(prevState);
 
     if (this.pc == null) {
       return;
