@@ -58,26 +58,31 @@ const setupOffer = (
     });
 };
 
+type WebRtcState = "STOPPED" | "SIGNALLING" | "PLAYING" | "STOPPING";
+
 interface State {
-  signaling: boolean;
-  playing: boolean;
-  stopping: boolean;
+  webRtcState: WebRtcState;
+  sdpOffer: RTCSessionDescription | null;
+  signallingTimedOut: boolean;
   videoInput: MediaDeviceInfo | null;
   audioInput: MediaDeviceInfo | null;
   stream: MediaStream | null;
   error: Error | null;
 }
 
+const SIGNALLING_TIMEOUT = 10 * 1000;
+
 class WebRtcStreamer extends StreamlitComponentBase<State> {
   private pc: RTCPeerConnection | undefined;
+  private signallingTimer: NodeJS.Timeout | undefined;
 
   constructor(props: ComponentProps) {
     super(props);
 
     this.state = {
-      signaling: false,
-      playing: false,
-      stopping: false,
+      webRtcState: "STOPPED",
+      sdpOffer: null,
+      signallingTimedOut: false,
       videoInput: null,
       audioInput: null,
       stream: null,
@@ -100,11 +105,19 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     sdpAnswerJson: string
   ): void => {
     this.processAnswerInner(pc, sdpAnswerJson)
+      .then(() => {
+        if (this.signallingTimer) {
+          clearTimeout(this.signallingTimer);
+        }
+        this.setState({
+          webRtcState: "PLAYING",
+          sdpOffer: null,
+        });
+      })
       .catch((error) => {
         this.setState({ error });
-        return this.stop();
-      })
-      .finally(() => this.setState({ signaling: false }));
+        this.stop();
+      });
   };
 
   private startInner = async () => {
@@ -114,7 +127,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     }
 
     this.setState({
-      signaling: true,
+      webRtcState: "SIGNALLING",
       stream: null,
       error: null,
     });
@@ -171,41 +184,48 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       pc.addTransceiver("audio", { direction: "recvonly" });
     }
 
-    this.setState({ playing: true });
-
     console.log("transceivers", pc.getTransceivers());
 
     this.pc = pc;
 
     await setupOffer(pc).then((offer) => {
       if (offer == null) {
-        console.warn("Failed to create an offer SDP");
-        return;
+        throw new Error("Failed to create an offer SDP");
       }
 
-      console.log("Send sdpOffer", offer.toJSON());
-      Streamlit.setComponentValue({
-        sdpOffer: offer.toJSON(),
-        playing: true,
+      this.setState({
+        sdpOffer: offer,
       });
     });
   };
 
   private start = (): void => {
+    if (this.state.webRtcState !== "STOPPED") {
+      return;
+    }
+
+    this.setState({ signallingTimedOut: false });
+    this.signallingTimer = setTimeout(() => {
+      this.setState({ signallingTimedOut: true });
+    }, SIGNALLING_TIMEOUT);
+
     this.startInner().catch((error) =>
-      this.setState({ signaling: false, error })
+      this.setState({ webRtcState: "STOPPED", sdpOffer: null, error })
     );
   };
 
   private stopInner = async (): Promise<void> => {
+    if (this.state.webRtcState === "STOPPING") {
+      return;
+    }
+
     const pc = this.pc;
     this.pc = undefined;
-    this.setState({ playing: false }, () =>
-      Streamlit.setComponentValue({ playing: false })
-    );
+
+    this.setState({ webRtcState: "STOPPING", sdpOffer: null });
 
     if (pc == null) {
-      return Promise.resolve();
+      return;
     }
 
     // close transceivers
@@ -232,12 +252,12 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   };
 
   private stop = () => {
-    this.setState({ stopping: true });
     this.stopInner()
       .catch((error) => this.setState({ error }))
       .finally(() => {
         this.setState({
-          stopping: false,
+          webRtcState: "STOPPED",
+          sdpOffer: null,
           stream: null,
         });
       });
@@ -248,16 +268,40 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     if (desiredPlayingState != null) {
       if (
         desiredPlayingState === true &&
-        !this.state.playing &&
-        !this.state.signaling
+        this.state.webRtcState === "STOPPED"
       ) {
         this.start();
       } else if (
         desiredPlayingState === false &&
-        (this.state.playing || this.state.signaling)
+        (this.state.webRtcState === "SIGNALLING" ||
+          this.state.webRtcState === "PLAYING")
       ) {
         this.stop();
       }
+    }
+  };
+
+  private reconcileComponentValue = (prevState: State) => {
+    if (this.state === prevState) {
+      return;
+    }
+
+    const playing = this.state.webRtcState === "PLAYING";
+    const prevPlaying = prevState.webRtcState === "PLAYING";
+    const playingChanged = playing !== prevPlaying;
+
+    const sdpOffer = this.state.sdpOffer;
+    const prevSdpOffer = prevState.sdpOffer;
+    const sdpOfferChanged = sdpOffer !== prevSdpOffer;
+
+    if (playingChanged || sdpOfferChanged) {
+      if (sdpOffer) {
+        console.log("Send SDP offer", sdpOffer);
+      }
+      Streamlit.setComponentValue({
+        playing,
+        sdpOffer: sdpOffer?.toJSON(),
+      });
     }
   };
 
@@ -268,10 +312,12 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   }
 
   // @ts-ignore  // TODO: Fix the base class definition
-  public componentDidUpdate(prevProps: ComponentProps) {
+  public componentDidUpdate(prevProps: ComponentProps, prevState: State) {
     super.componentDidUpdate();
 
     this.reconcilePlayingState();
+
+    this.reconcileComponentValue(prevState);
 
     if (this.pc == null) {
       return;
@@ -282,7 +328,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       const prevSdpAnswerJson = prevProps.args["sdp_answer_json"];
       const sdpAnswerJsonChanged = sdpAnswerJson !== prevSdpAnswerJson;
       if (sdpAnswerJsonChanged) {
-        if (sdpAnswerJson && this.state.signaling) {
+        if (sdpAnswerJson && this.state.webRtcState === "SIGNALLING") {
           this.processAnswer(pc, sdpAnswerJson);
         }
       }
@@ -300,8 +346,9 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     const desiredPlayingState = this.props.args["desired_playing_state"];
     const buttonDisabled =
       this.props.disabled ||
-      this.state.signaling ||
-      this.state.stopping ||
+      (this.state.webRtcState === "SIGNALLING" &&
+        !this.state.signallingTimedOut) || // Users can click the stop button after signalling timed out.
+      this.state.webRtcState === "STOPPING" ||
       desiredPlayingState != null;
     const mode = this.props.args["mode"];
     const { videoEnabled, audioEnabled } = getMediaUsage(
@@ -322,11 +369,16 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
             {this.state.stream ? (
               <MediaStreamPlayer stream={this.state.stream} />
             ) : (
-              receivable && <Placeholder loading={this.state.signaling} />
+              receivable && (
+                <Placeholder
+                  loading={this.state.webRtcState === "SIGNALLING"}
+                />
+              )
             )}
           </Box>
           <Box display="flex" justifyContent="space-between">
-            {this.state.playing ? (
+            {this.state.webRtcState === "PLAYING" ||
+            this.state.webRtcState === "SIGNALLING" ? (
               <Button
                 variant="contained"
                 onClick={this.stop}

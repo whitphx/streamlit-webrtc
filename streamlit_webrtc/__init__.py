@@ -92,6 +92,7 @@ class ClientSettings(TypedDict, total=False):
 
 class WebRtcStreamerState(NamedTuple):
     playing: bool
+    signalling: bool
 
 
 class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
@@ -288,8 +289,13 @@ def webrtc_streamer(
         playing = component_value.get("playing", False)
         sdp_offer = component_value.get("sdpOffer")
 
-    if webrtc_worker and not playing:
-        LOGGER.debug("Unset the worker because the frontend state is not playing.")
+    signalling = sdp_offer is not None
+
+    if webrtc_worker and not playing and not signalling:
+        LOGGER.debug(
+            "Unset the worker because the frontend state is "
+            "neither playing nor signalling."
+        )
         webrtc_worker.stop()
         _unset_webrtc_worker(key)
         webrtc_worker = None
@@ -319,7 +325,7 @@ def webrtc_streamer(
         st.experimental_rerun()
 
     ctx = WebRtcStreamerContext(
-        state=WebRtcStreamerState(playing=playing),
+        state=WebRtcStreamerState(playing=playing, signalling=signalling),
         worker=webrtc_worker,
     )
 
