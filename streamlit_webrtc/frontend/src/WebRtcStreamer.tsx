@@ -231,8 +231,19 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   };
 
   private stopInner = async (): Promise<void> => {
+    if (this.state.webRtcState === "STOPPING") {
+      return;
+    }
+
     const pc = this.pc;
     this.pc = undefined;
+
+    this.setState({ webRtcState: "STOPPING" }, () =>
+      setComponentValue({
+        sdpOffer: null,
+        playing: false,
+      })
+    );
 
     if (pc == null) {
       return;
@@ -262,16 +273,6 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   };
 
   private stop = () => {
-    if (this.state.webRtcState === "STOPPING") {
-      return;
-    }
-
-    this.setState({ webRtcState: "STOPPING" }, () => {
-      setComponentValue({
-        sdpOffer: null,
-        playing: false,
-      });
-    });
     this.stopInner()
       .catch((error) => this.setState({ error }))
       .finally(() => {
