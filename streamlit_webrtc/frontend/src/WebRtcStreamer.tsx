@@ -233,12 +233,6 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   private stopInner = async (): Promise<void> => {
     const pc = this.pc;
     this.pc = undefined;
-    this.setState({ webRtcState: "STOPPING" }, () =>
-      setComponentValue({
-        sdpOffer: null,
-        playing: false,
-      })
-    );
 
     if (pc == null) {
       return;
