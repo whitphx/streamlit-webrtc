@@ -205,7 +205,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       console.log("Send sdpOffer", offer.toJSON());
       setComponentValue({
         sdpOffer: offer.toJSON(),
-        playing: true,
+        playing: false,
       });
     });
   };
