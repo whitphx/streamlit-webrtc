@@ -111,7 +111,6 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
           setComponentValue({
             sdpOffer: null,
             playing: true,
-            signalling: false,
           });
         });
       })
@@ -137,7 +136,6 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
         setComponentValue({
           sdpOffer: null,
           playing: false,
-          signalling: true,
         });
       }
     );
@@ -208,7 +206,6 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       setComponentValue({
         sdpOffer: offer.toJSON(),
         playing: true,
-        signalling: true,
       });
     });
   };
@@ -228,7 +225,6 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
         setComponentValue({
           sdpOffer: null,
           playing: false,
-          signalling: false,
         });
       })
     );
@@ -241,7 +237,6 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       setComponentValue({
         sdpOffer: null,
         playing: false,
-        signalling: false,
       })
     );
 
@@ -281,7 +276,6 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       setComponentValue({
         sdpOffer: null,
         playing: false,
-        signalling: false,
       });
     });
     this.stopInner()
@@ -296,7 +290,6 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
             setComponentValue({
               sdpOffer: null,
               playing: false,
-              signalling: false,
             });
           }
         );
