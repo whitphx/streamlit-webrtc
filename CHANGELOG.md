@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.23.2] - 2021-06-28
 ### Fix
 - Fix internal state management, #274.
 
