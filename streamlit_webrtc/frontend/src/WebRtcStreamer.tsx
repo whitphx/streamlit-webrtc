@@ -131,13 +131,14 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
         webRtcState: "SIGNALLING",
         stream: null,
         error: null,
-      },
-      () => {
-        setComponentValue({
-          sdpOffer: null,
-          playing: false,
-        });
       }
+      // NOTE: Skip setting the component value here to avoid re-rendering that may be annoying.
+      // () => {
+      //   setComponentValue({
+      //     sdpOffer: null,
+      //     playing: false,
+      //   });
+      // }
     );
 
     const config: RTCConfiguration =
