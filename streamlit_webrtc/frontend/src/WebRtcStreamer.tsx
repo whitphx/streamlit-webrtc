@@ -190,8 +190,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
 
     await setupOffer(pc).then((offer) => {
       if (offer == null) {
-        console.warn("Failed to create an offer SDP");
-        return;
+        throw new Error("Failed to create an offer SDP");
       }
 
       this.setState({
