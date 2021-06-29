@@ -179,7 +179,8 @@ def webrtc_streamer(
     async_processing: bool = True,
     video_receiver_size: int = 4,
     audio_receiver_size: int = 4,
-    input: Optional[WebRtcStreamerContext] = None,
+    source_video_track: Optional[MediaStreamTrack] = None,
+    source_audio_track: Optional[MediaStreamTrack] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -205,7 +206,8 @@ def webrtc_streamer(
     async_processing: bool = True,
     video_receiver_size: int = 4,
     audio_receiver_size: int = 4,
-    input: Optional[WebRtcStreamerContext] = None,
+    source_video_track: Optional[MediaStreamTrack] = None,
+    source_audio_track: Optional[MediaStreamTrack] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -227,7 +229,8 @@ def webrtc_streamer(
     async_processing: bool = True,
     video_receiver_size: int = 4,
     audio_receiver_size: int = 4,
-    input: Optional[WebRtcStreamerContext] = None,
+    source_video_track: Optional[MediaStreamTrack] = None,
+    source_audio_track: Optional[MediaStreamTrack] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -249,7 +252,8 @@ def webrtc_streamer(
     async_processing: bool = True,
     video_receiver_size: int = 4,
     audio_receiver_size: int = 4,
-    input: Optional[WebRtcStreamerContext] = None,
+    source_video_track: Optional[MediaStreamTrack] = None,
+    source_audio_track: Optional[MediaStreamTrack] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -270,7 +274,8 @@ def webrtc_streamer(
     async_processing: bool = True,
     video_receiver_size: int = 4,
     audio_receiver_size: int = 4,
-    input: Optional[WebRtcStreamerContext] = None,
+    source_video_track: Optional[MediaStreamTrack] = None,
+    source_audio_track: Optional[MediaStreamTrack] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory=None,
     async_transform: Optional[bool] = None,
@@ -290,13 +295,6 @@ def webrtc_streamer(
                 "sdp": webrtc_worker.pc.localDescription.sdp,
                 "type": webrtc_worker.pc.localDescription.type,
             }
-        )
-
-    if input:
-        desired_playing_state = input.state.playing
-        LOGGER.debug(
-            "Set desired_playing_state due to the input playing state: %s",
-            desired_playing_state,
         )
 
     component_value: Union[Dict, None] = _component_func(
@@ -349,8 +347,8 @@ def webrtc_streamer(
             async_processing=async_processing,
             video_receiver_size=video_receiver_size,
             audio_receiver_size=audio_receiver_size,
-            source_video_track=input.video_output_track if input else None,
-            source_audio_track=input.audio_output_track if input else None,
+            source_video_track=source_video_track,
+            source_audio_track=source_audio_track,
         )
         webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
         _set_webrtc_worker(key, webrtc_worker)

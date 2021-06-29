@@ -87,7 +87,8 @@ def app():
             },
         ),
         video_processor_factory=OpenCVVideoProcessor,
-        input=ctx,
+        source_video_track=ctx.video_output_track,
+        desired_playing_state=ctx.state.playing,
     )
 
     if filter1_ctx.video_processor:
@@ -110,7 +111,8 @@ def app():
             },
         ),
         video_processor_factory=OpenCVVideoProcessor,
-        input=ctx,
+        source_video_track=ctx.video_output_track,
+        desired_playing_state=ctx.state.playing,
     )
     if filter2_ctx.video_processor:
         filter2_ctx.video_processor.type = st.radio(
