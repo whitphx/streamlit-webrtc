@@ -52,8 +52,8 @@ async def gather_frames_coro(muxer: "MediaStreamTrackMuxer"):
                 if track.id == item.source_track_obj_id:
                     source_track = track
             if source_track is None:
-                LOGGER.error("Source track not found")
-                return
+                LOGGER.warning("Source track not found")
+                continue
 
             frame = item.frame
             latest_frames_map[source_track] = frame
