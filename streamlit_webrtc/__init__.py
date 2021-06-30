@@ -291,10 +291,15 @@ def webrtc_streamer(
 
     signalling = sdp_offer is not None
 
-    if webrtc_worker and not playing and not signalling:
+    # NOTE: Sometimes component_value can be None even if the frontend component
+    #       has already been rendered and started working.
+    #       Such cases should be ignored, then here `component_value`
+    #       is checked in the if-clause.
+    if component_value and webrtc_worker and not playing and not signalling:
         LOGGER.debug(
             "Unset the worker because the frontend state is "
-            "neither playing nor signalling."
+            'neither playing nor signalling (key="%s").',
+            key,
         )
         webrtc_worker.stop()
         _unset_webrtc_worker(key)
@@ -304,7 +309,9 @@ def webrtc_streamer(
 
     if not webrtc_worker and sdp_offer:
         LOGGER.debug(
-            "No worker exists though the offer SDP is set. Create a new worker."
+            "No worker exists though the offer SDP is set. "
+            'Create a new worker (key="%s").',
+            key,
         )
         loop = get_server_event_loop()
         webrtc_worker = WebRtcWorker(
