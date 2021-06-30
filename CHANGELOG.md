@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.23.3] - 2021-06-30
 ### Fix
 - Fix internal code on signalling, #278.
 
