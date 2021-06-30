@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import logging.handlers
 import queue
 import threading
 import urllib.request
