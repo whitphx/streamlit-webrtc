@@ -84,6 +84,9 @@ class MediaStreamTrackMuxer(MediaStreamTrack):
     _latest_frames: List[Frame]
     _mux_control_queue: asyncio.Queue
 
+    _gather_frames_task: Union[asyncio.Task, None]
+    _mux_task: Union[asyncio.Task, None]
+
     def __init__(self, kind: str) -> None:
         if not self.kind:
             raise NotImplementedError("kind must be set")
@@ -106,13 +109,16 @@ class MediaStreamTrackMuxer(MediaStreamTrack):
 
             self._loop = loop
 
-            self._start()
+            self._gather_frames_task = None
+            self._mux_task = None
 
     def _start(self):
-        self._gather_frames_task = self._loop.create_task(
-            gather_frames_coro(muxer=self)
-        )
-        self._mux_task = self._loop.create_task(mux_coro(muxer=self))
+        if not self._gather_frames_task:
+            self._gather_frames_task = self._loop.create_task(
+                gather_frames_coro(muxer=self)
+            )
+        if not self._mux_task:
+            self._mux_task = self._loop.create_task(mux_coro(muxer=self))
 
     def add_input_track(self, input_track: MediaStreamTrack) -> None:
         LOGGER.debug("Add a track %s to %s", input_track, self)
@@ -148,6 +154,8 @@ class MediaStreamTrackMuxer(MediaStreamTrack):
     async def recv(self):
         if self.readyState != "live":
             raise MediaStreamError
+
+        self._start()
 
         frame = await self._queue.get()
         if frame is None:
