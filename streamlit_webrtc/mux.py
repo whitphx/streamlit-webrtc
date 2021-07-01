@@ -4,13 +4,16 @@ import functools
 import logging
 import threading
 import weakref
+from collections import OrderedDict
 from typing import List, NamedTuple, Optional, Union
 
 import av
 from aiortc import MediaStreamTrack
+from aiortc.contrib.media import RelayStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
 from .eventloop import get_server_event_loop, loop_context
+from .relay import get_relay
 
 LOGGER = logging.getLogger(__name__)
 
@@ -47,10 +50,10 @@ async def gather_frames_coro(muxer: "MediaStreamTrackMuxer"):
             return
 
         source_track = None
-        with muxer._input_tracks_lock:
-            for track in muxer._input_tracks:
-                if track.id == item.source_track_obj_id:
-                    source_track = track
+        with muxer._input_proxies_lock:
+            for proxy in muxer._input_proxies.values():
+                if proxy.id == item.source_track_obj_id:
+                    source_track = proxy
             if source_track is None:
                 LOGGER.warning("Source track not found")
                 continue
@@ -59,9 +62,9 @@ async def gather_frames_coro(muxer: "MediaStreamTrackMuxer"):
             latest_frames_map[source_track] = frame
 
             latest_frames = [
-                latest_frames_map.get(track)
-                for track in muxer._input_tracks
-                if track.readyState == "live"
+                latest_frames_map.get(proxy)
+                for proxy in muxer._input_proxies.values()
+                if proxy.readyState == "live"
             ]
             muxer._set_latest_frames(latest_frames)
 
@@ -77,8 +80,8 @@ class MediaStreamTrackMuxer(MediaStreamTrack):
     kind: str
 
     _loop: asyncio.AbstractEventLoop
-    _input_tracks_lock: threading.Lock
-    _input_tracks: List[MediaStreamTrack]
+    _input_proxies_lock: threading.Lock
+    _input_proxies: "OrderedDict[MediaStreamTrack, RelayStreamTrack]"
     _input_queue: asyncio.Queue
     _queue: asyncio.Queue
     _latest_frames: List[Frame]
@@ -97,13 +100,12 @@ class MediaStreamTrackMuxer(MediaStreamTrack):
             super().__init__()
             self._queue: asyncio.Queue[Optional[av.Frame]] = asyncio.Queue()
 
-            self._input_tracks = []
-            self._input_tracks_lock = threading.Lock()
+            self._input_proxies = OrderedDict()
+            self._input_proxies_lock = threading.Lock()
 
             self._input_queue = asyncio.Queue()
 
             self._latest_frames = []
-            # self._latest_frames_lock = threading.Lock()
 
             self._mux_control_queue = asyncio.Queue()
 
@@ -122,20 +124,27 @@ class MediaStreamTrackMuxer(MediaStreamTrack):
 
     def add_input_track(self, input_track: MediaStreamTrack) -> None:
         LOGGER.debug("Add a track %s to %s", input_track, self)
-        with self._input_tracks_lock:
-            if input_track in self._input_tracks:
+
+        with self._input_proxies_lock:
+            if input_track in self._input_proxies:
                 return
-            self._input_tracks.append(input_track)
-            self._loop.create_task(
-                input_track_coro(input_track=input_track, queue=self._input_queue)
-            )
 
-        input_track.on("ended")(functools.partial(self.remove_input_track, input_track))
+            relay = get_relay(self._loop)
+            with loop_context(self._loop):
+                input_proxy = relay.subscribe(input_track)
 
-    def remove_input_track(self, input_track: MediaStreamTrack) -> None:
-        LOGGER.debug("Remove a track %s from %s", input_track, self)
-        with self._input_tracks_lock:
-            self._input_tracks.remove(input_track)
+            self._input_proxies[input_track] = input_proxy
+
+        self._loop.create_task(
+            input_track_coro(input_track=input_proxy, queue=self._input_queue)
+        )
+
+        input_proxy.on("ended")(functools.partial(self.remove_input_proxy, input_proxy))
+
+    def remove_input_proxy(self, input_proxy: RelayStreamTrack) -> None:
+        LOGGER.debug("Remove a relay track %s from %s", input_proxy, self)
+        with self._input_proxies_lock:
+            self._input_proxies.popitem(input_proxy)
 
     def _set_latest_frames(self, latest_frames: List[Frame]):
         # with self._latest_frames_lock:
