@@ -236,16 +236,6 @@ async def _process_offer(
                                 track=in_audio_stream_track, processor=audio_processor
                             )
                             logger.info("Add the audio track with processor to %s", pc)
-
-                            @output_track.on("ended")
-                            async def on_ended():
-                                logger.info(
-                                    "Track %s ended. Stop its input track %s",
-                                    output_track.kind,
-                                    in_audio_stream_track,
-                                )
-                                in_audio_stream_track.stop()
-
                         else:
                             output_track = in_audio_stream_track  # passthrough
                 elif t.kind == "video":
@@ -266,16 +256,6 @@ async def _process_offer(
                                 track=in_video_stream_track, processor=video_processor
                             )
                             logger.info("Add the video track with processor to %s", pc)
-
-                            @output_track.on("ended")
-                            async def on_ended():
-                                logger.info(
-                                    "Track %s ended. Stop its input track %s",
-                                    output_track.kind,
-                                    in_video_stream_track,
-                                )
-                                in_video_stream_track.stop()
-
                         else:
                             output_track = in_video_stream_track  # passthrough
 
