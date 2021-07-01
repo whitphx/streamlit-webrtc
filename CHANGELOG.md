@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fix
+- Internal fix about event loop management, #282.
+
 ## [0.23.3] - 2021-06-30
 ### Fix
 - Fix internal code on signalling, #278.
