@@ -135,22 +135,29 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         stop_timeout: Optional[float] = None,
     ):
         super().__init__()  # don't forget this!
+
         self.track = track
         self.processor: ProcessorT = processor
+
+        self._last_out_frame: Union[FrameT, None] = None
+
+        self.stop_timeout = stop_timeout
+
+        self._thread = None
+
+    def _start(self):
+        if self._thread:
+            return
+
+        self._in_queue: queue.Queue = queue.Queue()
+        self._out_lock = threading.Lock()
+        self._out_deque: deque = deque([])
 
         self._thread = threading.Thread(
             target=self._run_worker_thread,
             name=f"async_media_processor_{next(media_processing_thread_id_generator)}",
         )
-        self._in_queue: queue.Queue = queue.Queue()
-
-        self._out_lock = threading.Lock()
-        self._out_deque: deque = deque([])
-        self._last_out_frame: Union[FrameT, None] = None
-
         self._thread.start()
-
-        self.stop_timeout = stop_timeout
 
         @self.track.on("ended")
         def on_input_track_ended():
@@ -267,6 +274,8 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self._thread.join(self.stop_timeout)
 
     async def recv(self):
+        self._start()
+
         frame = await self.track.recv()
         self._in_queue.put(frame)
 
