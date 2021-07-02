@@ -275,13 +275,22 @@ def webrtc_streamer(
             }
         )
 
-    component_value: Union[Dict, None] = _component_func(
+    component_value_raw: Union[Dict, str, None] = _component_func(
         key=key,
         sdp_answer_json=sdp_answer_json,
         mode=mode.name,
         settings=client_settings,
         desired_playing_state=desired_playing_state,
     )
+    # HOTFIX: The return value from _component_func()
+    #         is of type str with streamlit==0.84.0.
+    # See https://github.com/whitphx/streamlit-webrtc/issues/287
+    component_value: Union[Dict, None]
+    if isinstance(component_value_raw, str):
+        LOGGER.warning("The component value is of type str")
+        component_value = json.loads(component_value_raw)
+    else:
+        component_value = component_value_raw
 
     playing = False
     sdp_offer = None
