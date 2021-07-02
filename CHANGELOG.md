@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Fix
 - Internal fix about event loop management, #282.
+- Hotfix for marshalling the component value, #290.
 
 ## [0.23.3] - 2021-06-30
 ### Fix
