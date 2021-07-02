@@ -317,12 +317,12 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         return self._audio_receiver
 
     @property
-    def video_output_track(self) -> Optional[MediaStreamTrack]:
-        return self._video_output_track
+    def output_video_track(self) -> Optional[MediaStreamTrack]:
+        return self._output_video_track
 
     @property
-    def audio_output_track(self) -> Optional[MediaStreamTrack]:
-        return self._audio_output_track
+    def output_audio_track(self) -> Optional[MediaStreamTrack]:
+        return self._output_audio_track
 
     def __init__(
         self,
@@ -364,8 +364,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._audio_processor = None
         self._video_receiver = None
         self._audio_receiver = None
-        self._video_output_track = None
-        self._audio_output_track = None
+        self._output_video_track = None
+        self._output_audio_track = None
 
     def _run_webrtc_thread(
         self,
@@ -400,9 +400,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         def on_track_created(track_type: TrackType, track: MediaStreamTrack):
             if track_type == "output:video":
-                self._video_output_track = track
+                self._output_video_track = track
             elif track_type == "output:audio":
-                self._audio_output_track = track
+                self._output_audio_track = track
 
         video_processor = None
         if self.video_processor_factory:

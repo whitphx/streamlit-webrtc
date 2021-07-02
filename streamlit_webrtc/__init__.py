@@ -155,14 +155,14 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         return worker.audio_receiver if worker else None
 
     @property
-    def video_output_track(self) -> Optional[MediaStreamTrack]:
+    def output_video_track(self) -> Optional[MediaStreamTrack]:
         worker = self._get_worker()
-        return worker.video_output_track if worker else None
+        return worker.output_video_track if worker else None
 
     @property
-    def audio_output_track(self) -> Optional[MediaStreamTrack]:
+    def output_audio_track(self) -> Optional[MediaStreamTrack]:
         worker = self._get_worker()
-        return worker.audio_output_track if worker else None
+        return worker.output_audio_track if worker else None
 
 
 @overload

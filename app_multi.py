@@ -87,7 +87,7 @@ def app():
             },
         ),
         video_processor_factory=OpenCVVideoProcessor,
-        source_video_track=ctx.video_output_track,
+        source_video_track=ctx.output_video_track,
         desired_playing_state=ctx.state.playing,
     )
 
@@ -111,7 +111,7 @@ def app():
             },
         ),
         video_processor_factory=OpenCVVideoProcessor,
-        source_video_track=ctx.video_output_track,
+        source_video_track=ctx.output_video_track,
         desired_playing_state=ctx.state.playing,
     )
     if filter2_ctx.video_processor:
