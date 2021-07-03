@@ -21,33 +21,32 @@ LOGGER = logging.getLogger(__name__)
 Frame = Union[av.VideoFrame, av.AudioFrame]
 
 
-class FrameMuxerBase(abc.ABC):
+class MuxerBase(abc.ABC):
     @abc.abstractmethod
     def on_update(self, frames: List[Frame]) -> Frame:
         pass
 
 
 class InputQueieItem(NamedTuple):
-    source_track_obj_id: int
+    source_track_id: int
     frame: Optional[Frame]
 
 
 async def input_track_coro(input_track: MediaStreamTrack, queue: asyncio.Queue):
-    source_track_obj_id = input_track.id
+    source_track_id = input_track.id
     while True:
         try:
             frame = await input_track.recv()
         except MediaStreamError:
             frame = None
-        queue.put_nowait(
-            InputQueieItem(source_track_obj_id=source_track_obj_id, frame=frame)
-        )
+        queue.put_nowait(InputQueieItem(source_track_id=source_track_id, frame=frame))
         if frame is None:
             break
 
 
 async def gather_frames_coro(mux_track: "MediaStreamMuxTrack"):
     latest_frames_map: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
+    # TODO: Remove dead items in the map regardless of weakref
 
     while True:
         try:
@@ -58,7 +57,7 @@ async def gather_frames_coro(mux_track: "MediaStreamMuxTrack"):
         source_track = None
         with mux_track._input_proxies_lock:
             for proxy in mux_track._input_proxies.values():
-                if proxy.id == item.source_track_obj_id:
+                if proxy.id == item.source_track_id:
                     source_track = proxy
             if source_track is None:
                 LOGGER.warning("Source track not found")
@@ -72,7 +71,8 @@ async def gather_frames_coro(mux_track: "MediaStreamMuxTrack"):
                 for proxy in mux_track._input_proxies.values()
                 if proxy.readyState == "live"
             ]
-            mux_track._set_latest_frames(latest_frames)
+
+        mux_track._set_latest_frames(latest_frames)
 
 
 async def mux_coro(mux_track: "MediaStreamMuxTrack"):
@@ -86,10 +86,10 @@ async def mux_coro(mux_track: "MediaStreamMuxTrack"):
 
 class MediaStreamMuxTrack(MediaStreamTrack):
     kind: str
-    muxer: FrameMuxerBase
+    muxer: MuxerBase
 
     _loop: asyncio.AbstractEventLoop
-    _input_proxies_lock: threading.Lock
+    _input_proxies_lock: threading.Lock  # TODO: asyncio.Lock()?
     _input_proxies: "OrderedDict[MediaStreamTrack, RelayStreamTrack]"
     _input_queue: asyncio.Queue
     _queue: asyncio.Queue
@@ -99,7 +99,7 @@ class MediaStreamMuxTrack(MediaStreamTrack):
     _gather_frames_task: Union[asyncio.Task, None]
     _mux_task: Union[asyncio.Task, None]
 
-    def __init__(self, kind: str, muxer: FrameMuxerBase) -> None:
+    def __init__(self, kind: str, muxer: MuxerBase) -> None:
         self.kind = kind
         self.muxer = muxer
 
@@ -156,12 +156,13 @@ class MediaStreamMuxTrack(MediaStreamTrack):
             self._input_proxies.popitem(input_proxy)
 
     def _set_latest_frames(self, latest_frames: List[Frame]):
-        # with self._latest_frames_lock:
+        # TODO: Lock here to make these 2 lines atomic
         if self._mux_control_queue.qsize() == 0:
             self._mux_control_queue.put_nowait(True)
         self._latest_frames = latest_frames
 
     async def _get_latest_frames(self) -> List[Frame]:
+        # TODO: Lock here to make these 2 lines atomic
         await self._mux_control_queue.get()
         return self._latest_frames
 

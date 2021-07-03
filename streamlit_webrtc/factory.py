@@ -1,6 +1,6 @@
 from typing import Callable, Generic, Hashable, TypeVar, overload
 
-from streamlit_webrtc.mux import FrameMuxerBase, MediaStreamMuxTrack
+from streamlit_webrtc.mux import MediaStreamMuxTrack, MuxerBase
 
 try:
     from typing import Literal
@@ -126,7 +126,7 @@ def create_process_track(
 @st.cache(hash_funcs={ObjectHashWrapper: lambda o: o.hash})
 def _inner_create_mux_track(
     kind: str,
-    wrapped_muxer_factory: ObjectHashWrapper[Callable[[], FrameMuxerBase]],
+    wrapped_muxer_factory: ObjectHashWrapper[Callable[[], MuxerBase]],
     key: str,
     session_id: str,
 ) -> ObjectHashWrapper[MediaStreamMuxTrack]:
@@ -138,7 +138,7 @@ def _inner_create_mux_track(
 
 
 def create_mux_track(
-    kind: str, muxer_factory: Callable[[], FrameMuxerBase], key: str
+    kind: str, muxer_factory: Callable[[], MuxerBase], key: str
 ) -> MediaStreamMuxTrack:
     wrapped_muxer_factory = ObjectHashWrapper(muxer_factory, id(muxer_factory))
     ctx = ReportThread.get_report_ctx()
