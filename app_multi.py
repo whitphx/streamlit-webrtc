@@ -19,8 +19,8 @@ from streamlit_webrtc import (
     WebRtcMode,
     webrtc_streamer,
 )
-from streamlit_webrtc.factory import create_process_track
-from streamlit_webrtc.mux import FrameMuxerBase, MediaStreamMuxTrack
+from streamlit_webrtc.factory import create_mux_track, create_process_track
+from streamlit_webrtc.mux import FrameMuxerBase
 
 logger = logging.getLogger(__name__)
 
@@ -212,6 +212,7 @@ def n_to_1():
         video_processor_factory=None,  # NoOp
     )
 
+    mux_track = create_mux_track(kind="video", muxer_factory=SliceMuxer, key="mux")
     mux_ctx = webrtc_streamer(
         key="mux",
         mode=WebRtcMode.RECVONLY,
@@ -224,7 +225,7 @@ def n_to_1():
                 "audio": True,
             },
         ),
-        source_video_track=MediaStreamMuxTrack(kind="video", muxer=SliceMuxer()),
+        source_video_track=mux_track,
     )
 
     if mux_ctx.source_video_track:

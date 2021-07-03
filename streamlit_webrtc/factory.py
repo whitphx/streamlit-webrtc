@@ -1,5 +1,7 @@
 from typing import Callable, Generic, Hashable, TypeVar, overload
 
+from streamlit_webrtc.mux import FrameMuxerBase, MediaStreamMuxTrack
+
 try:
     from typing import Literal
 except ImportError:
@@ -111,5 +113,29 @@ def create_process_track(
     wrapped_processor_factory = ObjectHashWrapper(processor_factory, None)
     wrapped_output_track = _inner_create_process_track(
         wrapped_input_track, wrapped_processor_factory, async_processing
+    )
+    return wrapped_output_track.obj
+
+
+# TODO: Be session-specific
+@st.cache(hash_funcs={ObjectHashWrapper: lambda o: o.hash})
+def _inner_create_mux_track(
+    kind: str,
+    wrapped_muxer_factory: ObjectHashWrapper[Callable[[], FrameMuxerBase]],
+    key: str,
+) -> ObjectHashWrapper[MediaStreamMuxTrack]:
+    muxer_factory = wrapped_muxer_factory.obj
+    muxer = muxer_factory()
+
+    output_track = MediaStreamMuxTrack(kind=kind, muxer=muxer)
+    return ObjectHashWrapper(output_track, output_track.id)
+
+
+def create_mux_track(
+    kind: str, muxer_factory: Callable[[], FrameMuxerBase], key: str
+) -> MediaStreamMuxTrack:
+    wrapped_muxer_factory = ObjectHashWrapper(muxer_factory, id(muxer_factory))
+    wrapped_output_track = _inner_create_mux_track(
+        kind=kind, wrapped_muxer_factory=wrapped_muxer_factory, key=key
     )
     return wrapped_output_track.obj
