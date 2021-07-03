@@ -1,4 +1,9 @@
-from typing import Callable, Generic, Hashable, TypeVar
+from typing import Callable, Generic, Hashable, TypeVar, overload
+
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal  # type: ignore
 
 import streamlit as st
 from aiortc import MediaStreamTrack
@@ -8,7 +13,11 @@ from .process import (
     AsyncAudioProcessTrack,
     AsyncMediaProcessTrack,
     AsyncVideoProcessTrack,
+    AudioProcessorBase,
+    AudioProcessTrack,
     ProcessorT,
+    VideoProcessorBase,
+    VideoProcessTrack,
 )
 from .relay import get_relay
 
@@ -27,17 +36,24 @@ class ObjectHashWrapper(Generic[HashedObjT]):
 def _inner_create_process_track(
     wrapped_input_track: ObjectHashWrapper[MediaStreamTrack],
     wrapped_processor_factory: ObjectHashWrapper[Callable[[], ProcessorT]],
+    async_processing: bool,
 ) -> ObjectHashWrapper[AsyncMediaProcessTrack]:
     input_track = wrapped_input_track.obj
     processor_factory = wrapped_processor_factory.obj
 
     processor = processor_factory()
 
+    Track: MediaStreamTrack
     if input_track.kind == "video":
-        Track = AsyncVideoProcessTrack
+        if async_processing:
+            Track = AsyncVideoProcessTrack
+        else:
+            Track = VideoProcessTrack
     elif input_track.kind == "audio":
-        # TODO: type checking
-        Track = AsyncAudioProcessTrack  # type: ignore
+        if async_processing:
+            Track = AsyncAudioProcessTrack
+        else:
+            Track = AudioProcessTrack
     else:
         raise ValueError(f"Unsupported track type: {input_track.kind}")
 
@@ -45,18 +61,55 @@ def _inner_create_process_track(
     relay = get_relay(loop)
     output_track: MediaStreamTrack
     with loop_context(loop):
-        # TODO: type checking
         output_track = Track(relay.subscribe(input_track), processor)  # type: ignore
 
     return ObjectHashWrapper(output_track, output_track.id)
 
 
+@overload
 def create_process_track(
-    input_track: MediaStreamTrack, processor_factory: Callable[[], ProcessorT]
-) -> AsyncMediaProcessTrack:
+    input_track: MediaStreamTrack,
+    processor_factory: Callable[[], VideoProcessorBase],
+    async_processing: Literal[True],
+) -> AsyncVideoProcessTrack:
+    pass
+
+
+@overload
+def create_process_track(
+    input_track: MediaStreamTrack,
+    processor_factory: Callable[[], VideoProcessorBase],
+    async_processing: Literal[False],
+) -> VideoProcessTrack:
+    pass
+
+
+@overload
+def create_process_track(
+    input_track: MediaStreamTrack,
+    processor_factory: Callable[[], AudioProcessorBase],
+    async_processing: Literal[True],
+) -> AsyncAudioProcessTrack:
+    pass
+
+
+@overload
+def create_process_track(
+    input_track: MediaStreamTrack,
+    processor_factory: Callable[[], AudioProcessorBase],
+    async_processing: Literal[False],
+) -> AudioProcessTrack:
+    pass
+
+
+def create_process_track(
+    input_track: MediaStreamTrack,
+    processor_factory: Callable[[], ProcessorT],
+    async_processing: bool = True,
+) -> MediaStreamTrack:
     wrapped_input_track = ObjectHashWrapper(input_track, input_track.id)
     wrapped_processor_factory = ObjectHashWrapper(processor_factory, None)
     wrapped_output_track = _inner_create_process_track(
-        wrapped_input_track, wrapped_processor_factory
+        wrapped_input_track, wrapped_processor_factory, async_processing
     )
     return wrapped_output_track.obj
