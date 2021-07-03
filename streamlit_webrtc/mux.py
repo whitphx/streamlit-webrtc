@@ -90,7 +90,7 @@ class MediaStreamMuxTrack(MediaStreamTrack):
     _gather_frames_task: Union[asyncio.Task, None]
     _mux_task: Union[asyncio.Task, None]
 
-    def __init__(self, kind: str) -> None:
+    def __init__(self) -> None:
         if not self.kind:
             raise NotImplementedError("kind must be set")
 

@@ -226,7 +226,7 @@ def n_to_1():
                 "audio": True,
             },
         ),
-        source_video_track=SliceMuxer(kind="video"),
+        source_video_track=SliceMuxer(),
     )
 
     if mux_ctx.source_video_track:
