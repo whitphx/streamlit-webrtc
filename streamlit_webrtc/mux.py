@@ -32,14 +32,19 @@ class InputQueieItem(NamedTuple):
     frame: Optional[Frame]
 
 
-async def input_track_coro(input_track: MediaStreamTrack, queue: asyncio.Queue):
+async def input_track_coro(
+    input_track: MediaStreamTrack, mux_track: "MediaStreamMuxTrack"
+):
     source_track_id = input_track.id
     while True:
         try:
             frame = await input_track.recv()
         except MediaStreamError:
             frame = None
-        queue.put_nowait(InputQueieItem(source_track_id=source_track_id, frame=frame))
+        if mux_track._output_started:
+            mux_track._input_queue.put_nowait(
+                InputQueieItem(source_track_id=source_track_id, frame=frame)
+            )
         if frame is None:
             break
 
@@ -96,6 +101,8 @@ class MediaStreamMuxTrack(MediaStreamTrack):
     _latest_frames: List[Frame]
     _mux_control_queue: asyncio.Queue
 
+    _output_started: bool
+
     _gather_frames_task: Union[asyncio.Task, None]
     _mux_task: Union[asyncio.Task, None]
 
@@ -123,13 +130,18 @@ class MediaStreamMuxTrack(MediaStreamTrack):
             self._gather_frames_task = None
             self._mux_task = None
 
+            self._output_started = False
+
     def _start(self):
-        if not self._gather_frames_task:
-            self._gather_frames_task = self._loop.create_task(
-                gather_frames_coro(mux_track=self)
-            )
-        if not self._mux_task:
-            self._mux_task = self._loop.create_task(mux_coro(mux_track=self))
+        if self._output_started:
+            return
+
+        self._gather_frames_task = self._loop.create_task(
+            gather_frames_coro(mux_track=self)
+        )
+        self._mux_task = self._loop.create_task(mux_coro(mux_track=self))
+
+        self._output_started = True
 
     def add_input_track(self, input_track: MediaStreamTrack) -> None:
         LOGGER.debug("Add a track %s to %s", input_track, self)
@@ -145,7 +157,7 @@ class MediaStreamMuxTrack(MediaStreamTrack):
             self._input_proxies[input_track] = input_proxy
 
         self._loop.create_task(
-            input_track_coro(input_track=input_proxy, queue=self._input_queue)
+            input_track_coro(input_track=input_proxy, mux_track=self)
         )
 
         input_proxy.on("ended")(functools.partial(self.remove_input_proxy, input_proxy))
