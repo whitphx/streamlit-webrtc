@@ -2,11 +2,15 @@ name: Frontend tests
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - develop/**
     paths:
       - 'streamlit_webrtc/frontend/**'
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+      - develop/**
     paths:
       - 'streamlit_webrtc/frontend/**'
 
