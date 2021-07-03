@@ -40,7 +40,7 @@ async def input_track_coro(input_track: MediaStreamTrack, queue: asyncio.Queue):
             break
 
 
-async def gather_frames_coro(muxer: "MediaStreamTrackMuxer"):
+async def gather_frames_coro(muxer: "MediaStreamMuxTrack"):
     latest_frames_map: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
 
     while True:
@@ -69,14 +69,14 @@ async def gather_frames_coro(muxer: "MediaStreamTrackMuxer"):
             muxer._set_latest_frames(latest_frames)
 
 
-async def mux_coro(muxer: "MediaStreamTrackMuxer"):
+async def mux_coro(muxer: "MediaStreamMuxTrack"):
     while True:
         latest_frames = await muxer._get_latest_frames()  # Wait for new frames arrive
         output_frame = muxer.on_update(latest_frames)
         muxer._queue.put_nowait(output_frame)
 
 
-class MediaStreamTrackMuxer(MediaStreamTrack):
+class MediaStreamMuxTrack(MediaStreamTrack):
     kind: str
 
     _loop: asyncio.AbstractEventLoop

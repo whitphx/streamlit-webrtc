@@ -20,14 +20,14 @@ from streamlit_webrtc import (
     webrtc_streamer,
 )
 from streamlit_webrtc.factory import create_process_track
-from streamlit_webrtc.mux import MediaStreamTrackMuxer
+from streamlit_webrtc.mux import MediaStreamMuxTrack
 
 logger = logging.getLogger(__name__)
 
 HERE = Path(__file__).parent
 
 
-class SliceMuxer(MediaStreamTrackMuxer):
+class SliceMuxer(MediaStreamMuxTrack):
     kind = "video"
 
     _colors = [
