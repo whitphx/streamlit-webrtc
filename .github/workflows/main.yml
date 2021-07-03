@@ -2,11 +2,15 @@ name: Tests
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - develop/**
     paths-ignore:
       - 'streamlit_webrtc/frontend/**'
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+      - develop/**
     paths-ignore:
       - 'streamlit_webrtc/frontend/**'
 
