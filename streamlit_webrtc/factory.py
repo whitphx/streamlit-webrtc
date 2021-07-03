@@ -10,6 +10,12 @@ except ImportError:
 import streamlit as st
 from aiortc import MediaStreamTrack
 
+try:
+    import streamlit.ReportThread as ReportThread
+except Exception:
+    # Streamlit >= 0.65.0
+    import streamlit.report_thread as ReportThread
+
 from .eventloop import get_server_event_loop, loop_context
 from .process import (
     AsyncAudioProcessTrack,
@@ -117,12 +123,12 @@ def create_process_track(
     return wrapped_output_track.obj
 
 
-# TODO: Be session-specific
 @st.cache(hash_funcs={ObjectHashWrapper: lambda o: o.hash})
 def _inner_create_mux_track(
     kind: str,
     wrapped_muxer_factory: ObjectHashWrapper[Callable[[], FrameMuxerBase]],
     key: str,
+    session_id: str,
 ) -> ObjectHashWrapper[MediaStreamMuxTrack]:
     muxer_factory = wrapped_muxer_factory.obj
     muxer = muxer_factory()
@@ -135,7 +141,11 @@ def create_mux_track(
     kind: str, muxer_factory: Callable[[], FrameMuxerBase], key: str
 ) -> MediaStreamMuxTrack:
     wrapped_muxer_factory = ObjectHashWrapper(muxer_factory, id(muxer_factory))
+    ctx = ReportThread.get_report_ctx()
     wrapped_output_track = _inner_create_mux_track(
-        kind=kind, wrapped_muxer_factory=wrapped_muxer_factory, key=key
+        kind=kind,
+        wrapped_muxer_factory=wrapped_muxer_factory,
+        key=key,  # To make the cache unique
+        session_id=ctx.session_id,  # To make the cache session-specific.
     )
     return wrapped_output_track.obj
