@@ -3,12 +3,14 @@ from typing import Callable, Generic, Hashable, TypeVar
 import streamlit as st
 from aiortc import MediaStreamTrack
 
+from .eventloop import get_server_event_loop, loop_context
 from .process import (
     AsyncAudioProcessTrack,
     AsyncMediaProcessTrack,
     AsyncVideoProcessTrack,
     ProcessorT,
 )
+from .relay import get_relay
 
 HashedObjT = TypeVar("HashedObjT")
 
@@ -31,15 +33,20 @@ def _inner_create_process_track(
 
     processor = processor_factory()
 
-    output_track: MediaStreamTrack
     if input_track.kind == "video":
-        # TODO: type checking
-        output_track = AsyncVideoProcessTrack(input_track, processor)  # type: ignore
+        Track = AsyncVideoProcessTrack
     elif input_track.kind == "audio":
         # TODO: type checking
-        output_track = AsyncAudioProcessTrack(input_track, processor)  # type: ignore
+        Track = AsyncAudioProcessTrack  # type: ignore
     else:
         raise ValueError(f"Unsupported track type: {input_track.kind}")
+
+    loop = get_server_event_loop()
+    relay = get_relay(loop)
+    output_track: MediaStreamTrack
+    with loop_context(loop):
+        # TODO: type checking
+        output_track = Track(relay.subscribe(input_track), processor)  # type: ignore
 
     return ObjectHashWrapper(output_track, output_track.id)
 
