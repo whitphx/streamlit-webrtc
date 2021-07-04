@@ -69,7 +69,7 @@ else:
 
 
 def _get_session_state():
-    return SessionState.get(webrtc_workers={})
+    return SessionState.get(webrtc_workers={}, contexts={})
 
 
 def _get_webrtc_worker(key: Hashable) -> Union[WebRtcWorker, None]:
@@ -106,7 +106,15 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]],
         state: WebRtcStreamerState,
     ) -> None:
+        self.set_worker(worker)
+        self.set_state(state)
+
+    def set_worker(
+        self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
+    ):
         self._worker_ref = weakref.ref(worker) if worker else None
+
+    def set_state(self, state: WebRtcStreamerState):
         self.state = state
 
     def _get_worker(self) -> Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]:
@@ -163,6 +171,27 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     def output_audio_track(self) -> Optional[MediaStreamTrack]:
         worker = self._get_worker()
         return worker.output_audio_track if worker else None
+
+
+# To make the identity of the context object consistent over the session,
+# store it in SessionState.
+def _create_or_mutate_context(
+    key: str, worker: Optional[WebRtcWorker], state: WebRtcStreamerState
+) -> WebRtcStreamerContext:
+    session_state = _get_session_state()
+    contexts = session_state.contexts
+
+    if key in contexts:
+        context: WebRtcStreamerContext = contexts[key]
+        context.set_worker(worker)
+        context.set_state(state)
+        return context
+
+    new_context = WebRtcStreamerContext(worker=worker, state=state)
+
+    contexts[key] = new_context
+
+    return new_context
 
 
 @overload
@@ -364,9 +393,10 @@ def webrtc_streamer(
         # Rerun to send the SDP answer to frontend
         st.experimental_rerun()
 
-    ctx = WebRtcStreamerContext(
-        state=WebRtcStreamerState(playing=playing, signalling=signalling),
+    ctx = _create_or_mutate_context(
+        key,
         worker=webrtc_worker,
+        state=WebRtcStreamerState(playing=playing, signalling=signalling),
     )
 
     return ctx
