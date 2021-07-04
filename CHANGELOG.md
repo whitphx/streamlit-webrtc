@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fix
+- Make the identity of a context object consistent over the session, #298.
+
 ## [0.23.4] - 2021-07-03
 ### Fix
 - Internal fix about event loop management, #282.
