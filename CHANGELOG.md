@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.23.6] - 2021-07-05
 ### Fix
 - Fix SessionState, #299.
 
