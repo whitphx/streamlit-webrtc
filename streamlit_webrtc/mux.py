@@ -27,7 +27,7 @@ class MuxerBase(abc.ABC):
         pass
 
 
-class InputQueieItem(NamedTuple):
+class InputQueueItem(NamedTuple):
     source_track_id: int
     frame: Optional[Frame]
 
@@ -43,7 +43,7 @@ async def input_track_coro(
             frame = None
         if mux_track._output_started:
             mux_track._input_queue.put_nowait(
-                InputQueieItem(source_track_id=source_track_id, frame=frame)
+                InputQueueItem(source_track_id=source_track_id, frame=frame)
             )
         if frame is None:
             break
@@ -55,7 +55,7 @@ async def gather_frames_coro(mux_track: "MediaStreamMuxTrack"):
 
     while True:
         try:
-            item: InputQueieItem = await mux_track._input_queue.get()
+            item: InputQueueItem = await mux_track._input_queue.get()
         except MediaStreamError:
             return
 
