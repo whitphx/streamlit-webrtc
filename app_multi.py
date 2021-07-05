@@ -360,7 +360,7 @@ if __name__ == "__main__":
     logger.setLevel(level=logging.DEBUG if DEBUG else logging.INFO)
 
     st_webrtc_logger = logging.getLogger("streamlit_webrtc")
-    st_webrtc_logger.setLevel(logging.DEBUG)
+    st_webrtc_logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
     aioice_logger = logging.getLogger("aioice")
     aioice_logger.setLevel(logging.WARNING)
