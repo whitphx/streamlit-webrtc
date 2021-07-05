@@ -64,7 +64,7 @@ def _inner_create_process_track(
     relay = get_relay(loop)
     output_track: MediaStreamTrack
     with loop_context(loop):
-        output_track = Track(relay.subscribe(input_track), processor)  # type: ignore
+        output_track = Track(relay.subscribe(input_track), processor)
 
     return ObjectHashWrapper(output_track, output_track.id)
 
