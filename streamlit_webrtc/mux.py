@@ -24,7 +24,7 @@ Frame = Union[av.VideoFrame, av.AudioFrame]
 class MuxerBase(abc.ABC):
     @abc.abstractmethod
     def on_update(self, frames: List[Frame]) -> Frame:
-        pass
+        pass  # TODO: docstring
 
 
 class InputQueueItem(NamedTuple):
@@ -166,6 +166,7 @@ class MediaStreamMuxTrack(MediaStreamTrack):
         LOGGER.debug("Remove a relay track %s from %s", input_proxy, self)
         with self._input_proxies_lock:
             self._input_proxies.popitem(input_proxy)
+            # TODO: Stop a relevant task (coro)
 
     def _set_latest_frames(self, latest_frames: List[Frame]):
         # TODO: Lock here to make these 2 lines atomic
