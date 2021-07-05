@@ -50,9 +50,6 @@ async def input_track_coro(
 
 
 async def gather_frames_coro(mux_track: "MediaStreamMuxTrack"):
-    latest_frames_map: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
-    # TODO: Remove dead items in the map regardless of weakref
-
     while True:
         try:
             item: InputQueueItem = await mux_track._input_queue.get()
@@ -68,16 +65,8 @@ async def gather_frames_coro(mux_track: "MediaStreamMuxTrack"):
                 LOGGER.warning("Source track not found")
                 continue
 
-            frame = item.frame
-            latest_frames_map[source_track] = frame
-
-            latest_frames = [
-                latest_frames_map.get(proxy)
-                for proxy in mux_track._input_proxies.values()
-                if proxy.readyState == "live"
-            ]
-
-        mux_track._set_latest_frames(latest_frames)
+        frame = item.frame
+        mux_track._set_latest_frame(source_track, frame)
 
 
 async def mux_coro(mux_track: "MediaStreamMuxTrack"):
@@ -99,7 +88,7 @@ class MediaStreamMuxTrack(MediaStreamTrack):
     _input_tasks: "weakref.WeakKeyDictionary[MediaStreamTrack, asyncio.Task]"
     _input_queue: asyncio.Queue
     _queue: asyncio.Queue
-    _latest_frames: List[Frame]
+    _latest_frames_map: "weakref.WeakKeyDictionary[RelayStreamTrack, Union[Frame, None]]"  # noqa: E501
     _mux_control_queue: asyncio.Queue
 
     _output_started: bool
@@ -124,7 +113,7 @@ class MediaStreamMuxTrack(MediaStreamTrack):
 
             self._input_queue = asyncio.Queue()
 
-            self._latest_frames = []
+            self._latest_frames_map = weakref.WeakKeyDictionary()
 
             self._mux_control_queue = asyncio.Queue()
 
@@ -171,19 +160,30 @@ class MediaStreamMuxTrack(MediaStreamTrack):
         with self._input_proxies_lock:
             self._input_proxies.popitem(input_proxy)
 
+        self._latest_frames_map.pop(input_proxy)
+
         task = self._input_tasks.pop(input_proxy)
         task.cancel()
 
-    def _set_latest_frames(self, latest_frames: List[Frame]):
+    def _set_latest_frame(
+        self, input_proxy: RelayStreamTrack, frame: Union[Frame, None]
+    ):
         # TODO: Lock here to make these 2 lines atomic
         if self._mux_control_queue.qsize() == 0:
             self._mux_control_queue.put_nowait(True)
-        self._latest_frames = latest_frames
+        self._latest_frames_map[input_proxy] = frame
 
     async def _get_latest_frames(self) -> List[Frame]:
         # TODO: Lock here to make these 2 lines atomic
         await self._mux_control_queue.get()
-        return self._latest_frames
+
+        with self._input_proxies_lock:
+            latest_frames = [
+                self._latest_frames_map.get(proxy)
+                for proxy in self._input_proxies.values()
+                if proxy.readyState == "live"
+            ]
+        return latest_frames
 
     async def recv(self):
         if self.readyState != "live":
