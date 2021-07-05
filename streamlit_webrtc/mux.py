@@ -96,6 +96,7 @@ class MediaStreamMuxTrack(MediaStreamTrack):
     _loop: asyncio.AbstractEventLoop
     _input_proxies_lock: threading.Lock  # TODO: asyncio.Lock()?
     _input_proxies: "OrderedDict[MediaStreamTrack, RelayStreamTrack]"
+    _input_tasks: "weakref.WeakKeyDictionary[MediaStreamTrack, asyncio.Task]"
     _input_queue: asyncio.Queue
     _queue: asyncio.Queue
     _latest_frames: List[Frame]
@@ -118,6 +119,8 @@ class MediaStreamMuxTrack(MediaStreamTrack):
 
             self._input_proxies = OrderedDict()
             self._input_proxies_lock = threading.Lock()
+
+            self._input_tasks = weakref.WeakKeyDictionary()
 
             self._input_queue = asyncio.Queue()
 
@@ -156,9 +159,10 @@ class MediaStreamMuxTrack(MediaStreamTrack):
 
             self._input_proxies[input_track] = input_proxy
 
-        self._loop.create_task(
+        task = self._loop.create_task(
             input_track_coro(input_track=input_proxy, mux_track=self)
         )
+        self._input_tasks[input_proxy] = task
 
         input_proxy.on("ended")(functools.partial(self.remove_input_proxy, input_proxy))
 
@@ -166,7 +170,9 @@ class MediaStreamMuxTrack(MediaStreamTrack):
         LOGGER.debug("Remove a relay track %s from %s", input_proxy, self)
         with self._input_proxies_lock:
             self._input_proxies.popitem(input_proxy)
-            # TODO: Stop a relevant task (coro)
+
+        task = self._input_tasks.pop(input_proxy)
+        task.cancel()
 
     def _set_latest_frames(self, latest_frames: List[Frame]):
         # TODO: Lock here to make these 2 lines atomic
