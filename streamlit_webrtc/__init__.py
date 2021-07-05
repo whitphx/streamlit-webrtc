@@ -351,11 +351,7 @@ def webrtc_streamer(
 
     signalling = sdp_offer is not None
 
-    # NOTE: Sometimes component_value can be None even if the frontend component
-    #       has already been rendered and started working.
-    #       Such cases should be ignored, then here `component_value`
-    #       is checked in the if-clause.
-    if component_value and webrtc_worker and not playing and not signalling:
+    if webrtc_worker and not playing and not signalling:
         LOGGER.debug(
             "Unset the worker because the frontend state is "
             'neither playing nor signalling (key="%s").',
