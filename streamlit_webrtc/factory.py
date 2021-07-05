@@ -8,13 +8,8 @@ except ImportError:
     from typing_extensions import Literal  # type: ignore
 
 import streamlit as st
+import streamlit.report_thread as ReportThread
 from aiortc import MediaStreamTrack
-
-try:
-    import streamlit.ReportThread as ReportThread
-except Exception:
-    # Streamlit >= 0.65.0
-    import streamlit.report_thread as ReportThread
 
 from .eventloop import get_server_event_loop, loop_context
 from .process import (
