@@ -86,31 +86,16 @@ def get(**kwargs):
 
     ctx = ReportThread.get_report_ctx()
 
-    this_session = None
-
     current_server = Server.get_current()
-    if hasattr(current_server, "_session_infos"):
-        # Streamlit < 0.56
-        session_infos = Server.get_current()._session_infos.values()
-    else:
-        session_infos = Server.get_current()._session_info_by_id.values()
 
-    for session_info in session_infos:
-        s = session_info.session
-        if (
-            # Streamlit < 0.54.0
-            (hasattr(s, "_main_dg") and s._main_dg == ctx.main_dg)
-            or
-            # Streamlit >= 0.54.0
-            (not hasattr(s, "_main_dg") and s.enqueue == ctx.enqueue)
-            or
-            # Streamlit >= 0.65.2
-            (
-                not hasattr(s, "_main_dg")
-                and s._uploaded_file_mgr == ctx.uploaded_file_mgr
-            )
-        ):
-            this_session = s
+    # The original implementation of SessionState (https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92) has a problem    # noqa: E501
+    # as referred to in https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92#gistcomment-3484515,                         # noqa: E501
+    # then fixed here.
+    # This code only works with streamlit>=0.65, https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92#gistcomment-3418729 # noqa: E501
+    # It's OK as streamlit-webrtc only supports >=0.73
+    session_id = ctx.session_id
+    session_info = current_server._get_session_info(session_id)
+    this_session = session_info.session
 
     if this_session is None:
         raise RuntimeError(

@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.23.7] - 2021-07-05
+### Fix
+- Revert a change in v0.23.3, #301.
+
+## [0.23.6] - 2021-07-05
+### Fix
+- Fix SessionState, #299.
+
 ## [0.23.5] - 2021-07-04
 ### Fix
 - Make the identity of a context object consistent over the session, #298.
