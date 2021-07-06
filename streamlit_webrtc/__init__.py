@@ -67,7 +67,9 @@ else:
 
 
 def _get_session_state():
-    return SessionState.get(webrtc_workers={}, contexts={})
+    return SessionState.get(
+        webrtc_workers={}, contexts={}, component_value_snapshots={}
+    )
 
 
 def _get_webrtc_worker(key: Hashable) -> Union[WebRtcWorker, None]:
@@ -180,6 +182,24 @@ def _create_or_mutate_context(
     contexts[key] = new_context
 
     return new_context
+
+
+# To restore component value after `streamlit.experimental_rerun()`.
+class ComponentValueSnapshot(NamedTuple):
+    component_value: Optional[Dict]
+    run_count: int
+
+
+def _get_component_value_snapshot(key: Hashable) -> Union[ComponentValueSnapshot, None]:
+    session_state = _get_session_state()
+    return session_state.component_value_snapshots.get(key)
+
+
+def _set_component_value_snapshot(
+    key: Hashable, component_value: Union[ComponentValueSnapshot, None]
+) -> None:
+    session_state = _get_session_state()
+    session_state.component_value_snapshots[key] = component_value
 
 
 @overload
@@ -320,6 +340,32 @@ def webrtc_streamer(
         component_value = json.loads(component_value_raw)
     else:
         component_value = component_value_raw
+
+    # HACK: Save the component value in this run to the session state
+    # to be restored in the next run because the component values of
+    # component instances behind the one which calls `streamlit.experimental_rerun()`
+    # will not be held but be reset to the initial value in the next run.
+    # For example, when there are two `webrtc_streamer()` component instances
+    # in a script and `streamlit.experimental_rerun()` in the first one is called,
+    # the component value of the second instance will be None
+    # in the next run after `streamlit.experimental_rerun()`.
+    session_info = SessionState.get_this_session_info()
+    run_count = session_info.report_run_count if session_info else None
+    if component_value is None:
+        restored_component_value_snapshot = _get_component_value_snapshot(key)
+        if (
+            restored_component_value_snapshot
+            # Only the component value saved in one previous run is restored
+            # so that this workaround is only effective in the case of
+            # `streamlit.experimental_rerun()`.
+            and run_count == restored_component_value_snapshot.run_count + 1
+        ):
+            LOGGER.debug("Restore the component value (key=%s)", key)
+            component_value = restored_component_value_snapshot.component_value
+    _set_component_value_snapshot(
+        key,
+        ComponentValueSnapshot(component_value=component_value, run_count=run_count),
+    )
 
     playing = False
     sdp_offer = None
