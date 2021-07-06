@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.23.8] - 2021-07-06
+### Fix
+- Internal fix about component value management, #305.
+- Internal fix about SDP offer handling, #304.
+
 ## [0.23.7] - 2021-07-05
 ### Fix
 - Revert a change in v0.23.3, #301.
