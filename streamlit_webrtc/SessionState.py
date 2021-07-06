@@ -22,6 +22,7 @@ result:
 import streamlit.report_thread as ReportThread
 from streamlit.server.server import Server
 
+
 def get_this_session_info():
     ctx = ReportThread.get_report_ctx()
 
