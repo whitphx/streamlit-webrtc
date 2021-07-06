@@ -347,15 +347,15 @@ def webrtc_streamer(
     # will not be held but be reset to the initial value in the next run.
     # For example, when there are two `webrtc_streamer()` component instances
     # in a script and `streamlit.experimental_rerun()` in the first one is called,
-    # the component value of the second instance will be None
-    # in the next run after `streamlit.experimental_rerun()`.
+    # the component value of the second instance will be None in the next run
+    # after `streamlit.experimental_rerun()`.
     session_info = SessionState.get_this_session_info()
     run_count = session_info.report_run_count if session_info else None
     if component_value is None:
         restored_component_value_snapshot = _get_component_value_snapshot(key)
         if (
             restored_component_value_snapshot
-            # Only the component value saved in one previous run is restored
+            # Only the component value saved in the previous run is restored
             # so that this workaround is only effective in the case of
             # `streamlit.experimental_rerun()`.
             and run_count == restored_component_value_snapshot.run_count + 1
