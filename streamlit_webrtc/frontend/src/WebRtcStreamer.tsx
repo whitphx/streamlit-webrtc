@@ -300,7 +300,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       }
       Streamlit.setComponentValue({
         playing,
-        sdpOffer: sdpOffer?.toJSON(),
+        sdpOffer: sdpOffer ? sdpOffer.toJSON() : "", // `Streamlit.setComponentValue` cannot "unset" the field by passing null or undefined, so here an empty string is set instead when `sdpOffer` is undefined. // TODO: Create an issue
       });
     }
   };

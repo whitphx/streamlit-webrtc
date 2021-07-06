@@ -373,7 +373,7 @@ def webrtc_streamer(
         playing = component_value.get("playing", False)
         sdp_offer = component_value.get("sdpOffer")
 
-    signalling = sdp_offer is not None
+    signalling = bool(sdp_offer)
 
     if webrtc_worker and not playing and not signalling:
         LOGGER.debug(
