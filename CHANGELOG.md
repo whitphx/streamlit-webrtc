@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.23.9] - 2021-07-06
 ### Fix
 - Fix CI error, #307.
 
