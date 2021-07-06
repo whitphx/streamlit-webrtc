@@ -196,7 +196,7 @@ def _get_component_value_snapshot(key: str) -> Union[ComponentValueSnapshot, Non
 
 
 def _set_component_value_snapshot(
-    key: str, component_value: Union[ComponentValueSnapshot, None]
+    key: str, component_value: ComponentValueSnapshot
 ) -> None:
     session_state = _get_session_state()
     session_state.component_value_snapshots[key] = component_value
