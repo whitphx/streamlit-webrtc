@@ -186,17 +186,17 @@ def _create_or_mutate_context(
 
 # To restore component value after `streamlit.experimental_rerun()`.
 class ComponentValueSnapshot(NamedTuple):
-    component_value: Optional[Dict]
+    component_value: Union[Dict, None]
     run_count: int
 
 
-def _get_component_value_snapshot(key: Hashable) -> Union[ComponentValueSnapshot, None]:
+def _get_component_value_snapshot(key: str) -> Union[ComponentValueSnapshot, None]:
     session_state = _get_session_state()
     return session_state.component_value_snapshots.get(key)
 
 
 def _set_component_value_snapshot(
-    key: Hashable, component_value: Union[ComponentValueSnapshot, None]
+    key: str, component_value: Union[ComponentValueSnapshot, None]
 ) -> None:
     session_state = _get_session_state()
     session_state.component_value_snapshots[key] = component_value
