@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.23.9] - 2021-07-06
+### Fix
+- Fix CI error, #307.
+
 ## [0.23.8] - 2021-07-06
 ### Fix
 - Internal fix about component value management, #305.
