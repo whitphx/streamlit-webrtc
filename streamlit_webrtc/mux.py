@@ -148,6 +148,10 @@ class MediaStreamMuxTrack(MediaStreamTrack):
 
             self._input_proxies[input_track] = input_proxy
 
+        LOGGER.debug(
+            "A proxy %s subscribing %s is added to %s", input_proxy, input_track, self
+        )
+
         task = self._loop.create_task(
             input_track_coro(input_track=input_proxy, mux_track=self)
         )
@@ -158,7 +162,12 @@ class MediaStreamMuxTrack(MediaStreamTrack):
     def remove_input_proxy(self, input_proxy: RelayStreamTrack) -> None:
         LOGGER.debug("Remove a relay track %s from %s", input_proxy, self)
         with self._input_proxies_lock:
-            self._input_proxies.popitem(input_proxy)
+            del_key = None
+            for key, value in self._input_proxies.items():
+                if value == input_proxy:
+                    del_key = key
+            if del_key:
+                self._input_proxies.pop(del_key)
 
         self._latest_frames_map.pop(input_proxy)
 
