@@ -1,4 +1,5 @@
 import logging
+import math
 import queue
 from pathlib import Path
 from typing import List, NamedTuple
@@ -27,45 +28,44 @@ logger = logging.getLogger(__name__)
 HERE = Path(__file__).parent
 
 
-class SliceMuxer(MuxerBase):
-    _colors = [
-        (255, 0, 0),
-        (0, 255, 0),
-        (0, 0, 255),
-    ]
-
+class MultiWindowMuxer(MuxerBase):
     def on_update(self, frames: List[av.VideoFrame]) -> av.VideoFrame:
         buf_w = 640
         buf_h = 480
         buffer = np.zeros((buf_h, buf_w, 3), dtype=np.uint8)
 
-        n_split = len(frames)
-        na_frame = None  # TODO: Provide the updated frame
-        for i in range(n_split):
+        n_inputs = len(frames)
+
+        n_cols = math.ceil(math.sqrt(n_inputs))
+        n_rows = math.ceil(n_inputs / n_cols)
+        grid_w = buf_w // n_cols
+        grid_h = buf_h // n_rows
+
+        for i in range(n_inputs):
             frame = frames[i]
             if frame is None:
                 continue
 
+            grid_x = (i % n_cols) * grid_w
+            grid_y = (i // n_cols) * grid_h
+
             img = frame.to_ndarray(format="bgr24")
-            h, w = img.shape[0:2]
-            src_fragment_x1 = int(i * w / n_split)
-            src_fragment_x2 = int((i + 1) * w / n_split)
-            src_fragment = img[:, src_fragment_x1:src_fragment_x2, :]
+            src_h, src_w = img.shape[0:2]
 
-            # Alpha blending
-            color = self._colors[i % len(self._colors)]
-            color_buf = np.tile(
-                np.reshape(color, (1, 1, 3)).astype(np.uint8),
-                (src_fragment.shape[0], src_fragment.shape[1], 1),
-            )
-            src_fragment = cv2.addWeighted(src_fragment, 0.5, color_buf, 0.5, 0)
+            aspect_ratio = src_w / src_h
 
-            dst_fragment_x1 = int(i * buf_w / n_split)
-            dst_fragment_x2 = int((i + 1) * buf_w / n_split)
-            dst_fragment_w = dst_fragment_x2 - dst_fragment_x1
-            buffer[:, dst_fragment_x1:dst_fragment_x2, :] = cv2.resize(
-                src_fragment, (dst_fragment_w, buf_h)
-            )
+            window_w = min(grid_w, int(grid_h * aspect_ratio))
+            window_h = min(grid_h, int(window_w / aspect_ratio))
+
+            window_offset_x = int((grid_w - window_w) / 2)
+            window_offset_y = int((grid_h - window_h) / 2)
+
+            window_x = grid_x + window_offset_x
+            window_y = grid_y + window_offset_y
+
+            buffer[
+                window_y : window_y + window_h, window_x : window_x + window_w, :
+            ] = cv2.resize(img, (window_w, window_h))
 
             na_frame = frame
 
@@ -212,7 +212,9 @@ def n_to_1():
         video_processor_factory=None,  # NoOp
     )
 
-    mux_track = create_mux_track(kind="video", muxer_factory=SliceMuxer, key="mux")
+    mux_track = create_mux_track(
+        kind="video", muxer_factory=MultiWindowMuxer, key="mux"
+    )
     mux_ctx = webrtc_streamer(
         key="mux",
         mode=WebRtcMode.RECVONLY,
