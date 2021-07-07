@@ -2,7 +2,9 @@ import abc
 import asyncio
 import functools
 import logging
+import sys
 import threading
+import traceback
 import weakref
 from collections import OrderedDict
 from typing import List, NamedTuple, Optional, Union
@@ -33,7 +35,7 @@ class InputQueueItem(NamedTuple):
 
 
 async def input_track_coro(
-    input_track: MediaStreamTrack, mux_track: "MediaStreamMuxTrack"
+    input_track: RelayStreamTrack, mux_track: "MediaStreamMuxTrack"
 ):
     source_track_id = input_track.id
     while True:
@@ -54,6 +56,7 @@ async def gather_frames_coro(mux_track: "MediaStreamMuxTrack"):
         try:
             item: InputQueueItem = await mux_track._input_queue.get()
         except MediaStreamError:
+            LOGGER.warning("Stop gather_frames_coro")
             return
 
         source_track = None
@@ -74,7 +77,13 @@ async def mux_coro(mux_track: "MediaStreamMuxTrack"):
         latest_frames = (
             await mux_track._get_latest_frames()
         )  # Wait for new frames arrive
-        output_frame = mux_track.muxer.on_update(latest_frames)
+        try:
+            output_frame = mux_track.muxer.on_update(latest_frames)
+        except Exception:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            for tb in traceback.format_exception(exc_type, exc_value, exc_traceback):
+                for tbline in tb.rstrip().splitlines():
+                    LOGGER.error(tbline.rstrip())
         mux_track._queue.put_nowait(output_frame)
 
 
