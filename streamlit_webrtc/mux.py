@@ -26,7 +26,9 @@ Frame = Union[av.VideoFrame, av.AudioFrame]
 class MuxerBase(abc.ABC):
     @abc.abstractmethod
     def on_update(self, frames: List[Frame]) -> Frame:
-        pass  # TODO: docstring
+        """
+        Receives frames from input tracks and returns one frame to output.
+        """
 
 
 class InputQueueItem(NamedTuple):
