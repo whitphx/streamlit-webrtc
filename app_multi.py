@@ -120,7 +120,7 @@ class MultiWindowMuxer(MuxerBase):
         return new_frame
 
 
-def mux():
+def app_mux():
     COMMON_CLIENT_SETTINGS = ClientSettings(
         rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
         media_stream_constraints={
@@ -129,12 +129,12 @@ def mux():
         },
     )
 
+    st.write("Input 1")
     input1_ctx = webrtc_streamer(
         key="input1_ctx",
         mode=WebRtcMode.SENDRECV,
         client_settings=COMMON_CLIENT_SETTINGS,
     )
-
     input1_video_process_track = None
     if input1_ctx.output_video_track:
         input1_video_process_track = create_process_track(
@@ -147,6 +147,7 @@ def mux():
             key="input1-filter-type",
         )
 
+    st.write("Input 2")
     input2_ctx = webrtc_streamer(
         key="input2_ctx",
         mode=WebRtcMode.SENDRECV,
@@ -164,12 +165,14 @@ def mux():
             key="input2-filter-type",
         )
 
+    st.write("Input 3 (without filter)")
     input3_ctx = webrtc_streamer(
         key="input3_ctx",
         mode=WebRtcMode.SENDRECV,
         client_settings=COMMON_CLIENT_SETTINGS,
     )
 
+    st.write("Combined output")
     mux_track = create_mux_track(
         kind="video", muxer_factory=MultiWindowMuxer, key="mux"
     )
@@ -197,7 +200,7 @@ def mux():
         mux_ctx.source_video_track.add_input_track(input3_ctx.output_video_track)
 
 
-def fork():
+def app_fork():
     COMMON_CLIENT_SETTINGS = ClientSettings(
         rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
         media_stream_constraints={
@@ -244,6 +247,24 @@ def fork():
         )
 
 
+def menu():
+    mux_page = "Combine mulitple inputs with different video filters into one stream"
+    fork_page = "Fork one input to multiple outputs with different video filters"
+    app_mode = st.sidebar.selectbox(
+        "Choose the app mode",
+        [
+            mux_page,
+            fork_page,
+        ],
+    )
+    st.subheader(app_mode)
+
+    if app_mode == mux_page:
+        app_mux()
+    elif app_mode == fork_page:
+        app_fork()
+
+
 if __name__ == "__main__":
     import os
 
@@ -266,5 +287,4 @@ if __name__ == "__main__":
     fsevents_logger = logging.getLogger("fsevents")
     fsevents_logger.setLevel(logging.WARNING)
 
-    fork()
-    # mux()
+    menu()
