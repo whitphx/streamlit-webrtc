@@ -100,12 +100,14 @@ class MultiWindowMuxer(MuxerBase):
             window_offset_x = int((grid_w - window_w) / 2)
             window_offset_y = int((grid_h - window_h) / 2)
 
-            window_x = grid_x + window_offset_x
-            window_y = grid_y + window_offset_y
+            window_x0 = grid_x + window_offset_x
+            window_y0 = grid_y + window_offset_y
+            window_x1 = window_x0 + window_w
+            window_y1 = window_y0 + window_h
 
-            buffer[
-                window_y : window_y + window_h, window_x : window_x + window_w, :
-            ] = cv2.resize(img, (window_w, window_h))
+            buffer[window_y0:window_y1, window_x0:window_x1, :] = cv2.resize(
+                img, (window_w, window_h)
+            )
 
             na_frame = frame
 
