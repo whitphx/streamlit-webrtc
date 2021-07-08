@@ -94,7 +94,7 @@ class MediaStreamMuxTrack(MediaStreamTrack):
     muxer: MuxerBase
 
     _loop: asyncio.AbstractEventLoop
-    _input_proxies_lock: threading.Lock  # TODO: asyncio.Lock()?
+    _input_proxies_lock: threading.Lock
     _input_proxies: "OrderedDict[MediaStreamTrack, RelayStreamTrack]"
     _input_tasks: "weakref.WeakKeyDictionary[MediaStreamTrack, asyncio.Task]"
     _input_queue: asyncio.Queue
