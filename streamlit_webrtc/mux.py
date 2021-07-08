@@ -100,7 +100,7 @@ class MediaStreamMuxTrack(MediaStreamTrack):
     _input_queue: asyncio.Queue
     _queue: asyncio.Queue
     _latest_frames_map: "weakref.WeakKeyDictionary[RelayStreamTrack, Union[Frame, None]]"  # noqa: E501
-    _mux_control_queue: asyncio.Queue
+    _latest_frames_updated_event: asyncio.Event
 
     _output_started: bool
 
@@ -126,7 +126,7 @@ class MediaStreamMuxTrack(MediaStreamTrack):
 
             self._latest_frames_map = weakref.WeakKeyDictionary()
 
-            self._mux_control_queue = asyncio.Queue()
+            self._latest_frames_updated_event = asyncio.Event()
 
             self._loop = loop
 
@@ -189,13 +189,13 @@ class MediaStreamMuxTrack(MediaStreamTrack):
         self, input_proxy: RelayStreamTrack, frame: Union[Frame, None]
     ):
         # TODO: Lock here to make these 2 lines atomic
-        if self._mux_control_queue.qsize() == 0:
-            self._mux_control_queue.put_nowait(True)
+        self._latest_frames_updated_event.set()
         self._latest_frames_map[input_proxy] = frame
 
     async def _get_latest_frames(self) -> List[Frame]:
         # TODO: Lock here to make these 2 lines atomic
-        await self._mux_control_queue.get()
+        await self._latest_frames_updated_event.wait()
+        self._latest_frames_updated_event.clear()
 
         with self._input_proxies_lock:
             latest_frames = [
