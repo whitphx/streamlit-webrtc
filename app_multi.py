@@ -120,7 +120,7 @@ class MultiWindowMuxer(MuxerBase):
         return new_frame
 
 
-def n_to_1():
+def mux():
     COMMON_CLIENT_SETTINGS = ClientSettings(
         rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
         media_stream_constraints={
@@ -197,35 +197,25 @@ def n_to_1():
         mux_ctx.source_video_track.add_input_track(input3_ctx.output_video_track)
 
 
-def app():
+def fork():
+    COMMON_CLIENT_SETTINGS = ClientSettings(
+        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+        media_stream_constraints={
+            "video": True,
+            "audio": True,
+        },
+    )
 
     ctx = webrtc_streamer(
         key="loopback",
         mode=WebRtcMode.SENDRECV,
-        client_settings=ClientSettings(
-            rtc_configuration={
-                "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-            },
-            media_stream_constraints={
-                "video": True,
-                "audio": True,
-            },
-        ),
-        video_processor_factory=None,  # NoOp
+        client_settings=COMMON_CLIENT_SETTINGS,
     )
 
     filter1_ctx = webrtc_streamer(
         key="filter1",
         mode=WebRtcMode.RECVONLY,
-        client_settings=ClientSettings(
-            rtc_configuration={
-                "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-            },
-            media_stream_constraints={
-                "video": True,
-                "audio": True,
-            },
-        ),
+        client_settings=COMMON_CLIENT_SETTINGS,
         video_processor_factory=OpenCVVideoProcessor,
         source_video_track=ctx.output_video_track,
         desired_playing_state=ctx.state.playing,
@@ -235,21 +225,13 @@ def app():
         filter1_ctx.video_processor.type = st.radio(
             "Select transform type",
             ("noop", "cartoon", "edges", "rotate"),
-            key="second-radio",
+            key="filter1-type",
         )
 
     filter2_ctx = webrtc_streamer(
         key="filter2",
         mode=WebRtcMode.RECVONLY,
-        client_settings=ClientSettings(
-            rtc_configuration={
-                "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-            },
-            media_stream_constraints={
-                "video": True,
-                "audio": True,
-            },
-        ),
+        client_settings=COMMON_CLIENT_SETTINGS,
         video_processor_factory=OpenCVVideoProcessor,
         source_video_track=ctx.output_video_track,
         desired_playing_state=ctx.state.playing,
@@ -258,7 +240,7 @@ def app():
         filter2_ctx.video_processor.type = st.radio(
             "Select transform type",
             ("noop", "cartoon", "edges", "rotate"),
-            key="third-radio",
+            key="filter2-type",
         )
 
 
@@ -284,5 +266,5 @@ if __name__ == "__main__":
     fsevents_logger = logging.getLogger("fsevents")
     fsevents_logger.setLevel(logging.WARNING)
 
-    # app()
-    n_to_1()
+    fork()
+    # mux()
