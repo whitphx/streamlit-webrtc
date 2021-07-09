@@ -109,15 +109,7 @@ class MultiWindowMuxer(MuxerBase):
                 img, (window_w, window_h)
             )
 
-            na_frame = frame
-
-        if na_frame is None:
-            return None
-
         new_frame = av.VideoFrame.from_ndarray(buffer, format="bgr24")
-
-        new_frame.pts = na_frame.pts
-        new_frame.time_base = na_frame.time_base
 
         return new_frame
 

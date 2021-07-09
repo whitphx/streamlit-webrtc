@@ -1,9 +1,11 @@
 import abc
 import asyncio
+import fractions
 import functools
 import logging
 import sys
 import threading
+import time
 import traceback
 import weakref
 from collections import OrderedDict
@@ -21,6 +23,14 @@ LOGGER = logging.getLogger(__name__)
 
 
 Frame = Union[av.VideoFrame, av.AudioFrame]
+
+
+# Simply widely-used values are chosen here, but without any strict reasons.
+# Ref: https://github.com/aiortc/aiortc/blob/main/src/aiortc/mediastreams.py
+AUDIO_SAMPLE_RATE = 48000
+AUDIO_TIME_BASE = fractions.Fraction(1, AUDIO_SAMPLE_RATE)
+VIDEO_CLOCK_RATE = 90000
+VIDEO_TIME_BASE = fractions.Fraction(1, VIDEO_CLOCK_RATE)
 
 
 class MuxerBase(abc.ABC):
@@ -76,12 +86,32 @@ async def gather_frames_coro(mux_track: "MediaStreamMuxTrack"):
 
 
 async def mux_coro(mux_track: "MediaStreamMuxTrack"):
+    started_at = time.monotonic()
+
     while True:
         latest_frames = (
             await mux_track._get_latest_frames()
         )  # Wait for new frames arrive
         try:
             output_frame = mux_track.muxer.on_update(latest_frames)
+
+            if (
+                isinstance(output_frame, av.VideoFrame)
+                and output_frame.pts is None
+                and output_frame.time_base is None
+            ):
+                timestamp = time.monotonic() - started_at
+                output_frame.pts = timestamp * VIDEO_CLOCK_RATE
+                output_frame.time_base = VIDEO_TIME_BASE
+            if (
+                isinstance(output_frame, av.AudioFrame)
+                and output_frame.pts is None
+                and output_frame.time_base is None
+            ):
+                timestamp = time.monotonic() - started_at
+                output_frame.pts = timestamp * AUDIO_SAMPLE_RATE
+                output_frame.time_base = AUDIO_TIME_BASE
+
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             for tb in traceback.format_exception(exc_type, exc_value, exc_traceback):
