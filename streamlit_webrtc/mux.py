@@ -95,22 +95,14 @@ async def mux_coro(mux_track: "MediaStreamMuxTrack"):
         try:
             output_frame = mux_track.muxer.on_update(latest_frames)
 
-            if (
-                isinstance(output_frame, av.VideoFrame)
-                and output_frame.pts is None
-                and output_frame.time_base is None
-            ):
+            if output_frame.pts is None and output_frame.time_base is None:
                 timestamp = time.monotonic() - started_at
-                output_frame.pts = timestamp * VIDEO_CLOCK_RATE
-                output_frame.time_base = VIDEO_TIME_BASE
-            if (
-                isinstance(output_frame, av.AudioFrame)
-                and output_frame.pts is None
-                and output_frame.time_base is None
-            ):
-                timestamp = time.monotonic() - started_at
-                output_frame.pts = timestamp * AUDIO_SAMPLE_RATE
-                output_frame.time_base = AUDIO_TIME_BASE
+                if isinstance(output_frame, av.VideoFrame):
+                    output_frame.pts = timestamp * VIDEO_CLOCK_RATE
+                    output_frame.time_base = VIDEO_TIME_BASE
+                elif isinstance(output_frame, av.AudioFrame):
+                    output_frame.pts = timestamp * AUDIO_SAMPLE_RATE
+                    output_frame.time_base = AUDIO_TIME_BASE
 
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
