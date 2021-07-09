@@ -97,8 +97,8 @@ class MultiWindowMuxer(MuxerBase):
             window_w = min(grid_w, int(grid_h * aspect_ratio))
             window_h = min(grid_h, int(window_w / aspect_ratio))
 
-            window_offset_x = int((grid_w - window_w) / 2)
-            window_offset_y = int((grid_h - window_h) / 2)
+            window_offset_x = (grid_w - window_w) // 2
+            window_offset_y = (grid_h - window_h) // 2
 
             window_x0 = grid_x + window_offset_x
             window_y0 = grid_y + window_offset_y
