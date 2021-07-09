@@ -59,6 +59,7 @@ async def gather_frames_coro(mux_track: "MediaStreamMuxTrack"):
             item: InputQueueItem = await mux_track._input_queue.get()
         except MediaStreamError:
             LOGGER.warning("Stop gather_frames_coro")
+            mux_track.stop()
             return
 
         source_track = None
@@ -96,9 +97,9 @@ class MediaStreamMuxTrack(MediaStreamTrack):
     _loop: asyncio.AbstractEventLoop
     _input_proxies_lock: threading.Lock
     _input_proxies: "OrderedDict[MediaStreamTrack, RelayStreamTrack]"
-    _input_tasks: "weakref.WeakKeyDictionary[MediaStreamTrack, asyncio.Task]"
+    _input_tasks: "weakref.WeakKeyDictionary[RelayStreamTrack, asyncio.Task]"
     _input_queue: asyncio.Queue
-    _queue: asyncio.Queue
+    _queue: "asyncio.Queue[Optional[Frame]]"
     _latest_frames_map: "weakref.WeakKeyDictionary[RelayStreamTrack, Union[Frame, None]]"  # noqa: E501
     _latest_frames_updated_event: asyncio.Event
 
@@ -115,7 +116,8 @@ class MediaStreamMuxTrack(MediaStreamTrack):
 
         with loop_context(loop):
             super().__init__()
-            self._queue: asyncio.Queue[Optional[av.Frame]] = asyncio.Queue()
+
+            self._queue = asyncio.Queue()
 
             self._input_proxies = OrderedDict()
             self._input_proxies_lock = threading.Lock()
@@ -145,6 +147,16 @@ class MediaStreamMuxTrack(MediaStreamTrack):
         self._mux_task = self._loop.create_task(mux_coro(mux_track=self))
 
         self._output_started = True
+
+    def stop(self):
+        super().stop()
+
+        if self._gather_frames_task:
+            self._gather_frames_task.cancel()
+            self._gather_frames_task = None
+        if self._mux_task:
+            self._mux_task.cancel()
+            self._mux_task = None
 
     def add_input_track(self, input_track: MediaStreamTrack) -> None:
         LOGGER.debug("Add a track %s to %s", input_track, self)
@@ -189,8 +201,8 @@ class MediaStreamMuxTrack(MediaStreamTrack):
         self, input_proxy: RelayStreamTrack, frame: Union[Frame, None]
     ):
         # TODO: Lock here to make these 2 lines atomic
-        self._latest_frames_updated_event.set()
         self._latest_frames_map[input_proxy] = frame
+        self._latest_frames_updated_event.set()
 
     async def _get_latest_frames(self) -> List[Frame]:
         # TODO: Lock here to make these 2 lines atomic
@@ -201,8 +213,8 @@ class MediaStreamMuxTrack(MediaStreamTrack):
             latest_frames = [
                 self._latest_frames_map.get(proxy)
                 for proxy in self._input_proxies.values()
-                if proxy.readyState == "live"
             ]
+        latest_frames = [f for f in latest_frames if f is not None]
         return latest_frames
 
     async def recv(self):
