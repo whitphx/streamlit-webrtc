@@ -159,7 +159,7 @@ def app_mux():
             key="input2-filter-type",
         )
 
-    st.write("Input 3 (without filter)")
+    st.write("Input 3 (no filter)")
     input3_ctx = webrtc_streamer(
         key="input3_ctx",
         mode=WebRtcMode.SENDRECV,

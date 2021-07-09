@@ -62,7 +62,6 @@ def _inner_create_process_track(
 
     loop = get_server_event_loop()
     relay = get_relay(loop)
-    output_track: MediaStreamTrack
     with loop_context(loop):
         output_track = Track(relay.subscribe(input_track), processor)
 
