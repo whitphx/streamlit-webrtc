@@ -16,13 +16,17 @@ from .process import (
     AsyncAudioProcessTrack,
     AsyncMediaProcessTrack,
     AsyncVideoProcessTrack,
-    AudioProcessorBase,
     AudioProcessTrack,
     ProcessorT,
-    VideoProcessorBase,
     VideoProcessTrack,
 )
 from .relay import get_relay
+from .webrtc import (
+    AudioProcessorFactory,
+    AudioProcessorT,
+    VideoProcessorFactory,
+    VideoProcessorT,
+)
 
 HashedObjT = TypeVar("HashedObjT")
 
@@ -71,8 +75,8 @@ def _inner_create_process_track(
 @overload
 def create_process_track(
     input_track: MediaStreamTrack,
-    processor_factory: Callable[[], VideoProcessorBase],
-    async_processing: Literal[True],
+    processor_factory: VideoProcessorFactory[VideoProcessorT],
+    async_processing: Literal[True] = True,
 ) -> AsyncVideoProcessTrack:
     pass
 
@@ -80,7 +84,7 @@ def create_process_track(
 @overload
 def create_process_track(
     input_track: MediaStreamTrack,
-    processor_factory: Callable[[], VideoProcessorBase],
+    processor_factory: VideoProcessorFactory[VideoProcessorT],
     async_processing: Literal[False],
 ) -> VideoProcessTrack:
     pass
@@ -89,8 +93,8 @@ def create_process_track(
 @overload
 def create_process_track(
     input_track: MediaStreamTrack,
-    processor_factory: Callable[[], AudioProcessorBase],
-    async_processing: Literal[True],
+    processor_factory: AudioProcessorFactory[AudioProcessorT],
+    async_processing: Literal[True] = True,
 ) -> AsyncAudioProcessTrack:
     pass
 
@@ -98,17 +102,17 @@ def create_process_track(
 @overload
 def create_process_track(
     input_track: MediaStreamTrack,
-    processor_factory: Callable[[], AudioProcessorBase],
+    processor_factory: AudioProcessorFactory[AudioProcessorT],
     async_processing: Literal[False],
 ) -> AudioProcessTrack:
     pass
 
 
 def create_process_track(
-    input_track: MediaStreamTrack,
-    processor_factory: Callable[[], ProcessorT],
-    async_processing: bool = True,
-) -> MediaStreamTrack:
+    input_track,
+    processor_factory,
+    async_processing=True,
+):
     wrapped_input_track = ObjectHashWrapper(input_track, input_track.id)
     wrapped_processor_factory = ObjectHashWrapper(processor_factory, None)
     wrapped_output_track = _inner_create_process_track(
