@@ -1,4 +1,3 @@
-import abc
 import asyncio
 import fractions
 import functools
@@ -9,7 +8,7 @@ import time
 import traceback
 import weakref
 from collections import OrderedDict
-from typing import Generic, List, NamedTuple, Optional, TypeVar, Union
+from typing import Generic, List, NamedTuple, Optional, Union
 
 import av
 from aiortc import MediaStreamTrack
@@ -18,11 +17,15 @@ from aiortc.mediastreams import MediaStreamError
 
 from .eventloop import get_server_event_loop, loop_context
 from .relay import get_relay
+from .types import MuxerBase, MuxerT
+
+__all__ = [
+    "MuxerBase",
+    "MediaStreamMuxTrack",
+]
+
 
 LOGGER = logging.getLogger(__name__)
-
-
-Frame = Union[av.VideoFrame, av.AudioFrame]
 
 
 # Simply widely-used values are chosen here, but without any strict reasons.
@@ -33,12 +36,7 @@ VIDEO_CLOCK_RATE = 90000
 VIDEO_TIME_BASE = fractions.Fraction(1, VIDEO_CLOCK_RATE)
 
 
-class MuxerBase(abc.ABC):
-    @abc.abstractmethod
-    def on_update(self, frames: List[Frame]) -> Frame:
-        """
-        Receives frames from input tracks and returns one frame to output.
-        """
+Frame = Union[av.VideoFrame, av.AudioFrame]
 
 
 class InputQueueItem(NamedTuple):
@@ -110,9 +108,6 @@ async def mux_coro(mux_track: "MediaStreamMuxTrack"):
                 for tbline in tb.rstrip().splitlines():
                     LOGGER.error(tbline.rstrip())
         mux_track._queue.put_nowait(output_frame)
-
-
-MuxerT = TypeVar("MuxerT", bound=MuxerBase)
 
 
 class MediaStreamMuxTrack(MediaStreamTrack, Generic[MuxerT]):
