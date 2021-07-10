@@ -14,6 +14,8 @@ import av
 import numpy as np
 from aiortc import MediaStreamTrack
 
+from .webrtc import AudioProcessorT, VideoProcessorT
+
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
@@ -113,12 +115,18 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         return new_frame
 
 
-class VideoProcessTrack(MediaProcessTrack[VideoProcessorBase, av.VideoFrame]):
+class VideoProcessTrack(
+    MediaProcessTrack[VideoProcessorBase, av.VideoFrame], Generic[VideoProcessorT]
+):
     kind = "video"
+    processor: VideoProcessorT
 
 
-class AudioProcessTrack(MediaProcessTrack[AudioProcessorBase, av.AudioFrame]):
+class AudioProcessTrack(
+    MediaProcessTrack[AudioProcessorBase, av.AudioFrame], Generic[AudioProcessorT]
+):
     kind = "audio"
+    processor: AudioProcessorT
 
 
 __SENTINEL__ = "__SENTINEL__"
@@ -297,9 +305,15 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         return frame
 
 
-class AsyncVideoProcessTrack(AsyncMediaProcessTrack[VideoProcessorBase, av.VideoFrame]):
+class AsyncVideoProcessTrack(
+    AsyncMediaProcessTrack[VideoProcessorBase, av.VideoFrame], Generic[VideoProcessorT]
+):
     kind = "video"
+    processor: VideoProcessorT
 
 
-class AsyncAudioProcessTrack(AsyncMediaProcessTrack[AudioProcessorBase, av.AudioFrame]):
+class AsyncAudioProcessTrack(
+    AsyncMediaProcessTrack[AudioProcessorBase, av.AudioFrame], Generic[AudioProcessorT]
+):
     kind = "audio"
+    processor: AudioProcessorT

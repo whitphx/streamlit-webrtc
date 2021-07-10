@@ -77,7 +77,7 @@ def create_process_track(
     input_track: MediaStreamTrack,
     processor_factory: VideoProcessorFactory[VideoProcessorT],
     async_processing: Literal[True] = True,
-) -> AsyncVideoProcessTrack:
+) -> AsyncVideoProcessTrack[VideoProcessorT]:
     pass
 
 
@@ -86,7 +86,7 @@ def create_process_track(
     input_track: MediaStreamTrack,
     processor_factory: VideoProcessorFactory[VideoProcessorT],
     async_processing: Literal[False],
-) -> VideoProcessTrack:
+) -> VideoProcessTrack[VideoProcessorT]:
     pass
 
 
@@ -95,7 +95,7 @@ def create_process_track(
     input_track: MediaStreamTrack,
     processor_factory: AudioProcessorFactory[AudioProcessorT],
     async_processing: Literal[True] = True,
-) -> AsyncAudioProcessTrack:
+) -> AsyncAudioProcessTrack[AudioProcessorT]:
     pass
 
 
@@ -104,7 +104,7 @@ def create_process_track(
     input_track: MediaStreamTrack,
     processor_factory: AudioProcessorFactory[AudioProcessorT],
     async_processing: Literal[False],
-) -> AudioProcessTrack:
+) -> AudioProcessTrack[AudioProcessorT]:
     pass
 
 
