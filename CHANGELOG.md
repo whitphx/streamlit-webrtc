@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.23.10] - 2021-07-10
 ### Fix
 - Fix type annotations on `VideoProcessTrack`, #317.
 
