@@ -4,7 +4,7 @@ import itertools
 import logging
 import queue
 import threading
-from typing import Callable, Generic, Optional, TypeVar, Union
+from typing import Callable, Generic, Optional, Union
 
 try:
     from typing import Literal
@@ -12,20 +12,28 @@ except ImportError:
     from typing_extensions import Literal  # type: ignore
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
+from aiortc.contrib.media import MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
 
 from .process import (
     AsyncAudioProcessTrack,
     AsyncVideoProcessTrack,
-    AudioProcessorBase,
     AudioProcessTrack,
-    VideoProcessorBase,
     VideoProcessTrack,
-    VideoTransformerBase,
 )
 from .receive import AudioReceiver, VideoReceiver
 from .relay import get_relay
+from .types import (
+    AudioProcessorBase,
+    AudioProcessorFactory,
+    AudioProcessorT,
+    MediaPlayerFactory,
+    MediaRecorderFactory,
+    VideoProcessorBase,
+    VideoProcessorFactory,
+    VideoProcessorT,
+    VideoTransformerBase,
+)
 
 __all__ = [
     "AudioProcessorBase",
@@ -43,15 +51,6 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-
-
-VideoProcessorT = TypeVar("VideoProcessorT", bound=VideoProcessorBase)
-AudioProcessorT = TypeVar("AudioProcessorT", bound=AudioProcessorBase)
-
-MediaPlayerFactory = Callable[[], MediaPlayer]
-MediaRecorderFactory = Callable[[], MediaRecorder]
-VideoProcessorFactory = Callable[[], VideoProcessorT]
-AudioProcessorFactory = Callable[[], AudioProcessorT]
 
 
 class WebRtcMode(enum.Enum):
