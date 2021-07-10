@@ -9,7 +9,7 @@ import time
 import traceback
 import weakref
 from collections import OrderedDict
-from typing import List, NamedTuple, Optional, Union
+from typing import Generic, List, NamedTuple, Optional, TypeVar, Union
 
 import av
 from aiortc import MediaStreamTrack
@@ -112,9 +112,12 @@ async def mux_coro(mux_track: "MediaStreamMuxTrack"):
         mux_track._queue.put_nowait(output_frame)
 
 
-class MediaStreamMuxTrack(MediaStreamTrack):
+MuxerT = TypeVar("MuxerT", bound=MuxerBase)
+
+
+class MediaStreamMuxTrack(MediaStreamTrack, Generic[MuxerT]):
     kind: str
-    muxer: MuxerBase
+    muxer: MuxerT
 
     _loop: asyncio.AbstractEventLoop
     _input_proxies_lock: threading.Lock
@@ -130,7 +133,7 @@ class MediaStreamMuxTrack(MediaStreamTrack):
     _gather_frames_task: Union[asyncio.Task, None]
     _mux_task: Union[asyncio.Task, None]
 
-    def __init__(self, kind: str, muxer: MuxerBase) -> None:
+    def __init__(self, kind: str, muxer: MuxerT) -> None:
         self.kind = kind
         self.muxer = muxer
 

@@ -12,6 +12,7 @@ import streamlit.report_thread as ReportThread
 from aiortc import MediaStreamTrack
 
 from .eventloop import get_server_event_loop, loop_context
+from .mux import MuxerT
 from .process import (
     AsyncAudioProcessTrack,
     AsyncMediaProcessTrack,
@@ -138,8 +139,8 @@ def _inner_create_mux_track(
 
 
 def create_mux_track(
-    kind: str, muxer_factory: Callable[[], MuxerBase], key: str
-) -> MediaStreamMuxTrack:
+    kind: str, muxer_factory: Callable[[], MuxerT], key: str
+) -> MediaStreamMuxTrack[MuxerT]:
     wrapped_muxer_factory = ObjectHashWrapper(muxer_factory, id(muxer_factory))
     ctx = ReportThread.get_report_ctx()
     wrapped_output_track = _inner_create_mux_track(
