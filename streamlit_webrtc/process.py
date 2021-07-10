@@ -113,7 +113,7 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         return new_frame
 
 
-class VideoProcessTrack(MediaProcessTrack[AudioProcessorBase, av.AudioFrame]):
+class VideoProcessTrack(MediaProcessTrack[VideoProcessorBase, av.VideoFrame]):
     kind = "video"
 
 
