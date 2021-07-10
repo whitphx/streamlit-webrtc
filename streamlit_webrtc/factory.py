@@ -1,4 +1,4 @@
-from typing import Callable, Generic, Hashable, TypeVar, overload
+from typing import Callable, Generic, Hashable, TypeVar, Union, overload
 
 from streamlit_webrtc.mux import MediaStreamMuxTrack, MuxerBase
 
@@ -17,7 +17,7 @@ from .process import (
     AsyncMediaProcessTrack,
     AsyncVideoProcessTrack,
     AudioProcessTrack,
-    ProcessorT,
+    MediaProcessTrack,
     VideoProcessTrack,
 )
 from .relay import get_relay
@@ -42,9 +42,11 @@ class ObjectHashWrapper(Generic[HashedObjT]):
 @st.cache(hash_funcs={ObjectHashWrapper: lambda o: o.hash})
 def _inner_create_process_track(
     wrapped_input_track: ObjectHashWrapper[MediaStreamTrack],
-    wrapped_processor_factory: ObjectHashWrapper[Callable[[], ProcessorT]],
+    wrapped_processor_factory: ObjectHashWrapper[
+        Union[VideoProcessorFactory, AudioProcessorFactory]
+    ],
     async_processing: bool,
-) -> ObjectHashWrapper[AsyncMediaProcessTrack]:
+) -> ObjectHashWrapper[Union[AsyncMediaProcessTrack, MediaProcessTrack]]:
     input_track = wrapped_input_track.obj
     processor_factory = wrapped_processor_factory.obj
 
