@@ -19,6 +19,7 @@ def main():
                 "audio": True,
             },
         ),
+        sendback_audio=False,
     )
 
     with server_state_lock["webrtc_contexts"]:
