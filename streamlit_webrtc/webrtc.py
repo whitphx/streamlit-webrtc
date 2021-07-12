@@ -80,6 +80,8 @@ async def _process_offer(
     video_receiver: Optional[VideoReceiver],
     audio_receiver: Optional[AudioReceiver],
     async_processing: bool,
+    sendback_video: bool,
+    sendback_audio: bool,
     callback: Callable[[Union[RTCSessionDescription, Exception]], None],
     on_track_created: Callable[[TrackType, MediaStreamTrack], None],
 ):
@@ -153,8 +155,21 @@ async def _process_offer(
                     else:
                         output_track = input_track
 
-                logger.info("Add a track %s to %s", output_track, pc)
-                pc.addTrack(relay.subscribe(output_track))
+                if (output_track.kind == "video" and sendback_video) or (
+                    output_track.kind == "audio" and sendback_audio
+                ):
+                    logger.info(
+                        "Add a track %s of kind %s to %s",
+                        output_track,
+                        output_track.kind,
+                        pc,
+                    )
+                    pc.addTrack(relay.subscribe(output_track))
+                else:
+                    logger.info(
+                        "Block a track %s of kind %s", output_track, output_track.kind
+                    )
+
                 if out_recorder:
                     logger.info("Track %s is added to out_recorder", output_track.kind)
                     out_recorder.addTrack(relay.subscribe(output_track))
@@ -335,6 +350,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         async_processing: bool = True,
         video_receiver_size: int = 4,
         audio_receiver_size: int = 4,
+        sendback_video: bool = True,
+        sendback_audio: bool = True,
     ) -> None:
         self._webrtc_thread = None
         self._loop = loop
@@ -352,6 +369,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self.async_processing = async_processing
         self.video_receiver_size = video_receiver_size
         self.audio_receiver_size = audio_receiver_size
+        self.sendback_video = sendback_video
+        self.sendback_audio = sendback_audio
 
         self._video_processor = None
         self._audio_processor = None
@@ -453,6 +472,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 video_receiver=video_receiver,
                 audio_receiver=audio_receiver,
                 async_processing=self.async_processing,
+                sendback_video=self.sendback_video,
+                sendback_audio=self.sendback_audio,
                 callback=callback,
                 on_track_created=on_track_created,
             )

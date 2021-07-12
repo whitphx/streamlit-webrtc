@@ -240,6 +240,8 @@ def webrtc_streamer(
     audio_receiver_size: int = 4,
     source_video_track: Optional[MediaStreamTrack] = None,
     source_audio_track: Optional[MediaStreamTrack] = None,
+    sendback_video: bool = True,
+    sendback_audio: bool = True,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -267,6 +269,8 @@ def webrtc_streamer(
     audio_receiver_size: int = 4,
     source_video_track: Optional[MediaStreamTrack] = None,
     source_audio_track: Optional[MediaStreamTrack] = None,
+    sendback_video: bool = True,
+    sendback_audio: bool = True,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -290,6 +294,8 @@ def webrtc_streamer(
     audio_receiver_size: int = 4,
     source_video_track: Optional[MediaStreamTrack] = None,
     source_audio_track: Optional[MediaStreamTrack] = None,
+    sendback_video: bool = True,
+    sendback_audio: bool = True,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -313,6 +319,8 @@ def webrtc_streamer(
     audio_receiver_size: int = 4,
     source_video_track: Optional[MediaStreamTrack] = None,
     source_audio_track: Optional[MediaStreamTrack] = None,
+    sendback_video: bool = True,
+    sendback_audio: bool = True,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -335,6 +343,8 @@ def webrtc_streamer(
     audio_receiver_size: int = 4,
     source_video_track: Optional[MediaStreamTrack] = None,
     source_audio_track: Optional[MediaStreamTrack] = None,
+    sendback_video: bool = True,
+    sendback_audio: bool = True,
     # Deprecated. Just for backward compatibility
     video_transformer_factory=None,
     async_transform: Optional[bool] = None,
@@ -439,6 +449,8 @@ def webrtc_streamer(
             audio_receiver_size=audio_receiver_size,
             source_video_track=source_video_track,
             source_audio_track=source_audio_track,
+            sendback_video=sendback_video,
+            sendback_audio=sendback_audio,
         )
         webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
         _set_webrtc_worker(key, webrtc_worker)
