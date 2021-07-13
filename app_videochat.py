@@ -1,15 +1,17 @@
-from typing import List
+import logging
 import math
+from typing import List
 
 import av
 import cv2
 import numpy as np
-
 from streamlit_server_state import server_state, server_state_lock
 
 from streamlit_webrtc import ClientSettings, WebRtcMode, webrtc_streamer
-from streamlit_webrtc.mux import MuxerBase
 from streamlit_webrtc.factory import create_mux_track
+from streamlit_webrtc.mux import MuxerBase
+
+logger = logging.getLogger(__name__)
 
 
 class MultiWindowMuxer(MuxerBase):
@@ -62,6 +64,10 @@ def main():
     if "webrtc_contexts" not in server_state:
         server_state["webrtc_contexts"] = []
 
+    mux_track = create_mux_track(
+        kind="video", muxer_factory=MultiWindowMuxer, key="mux"
+    )
+
     self_ctx = webrtc_streamer(
         key="self",
         mode=WebRtcMode.SENDRECV,
@@ -71,8 +77,12 @@ def main():
             },
             media_stream_constraints={"video": True, "audio": True},
         ),
+        source_video_track=mux_track,
         sendback_audio=False,
     )
+
+    if self_ctx.input_video_track:
+        mux_track.add_input_track(self_ctx.input_video_track)
 
     with server_state_lock["webrtc_contexts"]:
         webrtc_contexts = server_state["webrtc_contexts"]
@@ -87,12 +97,8 @@ def main():
         ctx for ctx in webrtc_contexts if ctx != self_ctx and ctx.state.playing
     ]
 
-    mux_track = create_mux_track(
-        kind="video", muxer_factory=MultiWindowMuxer, key="mux"
-    )
-
     for ctx in active_other_ctxs:
-        mux_track.add_input_track(ctx.output_video_track)
+        mux_track.add_input_track(ctx.input_video_track)
         webrtc_streamer(
             key=f"sound-{id(ctx)}",
             mode=WebRtcMode.RECVONLY,
@@ -102,24 +108,31 @@ def main():
                 },
                 media_stream_constraints={"video": False, "audio": True},
             ),
-            source_audio_track=ctx.output_audio_track,
-            desired_playing_state=True,
-        )
-
-    if len(active_other_ctxs) > 0:
-        webrtc_streamer(
-            key="participants",
-            mode=WebRtcMode.RECVONLY,
-            client_settings=ClientSettings(
-                rtc_configuration={
-                    "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-                },
-                media_stream_constraints={"video": True, "audio": False},
-            ),
-            source_video_track=mux_track,
+            source_audio_track=ctx.input_audio_track,
             desired_playing_state=True,
         )
 
 
 if __name__ == "__main__":
+    import os
+
+    DEBUG = os.environ.get("DEBUG", "false").lower() not in ["false", "no", "0"]
+
+    logging.basicConfig(
+        format="[%(asctime)s] %(levelname)7s from %(name)s in %(pathname)s:%(lineno)d: "
+        "%(message)s",
+        force=True,
+    )
+
+    logger.setLevel(level=logging.DEBUG if DEBUG else logging.INFO)
+
+    st_webrtc_logger = logging.getLogger("streamlit_webrtc")
+    st_webrtc_logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
+
+    aioice_logger = logging.getLogger("aioice")
+    aioice_logger.setLevel(logging.WARNING)
+
+    fsevents_logger = logging.getLogger("fsevents")
+    fsevents_logger.setLevel(logging.WARNING)
+
     main()
