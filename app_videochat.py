@@ -98,7 +98,10 @@ def main():
     ]
 
     for ctx in active_other_ctxs:
+        # Video streams are handled in MCU manner
         mux_track.add_input_track(ctx.input_video_track)
+        # Audio streams are transferred in SFU manner
+        # TODO: Create MCU to mix audio streams
         webrtc_streamer(
             key=f"sound-{id(ctx)}",
             mode=WebRtcMode.RECVONLY,
