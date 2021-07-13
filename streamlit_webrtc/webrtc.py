@@ -9,6 +9,7 @@ from typing import Callable, Generic, Optional, TypeVar, Union
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
 
+from .eventloop import get_server_event_loop
 from .process import (
     AsyncAudioProcessTrack,
     AsyncVideoProcessTrack,
@@ -19,7 +20,7 @@ from .process import (
     VideoTransformerBase,
 )
 from .receive import AudioReceiver, VideoReceiver
-from .relay import get_relay
+from .relay import get_global_relay
 
 __all__ = [
     "AudioProcessorBase",
@@ -299,7 +300,6 @@ webrtc_thread_id_generator = itertools.count()
 
 class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _webrtc_thread: Union[threading.Thread, None]
-    _loop: asyncio.AbstractEventLoop
     _answer_queue: queue.Queue
     _video_processor: Optional[VideoProcessorT]
     _audio_processor: Optional[AudioProcessorT]
@@ -324,7 +324,6 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
     def __init__(
         self,
-        loop: asyncio.AbstractEventLoop,
         mode: WebRtcMode,
         player_factory: Optional[MediaPlayerFactory] = None,
         in_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -340,7 +339,6 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         audio_receiver_size: int = 4,
     ) -> None:
         self._webrtc_thread = None
-        self._loop = loop
         self.pc = RTCPeerConnection()
         self._answer_queue = queue.Queue()
 
@@ -382,7 +380,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             "_webrtc_thread_impl starts",
         )
 
-        loop = self._loop
+        loop = get_server_event_loop()
 
         offer = RTCSessionDescription(sdp, type_)
 
@@ -408,7 +406,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._video_receiver = video_receiver
         self._audio_receiver = audio_receiver
 
-        relay = get_relay(loop=loop)
+        relay = get_global_relay()
 
         @self.pc.on("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
