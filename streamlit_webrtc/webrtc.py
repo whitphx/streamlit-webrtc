@@ -15,6 +15,7 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
 
+from .eventloop import get_server_event_loop
 from .process import (
     AsyncAudioProcessTrack,
     AsyncVideoProcessTrack,
@@ -22,7 +23,7 @@ from .process import (
     VideoProcessTrack,
 )
 from .receive import AudioReceiver, VideoReceiver
-from .relay import get_relay
+from .relay import get_global_relay
 from .types import (
     AudioProcessorBase,
     AudioProcessorFactory,
@@ -299,7 +300,6 @@ webrtc_thread_id_generator = itertools.count()
 
 class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _webrtc_thread: Union[threading.Thread, None]
-    _loop: asyncio.AbstractEventLoop
     _answer_queue: queue.Queue
     _video_processor: Optional[VideoProcessorT]
     _audio_processor: Optional[AudioProcessorT]
@@ -334,7 +334,6 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
     def __init__(
         self,
-        loop: asyncio.AbstractEventLoop,
         mode: WebRtcMode,
         source_video_track: Optional[MediaStreamTrack] = None,
         source_audio_track: Optional[MediaStreamTrack] = None,
@@ -354,7 +353,6 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         sendback_audio: bool = True,
     ) -> None:
         self._webrtc_thread = None
-        self._loop = loop
         self.pc = RTCPeerConnection()
         self._answer_queue = queue.Queue()
 
@@ -402,7 +400,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             "_webrtc_thread_impl starts",
         )
 
-        loop = self._loop
+        loop = get_server_event_loop()
         asyncio.set_event_loop(loop)
 
         offer = RTCSessionDescription(sdp, type_)
@@ -435,7 +433,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._video_receiver = video_receiver
         self._audio_receiver = audio_receiver
 
-        relay = get_relay(loop=loop)
+        relay = get_global_relay()
 
         source_audio_track = None
         source_video_track = None

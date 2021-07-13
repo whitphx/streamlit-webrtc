@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.23.11] - 2021-07-13
+### Fix
+- Internal fix about event loop management, #323.
+
 ## [0.23.10] - 2021-07-10
 ### Fix
 - Fix type annotations on `VideoProcessTrack`, #317.

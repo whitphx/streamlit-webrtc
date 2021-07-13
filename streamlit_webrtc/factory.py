@@ -21,7 +21,7 @@ from .process import (
     MediaProcessTrack,
     VideoProcessTrack,
 )
-from .relay import get_relay
+from .relay import get_global_relay
 from .webrtc import (
     AudioProcessorFactory,
     AudioProcessorT,
@@ -68,7 +68,7 @@ def _inner_create_process_track(
         raise ValueError(f"Unsupported track type: {input_track.kind}")
 
     loop = get_server_event_loop()
-    relay = get_relay(loop)
+    relay = get_global_relay()
     with loop_context(loop):
         output_track = Track(relay.subscribe(input_track), processor)
 

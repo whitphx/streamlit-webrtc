@@ -16,7 +16,7 @@ from aiortc.contrib.media import RelayStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
 from .eventloop import get_server_event_loop, loop_context
-from .relay import get_relay
+from .relay import get_global_relay
 from .types import MuxerBase, MuxerT
 
 __all__ = [
@@ -185,7 +185,7 @@ class MediaStreamMuxTrack(MediaStreamTrack, Generic[MuxerT]):
             if input_track in self._input_proxies:
                 return
 
-            relay = get_relay(self._loop)
+            relay = get_global_relay()
             with loop_context(self._loop):
                 input_proxy = relay.subscribe(input_track)
 
