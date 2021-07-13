@@ -64,7 +64,7 @@ class TimeoutError(Exception):
     pass
 
 
-TrackType = Literal["output:video", "output:audio"]
+TrackType = Literal["input:video", "input:audio", "output:video", "output:audio"]
 
 
 async def _process_offer(
@@ -106,6 +106,11 @@ async def _process_offer(
             @pc.on("track")
             def on_track(input_track):
                 logger.info("Track %s received", input_track.kind)
+
+                if input_track.kind == "video":
+                    on_track_created("input:video", input_track)
+                elif input_track.kind == "audio":
+                    on_track_created("input:audio", input_track)
 
                 output_track = None
 
@@ -178,9 +183,9 @@ async def _process_offer(
                     logger.info("Track %s is added to in_recorder", input_track.kind)
                     in_recorder.addTrack(relay.subscribe(input_track))
 
-                if input_track.kind == "video":
+                if output_track.kind == "video":
                     on_track_created("output:video", output_track)
-                elif input_track.kind == "audio":
+                elif output_track.kind == "audio":
                     on_track_created("output:audio", output_track)
 
                 @input_track.on("ended")
@@ -196,6 +201,11 @@ async def _process_offer(
             @pc.on("track")
             def on_track(input_track):
                 logger.info("Track %s received", input_track.kind)
+
+                if input_track.kind == "video":
+                    on_track_created("input:video", input_track)
+                elif input_track.kind == "audio":
+                    on_track_created("input:audio", input_track)
 
                 if input_track.kind == "audio":
                     if audio_receiver:
@@ -274,6 +284,11 @@ async def _process_offer(
                     # because connecting player to recorder does not work somehow;
                     # it generates unplayable movie files.
 
+                    if output_track.kind == "video":
+                        on_track_created("output:video", output_track)
+                    elif output_track.kind == "audio":
+                        on_track_created("output:audio", output_track)
+
         if video_receiver and video_receiver.hasTrack():
             video_receiver.start()
         if audio_receiver and audio_receiver.hasTrack():
@@ -305,6 +320,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _audio_processor: Optional[AudioProcessorT]
     _video_receiver: Optional[VideoReceiver]
     _audio_receiver: Optional[AudioReceiver]
+    _input_video_track: Optional[MediaStreamTrack]
+    _input_audio_track: Optional[MediaStreamTrack]
     _output_video_track: Optional[MediaStreamTrack]
     _output_audio_track: Optional[MediaStreamTrack]
 
@@ -323,6 +340,14 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     @property
     def audio_receiver(self) -> Optional[AudioReceiver]:
         return self._audio_receiver
+
+    @property
+    def input_video_track(self) -> Optional[MediaStreamTrack]:
+        return self._input_video_track
+
+    @property
+    def input_audio_track(self) -> Optional[MediaStreamTrack]:
+        return self._input_audio_track
 
     @property
     def output_video_track(self) -> Optional[MediaStreamTrack]:
@@ -374,6 +399,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._audio_processor = None
         self._video_receiver = None
         self._audio_receiver = None
+        self._input_video_track = None
+        self._input_audio_track = None
         self._output_video_track = None
         self._output_audio_track = None
 
@@ -409,7 +436,11 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             self._answer_queue.put(localDescription)
 
         def on_track_created(track_type: TrackType, track: MediaStreamTrack):
-            if track_type == "output:video":
+            if track_type == "input:video":
+                self._input_video_track = track
+            elif track_type == "input:audio":
+                self._input_audio_track = track
+            elif track_type == "output:video":
                 self._output_video_track = track
             elif track_type == "output:audio":
                 self._output_audio_track = track
