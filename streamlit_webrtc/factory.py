@@ -141,7 +141,7 @@ def _inner_create_mux_track(
 def create_mux_track(
     kind: str, muxer_factory: Callable[[], MuxerT], key: str
 ) -> MediaStreamMuxTrack[MuxerT]:
-    wrapped_muxer_factory = ObjectHashWrapper(muxer_factory, id(muxer_factory))
+    wrapped_muxer_factory = ObjectHashWrapper(muxer_factory, None)
     ctx = ReportThread.get_report_ctx()
     wrapped_output_track = _inner_create_mux_track(
         kind=kind,
