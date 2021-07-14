@@ -117,8 +117,9 @@ class MultiWindowMuxer(MuxerBase):
 
 
 def main():
-    if "webrtc_contexts" not in server_state:
-        server_state["webrtc_contexts"] = OrderedDict()
+    with server_state_lock["webrtc_contexts"]:
+        if "webrtc_contexts" not in server_state:
+            server_state["webrtc_contexts"] = OrderedDict()
 
     mux_track = create_mux_track(
         kind="video", muxer_factory=MultiWindowMuxer, key="mux"
