@@ -63,7 +63,7 @@ class MediaTrackConstraintSet(TypedDict, total=False):
     aspectRatio: ConstrainDouble
     autoGainControl: ConstrainBoolean
     channelCount: ConstrainULong
-    deviceId: ConstrainDOMString
+    # deviceId: ConstrainDOMString
     echoCancellation: ConstrainBoolean
     facingMode: ConstrainDOMString
     frameRate: ConstrainDouble

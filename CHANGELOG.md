@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+## [0.23.12] - 2021-07-15
+### Fix
+- Remove `MediaTrackConstraintSet.deviceId` option, which has no effect, #328.
+
 ## [0.23.11] - 2021-07-13
 ### Fix
 - Internal fix about event loop management, #323.
