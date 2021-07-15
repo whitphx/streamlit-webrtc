@@ -21,7 +21,7 @@ from streamlit_webrtc import (
     webrtc_streamer,
 )
 from streamlit_webrtc.factory import create_mux_track, create_process_track
-from streamlit_webrtc.mux import MuxerBase
+from streamlit_webrtc.mix import MuxerBase
 
 logger = logging.getLogger(__name__)
 
