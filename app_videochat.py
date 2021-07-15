@@ -20,7 +20,7 @@ from streamlit_webrtc import (
     WebRtcMode,
     webrtc_streamer,
 )
-from streamlit_webrtc.factory import create_mux_track, create_process_track
+from streamlit_webrtc.factory import create_mix_track, create_process_track
 from streamlit_webrtc.mix import MixerBase
 
 logger = logging.getLogger(__name__)
@@ -121,13 +121,13 @@ def main():
         if "webrtc_contexts" not in server_state:
             server_state["webrtc_contexts"] = OrderedDict()
 
-    with server_state_lock["mux_track"]:
-        if "mux_track" not in server_state:
-            server_state["mux_track"] = create_mux_track(
-                kind="video", mixer_factory=MultiWindowMixer, key="mux"
+    with server_state_lock["mix_track"]:
+        if "mix_track" not in server_state:
+            server_state["mix_track"] = create_mix_track(
+                kind="video", mixer_factory=MultiWindowMixer, key="mix"
             )
 
-    mux_track = server_state["mux_track"]
+    mix_track = server_state["mix_track"]
 
     self_ctx = webrtc_streamer(
         key="self",
@@ -138,7 +138,7 @@ def main():
             },
             media_stream_constraints={"video": True, "audio": True},
         ),
-        source_video_track=mux_track,
+        source_video_track=mix_track,
         sendback_audio=False,
     )
 
@@ -148,7 +148,7 @@ def main():
             input_track=self_ctx.input_video_track,
             processor_factory=OpenCVVideoProcessor,
         )
-        mux_track.add_input_track(self_process_track)
+        mix_track.add_input_track(self_process_track)
 
         self_process_track.processor.type = st.radio(
             "Select transform type",
@@ -170,7 +170,7 @@ def main():
         if ctx == self_ctx or not ctx.state.playing:
             continue
         # Video streams are handled in MCU manner
-        mux_track.add_input_track(track)
+        mix_track.add_input_track(track)
         # Audio streams are transferred in SFU manner
         # TODO: Create MCU to mix audio streams
         webrtc_streamer(

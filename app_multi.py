@@ -18,7 +18,7 @@ from streamlit_webrtc import (
     WebRtcMode,
     webrtc_streamer,
 )
-from streamlit_webrtc.factory import create_mux_track, create_process_track
+from streamlit_webrtc.factory import create_mix_track, create_process_track
 from streamlit_webrtc.mix import MixerBase
 
 logger = logging.getLogger(__name__)
@@ -114,7 +114,7 @@ class MultiWindowMixer(MixerBase):
         return new_frame
 
 
-def app_mux():
+def app_mix():
     COMMON_CLIENT_SETTINGS = ClientSettings(
         rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
         media_stream_constraints={
@@ -169,11 +169,11 @@ def app_mux():
     )
 
     st.write("Combined output")
-    mux_track = create_mux_track(
-        kind="video", mixer_factory=MultiWindowMixer, key="mux"
+    mix_track = create_mix_track(
+        kind="video", mixer_factory=MultiWindowMixer, key="mix"
     )
-    mux_ctx = webrtc_streamer(
-        key="mux",
+    mix_ctx = webrtc_streamer(
+        key="mix",
         mode=WebRtcMode.RECVONLY,
         client_settings=ClientSettings(
             rtc_configuration={
@@ -184,16 +184,16 @@ def app_mux():
                 "audio": True,
             },
         ),
-        source_video_track=mux_track,
+        source_video_track=mix_track,
     )
 
-    if mux_ctx.source_video_track and input1_video_process_track:
-        mux_ctx.source_video_track.add_input_track(input1_video_process_track)
-    if mux_ctx.source_video_track and input2_video_process_track:
-        mux_ctx.source_video_track.add_input_track(input2_video_process_track)
-    if mux_ctx.source_video_track and input3_ctx.output_video_track:
+    if mix_ctx.source_video_track and input1_video_process_track:
+        mix_ctx.source_video_track.add_input_track(input1_video_process_track)
+    if mix_ctx.source_video_track and input2_video_process_track:
+        mix_ctx.source_video_track.add_input_track(input2_video_process_track)
+    if mix_ctx.source_video_track and input3_ctx.output_video_track:
         # Input3 is sourced without any filter.
-        mux_ctx.source_video_track.add_input_track(input3_ctx.output_video_track)
+        mix_ctx.source_video_track.add_input_track(input3_ctx.output_video_track)
 
 
 def app_fork():
@@ -244,19 +244,19 @@ def app_fork():
 
 
 def menu():
-    mux_page = "Combine mulitple inputs with different video filters into one stream"
+    mix_page = "Combine mulitple inputs with different video filters into one stream"
     fork_page = "Fork one input to multiple outputs with different video filters"
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
         [
-            mux_page,
+            mix_page,
             fork_page,
         ],
     )
     st.subheader(app_mode)
 
-    if app_mode == mux_page:
-        app_mux()
+    if app_mode == mix_page:
+        app_mix()
     elif app_mode == fork_page:
         app_fork()
 

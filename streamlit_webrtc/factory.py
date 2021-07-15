@@ -10,7 +10,7 @@ import streamlit.report_thread as ReportThread
 from aiortc import MediaStreamTrack
 
 from .eventloop import get_server_event_loop, loop_context
-from .mix import MediaStreamMuxTrack, MixerBase, MixerT
+from .mix import MediaStreamMixTrack, MixerBase, MixerT
 from .process import (
     AsyncAudioProcessTrack,
     AsyncMediaProcessTrack,
@@ -123,25 +123,25 @@ def create_process_track(
 
 
 @st.cache(hash_funcs={ObjectHashWrapper: lambda o: o.hash})
-def _inner_create_mux_track(
+def _inner_create_mix_track(
     kind: str,
     wrapped_mixer_factory: ObjectHashWrapper[Callable[[], MixerBase]],
     key: str,
     session_id: str,
-) -> ObjectHashWrapper[MediaStreamMuxTrack]:
+) -> ObjectHashWrapper[MediaStreamMixTrack]:
     mixer_factory = wrapped_mixer_factory.obj
     mixer = mixer_factory()
 
-    output_track = MediaStreamMuxTrack(kind=kind, mixer=mixer)
+    output_track = MediaStreamMixTrack(kind=kind, mixer=mixer)
     return ObjectHashWrapper(output_track, output_track.id)
 
 
-def create_mux_track(
+def create_mix_track(
     kind: str, mixer_factory: Callable[[], MixerT], key: str
-) -> MediaStreamMuxTrack[MixerT]:
+) -> MediaStreamMixTrack[MixerT]:
     wrapped_mixer_factory = ObjectHashWrapper(mixer_factory, None)
     ctx = ReportThread.get_report_ctx()
-    wrapped_output_track = _inner_create_mux_track(
+    wrapped_output_track = _inner_create_mix_track(
         kind=kind,
         wrapped_mixer_factory=wrapped_mixer_factory,
         key=key,  # To make the cache unique
