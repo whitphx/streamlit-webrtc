@@ -14,12 +14,13 @@ import streamlit as st
 
 from streamlit_webrtc import (
     ClientSettings,
+    MixerBase,
     VideoProcessorBase,
     WebRtcMode,
+    create_mix_track,
+    create_process_track,
     webrtc_streamer,
 )
-from streamlit_webrtc.factory import create_mix_track, create_process_track
-from streamlit_webrtc.mix import MixerBase
 
 logger = logging.getLogger(__name__)
 
