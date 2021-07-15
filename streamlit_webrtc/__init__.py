@@ -1,3 +1,9 @@
+try:
+    import importlib.metadata as importlib_metadata
+except ModuleNotFoundError:
+    # Python < 3.8
+    import importlib_metadata  # type: ignore
+
 from .component import ClientSettings, webrtc_streamer
 from .config import MediaStreamConstraints, RTCConfiguration
 from .factory import create_mix_track, create_process_track
@@ -15,6 +21,20 @@ from .webrtc import (
     WebRtcMode,
     WebRtcWorker,
 )
+
+
+# Set __version__ dynamically base on metadata.
+# https://github.com/python-poetry/poetry/issues/1036#issuecomment-489880822
+# https://github.com/python-poetry/poetry/issues/144#issuecomment-623927302
+# https://github.com/python-poetry/poetry/pull/2366#issuecomment-652418094
+try:
+    __version__ = importlib_metadata.version(__name__)
+except importlib_metadata.PackageNotFoundError:
+    pass
+
+# For backward compatibility
+VideoTransformerFactory = VideoProcessorFactory
+
 
 __all__ = [
     "webrtc_streamer",
