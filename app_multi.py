@@ -168,7 +168,7 @@ def app_mix():
         client_settings=COMMON_CLIENT_SETTINGS,
     )
 
-    st.write("Combined output")
+    st.write("Mixed output")
     mix_track = create_mix_track(
         kind="video", mixer_factory=MultiWindowMixer, key="mix"
     )
@@ -244,7 +244,7 @@ def app_fork():
 
 
 def menu():
-    mix_page = "Combine mulitple inputs with different video filters into one stream"
+    mix_page = "Mix mulitple inputs with different video filters into one stream"
     fork_page = "Fork one input to multiple outputs with different video filters"
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
