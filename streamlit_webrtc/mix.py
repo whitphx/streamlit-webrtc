@@ -17,11 +17,11 @@ from aiortc.mediastreams import MediaStreamError
 
 from .eventloop import get_server_event_loop, loop_context
 from .relay import get_global_relay
-from .types import MuxerBase, MuxerT
+from .types import MixerBase, MixerT
 
 __all__ = [
-    "MuxerBase",
-    "MediaStreamMuxTrack",
+    "MixerBase",
+    "MediaStreamMixTrack",
 ]
 
 
@@ -45,7 +45,7 @@ class InputQueueItem(NamedTuple):
 
 
 async def input_track_coro(
-    input_track: RelayStreamTrack, mux_track: "MediaStreamMuxTrack"
+    input_track: RelayStreamTrack, mix_track: "MediaStreamMixTrack"
 ):
     source_track_id = input_track.id
     while True:
@@ -53,26 +53,26 @@ async def input_track_coro(
             frame = await input_track.recv()
         except MediaStreamError:
             frame = None
-        if mux_track._output_started:
-            mux_track._input_queue.put_nowait(
+        if mix_track._output_started:
+            mix_track._input_queue.put_nowait(
                 InputQueueItem(source_track_id=source_track_id, frame=frame)
             )
         if frame is None:
             break
 
 
-async def gather_frames_coro(mux_track: "MediaStreamMuxTrack"):
+async def gather_frames_coro(mix_track: "MediaStreamMixTrack"):
     while True:
         try:
-            item: InputQueueItem = await mux_track._input_queue.get()
+            item: InputQueueItem = await mix_track._input_queue.get()
         except MediaStreamError:
             LOGGER.warning("Stop gather_frames_coro")
-            mux_track.stop()
+            mix_track.stop()
             return
 
         source_track = None
-        with mux_track._input_proxies_lock:
-            for proxy in mux_track._input_proxies.values():
+        with mix_track._input_proxies_lock:
+            for proxy in mix_track._input_proxies.values():
                 if proxy.id == item.source_track_id:
                     source_track = proxy
             if source_track is None:
@@ -80,18 +80,18 @@ async def gather_frames_coro(mux_track: "MediaStreamMuxTrack"):
                 continue
 
         frame = item.frame
-        mux_track._set_latest_frame(source_track, frame)
+        mix_track._set_latest_frame(source_track, frame)
 
 
-async def mux_coro(mux_track: "MediaStreamMuxTrack"):
+async def mix_coro(mix_track: "MediaStreamMixTrack"):
     started_at = time.monotonic()
 
     while True:
         latest_frames = (
-            await mux_track._get_latest_frames()
+            await mix_track._get_latest_frames()
         )  # Wait for new frames arrive
         try:
-            output_frame = mux_track.muxer.on_update(latest_frames)
+            output_frame = mix_track.mixer.on_update(latest_frames)
 
             if output_frame.pts is None and output_frame.time_base is None:
                 timestamp = time.monotonic() - started_at
@@ -107,12 +107,12 @@ async def mux_coro(mux_track: "MediaStreamMuxTrack"):
             for tb in traceback.format_exception(exc_type, exc_value, exc_traceback):
                 for tbline in tb.rstrip().splitlines():
                     LOGGER.error(tbline.rstrip())
-        mux_track._queue.put_nowait(output_frame)
+        mix_track._queue.put_nowait(output_frame)
 
 
-class MediaStreamMuxTrack(MediaStreamTrack, Generic[MuxerT]):
+class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
     kind: str
-    muxer: MuxerT
+    mixer: MixerT
 
     _loop: asyncio.AbstractEventLoop
     _input_proxies_lock: threading.Lock
@@ -126,11 +126,11 @@ class MediaStreamMuxTrack(MediaStreamTrack, Generic[MuxerT]):
     _output_started: bool
 
     _gather_frames_task: Union[asyncio.Task, None]
-    _mux_task: Union[asyncio.Task, None]
+    _mix_task: Union[asyncio.Task, None]
 
-    def __init__(self, kind: str, muxer: MuxerT) -> None:
+    def __init__(self, kind: str, mixer: MixerT) -> None:
         self.kind = kind
-        self.muxer = muxer
+        self.mixer = mixer
 
         loop = get_server_event_loop()
 
@@ -153,7 +153,7 @@ class MediaStreamMuxTrack(MediaStreamTrack, Generic[MuxerT]):
             self._loop = loop
 
             self._gather_frames_task = None
-            self._mux_task = None
+            self._mix_task = None
 
             self._output_started = False
 
@@ -162,9 +162,9 @@ class MediaStreamMuxTrack(MediaStreamTrack, Generic[MuxerT]):
             return
 
         self._gather_frames_task = self._loop.create_task(
-            gather_frames_coro(mux_track=self)
+            gather_frames_coro(mix_track=self)
         )
-        self._mux_task = self._loop.create_task(mux_coro(mux_track=self))
+        self._mix_task = self._loop.create_task(mix_coro(mix_track=self))
 
         self._output_started = True
 
@@ -174,9 +174,9 @@ class MediaStreamMuxTrack(MediaStreamTrack, Generic[MuxerT]):
         if self._gather_frames_task:
             self._gather_frames_task.cancel()
             self._gather_frames_task = None
-        if self._mux_task:
-            self._mux_task.cancel()
-            self._mux_task = None
+        if self._mix_task:
+            self._mix_task.cancel()
+            self._mix_task = None
 
     def add_input_track(self, input_track: MediaStreamTrack) -> None:
         LOGGER.debug("Add a track %s to %s", input_track, self)
@@ -196,7 +196,7 @@ class MediaStreamMuxTrack(MediaStreamTrack, Generic[MuxerT]):
         )
 
         task = self._loop.create_task(
-            input_track_coro(input_track=input_proxy, mux_track=self)
+            input_track_coro(input_track=input_proxy, mix_track=self)
         )
         self._input_tasks[input_proxy] = task
 
