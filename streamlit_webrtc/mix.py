@@ -17,10 +17,10 @@ from aiortc.mediastreams import MediaStreamError
 
 from .eventloop import get_server_event_loop, loop_context
 from .relay import get_global_relay
-from .types import MuxerBase, MuxerT
+from .types import MixerBase, MixerT
 
 __all__ = [
-    "MuxerBase",
+    "MixerBase",
     "MediaStreamMuxTrack",
 ]
 
@@ -91,7 +91,7 @@ async def mux_coro(mux_track: "MediaStreamMuxTrack"):
             await mux_track._get_latest_frames()
         )  # Wait for new frames arrive
         try:
-            output_frame = mux_track.muxer.on_update(latest_frames)
+            output_frame = mux_track.mixer.on_update(latest_frames)
 
             if output_frame.pts is None and output_frame.time_base is None:
                 timestamp = time.monotonic() - started_at
@@ -110,9 +110,9 @@ async def mux_coro(mux_track: "MediaStreamMuxTrack"):
         mux_track._queue.put_nowait(output_frame)
 
 
-class MediaStreamMuxTrack(MediaStreamTrack, Generic[MuxerT]):
+class MediaStreamMuxTrack(MediaStreamTrack, Generic[MixerT]):
     kind: str
-    muxer: MuxerT
+    mixer: MixerT
 
     _loop: asyncio.AbstractEventLoop
     _input_proxies_lock: threading.Lock
@@ -128,9 +128,9 @@ class MediaStreamMuxTrack(MediaStreamTrack, Generic[MuxerT]):
     _gather_frames_task: Union[asyncio.Task, None]
     _mux_task: Union[asyncio.Task, None]
 
-    def __init__(self, kind: str, muxer: MuxerT) -> None:
+    def __init__(self, kind: str, mixer: MixerT) -> None:
         self.kind = kind
-        self.muxer = muxer
+        self.mixer = mixer
 
         loop = get_server_event_loop()
 

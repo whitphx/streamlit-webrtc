@@ -96,7 +96,7 @@ ProcessorT = TypeVar("ProcessorT", VideoProcessorBase, AudioProcessorBase)
 FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
 
 
-class MuxerBase(abc.ABC, Generic[FrameT]):
+class MixerBase(abc.ABC, Generic[FrameT]):
     @abc.abstractmethod
     def on_update(self, frames: List[FrameT]) -> FrameT:
         """
@@ -104,4 +104,4 @@ class MuxerBase(abc.ABC, Generic[FrameT]):
         """
 
 
-MuxerT = TypeVar("MuxerT", bound=MuxerBase)
+MixerT = TypeVar("MixerT", bound=MixerBase)
