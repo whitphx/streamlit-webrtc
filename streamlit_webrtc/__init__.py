@@ -25,7 +25,6 @@ from .webrtc import (
     WebRtcWorker,
 )
 
-
 # Set __version__ dynamically base on metadata.
 # https://github.com/python-poetry/poetry/issues/1036#issuecomment-489880822
 # https://github.com/python-poetry/poetry/issues/144#issuecomment-623927302
