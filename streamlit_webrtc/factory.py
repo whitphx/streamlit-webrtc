@@ -1,7 +1,5 @@
 from typing import Callable, Generic, Hashable, TypeVar, Union, overload
 
-from streamlit_webrtc.mix import MediaStreamMuxTrack, MuxerBase
-
 try:
     from typing import Literal
 except ImportError:
@@ -12,7 +10,7 @@ import streamlit.report_thread as ReportThread
 from aiortc import MediaStreamTrack
 
 from .eventloop import get_server_event_loop, loop_context
-from .mix import MuxerT
+from .mix import MediaStreamMuxTrack, MuxerBase, MuxerT
 from .process import (
     AsyncAudioProcessTrack,
     AsyncMediaProcessTrack,
