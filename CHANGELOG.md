@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Add
+- Support forking and mixing streams, #318.
 
 ## [0.23.12] - 2021-07-15
 ### Fix
