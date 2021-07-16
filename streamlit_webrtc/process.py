@@ -1,4 +1,3 @@
-import abc
 import asyncio
 import itertools
 import logging
@@ -8,93 +7,22 @@ import threading
 import time
 import traceback
 from collections import deque
-from typing import Generic, List, Optional, TypeVar, Union
+from typing import Generic, List, Optional, Union
 
 import av
-import numpy as np
 from aiortc import MediaStreamTrack
+
+from .types import (
+    AudioProcessorBase,
+    AudioProcessorT,
+    FrameT,
+    ProcessorT,
+    VideoProcessorBase,
+    VideoProcessorT,
+)
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-
-
-class VideoProcessorBase(abc.ABC):
-    """
-    A base class for video processors.
-    """
-
-    def transform(self, frame: av.VideoFrame) -> np.ndarray:
-        """
-        Receives a video frame, and returns a numpy array representing
-        an image for a new frame in bgr24 format.
-
-        .. deprecated:: 0.20.0
-        """
-        raise NotImplementedError("transform() is not implemented.")
-
-    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-        """
-        Receives a video frame, and returns a new video frame.
-
-        When running in async mode, only the latest frame is provided and
-        other frames are dropped which have arrived after the previous recv() call
-        and before the latest one.
-        In order to process all the frames, use recv_queued() instead.
-        """
-        logger.warning("transform() is deprecated. Implement recv() instead.")
-        new_image = self.transform(frame)
-        return av.VideoFrame.from_ndarray(new_image, format="bgr24")
-
-    async def recv_queued(self, frames: List[av.AudioFrame]) -> av.VideoFrame:
-        """
-        Receives all the frames arrived after the previous recv_queued() call
-        and returns new frames when running in async mode.
-        If not implemented, delegated to the recv() method by default.
-        """
-        return [self.recv(frames[-1])]
-
-
-class VideoTransformerBase(VideoProcessorBase):  # Backward compatiblity
-    """
-    A base class for video transformers.
-    This interface is deprecated. Use VideoProcessorBase instead.
-
-    .. deprecated:: 0.20.0
-    """
-
-
-class AudioProcessorBase(abc.ABC):
-    """
-    A base class for audio processors.
-    """
-
-    def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
-        """
-        Receives a audio frame, and returns a new audio frame.
-
-        When running in async mode, only the latest frame is provided and
-        other frames are dropped which have arrived after the previous recv() call
-        and before the latest one.
-        In order to process all the frames, use recv_queued() instead.
-        """
-        raise NotImplementedError("recv() is not implemented.")
-
-    async def recv_queued(self, frames: List[av.AudioFrame]) -> av.AudioFrame:
-        """
-        Receives all the frames arrived after the previous recv_queued() call
-        and returns new frames when running in async mode.
-        If not implemented, delegated to the recv() method by default.
-        """
-        if len(frames) > 1:
-            logger.warning(
-                "Some frames have been dropped during audio processing. "
-                "`recv_queued` is recommended to use instead."
-            )
-        return [self.recv(frames[-1])]
-
-
-ProcessorT = TypeVar("ProcessorT", VideoProcessorBase, AudioProcessorBase)
-FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
 
 
 class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
@@ -113,12 +41,18 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         return new_frame
 
 
-class VideoProcessTrack(MediaProcessTrack[VideoProcessorBase, av.VideoFrame]):
+class VideoProcessTrack(
+    MediaProcessTrack[VideoProcessorBase, av.VideoFrame], Generic[VideoProcessorT]
+):
     kind = "video"
+    processor: VideoProcessorT
 
 
-class AudioProcessTrack(MediaProcessTrack[AudioProcessorBase, av.AudioFrame]):
+class AudioProcessTrack(
+    MediaProcessTrack[AudioProcessorBase, av.AudioFrame], Generic[AudioProcessorT]
+):
     kind = "audio"
+    processor: AudioProcessorT
 
 
 __SENTINEL__ = "__SENTINEL__"
@@ -135,22 +69,29 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         stop_timeout: Optional[float] = None,
     ):
         super().__init__()  # don't forget this!
+
         self.track = track
         self.processor: ProcessorT = processor
+
+        self._last_out_frame: Union[FrameT, None] = None
+
+        self.stop_timeout = stop_timeout
+
+        self._thread = None
+
+    def _start(self):
+        if self._thread:
+            return
+
+        self._in_queue: queue.Queue = queue.Queue()
+        self._out_lock = threading.Lock()
+        self._out_deque: deque = deque([])
 
         self._thread = threading.Thread(
             target=self._run_worker_thread,
             name=f"async_media_processor_{next(media_processing_thread_id_generator)}",
         )
-        self._in_queue: queue.Queue = queue.Queue()
-
-        self._out_lock = threading.Lock()
-        self._out_deque: deque = deque([])
-        self._last_out_frame: Union[FrameT, None] = None
-
         self._thread.start()
-
-        self.stop_timeout = stop_timeout
 
         @self.track.on("ended")
         def on_input_track_ended():
@@ -267,6 +208,8 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self._thread.join(self.stop_timeout)
 
     async def recv(self):
+        self._start()
+
         frame = await self.track.recv()
         self._in_queue.put(frame)
 
@@ -288,9 +231,15 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         return frame
 
 
-class AsyncVideoProcessTrack(AsyncMediaProcessTrack[VideoProcessorBase, av.VideoFrame]):
+class AsyncVideoProcessTrack(
+    AsyncMediaProcessTrack[VideoProcessorBase, av.VideoFrame], Generic[VideoProcessorT]
+):
     kind = "video"
+    processor: VideoProcessorT
 
 
-class AsyncAudioProcessTrack(AsyncMediaProcessTrack[AudioProcessorBase, av.AudioFrame]):
+class AsyncAudioProcessTrack(
+    AsyncMediaProcessTrack[AudioProcessorBase, av.AudioFrame], Generic[AudioProcessorT]
+):
     kind = "audio"
+    processor: AudioProcessorT
