@@ -2,6 +2,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+## [0.24.1] - 2021-07-22
 ### Fix
 - Export `WebRtcStreamerContext` and `WebRtcStreamerState` from the package, #342.
 - Fix `app_videochat.py`, #342.
