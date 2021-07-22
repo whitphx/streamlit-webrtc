@@ -1,6 +1,5 @@
 import logging
 import math
-from collections import OrderedDict
 from typing import List
 
 try:
@@ -19,6 +18,7 @@ from streamlit_webrtc import (
     MixerBase,
     VideoProcessorBase,
     WebRtcMode,
+    WebRtcStreamerContext,
     create_mix_track,
     create_process_track,
     webrtc_streamer,
@@ -120,7 +120,7 @@ class MultiWindowMixer(MixerBase):
 def main():
     with server_state_lock["webrtc_contexts"]:
         if "webrtc_contexts" not in server_state:
-            server_state["webrtc_contexts"] = OrderedDict()
+            server_state["webrtc_contexts"] = []
 
     with server_state_lock["mix_track"]:
         if "mix_track" not in server_state:
@@ -158,22 +158,20 @@ def main():
         )
 
     with server_state_lock["webrtc_contexts"]:
-        webrtc_contexts: OrderedDict = server_state["webrtc_contexts"]
+        webrtc_contexts: List[WebRtcStreamerContext] = server_state["webrtc_contexts"]
         self_is_playing = self_ctx.state.playing and self_process_track
         if self_is_playing and self_ctx not in webrtc_contexts:
-            webrtc_contexts[self_ctx] = self_process_track
+            webrtc_contexts.append(self_ctx)
             server_state["webrtc_contexts"] = webrtc_contexts
         elif not self_is_playing and self_ctx in webrtc_contexts:
-            del webrtc_contexts[self_ctx]
+            webrtc_contexts.remove(self_ctx)
             server_state["webrtc_contexts"] = webrtc_contexts
 
-    for ctx, track in webrtc_contexts.items():
+    # Audio streams are transferred in SFU manner
+    # TODO: Create MCU to mix audio streams
+    for ctx in webrtc_contexts:
         if ctx == self_ctx or not ctx.state.playing:
             continue
-        # Video streams are handled in MCU manner
-        mix_track.add_input_track(track)
-        # Audio streams are transferred in SFU manner
-        # TODO: Create MCU to mix audio streams
         webrtc_streamer(
             key=f"sound-{id(ctx)}",
             mode=WebRtcMode.RECVONLY,
@@ -184,7 +182,7 @@ def main():
                 media_stream_constraints={"video": False, "audio": True},
             ),
             source_audio_track=ctx.input_audio_track,
-            desired_playing_state=True,
+            desired_playing_state=ctx.state.playing,
         )
 
 
