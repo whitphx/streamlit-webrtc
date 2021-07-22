@@ -7,7 +7,12 @@ except ModuleNotFoundError:
     # Python < 3.8
     import importlib_metadata  # type: ignore
 
-from .component import ClientSettings, webrtc_streamer
+from .component import (
+    ClientSettings,
+    WebRtcStreamerContext,
+    WebRtcStreamerState,
+    webrtc_streamer,
+)
 from .config import MediaStreamConstraints, RTCConfiguration
 from .factory import create_mix_track, create_process_track
 from .mix import MixerBase
@@ -57,4 +62,6 @@ __all__ = [
     "create_process_track",
     "create_mix_track",
     "MixerBase",
+    "WebRtcStreamerContext",
+    "WebRtcStreamerState",
 ]
