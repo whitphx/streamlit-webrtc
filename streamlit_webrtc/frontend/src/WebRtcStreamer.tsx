@@ -357,6 +357,8 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     const receivable = isWebRtcMode(mode) && isReceivable(mode);
     const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
 
+    const settings = this.props.args.settings;
+
     return (
       <ThemeProvider theme={this.props.theme}>
         <Box>
@@ -367,7 +369,11 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
           )}
           <Box py={1}>
             {this.state.stream ? (
-              <MediaStreamPlayer stream={this.state.stream} />
+              <MediaStreamPlayer
+                stream={this.state.stream}
+                userDefinedVideoAttrs={settings?.video_html_attrs}
+                userDefinedAudioAttrs={settings?.audio_html_attrs}
+              />
             ) : (
               receivable && (
                 <Placeholder
