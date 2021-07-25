@@ -16,7 +16,12 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from . import SessionState
-from .config import MediaStreamConstraints, RTCConfiguration
+from .config import (
+    AudioHTMLAttributes,
+    MediaStreamConstraints,
+    RTCConfiguration,
+    VideoHTMLAttributes,
+)
 from .webrtc import (
     AudioProcessorFactory,
     AudioProcessorT,
@@ -33,7 +38,7 @@ from .webrtc import (
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.NullHandler())
 
-_RELEASE = True  # TODO: How to dynamically manage this variable?
+_RELEASE = False  # TODO: How to dynamically manage this variable?
 
 if not _RELEASE:
     _component_func = components.declare_component(
@@ -70,6 +75,8 @@ def _unset_webrtc_worker(key: Hashable) -> None:
 class ClientSettings(TypedDict, total=False):
     rtc_configuration: RTCConfiguration
     media_stream_constraints: MediaStreamConstraints
+    video_html_attrs: VideoHTMLAttributes
+    audio_html_attrs: AudioHTMLAttributes
 
 
 class WebRtcStreamerState(NamedTuple):

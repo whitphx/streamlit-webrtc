@@ -13,7 +13,12 @@ from .component import (
     WebRtcStreamerState,
     webrtc_streamer,
 )
-from .config import MediaStreamConstraints, RTCConfiguration
+from .config import (
+    AudioHTMLAttributes,
+    MediaStreamConstraints,
+    RTCConfiguration,
+    VideoHTMLAttributes,
+)
 from .factory import create_mix_track, create_process_track
 from .mix import MixerBase
 from .webrtc import (
@@ -59,6 +64,8 @@ __all__ = [
     "WebRtcWorker",
     "MediaStreamConstraints",
     "RTCConfiguration",
+    "VideoHTMLAttributes",
+    "AudioHTMLAttributes",
     "create_process_track",
     "create_mix_track",
     "MixerBase",
