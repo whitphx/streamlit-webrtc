@@ -125,3 +125,9 @@ class VideoHTMLAttributes(MediaHTMLAttributes, total=False):
 # Ref: https://github.com/DefinitelyTyped/DefinitelyTyped/blob/2563cecd0398fd9337b2806059446fb9d29abec2/types/react/index.d.ts#L2016 # noqa: E501
 class AudioHTMLAttributes(MediaHTMLAttributes, total=False):
     pass
+
+
+DEFAULT_VIDEO_HTML_ATTRS = VideoHTMLAttributes(
+    autoPlay=True, controls=True, style={"width": "100%"}
+)
+DEFAULT_AUDIO_HTML_ATTRS = AudioHTMLAttributes(autoPlay=True, controls=True)

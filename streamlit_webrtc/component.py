@@ -17,6 +17,8 @@ import streamlit.components.v1 as components
 
 from . import SessionState
 from .config import (
+    DEFAULT_AUDIO_HTML_ATTRS,
+    DEFAULT_VIDEO_HTML_ATTRS,
     AudioHTMLAttributes,
     MediaStreamConstraints,
     RTCConfiguration,
@@ -38,7 +40,7 @@ from .webrtc import (
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.NullHandler())
 
-_RELEASE = False  # TODO: How to dynamically manage this variable?
+_RELEASE = True  # TODO: How to dynamically manage this variable?
 
 if not _RELEASE:
     _component_func = components.declare_component(
@@ -75,8 +77,6 @@ def _unset_webrtc_worker(key: Hashable) -> None:
 class ClientSettings(TypedDict, total=False):
     rtc_configuration: RTCConfiguration
     media_stream_constraints: MediaStreamConstraints
-    video_html_attrs: VideoHTMLAttributes
-    audio_html_attrs: AudioHTMLAttributes
 
 
 class WebRtcStreamerState(NamedTuple):
@@ -237,6 +237,8 @@ def webrtc_streamer(
     source_audio_track: Optional[MediaStreamTrack] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
+    video_html_attrs: Optional[VideoHTMLAttributes] = None,
+    audio_html_attrs: Optional[AudioHTMLAttributes] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -266,6 +268,8 @@ def webrtc_streamer(
     source_audio_track: Optional[MediaStreamTrack] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
+    video_html_attrs: Optional[VideoHTMLAttributes] = None,
+    audio_html_attrs: Optional[AudioHTMLAttributes] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -291,6 +295,8 @@ def webrtc_streamer(
     source_audio_track: Optional[MediaStreamTrack] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
+    video_html_attrs: Optional[VideoHTMLAttributes] = None,
+    audio_html_attrs: Optional[AudioHTMLAttributes] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -316,6 +322,8 @@ def webrtc_streamer(
     source_audio_track: Optional[MediaStreamTrack] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
+    video_html_attrs: Optional[VideoHTMLAttributes] = None,
+    audio_html_attrs: Optional[AudioHTMLAttributes] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -340,6 +348,8 @@ def webrtc_streamer(
     source_audio_track: Optional[MediaStreamTrack] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
+    video_html_attrs: Optional[VideoHTMLAttributes] = None,
+    audio_html_attrs: Optional[AudioHTMLAttributes] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory=None,
     async_transform: Optional[bool] = None,
@@ -349,6 +359,11 @@ def webrtc_streamer(
         video_processor_factory = video_transformer_factory
     if async_transform is not None:
         async_processing = async_transform
+
+    if video_html_attrs is None:
+        video_html_attrs = DEFAULT_VIDEO_HTML_ATTRS
+    if audio_html_attrs is None:
+        audio_html_attrs = DEFAULT_AUDIO_HTML_ATTRS
 
     webrtc_worker = _get_webrtc_worker(key)
 
@@ -366,6 +381,8 @@ def webrtc_streamer(
         sdp_answer_json=sdp_answer_json,
         mode=mode.name,
         settings=client_settings,
+        video_html_attrs=video_html_attrs,
+        audio_html_attrs=audio_html_attrs,
         desired_playing_state=desired_playing_state,
     )
     # HOTFIX: The return value from _component_func()

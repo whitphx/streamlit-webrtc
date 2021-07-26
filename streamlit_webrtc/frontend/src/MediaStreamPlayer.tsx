@@ -7,10 +7,6 @@ import React, {
   HTMLAttributes,
 } from "react";
 
-const videoStyle: JSX.IntrinsicElements["video"]["style"] = {
-  width: "100%",
-};
-
 type UserDefinedHTMLVideoAttributes = Partial<
   Omit<
     VideoHTMLAttributes<HTMLVideoElement>,
@@ -48,57 +44,43 @@ const MediaStreamPlayer: React.VFC<MediaStreamPlayerProps> = (props) => {
   const refreshFrameHeight = useCallback(() => Streamlit.setFrameHeight(), []);
 
   if (hasVideo) {
-    const videoProps: VideoHTMLAttributes<HTMLVideoElement> =
-      props.userDefinedVideoAttrs
-        ? {
-            hidden: props.userDefinedVideoAttrs.hidden,
-            style: props.userDefinedVideoAttrs.style,
-            autoPlay: props.userDefinedVideoAttrs.autoPlay,
-            controls: props.userDefinedVideoAttrs.controls,
-            controlsList: props.userDefinedVideoAttrs.controlsList,
-            crossOrigin: props.userDefinedVideoAttrs.crossOrigin,
-            loop: props.userDefinedVideoAttrs.loop,
-            mediaGroup: props.userDefinedVideoAttrs.mediaGroup,
-            muted: props.userDefinedVideoAttrs.muted,
-            playsInline: props.userDefinedVideoAttrs.playsInline,
-            preload: props.userDefinedVideoAttrs.preload,
-            height: props.userDefinedVideoAttrs.height,
-            poster: props.userDefinedVideoAttrs.poster,
-            width: props.userDefinedVideoAttrs.width,
-            disablePictureInPicture:
-              props.userDefinedVideoAttrs.disablePictureInPicture,
-            disableRemotePlayback:
-              props.userDefinedVideoAttrs.disableRemotePlayback,
-          }
-        : {
-            style: videoStyle,
-            autoPlay: true,
-            controls: true,
-          };
+    const videoProps: VideoHTMLAttributes<HTMLVideoElement> = {
+      hidden: props.userDefinedVideoAttrs?.hidden,
+      style: props.userDefinedVideoAttrs?.style,
+      autoPlay: props.userDefinedVideoAttrs?.autoPlay,
+      controls: props.userDefinedVideoAttrs?.controls,
+      controlsList: props.userDefinedVideoAttrs?.controlsList,
+      crossOrigin: props.userDefinedVideoAttrs?.crossOrigin,
+      loop: props.userDefinedVideoAttrs?.loop,
+      mediaGroup: props.userDefinedVideoAttrs?.mediaGroup,
+      muted: props.userDefinedVideoAttrs?.muted,
+      playsInline: props.userDefinedVideoAttrs?.playsInline,
+      preload: props.userDefinedVideoAttrs?.preload,
+      height: props.userDefinedVideoAttrs?.height,
+      poster: props.userDefinedVideoAttrs?.poster,
+      width: props.userDefinedVideoAttrs?.width,
+      disablePictureInPicture:
+        props.userDefinedVideoAttrs?.disablePictureInPicture,
+      disableRemotePlayback: props.userDefinedVideoAttrs?.disableRemotePlayback,
+    };
 
     return (
       <video {...videoProps} ref={refCallback} onCanPlay={refreshFrameHeight} />
     );
   } else {
-    const audioProps: AudioHTMLAttributes<HTMLAudioElement> =
-      props.userDefinedAudioAttrs
-        ? {
-            hidden: props.userDefinedAudioAttrs.hidden,
-            style: props.userDefinedAudioAttrs.style,
-            autoPlay: props.userDefinedAudioAttrs.autoPlay,
-            controls: props.userDefinedAudioAttrs.controls,
-            controlsList: props.userDefinedAudioAttrs.controlsList,
-            crossOrigin: props.userDefinedAudioAttrs.crossOrigin,
-            loop: props.userDefinedAudioAttrs.loop,
-            mediaGroup: props.userDefinedAudioAttrs.mediaGroup,
-            muted: props.userDefinedAudioAttrs.muted,
-            playsInline: props.userDefinedAudioAttrs.playsInline,
-            preload: props.userDefinedAudioAttrs.preload,
-          }
-        : {
-            autoPlay: true,
-            controls: true,
-          };
+    const audioProps: AudioHTMLAttributes<HTMLAudioElement> = {
+      hidden: props.userDefinedAudioAttrs?.hidden,
+      style: props.userDefinedAudioAttrs?.style,
+      autoPlay: props.userDefinedAudioAttrs?.autoPlay,
+      controls: props.userDefinedAudioAttrs?.controls,
+      controlsList: props.userDefinedAudioAttrs?.controlsList,
+      crossOrigin: props.userDefinedAudioAttrs?.crossOrigin,
+      loop: props.userDefinedAudioAttrs?.loop,
+      mediaGroup: props.userDefinedAudioAttrs?.mediaGroup,
+      muted: props.userDefinedAudioAttrs?.muted,
+      playsInline: props.userDefinedAudioAttrs?.playsInline,
+      preload: props.userDefinedAudioAttrs?.preload,
+    };
     return <audio ref={refCallback} {...audioProps} />;
   }
 };
