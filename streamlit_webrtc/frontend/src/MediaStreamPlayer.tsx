@@ -44,6 +44,9 @@ const MediaStreamPlayer: React.VFC<MediaStreamPlayerProps> = (props) => {
   const refreshFrameHeight = useCallback(() => Streamlit.setFrameHeight(), []);
 
   if (hasVideo) {
+    // NOTE: Enumerate all allowed props instead of simply using spread operator
+    //       passing all the fields in props.userDefinedVideoAttrs
+    //       in order to block unexpected fields especially like dangerouslySetInnerHTML.
     const videoProps: VideoHTMLAttributes<HTMLVideoElement> = {
       hidden: props.userDefinedVideoAttrs?.hidden,
       style: props.userDefinedVideoAttrs?.style,
