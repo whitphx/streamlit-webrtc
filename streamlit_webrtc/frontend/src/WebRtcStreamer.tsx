@@ -365,9 +365,13 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
               {this.state.error.name}: {this.state.error.message}
             </Alert>
           )}
-          <Box py={1}>
+          <Box py={1} display="flex">
             {this.state.stream ? (
-              <MediaStreamPlayer stream={this.state.stream} />
+              <MediaStreamPlayer
+                stream={this.state.stream}
+                userDefinedVideoAttrs={this.props.args.video_html_attrs}
+                userDefinedAudioAttrs={this.props.args.audio_html_attrs}
+              />
             ) : (
               receivable && (
                 <Placeholder

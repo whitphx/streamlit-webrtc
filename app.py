@@ -686,8 +686,13 @@ def app_media_constraints():
         key="media-constraints",
         mode=WebRtcMode.SENDRECV,
         client_settings=WEBRTC_CLIENT_SETTINGS,
+        video_html_attrs={
+            "style": {"width": "50%", "margin": "0 auto", "border": "5px yellow solid"},
+            "controls": False,
+            "autoPlay": True,
+        },
     )
-    st.write(f"The frame rate is set as {frame_rate}")
+    st.write(f"The frame rate is set as {frame_rate}. Video style is changed.")
 
 
 def app_programatically_play():

@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 try:
     from typing import TypedDict
@@ -86,3 +86,48 @@ class MediaStreamConstraints(TypedDict, total=False):
     audio: Union[bool, MediaTrackConstraints]
     video: Union[bool, MediaTrackConstraints]
     peerIdentity: str
+
+
+CSSProperties = Dict[str, Union[str, int, float]]
+
+
+# Ref: https://github.com/DefinitelyTyped/DefinitelyTyped/blob/2563cecd0398fd9337b2806059446fb9d29abec2/types/react/index.d.ts#L1815 # noqa: E501
+class HTMLAttributes(TypedDict, total=False):
+    # Only necessary attributes are defined here
+    hidden: bool
+    style: CSSProperties
+
+
+# Ref: https://github.com/DefinitelyTyped/DefinitelyTyped/blob/2563cecd0398fd9337b2806059446fb9d29abec2/types/react/index.d.ts#L2235 # noqa: E501
+class MediaHTMLAttributes(HTMLAttributes, total=False):
+    autoPlay: bool
+    controls: bool
+    controlsList: str
+    crossOrigin: str
+    loop: bool
+    mediaGroup: str
+    muted: bool
+    playsInline: bool
+    preload: str
+    # src: str  # src is controlled by streamlit-webrtc
+
+
+# Ref: https://github.com/DefinitelyTyped/DefinitelyTyped/blob/2563cecd0398fd9337b2806059446fb9d29abec2/types/react/index.d.ts#L2421 # noqa: E501
+class VideoHTMLAttributes(MediaHTMLAttributes, total=False):
+    height: Union[Number, str]
+    # playsInline: bool  # This field already exists in MediaHTMLAttributes and overwriting it when extending is not allowed though it is in the original TypeScript code. # noqa: E501
+    poster: str
+    width: Union[Number, str]
+    disablePictureInPicture: bool
+    disableRemotePlayback: bool
+
+
+# Ref: https://github.com/DefinitelyTyped/DefinitelyTyped/blob/2563cecd0398fd9337b2806059446fb9d29abec2/types/react/index.d.ts#L2016 # noqa: E501
+class AudioHTMLAttributes(MediaHTMLAttributes, total=False):
+    pass
+
+
+DEFAULT_VIDEO_HTML_ATTRS = VideoHTMLAttributes(
+    autoPlay=True, controls=True, style={"width": "100%"}
+)
+DEFAULT_AUDIO_HTML_ATTRS = AudioHTMLAttributes(autoPlay=True, controls=True)

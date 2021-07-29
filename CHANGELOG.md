@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Add
+- Add `video_html_attrs` and `audio_html_attrs` options, #272.
+
+
 ## [0.24.1] - 2021-07-22
 ### Fix
 - Export `WebRtcStreamerContext` and `WebRtcStreamerState` from the package, #342.
