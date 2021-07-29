@@ -5,10 +5,19 @@ from .eventloop import get_server_event_loop, loop_context
 
 _SERVER_GLOBAL_RELAY_ATTR_NAME_ = "streamlit-webrtc-global-relay"
 
-_server = Server.get_current()
+# NOTE: Accessing the server only when it is necessary (in `get_global_relay()`)
+#       is important to be compatible with multiprocessing because
+#       `Server.get_current()` always raises an error inside a forked process
+#       saying that the server has not been initialized.
+#       See https://github.com/whitphx/streamlit-webrtc/issues/354
+_server = None
 
 
 def get_global_relay() -> MediaRelay:
+    global _server
+    if _server is None:
+        _server = Server.get_current()
+
     if hasattr(_server, _SERVER_GLOBAL_RELAY_ATTR_NAME_):
         return getattr(_server, _SERVER_GLOBAL_RELAY_ATTR_NAME_)
     else:
