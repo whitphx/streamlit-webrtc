@@ -2,8 +2,10 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-### Add
-- Multiprocessing compatibility, #355.
+
+## [0.26.1]
+### Fix
+- Fix to be compatible with `multiprocessing.Process`, #355.
 
 ## [0.25.0]
 ### Add
