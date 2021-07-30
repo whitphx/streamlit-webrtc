@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Add
+- Multiprocessing compatibility, #355.
 
 ## [0.25.0]
 ### Add
