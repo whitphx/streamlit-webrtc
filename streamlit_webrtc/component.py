@@ -223,7 +223,7 @@ def _set_component_value_snapshot(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    client_settings: Optional[ClientSettings] = None,
+    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -237,8 +237,8 @@ def webrtc_streamer(
     source_audio_track: Optional[MediaStreamTrack] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
-    video_html_attrs: Optional[VideoHTMLAttributes] = None,
-    audio_html_attrs: Optional[AudioHTMLAttributes] = None,
+    video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
+    audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -254,7 +254,7 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    client_settings: Optional[ClientSettings] = None,
+    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -268,8 +268,8 @@ def webrtc_streamer(
     source_audio_track: Optional[MediaStreamTrack] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
-    video_html_attrs: Optional[VideoHTMLAttributes] = None,
-    audio_html_attrs: Optional[AudioHTMLAttributes] = None,
+    video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
+    audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -281,7 +281,7 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    client_settings: Optional[ClientSettings] = None,
+    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -295,8 +295,8 @@ def webrtc_streamer(
     source_audio_track: Optional[MediaStreamTrack] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
-    video_html_attrs: Optional[VideoHTMLAttributes] = None,
-    audio_html_attrs: Optional[AudioHTMLAttributes] = None,
+    video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
+    audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -308,7 +308,7 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    client_settings: Optional[ClientSettings] = None,
+    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -322,8 +322,8 @@ def webrtc_streamer(
     source_audio_track: Optional[MediaStreamTrack] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
-    video_html_attrs: Optional[VideoHTMLAttributes] = None,
-    audio_html_attrs: Optional[AudioHTMLAttributes] = None,
+    video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
+    audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
@@ -334,7 +334,7 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    client_settings: Optional[ClientSettings] = None,
+    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -348,8 +348,8 @@ def webrtc_streamer(
     source_audio_track: Optional[MediaStreamTrack] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
-    video_html_attrs: Optional[VideoHTMLAttributes] = None,
-    audio_html_attrs: Optional[AudioHTMLAttributes] = None,
+    video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
+    audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory=None,
     async_transform: Optional[bool] = None,
