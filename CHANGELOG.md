@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ### Fix
 - Type hints, #366.
 
-## [0.26.1]
+## [0.25.1]
 ### Fix
 - Fix to be compatible with `multiprocessing.Process`, #355.
 
