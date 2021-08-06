@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fix
+- Type hints, #366.
 
 ## [0.26.1]
 ### Fix
