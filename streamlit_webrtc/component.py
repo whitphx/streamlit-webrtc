@@ -18,6 +18,7 @@ import streamlit.components.v1 as components
 from . import SessionState
 from .config import (
     DEFAULT_AUDIO_HTML_ATTRS,
+    DEFAULT_MEDIA_STREAM_CONSTRAINTS,
     DEFAULT_VIDEO_HTML_ATTRS,
     AudioHTMLAttributes,
     MediaStreamConstraints,
@@ -223,7 +224,8 @@ def _set_component_value_snapshot(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
+    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -240,6 +242,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     # Deprecated. Just for backward compatibility
+    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext:
@@ -254,7 +257,8 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
+    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -271,6 +275,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     # Deprecated. Just for backward compatibility
+    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, Any]:
@@ -281,7 +286,8 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
+    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -298,6 +304,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     # Deprecated. Just for backward compatibility
+    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext[Any, AudioProcessorT]:
@@ -308,7 +315,8 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
+    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -325,6 +333,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     # Deprecated. Just for backward compatibility
+    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
@@ -334,7 +343,8 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
+    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
@@ -351,15 +361,37 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     # Deprecated. Just for backward compatibility
+    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory=None,
     async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     # Backward compatibility
     if video_transformer_factory is not None:
+        LOGGER.warning(
+            "The argument video_transformer_factory is deprecated. "
+            "Use video_processor_factory instead."
+        )
         video_processor_factory = video_transformer_factory
     if async_transform is not None:
+        LOGGER.warning(
+            "The argument async_transform is deprecated. "
+            "Use async_processing instead."
+        )
         async_processing = async_transform
+    if client_settings is not None:
+        LOGGER.warning(
+            "The argument client_settings is deprecated. "
+            "Use rtc_configuration and media_stream_constraints instead."
+        )
+        rtc_configuration = (
+            client_settings.get("rtc_configuration") if client_settings else None
+        )
+        media_stream_constraints = (
+            client_settings.get("media_stream_constraints") if client_settings else None
+        )
 
+    if media_stream_constraints is None:
+        media_stream_constraints = DEFAULT_MEDIA_STREAM_CONSTRAINTS
     if video_html_attrs is None:
         video_html_attrs = DEFAULT_VIDEO_HTML_ATTRS
     if audio_html_attrs is None:
@@ -381,6 +413,8 @@ def webrtc_streamer(
         sdp_answer_json=sdp_answer_json,
         mode=mode.name,
         settings=client_settings,
+        rtc_configuration=rtc_configuration,
+        media_stream_constraints=media_stream_constraints,
         video_html_attrs=video_html_attrs,
         audio_html_attrs=audio_html_attrs,
         desired_playing_state=desired_playing_state,

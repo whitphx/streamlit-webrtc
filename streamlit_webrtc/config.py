@@ -127,6 +127,7 @@ class AudioHTMLAttributes(MediaHTMLAttributes, total=False):
     pass
 
 
+DEFAULT_MEDIA_STREAM_CONSTRAINTS = MediaStreamConstraints(audio=True, video=True)
 DEFAULT_VIDEO_HTML_ATTRS = VideoHTMLAttributes(
     autoPlay=True, controls=True, style={"width": "100%"}
 )

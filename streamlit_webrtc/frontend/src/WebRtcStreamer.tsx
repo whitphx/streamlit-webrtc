@@ -132,8 +132,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       error: null,
     });
 
-    const config: RTCConfiguration =
-      this.props.args.settings?.rtc_configuration || {};
+    const config: RTCConfiguration = this.props.args.rtc_configuration || {};
     console.log("RTCConfiguration:", config);
     const pc = new RTCPeerConnection(config);
 
@@ -150,7 +149,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     // Set up transceivers
     if (mode === "SENDRECV" || mode === "SENDONLY") {
       const constraints = compileMediaConstraints(
-        this.props.args.settings?.media_stream_constraints,
+        this.props.args.media_stream_constraints,
         this.state.videoInput?.deviceId,
         this.state.audioInput?.deviceId
       );
@@ -352,7 +351,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       desiredPlayingState != null;
     const mode = this.props.args["mode"];
     const { videoEnabled, audioEnabled } = getMediaUsage(
-      this.props.args.settings?.media_stream_constraints
+      this.props.args.media_stream_constraints
     );
     const receivable = isWebRtcMode(mode) && isReceivable(mode);
     const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
