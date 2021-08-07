@@ -18,6 +18,7 @@ import streamlit.components.v1 as components
 from . import SessionState
 from .config import (
     DEFAULT_AUDIO_HTML_ATTRS,
+    DEFAULT_MEDIA_STREAM_CONSTRAINTS,
     DEFAULT_VIDEO_HTML_ATTRS,
     AudioHTMLAttributes,
     MediaStreamConstraints,
@@ -389,6 +390,8 @@ def webrtc_streamer(
             client_settings.get("media_stream_constraints") if client_settings else None
         )
 
+    if media_stream_constraints is None:
+        media_stream_constraints = DEFAULT_MEDIA_STREAM_CONSTRAINTS
     if video_html_attrs is None:
         video_html_attrs = DEFAULT_VIDEO_HTML_ATTRS
     if audio_html_attrs is None:
