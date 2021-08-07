@@ -21,7 +21,7 @@ from aiortc.contrib.media import MediaPlayer
 
 from streamlit_webrtc import (
     AudioProcessorBase,
-    ClientSettings,
+    RTCConfiguration,
     VideoProcessorBase,
     WebRtcMode,
     webrtc_streamer,
@@ -78,12 +78,8 @@ def download_file(url, download_to: Path, expected_size=None):
             progress_bar.empty()
 
 
-WEBRTC_CLIENT_SETTINGS = ClientSettings(
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-    media_stream_constraints={
-        "video": True,
-        "audio": True,
-    },
+RTC_CONFIGURATION = RTCConfiguration(
+    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 )
 
 
@@ -154,12 +150,7 @@ def main():
 
 def app_loopback():
     """ Simple video loopback """
-    webrtc_streamer(
-        key="loopback",
-        mode=WebRtcMode.SENDRECV,
-        client_settings=WEBRTC_CLIENT_SETTINGS,
-        video_processor_factory=None,  # NoOp
-    )
+    webrtc_streamer(key="loopback")
 
 
 def app_video_filters():
@@ -211,7 +202,7 @@ def app_video_filters():
     webrtc_ctx = webrtc_streamer(
         key="opencv-filter",
         mode=WebRtcMode.SENDRECV,
-        client_settings=WEBRTC_CLIENT_SETTINGS,
+        rtc_configuration=RTC_CONFIGURATION,
         video_processor_factory=OpenCVVideoProcessor,
         async_processing=True,
     )
@@ -260,7 +251,7 @@ def app_audio_filter():
     webrtc_ctx = webrtc_streamer(
         key="audio-filter",
         mode=WebRtcMode.SENDRECV,
-        client_settings=WEBRTC_CLIENT_SETTINGS,
+        rtc_configuration=RTC_CONFIGURATION,
         audio_processor_factory=AudioProcessor,
         async_processing=True,
     )
@@ -292,7 +283,7 @@ def app_delayed_echo():
     webrtc_ctx = webrtc_streamer(
         key="delay",
         mode=WebRtcMode.SENDRECV,
-        client_settings=WEBRTC_CLIENT_SETTINGS,
+        rtc_configuration=RTC_CONFIGURATION,
         video_processor_factory=VideoProcessor,
         audio_processor_factory=AudioProcessor,
         async_processing=True,
@@ -410,7 +401,7 @@ def app_object_detection():
     webrtc_ctx = webrtc_streamer(
         key="object-detection",
         mode=WebRtcMode.SENDRECV,
-        client_settings=WEBRTC_CLIENT_SETTINGS,
+        rtc_configuration=RTC_CONFIGURATION,
         video_processor_factory=MobileNetSSDVideoProcessor,
         async_processing=True,
     )
@@ -539,19 +530,14 @@ def app_streaming():
 
             return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-    WEBRTC_CLIENT_SETTINGS.update(
-        {
-            "media_stream_constraints": {
-                "video": media_file_info["type"] == "video",
-                "audio": media_file_info["type"] == "audio",
-            }
-        }
-    )
-
     webrtc_ctx = webrtc_streamer(
         key=f"media-streaming-{media_file_label}",
         mode=WebRtcMode.RECVONLY,
-        client_settings=WEBRTC_CLIENT_SETTINGS,
+        rtc_configuration=RTC_CONFIGURATION,
+        media_stream_constraints={
+            "video": media_file_info["type"] == "video",
+            "audio": media_file_info["type"] == "audio",
+        },
         player_factory=create_player,
         video_processor_factory=OpenCVVideoProcessor,
     )
@@ -574,7 +560,8 @@ def app_sendonly_video():
     webrtc_ctx = webrtc_streamer(
         key="video-sendonly",
         mode=WebRtcMode.SENDONLY,
-        client_settings=WEBRTC_CLIENT_SETTINGS,
+        rtc_configuration=RTC_CONFIGURATION,
+        media_stream_constraints={"video": True},
     )
 
     image_place = st.empty()
@@ -602,7 +589,8 @@ def app_sendonly_audio():
         key="sendonly-audio",
         mode=WebRtcMode.SENDONLY,
         audio_receiver_size=256,
-        client_settings=WEBRTC_CLIENT_SETTINGS,
+        rtc_configuration=RTC_CONFIGURATION,
+        media_stream_constraints={"audio": True},
     )
 
     fig_place = st.empty()
@@ -675,17 +663,13 @@ def app_sendonly_audio():
 def app_media_constraints():
     """ A sample to configure MediaStreamConstraints object """
     frame_rate = 5
-    WEBRTC_CLIENT_SETTINGS.update(
-        ClientSettings(
-            media_stream_constraints={
-                "video": {"frameRate": {"ideal": frame_rate}},
-            },
-        )
-    )
     webrtc_streamer(
         key="media-constraints",
         mode=WebRtcMode.SENDRECV,
-        client_settings=WEBRTC_CLIENT_SETTINGS,
+        rtc_configuration=RTC_CONFIGURATION,
+        media_stream_constraints={
+            "video": {"frameRate": {"ideal": frame_rate}},
+        },
         video_html_attrs={
             "style": {"width": "50%", "margin": "0 auto", "border": "5px yellow solid"},
             "controls": False,
@@ -703,7 +687,7 @@ def app_programatically_play():
         key="media-constraints",
         desired_playing_state=playing,
         mode=WebRtcMode.SENDRECV,
-        client_settings=WEBRTC_CLIENT_SETTINGS,
+        rtc_configuration=RTC_CONFIGURATION,
     )
 
 
