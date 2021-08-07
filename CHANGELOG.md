@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [0.26.0]
 ### Fix
 - Type hints, #366.
 - [BREAKING CHANGE] `client_settings` argument is marked as deprecated and `rtc_configuration` and `media_stream_constraints` became the top level arguments, #371.
