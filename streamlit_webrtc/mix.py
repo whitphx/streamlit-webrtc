@@ -2,13 +2,14 @@ import asyncio
 import fractions
 import functools
 import logging
+import queue
 import sys
 import threading
 import time
 import traceback
 import weakref
 from collections import OrderedDict
-from typing import Generic, List, NamedTuple, Optional, Union
+from typing import Generic, Union
 
 import av
 from aiortc import MediaStreamTrack
@@ -39,144 +40,54 @@ VIDEO_TIME_BASE = fractions.Fraction(1, VIDEO_CLOCK_RATE)
 Frame = Union[av.VideoFrame, av.AudioFrame]
 
 
-class InputQueueItem(NamedTuple):
-    source_track_id: int
-    frame: Optional[Frame]
-
-
-async def input_track_coro(
-    input_track: RelayStreamTrack, mix_track: "MediaStreamMixTrack"
-):
-    source_track_id = input_track.id
-    while True:
-        try:
-            frame = await input_track.recv()
-        except MediaStreamError:
-            frame = None
-        if mix_track._output_started:
-            mix_track._input_queue.put_nowait(
-                InputQueueItem(source_track_id=source_track_id, frame=frame)
-            )
-        if frame is None:
-            break
-
-
-async def gather_frames_coro(mix_track: "MediaStreamMixTrack"):
-    while True:
-        try:
-            item: InputQueueItem = await mix_track._input_queue.get()
-        except MediaStreamError:
-            LOGGER.warning("Stop gather_frames_coro")
-            mix_track.stop()
-            return
-
-        source_track = None
-        with mix_track._input_proxies_lock:
-            for proxy in mix_track._input_proxies.values():
-                if proxy.id == item.source_track_id:
-                    source_track = proxy
-            if source_track is None:
-                LOGGER.warning("Source track not found")
-                continue
-
-        frame = item.frame
-        mix_track._set_latest_frame(source_track, frame)
-
-
-async def mix_coro(mix_track: "MediaStreamMixTrack"):
-    started_at = time.monotonic()
-
-    while True:
-        latest_frames = (
-            await mix_track._get_latest_frames()
-        )  # Wait for new frames arrive
-        try:
-            output_frame = mix_track.mixer.on_update(latest_frames)
-
-            if output_frame.pts is None and output_frame.time_base is None:
-                timestamp = time.monotonic() - started_at
-                if isinstance(output_frame, av.VideoFrame):
-                    output_frame.pts = timestamp * VIDEO_CLOCK_RATE
-                    output_frame.time_base = VIDEO_TIME_BASE
-                elif isinstance(output_frame, av.AudioFrame):
-                    output_frame.pts = timestamp * AUDIO_SAMPLE_RATE
-                    output_frame.time_base = AUDIO_TIME_BASE
-
-        except Exception:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            for tb in traceback.format_exception(exc_type, exc_value, exc_traceback):
-                for tbline in tb.rstrip().splitlines():
-                    LOGGER.error(tbline.rstrip())
-        mix_track._queue.put_nowait(output_frame)
+__SENTINEL__ = "__SENTINEL__"
 
 
 class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
-    kind: str
-    mixer: MixerT
-
-    _loop: asyncio.AbstractEventLoop
     _input_proxies_lock: threading.Lock
     _input_proxies: "OrderedDict[MediaStreamTrack, RelayStreamTrack]"
-    _input_tasks: "weakref.WeakKeyDictionary[RelayStreamTrack, asyncio.Task]"
-    _input_queue: asyncio.Queue
-    _queue: "asyncio.Queue[Optional[Frame]]"
     _latest_frames_map: "weakref.WeakKeyDictionary[RelayStreamTrack, Union[Frame, None]]"  # noqa: E501
-    _latest_frames_updated_event: asyncio.Event
-
-    _output_started: bool
-
-    _gather_frames_task: Union[asyncio.Task, None]
-    _mix_task: Union[asyncio.Task, None]
+    _input_event: asyncio.Event
+    _mixer_input_queue: queue.Queue
+    _mixer_output_queue: queue.Queue
+    _mixer_thread: threading.Thread  # TODO: Check if this can be coroutine
+    _loop: asyncio.AbstractEventLoop
 
     def __init__(self, kind: str, mixer: MixerT) -> None:
+        super().__init__()
+
         self.kind = kind
         self.mixer = mixer
 
-        loop = get_server_event_loop()
+        # self._loop = asyncio.new_event_loop()
+        self._loop = get_server_event_loop()
+        self._input_tasks = weakref.WeakKeyDictionary()
+        self._input_proxies = OrderedDict()
+        self._input_proxies_lock = threading.Lock()
+        self._latest_frames_map = weakref.WeakKeyDictionary()
+        self._mixer_thread = None
 
-        with loop_context(loop):
-            super().__init__()
-
-            self._queue = asyncio.Queue()
-
-            self._input_proxies = OrderedDict()
-            self._input_proxies_lock = threading.Lock()
-
-            self._input_tasks = weakref.WeakKeyDictionary()
-
-            self._input_queue = asyncio.Queue()
-
-            self._latest_frames_map = weakref.WeakKeyDictionary()
-
-            self._latest_frames_updated_event = asyncio.Event()
-
-            self._loop = loop
-
-            self._gather_frames_task = None
-            self._mix_task = None
-
-            self._output_started = False
+        with loop_context(self._loop):
+            self._input_event = asyncio.Event()
 
     def _start(self):
-        if self._output_started:
+        if self._mixer_thread:
             return
 
-        self._gather_frames_task = self._loop.create_task(
-            gather_frames_coro(mix_track=self)
-        )
-        self._mix_task = self._loop.create_task(mix_coro(mix_track=self))
-
-        self._output_started = True
+        self._mixer_input_queue = queue.Queue()
+        self._mixer_output_queue = queue.Queue()
+        self._mixer_thread = threading.Thread(
+            target=self._run_mixer_thread
+        )  # TODO: Set thread name
+        self._mixer_thread.start()
 
     def stop(self):
         super().stop()
 
-        if self._gather_frames_task:
-            self._gather_frames_task.cancel()
-            self._gather_frames_task = None
-        if self._mix_task:
-            self._mix_task.cancel()
-            self._mix_task = None
+        for track in self._input_proxies.values():
+            track.stop()
+        self._mixer_input_queue.put(__SENTINEL__)
+        self._thread.join(self.stop_timeout)
 
     def add_input_track(self, input_track: MediaStreamTrack) -> None:
         LOGGER.debug("Add a track %s to %s", input_track, self)
@@ -195,9 +106,7 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
             "A proxy %s subscribing %s is added to %s", input_proxy, input_track, self
         )
 
-        task = self._loop.create_task(
-            input_track_coro(input_track=input_proxy, mix_track=self)
-        )
+        task = asyncio.ensure_future(self.__run_track(input_proxy), loop=self._loop)
         self._input_tasks[input_proxy] = task
 
         input_proxy.on("ended")(functools.partial(self.remove_input_proxy, input_proxy))
@@ -217,25 +126,75 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
         task = self._input_tasks.pop(input_proxy)
         task.cancel()
 
-    def _set_latest_frame(
-        self, input_proxy: RelayStreamTrack, frame: Union[Frame, None]
-    ):
-        # TODO: Lock here to make these 2 lines atomic
-        self._latest_frames_map[input_proxy] = frame
-        self._latest_frames_updated_event.set()
+    async def __run_track(self, track: RelayStreamTrack):
+        while True:
+            try:
+                frame = await track.recv()
+                self._input_event.set()
+            except MediaStreamError:
+                return
+            self._latest_frames_map[track] = frame
 
-    async def _get_latest_frames(self) -> List[Frame]:
-        # TODO: Lock here to make these 2 lines atomic
-        await self._latest_frames_updated_event.wait()
-        self._latest_frames_updated_event.clear()
+    def _run_mixer_thread(self):
+        try:
+            self._mixer_thread_impl()
+        except Exception:
+            LOGGER.error("Error occurred in the WebRTC thread:")
 
-        with self._input_proxies_lock:
-            latest_frames = [
-                self._latest_frames_map.get(proxy)
-                for proxy in self._input_proxies.values()
-            ]
-        latest_frames = [f for f in latest_frames if f is not None]
-        return latest_frames
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            for tb in traceback.format_exception(exc_type, exc_value, exc_traceback):
+                for tbline in tb.rstrip().splitlines():
+                    LOGGER.error(tbline.rstrip())
+
+    def _mixer_thread_impl(self):
+        started_at = time.monotonic()
+
+        while True:
+            item = self._mixer_input_queue.get()
+
+            if item == __SENTINEL__:
+                break
+
+            queued_items = [item]
+
+            stop_requested = False
+            while not self._mixer_input_queue.empty():
+                item = self._mixer_input_queue.get_nowait()
+                if item == __SENTINEL__:
+                    stop_requested = True
+                    break
+                else:
+                    queued_items.append(item)
+            if stop_requested:
+                break
+
+            if len(queued_items) == 0:
+                raise Exception("Unexpectedly, queued frames do not exist")
+
+            # Set up a future, providing the frames.
+            latest_frames = queued_items[-1]  # TODO: Make use of all queue items
+
+            try:
+                output_frame = self.mixer.on_update(latest_frames)
+
+                if output_frame.pts is None and output_frame.time_base is None:
+                    timestamp = time.monotonic() - started_at
+                    if isinstance(output_frame, av.VideoFrame):
+                        output_frame.pts = timestamp * VIDEO_CLOCK_RATE
+                        output_frame.time_base = VIDEO_TIME_BASE
+                    elif isinstance(output_frame, av.AudioFrame):
+                        output_frame.pts = timestamp * AUDIO_SAMPLE_RATE
+                        output_frame.time_base = AUDIO_TIME_BASE
+
+            except Exception:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                for tb in traceback.format_exception(
+                    exc_type, exc_value, exc_traceback
+                ):
+                    for tbline in tb.rstrip().splitlines():
+                        LOGGER.error(tbline.rstrip())
+
+            self._mixer_output_queue.put(output_frame)
 
     async def recv(self):
         if self.readyState != "live":
@@ -243,8 +202,13 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
 
         self._start()
 
-        frame = await self._queue.get()
-        if frame is None:
-            self.stop()
-            raise MediaStreamError
-        return frame
+        await self._input_event.wait()
+        self._input_event.clear()
+
+        input_frames = list(self._latest_frames_map.values())
+
+        self._mixer_input_queue.put_nowait(input_frames)
+
+        new_frame = self._mixer_output_queue.get()
+
+        return new_frame
