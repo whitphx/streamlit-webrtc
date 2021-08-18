@@ -98,7 +98,7 @@ FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
 
 class MixerBase(abc.ABC, Generic[FrameT]):
     @abc.abstractmethod
-    def on_update(self, frames: List[FrameT]) -> FrameT:
+    async def on_update(self, frames: List[FrameT]) -> FrameT:
         """
         Receives frames from input tracks and returns one frame to output.
         """

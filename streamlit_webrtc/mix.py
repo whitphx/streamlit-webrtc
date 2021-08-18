@@ -91,7 +91,7 @@ async def mix_coro(mix_track: "MediaStreamMixTrack"):
             await mix_track._get_latest_frames()
         )  # Wait for new frames arrive
         try:
-            output_frame = mix_track.mixer.on_update(latest_frames)
+            output_frame = await mix_track.mixer.on_update(latest_frames)
 
             if output_frame.pts is None and output_frame.time_base is None:
                 timestamp = time.monotonic() - started_at
