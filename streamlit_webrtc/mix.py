@@ -2,7 +2,6 @@ import asyncio
 import fractions
 import functools
 import logging
-import queue
 import sys
 import threading
 import time
@@ -44,13 +43,14 @@ __SENTINEL__ = "__SENTINEL__"
 
 
 class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
+    _input_tasks: "weakref.WeakKeyDictionary[RelayStreamTrack, asyncio.Task]"
     _input_proxies_lock: threading.Lock
     _input_proxies: "OrderedDict[MediaStreamTrack, RelayStreamTrack]"
     _latest_frames_map: "weakref.WeakKeyDictionary[RelayStreamTrack, Union[Frame, None]]"  # noqa: E501
     _input_event: asyncio.Event
-    _mixer_input_queue: queue.Queue
-    _mixer_output_queue: queue.Queue
-    _mixer_thread: threading.Thread  # TODO: Check if this can be coroutine
+    _mixer_input_queue: asyncio.Queue
+    _mixer_output_queue: asyncio.Queue
+    _mixer_task: asyncio.Task
     _loop: asyncio.AbstractEventLoop
 
     def __init__(self, kind: str, mixer: MixerT) -> None:
@@ -65,29 +65,24 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
         self._input_proxies = OrderedDict()
         self._input_proxies_lock = threading.Lock()
         self._latest_frames_map = weakref.WeakKeyDictionary()
-        self._mixer_thread = None
+        self._mixer_task = None
 
         with loop_context(self._loop):
             self._input_event = asyncio.Event()
 
     def _start(self):
-        if self._mixer_thread:
+        if self._mixer_task:
             return
 
-        self._mixer_input_queue = queue.Queue()
-        self._mixer_output_queue = queue.Queue()
-        self._mixer_thread = threading.Thread(
-            target=self._run_mixer_thread
-        )  # TODO: Set thread name
-        self._mixer_thread.start()
+        self._mixer_input_queue = asyncio.Queue()
+        self._mixer_output_queue = asyncio.Queue()
+        self._mixer_task = asyncio.ensure_future(self._mixer_coro(), loop=self._loop)
 
     def stop(self):
         super().stop()
 
         for track in self._input_proxies.values():
             track.stop()
-        self._mixer_input_queue.put(__SENTINEL__)
-        self._thread.join(self.stop_timeout)
 
     def add_input_track(self, input_track: MediaStreamTrack) -> None:
         LOGGER.debug("Add a track %s to %s", input_track, self)
@@ -135,25 +130,11 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
                 return
             self._latest_frames_map[track] = frame
 
-    def _run_mixer_thread(self):
-        try:
-            self._mixer_thread_impl()
-        except Exception:
-            LOGGER.error("Error occurred in the WebRTC thread:")
-
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            for tb in traceback.format_exception(exc_type, exc_value, exc_traceback):
-                for tbline in tb.rstrip().splitlines():
-                    LOGGER.error(tbline.rstrip())
-
-    def _mixer_thread_impl(self):
+    async def _mixer_coro(self):
         started_at = time.monotonic()
 
         while True:
-            item = self._mixer_input_queue.get()
-
-            if item == __SENTINEL__:
-                break
+            item = await self._mixer_input_queue.get()
 
             queued_items = [item]
 
@@ -194,13 +175,18 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
                     for tbline in tb.rstrip().splitlines():
                         LOGGER.error(tbline.rstrip())
 
-            self._mixer_output_queue.put(output_frame)
+            await self._mixer_output_queue.put(output_frame)
 
     async def recv(self):
         if self.readyState != "live":
             raise MediaStreamError
 
         self._start()
+
+        await asyncio.sleep(
+            0.5
+        )  # TODO: Be configurable / set appropriate value automatically.
+        # NOTE: 出力の数が増えるとおそらくencodeが詰まって遅くなるので、その前段たるこの段階で適宜throttleするadhoc対応。
 
         await self._input_event.wait()
         self._input_event.clear()
@@ -209,6 +195,6 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
 
         self._mixer_input_queue.put_nowait(input_frames)
 
-        new_frame = self._mixer_output_queue.get()
+        new_frame = await self._mixer_output_queue.get()
 
         return new_frame
