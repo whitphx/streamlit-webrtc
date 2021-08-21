@@ -11,6 +11,7 @@ from typing import Generic, List, Optional, Union
 
 import av
 from aiortc import MediaStreamTrack
+from aiortc.mediastreams import MediaStreamError
 
 from .types import (
     AudioProcessorBase,
@@ -32,6 +33,9 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self.processor: ProcessorT = processor
 
     async def recv(self):
+        if self.readyState != "live":
+            raise MediaStreamError
+
         frame = await self.track.recv()
 
         new_frame = self.processor.recv(frame)
@@ -208,6 +212,9 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self._thread.join(self.stop_timeout)
 
     async def recv(self):
+        if self.readyState != "live":
+            raise MediaStreamError
+
         self._start()
 
         frame = await self.track.recv()
