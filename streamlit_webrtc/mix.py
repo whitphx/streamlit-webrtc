@@ -87,6 +87,8 @@ async def mix_coro(mix_track: "MediaStreamMixTrack"):
     started_at = time.monotonic()
 
     while True:
+        this_iter_start_time = time.monotonic()
+
         latest_frames = (
             await mix_track._get_latest_frames()
         )  # Wait for new frames arrive
@@ -109,6 +111,9 @@ async def mix_coro(mix_track: "MediaStreamMixTrack"):
                     LOGGER.error(tbline.rstrip())
         mix_track._queue.put_nowait(output_frame)
 
+        wait = this_iter_start_time + mix_track.mixer_output_interval - time.monotonic()
+        await asyncio.sleep(wait)
+
 
 class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
     kind: str
@@ -128,9 +133,15 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
     _gather_frames_task: Union[asyncio.Task, None]
     _mix_task: Union[asyncio.Task, None]
 
-    def __init__(self, kind: str, mixer: MixerT) -> None:
+    mixer_output_interval: float
+
+    def __init__(
+        self, kind: str, mixer: MixerT, mixer_output_interval: float = 1 / 30
+    ) -> None:
         self.kind = kind
         self.mixer = mixer
+
+        self.mixer_output_interval = mixer_output_interval
 
         loop = get_server_event_loop()
 
