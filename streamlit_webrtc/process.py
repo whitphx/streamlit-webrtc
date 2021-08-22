@@ -13,7 +13,7 @@ import av
 from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
-from .types import (
+from .models import (
     AudioProcessorBase,
     AudioProcessorT,
     FrameT,
