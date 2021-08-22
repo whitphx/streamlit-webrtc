@@ -126,24 +126,31 @@ def create_process_track(
 def _inner_create_mix_track(
     kind: str,
     wrapped_mixer_factory: ObjectHashWrapper[Callable[[], MixerBase]],
+    mixer_output_interval: float,
     key: str,
     session_id: str,
 ) -> ObjectHashWrapper[MediaStreamMixTrack]:
     mixer_factory = wrapped_mixer_factory.obj
     mixer = mixer_factory()
 
-    output_track = MediaStreamMixTrack(kind=kind, mixer=mixer)
+    output_track = MediaStreamMixTrack(
+        kind=kind, mixer=mixer, mixer_output_interval=mixer_output_interval
+    )
     return ObjectHashWrapper(output_track, output_track.id)
 
 
 def create_mix_track(
-    kind: str, mixer_factory: Callable[[], MixerT], key: str
+    kind: str,
+    mixer_factory: Callable[[], MixerT],
+    key: str,
+    mixer_output_interval: float = 1 / 30,
 ) -> MediaStreamMixTrack[MixerT]:
     wrapped_mixer_factory = ObjectHashWrapper(mixer_factory, None)
     ctx = ReportThread.get_report_ctx()
     wrapped_output_track = _inner_create_mix_track(
         kind=kind,
         wrapped_mixer_factory=wrapped_mixer_factory,
+        mixer_output_interval=mixer_output_interval,
         key=key,  # To make the cache unique
         session_id=ctx.session_id,  # To make the cache session-specific.
     )

@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Add
+- Add `mixer-output-interval` property to `MediaStreamMixTrack`, #388.
 
 ## [0.26.0]
 ### Fix
