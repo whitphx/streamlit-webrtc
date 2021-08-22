@@ -13,12 +13,7 @@ import numpy as np
 import pydub
 import streamlit as st
 
-from streamlit_webrtc import (
-    AudioProcessorBase,
-    ClientSettings,
-    WebRtcMode,
-    webrtc_streamer,
-)
+from streamlit_webrtc import AudioProcessorBase, WebRtcMode, webrtc_streamer
 
 HERE = Path(__file__).parent
 
@@ -116,12 +111,8 @@ def app_sst(model_path: str, lm_path: str, lm_alpha: float, lm_beta: float, beam
         key="speech-to-text",
         mode=WebRtcMode.SENDONLY,
         audio_receiver_size=1024,
-        client_settings=ClientSettings(
-            rtc_configuration={
-                "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-            },
-            media_stream_constraints={"video": False, "audio": True},
-        ),
+        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+        media_stream_constraints={"video": False, "audio": True},
     )
 
     status_indicator = st.empty()
@@ -211,12 +202,8 @@ def app_sst_with_video(
         key="speech-to-text-w-video",
         mode=WebRtcMode.SENDRECV,
         audio_processor_factory=AudioProcessor,
-        client_settings=ClientSettings(
-            rtc_configuration={
-                "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-            },
-            media_stream_constraints={"video": True, "audio": True},
-        ),
+        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+        media_stream_constraints={"video": True, "audio": True},
     )
 
     status_indicator = st.empty()

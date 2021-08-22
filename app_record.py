@@ -2,12 +2,7 @@ import av
 import cv2
 from aiortc.contrib.media import MediaRecorder
 
-from streamlit_webrtc import (
-    ClientSettings,
-    VideoProcessorBase,
-    WebRtcMode,
-    webrtc_streamer,
-)
+from streamlit_webrtc import VideoProcessorBase, WebRtcMode, webrtc_streamer
 
 
 def app():
@@ -31,15 +26,11 @@ def app():
     webrtc_streamer(
         key="loopback",
         mode=WebRtcMode.SENDRECV,
-        client_settings=ClientSettings(
-            rtc_configuration={
-                "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-            },
-            media_stream_constraints={
-                "video": True,
-                "audio": True,
-            },
-        ),
+        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+        media_stream_constraints={
+            "video": True,
+            "audio": True,
+        },
         video_processor_factory=OpenCVEdgeProcessor,
         in_recorder_factory=in_recorder_factory,
         out_recorder_factory=out_recorder_factory,
