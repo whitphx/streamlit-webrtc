@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fix
+- Rename `types` module to `models`, #390.
 
 ## [0.27.0] - 2021-08-22
 ### Add
