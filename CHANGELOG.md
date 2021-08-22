@@ -2,19 +2,21 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [0.27.0] - 2021-08-22
 ### Add
 - Add `mixer-output-interval` property to `MediaStreamMixTrack`, #388.
 
-## [0.26.0]
+## [0.26.0] - 2021-08-08
 ### Fix
 - Type hints, #366.
 - [BREAKING CHANGE] `client_settings` argument is marked as deprecated and `rtc_configuration` and `media_stream_constraints` became the top level arguments, #371.
 
-## [0.25.1]
+## [0.25.1] - 2021-07-30
 ### Fix
 - Fix to be compatible with `multiprocessing.Process`, #355.
 
-## [0.25.0]
+## [0.25.0] - 2021-07-30
 ### Add
 - Add `video_html_attrs` and `audio_html_attrs` options, #272.
 
