@@ -127,7 +127,7 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
     def _worker_thread(self):
         loop = asyncio.new_event_loop()
 
-        futures: List[asyncio.futures.Future] = []
+        tasks: List[asyncio.Task] = []
 
         while True:
             # Read frames from the queue
@@ -151,14 +151,14 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             if len(queued_frames) == 0:
                 raise Exception("Unexpectedly, queued frames do not exist")
 
-            # Set up a future, providing the frames.
+            # Set up a task, providing the frames.
             if hasattr(self.processor, "recv_queued"):
                 coro = self.processor.recv_queued(queued_frames)
             else:
                 coro = self._fallback_recv_queued(queued_frames)
 
-            future = asyncio.ensure_future(coro, loop=loop)
-            futures.append(future)
+            task = loop.create_task(coro=coro)
+            tasks.append(task)
 
             # NOTE: If the execution time of recv_queued() increases
             #       with the length of the input frames,
@@ -166,7 +166,7 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             #       Then, the execution time has to be monitored.
             start_time = time.monotonic()
             done, not_done = loop.run_until_complete(
-                asyncio.wait(futures, return_when=asyncio.FIRST_COMPLETED)
+                asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
             )
             elapsed_time = time.monotonic() - start_time
 
@@ -179,14 +179,14 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                 )
 
             if len(done) > 1:
-                raise Exception("Unexpectedly multiple futures have finished")
+                raise Exception("Unexpectedly multiple tasks have finished")
 
-            done_idx = futures.index(future)
-            old_futures = futures[:done_idx]
-            for old_future in old_futures:
-                logger.info("Cancel an old future %s", future)
-                old_future.cancel()
-            futures = [f for f in futures if not f.done()]
+            done_idx = tasks.index(task)
+            old_tasks = tasks[:done_idx]
+            for old_task in old_tasks:
+                logger.info("Cancel an old task %s", task)
+                old_task.cancel()
+            tasks = [t for t in tasks if not t.done()]
 
             finished = done.pop()
             new_frames = finished.result()

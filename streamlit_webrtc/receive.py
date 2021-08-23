@@ -40,7 +40,8 @@ class MediaReceiver(Generic[FrameT]):
     def start(self):
         if self._task is not None:
             raise Exception(f"{self} has already a started task {self._task}")
-        self._task = asyncio.ensure_future(self._run_track(self._track))
+        loop = asyncio.get_event_loop()
+        self._task = loop.create_task(coro=self._run_track(self._track))
 
     def stop(self):
         if self._task is not None:
