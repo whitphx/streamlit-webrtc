@@ -2,8 +2,11 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [0.27.1] - 2021-08-24
 ### Fix
 - Rename `types` module to `models`, #390.
+- Use `loop.create_task()` instead of `asyncio.ensure_future`, #391.
 
 ## [0.27.0] - 2021-08-22
 ### Add
