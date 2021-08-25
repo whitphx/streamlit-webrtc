@@ -1,11 +1,7 @@
 import asyncio
 import itertools
 import logging
-import queue
-import sys
-import threading
 import time
-import traceback
 from collections import deque
 from typing import Generic, List, Optional, Union
 
@@ -59,13 +55,22 @@ class AudioProcessTrack(
     processor: AudioProcessorT
 
 
-__SENTINEL__ = "__SENTINEL__"
-
 # See https://stackoverflow.com/a/42007659
 media_processing_thread_id_generator = itertools.count()
 
 
 class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
+    track: MediaStreamTrack
+    processor: ProcessorT
+    stop_timeout: Optional[float]
+
+    _last_out_frame: Union[FrameT, None]
+
+    _task: Optional[asyncio.Task]
+    _in_queue: asyncio.Queue
+    _out_lock: asyncio.Lock
+    _out_deque: deque
+
     def __init__(
         self,
         track: MediaStreamTrack,
@@ -75,43 +80,27 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         super().__init__()  # don't forget this!
 
         self.track = track
-        self.processor: ProcessorT = processor
-
-        self._last_out_frame: Union[FrameT, None] = None
-
+        self.processor = processor
         self.stop_timeout = stop_timeout
 
-        self._thread = None
+        self._last_out_frame = None
+
+        self._in_queue = asyncio.Queue()
+        self._out_lock = asyncio.Lock()
+        self._out_deque: deque = deque([])
+        self._task = None
 
     def _start(self):
-        if self._thread:
+        if self._task:
             return
 
-        self._in_queue: queue.Queue = queue.Queue()
-        self._out_lock = threading.Lock()
-        self._out_deque: deque = deque([])
-
-        self._thread = threading.Thread(
-            target=self._run_worker_thread,
-            name=f"async_media_processor_{next(media_processing_thread_id_generator)}",
-        )
-        self._thread.start()
+        loop = asyncio.get_event_loop()
+        self._task = loop.create_task(self._worker_coro())
 
         @self.track.on("ended")
         def on_input_track_ended():
             logger.debug("Input track %s ended. Stop self %s", self.track, self)
             self.stop()
-
-    def _run_worker_thread(self):
-        try:
-            self._worker_thread()
-        except Exception:
-            logger.error("Error occurred in the WebRTC thread:")
-
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            for tb in traceback.format_exception(exc_type, exc_value, exc_traceback):
-                for tbline in tb.rstrip().splitlines():
-                    logger.error(tbline.rstrip())
 
     async def _fallback_recv_queued(self, frames: List[FrameT]) -> FrameT:
         """
@@ -124,29 +113,18 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             )
         return [self.processor.recv(frames[-1])]
 
-    def _worker_thread(self):
-        loop = asyncio.new_event_loop()
+    async def _worker_coro(self):
+        loop = asyncio.get_event_loop()
 
         tasks: List[asyncio.Task] = []
 
         while True:
             # Read frames from the queue
-            item = self._in_queue.get()
-            if item == __SENTINEL__:
-                break
-
-            queued_frames = [item]
-
-            stop_requested = False
+            queued_frame = await self._in_queue.get()
+            queued_frames = [queued_frame]
             while not self._in_queue.empty():
-                item = self._in_queue.get_nowait()
-                if item == __SENTINEL__:
-                    stop_requested = True
-                    break
-                else:
-                    queued_frames.append(item)
-            if stop_requested:
-                break
+                queued_frame = self._in_queue.get_nowait()
+                queued_frames.append(queued_frame)
 
             if len(queued_frames) == 0:
                 raise Exception("Unexpectedly, queued frames do not exist")
@@ -165,8 +143,8 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             #       it increases exponentially over the calls.
             #       Then, the execution time has to be monitored.
             start_time = time.monotonic()
-            done, not_done = loop.run_until_complete(
-                asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            done, not_done = await asyncio.wait(
+                tasks, return_when=asyncio.FIRST_COMPLETED
             )
             elapsed_time = time.monotonic() - start_time
 
@@ -191,7 +169,7 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             finished = done.pop()
             new_frames = finished.result()
 
-            with self._out_lock:
+            async with self._out_lock:
                 if len(self._out_deque) > 1:
                     logger.warning(
                         "Not all the queued frames have been consumed, "
@@ -207,9 +185,7 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
     def stop(self):
         super().stop()
 
-        self.track.stop()
-        self._in_queue.put(__SENTINEL__)
-        self._thread.join(self.stop_timeout)
+        self._task.cancel()
 
     async def recv(self):
         if self.readyState != "live":
@@ -218,10 +194,10 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self._start()
 
         frame = await self.track.recv()
-        self._in_queue.put(frame)
+        self._in_queue.put_nowait(frame)
 
         new_frame = None
-        with self._out_lock:
+        async with self._out_lock:
             if len(self._out_deque) > 0:
                 new_frame = self._out_deque.popleft()
 
