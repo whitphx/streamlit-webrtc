@@ -32,6 +32,11 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self.track = track
         self.processor: ProcessorT = processor
 
+        @self.track.on("ended")
+        def on_input_track_ended():
+            logger.debug("Input track %s ended. Stop self %s", self.track, self)
+            self.stop()
+
     async def recv(self):
         if self.readyState != "live":
             raise MediaStreamError
@@ -43,6 +48,12 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         new_frame.time_base = frame.time_base
 
         return new_frame
+
+    def stop(self):
+        super().stop()
+
+        if hasattr(self.processor, "on_ended") and callable(self.processor.on_ended):
+            self.processor.on_ended()
 
 
 class VideoProcessTrack(
@@ -210,6 +221,9 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self.track.stop()
         self._in_queue.put(__SENTINEL__)
         self._thread.join(self.stop_timeout)
+
+        if hasattr(self.processor, "on_ended") and callable(self.processor.on_ended):
+            self.processor.on_ended()
 
     async def recv(self):
         if self.readyState != "live":

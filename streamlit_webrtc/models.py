@@ -44,6 +44,9 @@ class VideoProcessorBase(abc.ABC):
         """
         return [self.recv(frames[-1])]
 
+    def on_ended(self):
+        pass
+
 
 class VideoTransformerBase(VideoProcessorBase):  # Backward compatiblity
     """
@@ -82,6 +85,9 @@ class AudioProcessorBase(abc.ABC):
                 "`recv_queued` is recommended to use instead."
             )
         return [self.recv(frames[-1])]
+
+    def on_ended(self):
+        pass
 
 
 VideoProcessorT = TypeVar("VideoProcessorT", bound=VideoProcessorBase)
