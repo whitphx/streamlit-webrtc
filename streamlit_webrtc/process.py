@@ -52,7 +52,7 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
     def stop(self):
         super().stop()
 
-        if hasattr(self.processor, "on_ended") and callable(self.processor.on_ended):
+        if hasattr(self.processor, "on_ended"):
             self.processor.on_ended()
 
 
@@ -222,7 +222,7 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self._in_queue.put(__SENTINEL__)
         self._thread.join(self.stop_timeout)
 
-        if hasattr(self.processor, "on_ended") and callable(self.processor.on_ended):
+        if hasattr(self.processor, "on_ended"):
             self.processor.on_ended()
 
     async def recv(self):
