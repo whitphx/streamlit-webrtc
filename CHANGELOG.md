@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.28.0] - 2021-09-01
 ### Add
 - `on_ended()` callback, #405.
 
