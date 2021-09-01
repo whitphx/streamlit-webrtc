@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Add
+- `on_ended()` callback, #405.
+
 ## [0.27.1] - 2021-08-24
 ### Fix
 - Rename `types` module to `models`, #390.
