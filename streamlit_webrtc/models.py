@@ -45,7 +45,9 @@ class VideoProcessorBase(abc.ABC):
         return [self.recv(frames[-1])]
 
     def on_ended(self):
-        pass
+        """
+        A callback method which is called when the input track ends.
+        """
 
 
 class VideoTransformerBase(VideoProcessorBase):  # Backward compatiblity
@@ -87,7 +89,9 @@ class AudioProcessorBase(abc.ABC):
         return [self.recv(frames[-1])]
 
     def on_ended(self):
-        pass
+        """
+        A callback method which is called when the input track ends.
+        """
 
 
 VideoProcessorT = TypeVar("VideoProcessorT", bound=VideoProcessorBase)
