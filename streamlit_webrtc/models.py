@@ -36,7 +36,7 @@ class VideoProcessorBase(abc.ABC):
         new_image = self.transform(frame)
         return av.VideoFrame.from_ndarray(new_image, format="bgr24")
 
-    async def recv_queued(self, frames: List[av.AudioFrame]) -> av.VideoFrame:
+    async def recv_queued(self, frames: List[av.VideoFrame]) -> av.VideoFrame:
         """
         Receives all the frames arrived after the previous recv_queued() call
         and returns new frames when running in async mode.
