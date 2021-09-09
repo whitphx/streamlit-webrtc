@@ -1,5 +1,4 @@
 import {
-  Streamlit,
   StreamlitComponentBase,
   withStreamlitConnection,
   ComponentProps,
@@ -13,6 +12,7 @@ import ThemeProvider from "./ThemeProvider";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
 import { compileMediaConstraints, getMediaUsage } from "./media-constraint";
+import { setComponentValue } from "./component-value";
 
 type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -280,6 +280,13 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     }
   };
 
+  private initializeComponentValue = () => {
+    return setComponentValue({
+      playing: false,
+      sdpOffer: "",
+    });
+  };
+
   private reconcileComponentValue = (prevState: State) => {
     if (this.state === prevState) {
       return;
@@ -297,7 +304,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       if (sdpOffer) {
         console.log("Send SDP offer", sdpOffer);
       }
-      Streamlit.setComponentValue({
+      setComponentValue({
         playing,
         sdpOffer: sdpOffer ? sdpOffer.toJSON() : "", // `Streamlit.setComponentValue` cannot "unset" the field by passing null or undefined, so here an empty string is set instead when `sdpOffer` is undefined. // TODO: Create an issue
       });
@@ -307,6 +314,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   public componentDidMount() {
     super.componentDidMount();
 
+    this.initializeComponentValue();
     this.reconcilePlayingState();
   }
 

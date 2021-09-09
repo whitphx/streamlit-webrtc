@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix
+- Initialize the component value when the component is mounted, #413.
+
 ## [0.28.0] - 2021-09-01
 ### Add
 - `on_ended()` callback, #405.
