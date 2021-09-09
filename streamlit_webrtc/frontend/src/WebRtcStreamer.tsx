@@ -1,5 +1,4 @@
 import {
-  Streamlit,
   StreamlitComponentBase,
   withStreamlitConnection,
   ComponentProps,
@@ -13,6 +12,7 @@ import ThemeProvider from "./ThemeProvider";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
 import { compileMediaConstraints, getMediaUsage } from "./media-constraint";
+import { setComponentValue } from "./component-value";
 
 type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -57,11 +57,6 @@ const setupOffer = (
       throw err;
     });
 };
-
-interface ComponentValue {
-  playing: boolean;
-  sdpOffer: string; // `Streamlit.setComponentValue` cannot "unset" the field by passing null or undefined, so an empty string will be used here for that purpose. // TODO: Create an issue
-}
 
 type WebRtcState = "STOPPED" | "SIGNALLING" | "PLAYING" | "STOPPING";
 
@@ -285,12 +280,8 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     }
   };
 
-  private setComponentValue = (componentValue: ComponentValue) => {
-    return Streamlit.setComponentValue(componentValue);
-  };
-
   private initializeComponentValue = () => {
-    return this.setComponentValue({
+    return setComponentValue({
       playing: false,
       sdpOffer: "",
     });
@@ -313,7 +304,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       if (sdpOffer) {
         console.log("Send SDP offer", sdpOffer);
       }
-      this.setComponentValue({
+      setComponentValue({
         playing,
         sdpOffer: sdpOffer ? sdpOffer.toJSON() : "", // `Streamlit.setComponentValue` cannot "unset" the field by passing null or undefined, so here an empty string is set instead when `sdpOffer` is undefined. // TODO: Create an issue
       });
