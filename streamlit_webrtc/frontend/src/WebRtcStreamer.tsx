@@ -58,6 +58,11 @@ const setupOffer = (
     });
 };
 
+interface ComponentValue {
+  playing: boolean;
+  sdpOffer: string; // `Streamlit.setComponentValue` cannot "unset" the field by passing null or undefined, so an empty string will be used here for that purpose. // TODO: Create an issue
+}
+
 type WebRtcState = "STOPPED" | "SIGNALLING" | "PLAYING" | "STOPPING";
 
 interface State {
@@ -280,6 +285,17 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
     }
   };
 
+  private setComponentValue = (componentValue: ComponentValue) => {
+    return Streamlit.setComponentValue(componentValue);
+  };
+
+  private initializeComponentValue = () => {
+    return this.setComponentValue({
+      playing: false,
+      sdpOffer: "",
+    });
+  };
+
   private reconcileComponentValue = (prevState: State) => {
     if (this.state === prevState) {
       return;
@@ -297,7 +313,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
       if (sdpOffer) {
         console.log("Send SDP offer", sdpOffer);
       }
-      Streamlit.setComponentValue({
+      this.setComponentValue({
         playing,
         sdpOffer: sdpOffer ? sdpOffer.toJSON() : "", // `Streamlit.setComponentValue` cannot "unset" the field by passing null or undefined, so here an empty string is set instead when `sdpOffer` is undefined. // TODO: Create an issue
       });
@@ -307,6 +323,7 @@ class WebRtcStreamer extends StreamlitComponentBase<State> {
   public componentDidMount() {
     super.componentDidMount();
 
+    this.initializeComponentValue();
     this.reconcilePlayingState();
   }
 
