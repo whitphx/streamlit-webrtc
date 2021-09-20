@@ -162,21 +162,22 @@ def main():
             webrtc_contexts.remove(self_ctx)
             server_state["webrtc_contexts"] = webrtc_contexts
 
-    # Audio streams are transferred in SFU manner
-    # TODO: Create MCU to mix audio streams
-    for ctx in webrtc_contexts:
-        if ctx == self_ctx or not ctx.state.playing:
-            continue
-        webrtc_streamer(
-            key=f"sound-{id(ctx)}",
-            mode=WebRtcMode.RECVONLY,
-            rtc_configuration={
-                "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-            },
-            media_stream_constraints={"video": False, "audio": True},
-            source_audio_track=ctx.input_audio_track,
-            desired_playing_state=ctx.state.playing,
-        )
+    if self_ctx.state.playing:
+        # Audio streams are transferred in SFU manner
+        # TODO: Create MCU to mix audio streams
+        for ctx in webrtc_contexts:
+            if ctx == self_ctx or not ctx.state.playing:
+                continue
+            webrtc_streamer(
+                key=f"sound-{id(ctx)}",
+                mode=WebRtcMode.RECVONLY,
+                rtc_configuration={
+                    "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+                },
+                media_stream_constraints={"video": False, "audio": True},
+                source_audio_track=ctx.input_audio_track,
+                desired_playing_state=ctx.state.playing,
+            )
 
 
 if __name__ == "__main__":
