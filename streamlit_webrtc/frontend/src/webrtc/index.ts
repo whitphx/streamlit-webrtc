@@ -1,6 +1,7 @@
-import React, { useReducer, useCallback, useRef, useEffect } from "react";
+import { useReducer, useCallback, useRef, useEffect } from "react";
 import { compileMediaConstraints } from "../media-constraint";
 import { setComponentValue } from "../component-value";
+import { connectedReducer, initialState } from "./reducer";
 
 export type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 export const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -46,148 +47,7 @@ const setupOffer = (
     });
 };
 
-type WebRtcState = "STOPPED" | "SIGNALLING" | "PLAYING" | "STOPPING";
 const SIGNALLING_TIMEOUT = 10 * 1000;
-interface State {
-  webRtcState: WebRtcState;
-  sdpOffer: RTCSessionDescription | null;
-  signallingTimedOut: boolean;
-  stream: MediaStream | null;
-  error: Error | null;
-}
-const initialState: State = {
-  webRtcState: "STOPPED",
-  sdpOffer: null,
-  signallingTimedOut: false,
-  stream: null,
-  error: null,
-};
-interface ActionBase {
-  type: string;
-}
-interface SignallingStartAction extends ActionBase {
-  type: "SIGNALLING_START";
-}
-interface SignallingTimeoutAction extends ActionBase {
-  type: "SIGNALLING_TIMEOUT";
-}
-interface StreamSetAction extends ActionBase {
-  type: "SET_STREAM";
-  stream: MediaStream;
-}
-interface SetOfferAction extends ActionBase {
-  type: "SET_OFFER";
-  offer: RTCSessionDescription;
-}
-interface StoppingAction extends ActionBase {
-  type: "STOPPING";
-}
-interface StoppedAction extends ActionBase {
-  type: "STOPPED";
-}
-interface StartPlayingAction extends ActionBase {
-  type: "START_PLAYING";
-}
-interface ProcessAnswerErrorAction extends ActionBase {
-  type: "PROCESS_ANSWER_ERROR";
-  error: Error;
-}
-interface ErrorAction extends ActionBase {
-  type: "ERROR";
-  error: Error;
-}
-type Action =
-  | SignallingStartAction
-  | SignallingTimeoutAction
-  | StreamSetAction
-  | SetOfferAction
-  | StoppingAction
-  | StoppedAction
-  | StartPlayingAction
-  | ProcessAnswerErrorAction
-  | ErrorAction;
-const reducer: React.Reducer<State, Action> = (state, action) => {
-  switch (action.type) {
-    case "SIGNALLING_START":
-      return {
-        ...state,
-        webRtcState: "SIGNALLING",
-        stream: null,
-        error: null,
-        signallingTimedOut: false,
-      };
-    case "SIGNALLING_TIMEOUT":
-      return {
-        ...state,
-        signallingTimedOut: true,
-      };
-    case "SET_STREAM":
-      return {
-        ...state,
-        stream: action.stream,
-      };
-    case "SET_OFFER":
-      return {
-        ...state,
-        sdpOffer: action.offer,
-      };
-    case "STOPPING":
-      return {
-        ...state,
-        webRtcState: "STOPPING",
-        sdpOffer: null,
-      };
-    case "STOPPED":
-      return {
-        ...state,
-        webRtcState: "STOPPED",
-        sdpOffer: null,
-        stream: null,
-      };
-    case "START_PLAYING":
-      return {
-        ...state,
-        webRtcState: "PLAYING",
-        sdpOffer: null,
-      };
-    case "PROCESS_ANSWER_ERROR":
-      return {
-        ...state,
-        error: action.error,
-      };
-    case "ERROR":
-      return {
-        ...state,
-        webRtcState: "STOPPED",
-        sdpOffer: null,
-        error: action.error,
-      };
-  }
-};
-
-const connectedReducer: React.Reducer<State, Action> = (state, action) => {
-  const nextState = reducer(state, action);
-
-  const nextPlaying = nextState.webRtcState === "PLAYING";
-  const prevPlaying = state.webRtcState === "PLAYING";
-  const playingChanged = nextPlaying !== prevPlaying;
-
-  const nextSdpOffer = nextState.sdpOffer;
-  const prevSdpOffer = state.sdpOffer;
-  const sdpOfferChanged = nextSdpOffer !== prevSdpOffer;
-
-  if (playingChanged || sdpOfferChanged) {
-    if (prevSdpOffer) {
-      console.log("Send SDP offer", prevSdpOffer);
-    }
-    setComponentValue({
-      playing: nextPlaying,
-      sdpOffer: nextSdpOffer ? nextSdpOffer.toJSON() : "", // `Streamlit.setComponentValue` cannot "unset" the field by passing null or undefined, so here an empty string is set instead when `sdpOffer` is undefined. // TODO: Create an issue
-    });
-  }
-
-  return nextState;
-};
 
 export const useWebRtc = (
   props: {
