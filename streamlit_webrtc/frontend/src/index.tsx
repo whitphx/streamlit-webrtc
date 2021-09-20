@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
+import { ErrorBoundary } from "streamlit-component-lib-react-hooks";
 import WebRtcStreamer from "./WebRtcStreamer";
 
 const theme = createMuiTheme({
@@ -21,10 +22,12 @@ const theme = createMuiTheme({
 
 ReactDOM.render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <WebRtcStreamer />
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <WebRtcStreamer />
+      </ThemeProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
   document.getElementById("root")
 );
