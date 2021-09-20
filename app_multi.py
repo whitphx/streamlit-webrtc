@@ -13,7 +13,6 @@ import numpy as np
 import streamlit as st
 
 from streamlit_webrtc import (
-    ClientSettings,
     MixerBase,
     VideoProcessorBase,
     WebRtcMode,
