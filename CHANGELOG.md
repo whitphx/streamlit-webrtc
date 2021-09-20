@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 
 ## Fix
 - Fix samples not to use deprecated arguments, #425.
+- Fix to use React hooks and function-based components, #424
 
 ## [0.28.1] - 2021-09-10
 ### Fix
