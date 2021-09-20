@@ -1,7 +1,7 @@
 import React from "react";
 import { Theme } from "streamlit-component-lib";
 import {
-  createMuiTheme,
+  createTheme,
   ThemeProvider as MuiThemeProvider,
 } from "@material-ui/core/styles";
 import chroma from "chroma-js";
@@ -23,7 +23,7 @@ export const ThemeProvider: React.VFC<
       .scale([stTheme.textColor, stTheme.backgroundColor])
       .mode("lab");
 
-    return createMuiTheme({
+    return createTheme({
       palette: {
         primary: {
           main: stTheme.primaryColor,
