@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## Fix
+- Fix samples not to use deprecated arguments, #425.
+
 ## [0.28.1] - 2021-09-10
 ### Fix
 - Initialize the component value when the component is mounted, #413.
