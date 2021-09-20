@@ -76,11 +76,10 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
   }
 };
 
-export const connectReducer =
-  (
-    onComponentValueChange: (newComponentValue: ComponentValue) => void
-  ): React.Reducer<State, Action> =>
-  (state, action) => {
+export const connectReducer = (
+  onComponentValueChange: (newComponentValue: ComponentValue) => void
+): React.Reducer<State, Action> => {
+  const connectedReducer: React.Reducer<State, Action> = (state, action) => {
     const nextState = reducer(state, action);
 
     const nextPlaying = nextState.webRtcState === "PLAYING";
@@ -103,3 +102,6 @@ export const connectReducer =
 
     return nextState;
   };
+
+  return connectedReducer;
+};
