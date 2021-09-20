@@ -1,6 +1,6 @@
 import React, { useReducer, useCallback, useRef, useEffect } from "react";
-import { compileMediaConstraints } from "./media-constraint";
-import { setComponentValue } from "./component-value";
+import { compileMediaConstraints } from "../media-constraint";
+import { setComponentValue } from "../component-value";
 
 export type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 export const isWebRtcMode = (val: unknown): val is WebRtcMode =>
