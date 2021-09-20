@@ -1,7 +1,7 @@
-import { useReducer, useCallback, useRef, useEffect } from "react";
+import { useReducer, useCallback, useRef, useEffect, useMemo } from "react";
 import { compileMediaConstraints } from "../media-constraint";
-import { setComponentValue } from "../component-value";
-import { connectedReducer, initialState } from "./reducer";
+import { ComponentValue } from "../component-value";
+import { connectReducer, initialState } from "./reducer";
 
 export type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 export const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -58,19 +58,24 @@ export const useWebRtc = (
     mediaStreamConstraints: MediaStreamConstraints | undefined;
   },
   videoInput: MediaDeviceInfo | null,
-  audioInput: MediaDeviceInfo | null
+  audioInput: MediaDeviceInfo | null,
+  onComponentValueChange: (newComponentValue: ComponentValue) => void
 ) => {
   // Initialize component value
   useEffect(() => {
-    return setComponentValue({
+    return onComponentValueChange({
       playing: false,
       sdpOffer: "",
     });
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const signallingTimerRef = useRef<NodeJS.Timeout>();
   const pcRef = useRef<RTCPeerConnection>();
-  const [state, dispatch] = useReducer(connectedReducer, initialState);
+  const reducer = useMemo(
+    () => connectReducer(onComponentValueChange),
+    [onComponentValueChange]
+  );
+  const [state, dispatch] = useReducer(reducer, initialState);
 
   const start = useCallback(() => {
     if (state.webRtcState !== "STOPPED") {

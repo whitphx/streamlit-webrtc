@@ -1,4 +1,4 @@
-import { setComponentValue } from "../component-value";
+import { ComponentValue } from "../component-value";
 import { Action } from "./actions";
 
 export type WebRtcState = "STOPPED" | "SIGNALLING" | "PLAYING" | "STOPPING";
@@ -76,29 +76,30 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
   }
 };
 
-export const connectedReducer: React.Reducer<State, Action> = (
-  state,
-  action
-) => {
-  const nextState = reducer(state, action);
+export const connectReducer =
+  (
+    onComponentValueChange: (newComponentValue: ComponentValue) => void
+  ): React.Reducer<State, Action> =>
+  (state, action) => {
+    const nextState = reducer(state, action);
 
-  const nextPlaying = nextState.webRtcState === "PLAYING";
-  const prevPlaying = state.webRtcState === "PLAYING";
-  const playingChanged = nextPlaying !== prevPlaying;
+    const nextPlaying = nextState.webRtcState === "PLAYING";
+    const prevPlaying = state.webRtcState === "PLAYING";
+    const playingChanged = nextPlaying !== prevPlaying;
 
-  const nextSdpOffer = nextState.sdpOffer;
-  const prevSdpOffer = state.sdpOffer;
-  const sdpOfferChanged = nextSdpOffer !== prevSdpOffer;
+    const nextSdpOffer = nextState.sdpOffer;
+    const prevSdpOffer = state.sdpOffer;
+    const sdpOfferChanged = nextSdpOffer !== prevSdpOffer;
 
-  if (playingChanged || sdpOfferChanged) {
-    if (prevSdpOffer) {
-      console.log("Send SDP offer", prevSdpOffer);
+    if (playingChanged || sdpOfferChanged) {
+      if (prevSdpOffer) {
+        console.log("Send SDP offer", prevSdpOffer);
+      }
+      onComponentValueChange({
+        playing: nextPlaying,
+        sdpOffer: nextSdpOffer ? nextSdpOffer.toJSON() : "", // `Streamlit.setComponentValue` cannot "unset" the field by passing null or undefined, so here an empty string is set instead when `sdpOffer` is undefined. // TODO: Create an issue
+      });
     }
-    setComponentValue({
-      playing: nextPlaying,
-      sdpOffer: nextSdpOffer ? nextSdpOffer.toJSON() : "", // `Streamlit.setComponentValue` cannot "unset" the field by passing null or undefined, so here an empty string is set instead when `sdpOffer` is undefined. // TODO: Create an issue
-    });
-  }
 
-  return nextState;
-};
+    return nextState;
+  };

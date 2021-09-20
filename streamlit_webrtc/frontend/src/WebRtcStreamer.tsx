@@ -15,6 +15,7 @@ import {
   isTransmittable,
 } from "./webrtc";
 import { getMediaUsage } from "./media-constraint";
+import { ComponentValue, setComponentValue } from "./component-value";
 
 interface WebRtcStreamerInnerProps {
   disabled: boolean;
@@ -25,11 +26,17 @@ interface WebRtcStreamerInnerProps {
   mediaStreamConstraints: MediaStreamConstraints | undefined;
   videoHtmlAttrs: any;
   audioHtmlAttrs: any;
+  onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
 const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
   const [videoInput, setVideoInput] = useState<MediaDeviceInfo | null>(null);
   const [audioInput, setAudioInput] = useState<MediaDeviceInfo | null>(null);
-  const { state, start, stop } = useWebRtc(props, videoInput, audioInput);
+  const { state, start, stop } = useWebRtc(
+    props,
+    videoInput,
+    audioInput,
+    props.onComponentValueChange
+  );
 
   const mode = props.mode;
   const buttonDisabled =
@@ -134,6 +141,7 @@ const WebRtcStreamer: React.VFC = () => {
         mediaStreamConstraints={mediaStreamConstraints}
         videoHtmlAttrs={videoHtmlAttrs}
         audioHtmlAttrs={audioHtmlAttrs}
+        onComponentValueChange={setComponentValue}
       />
     </ThemeProvider>
   );
