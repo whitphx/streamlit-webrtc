@@ -116,19 +116,17 @@ class MultiWindowMixer(MixerBase):
 
 
 def app_mix():
-    COMMON_CLIENT_SETTINGS = ClientSettings(
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-        media_stream_constraints={
-            "video": True,
-            "audio": True,
-        },
-    )
+    COMMON_RTC_CONFIG = {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 
     st.write("Input 1")
     input1_ctx = webrtc_streamer(
         key="input1_ctx",
         mode=WebRtcMode.SENDRECV,
-        client_settings=COMMON_CLIENT_SETTINGS,
+        rtc_configuration=COMMON_RTC_CONFIG,
+        media_stream_constraints={
+            "video": True,
+            "audio": True,
+        },
     )
     filter1_type = st.radio(
         "Select transform type",
@@ -147,7 +145,11 @@ def app_mix():
     input2_ctx = webrtc_streamer(
         key="input2_ctx",
         mode=WebRtcMode.SENDRECV,
-        client_settings=COMMON_CLIENT_SETTINGS,
+        rtc_configuration=COMMON_RTC_CONFIG,
+        media_stream_constraints={
+            "video": True,
+            "audio": True,
+        },
     )
     filter2_type = st.radio(
         "Select transform type",
@@ -166,7 +168,11 @@ def app_mix():
     input3_ctx = webrtc_streamer(
         key="input3_ctx",
         mode=WebRtcMode.SENDRECV,
-        client_settings=COMMON_CLIENT_SETTINGS,
+        rtc_configuration=COMMON_RTC_CONFIG,
+        media_stream_constraints={
+            "video": True,
+            "audio": True,
+        },
     )
 
     st.write("Mixed output")
@@ -176,15 +182,11 @@ def app_mix():
     mix_ctx = webrtc_streamer(
         key="mix",
         mode=WebRtcMode.RECVONLY,
-        client_settings=ClientSettings(
-            rtc_configuration={
-                "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-            },
-            media_stream_constraints={
-                "video": True,
-                "audio": True,
-            },
-        ),
+        rtc_configuration=COMMON_RTC_CONFIG,
+        media_stream_constraints={
+            "video": True,
+            "audio": True,
+        },
         source_video_track=mix_track,
     )
 
@@ -198,27 +200,29 @@ def app_mix():
 
 
 def app_fork():
-    COMMON_CLIENT_SETTINGS = ClientSettings(
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+    COMMON_RTC_CONFIG = {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+
+    ctx = webrtc_streamer(
+        key="loopback",
+        mode=WebRtcMode.SENDRECV,
+        rtc_configuration=COMMON_RTC_CONFIG,
         media_stream_constraints={
             "video": True,
             "audio": True,
         },
     )
 
-    ctx = webrtc_streamer(
-        key="loopback",
-        mode=WebRtcMode.SENDRECV,
-        client_settings=COMMON_CLIENT_SETTINGS,
-    )
-
     filter1_ctx = webrtc_streamer(
         key="filter1",
         mode=WebRtcMode.RECVONLY,
-        client_settings=COMMON_CLIENT_SETTINGS,
         video_processor_factory=OpenCVVideoProcessor,
         source_video_track=ctx.output_video_track,
         desired_playing_state=ctx.state.playing,
+        rtc_configuration=COMMON_RTC_CONFIG,
+        media_stream_constraints={
+            "video": True,
+            "audio": True,
+        },
     )
 
     if filter1_ctx.video_processor:
@@ -231,10 +235,14 @@ def app_fork():
     filter2_ctx = webrtc_streamer(
         key="filter2",
         mode=WebRtcMode.RECVONLY,
-        client_settings=COMMON_CLIENT_SETTINGS,
         video_processor_factory=OpenCVVideoProcessor,
         source_video_track=ctx.output_video_track,
         desired_playing_state=ctx.state.playing,
+        rtc_configuration=COMMON_RTC_CONFIG,
+        media_stream_constraints={
+            "video": True,
+            "audio": True,
+        },
     )
     if filter2_ctx.video_processor:
         filter2_ctx.video_processor.type = st.radio(
