@@ -29,12 +29,14 @@ interface WebRtcStreamerInnerProps {
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
 const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
-  const [videoInput, setVideoInput] = useState<MediaDeviceInfo | null>(null);
-  const [audioInput, setAudioInput] = useState<MediaDeviceInfo | null>(null);
+  const [devices, setDevices] = useState<{
+    video: MediaDeviceInfo | null;
+    audio: MediaDeviceInfo | null;
+  }>({ video: null, audio: null });
   const { state, start, stop } = useWebRtc(
     props,
-    videoInput,
-    audioInput,
+    devices.video,
+    devices.audio,
     props.onComponentValueChange
   );
 
@@ -52,9 +54,7 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
 
   const handleDeviceSelect = useCallback(
     (video: MediaDeviceInfo | null, audio: MediaDeviceInfo | null) => {
-      setVideoInput(video);
-      setAudioInput(audio);
-      // this.setState({ videoInput: video, audioInput: audio });
+      setDevices({ video, audio });
     },
     []
   );
@@ -100,10 +100,7 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
             videoEnabled={videoEnabled}
             audioEnabled={audioEnabled}
             onSelect={handleDeviceSelect}
-            value={{
-              video: videoInput,
-              audio: audioInput,
-            }}
+            value={devices}
           />
         )}
       </Box>
