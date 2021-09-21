@@ -3,8 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.29.1] - 2021-09-21
+### Fix
+- Refactoring, #428 and #429.
+
 ## [0.29.0] - 2021-09-21
-## Fix
+### Fix
 - Fix samples not to use deprecated arguments, #425.
 - Fix to use React hooks and function-based components, #424
 
