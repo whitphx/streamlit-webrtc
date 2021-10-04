@@ -1154,7 +1154,7 @@ watchdog = {version = "*", markers = "platform_system != \"Darwin\""}
 
 [[package]]
 name = "streamlit-server-state"
-version = "0.7.0"
+version = "0.9.0"
 description = ""
 category = "dev"
 optional = false
@@ -1162,7 +1162,6 @@ python-versions = ">=3.6,<4.0"
 
 [package.dependencies]
 streamlit = ">=0.65.0"
-typing_extensions = {version = ">=3.7.4,<4.0.0", markers = "python_version < \"3.8\""}
 
 [[package]]
 name = "terminado"
@@ -1336,7 +1335,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "58c30a289301eef090be5f3f83ee7e8008c687e33876cfa66cf9ddfb64a7fcff"
+content-hash = "9b836444ab811c39bac184f2c401efd022c77fd98b4c3f158004dea67505f879"
 
 [metadata.files]
 aioice = [
@@ -2287,8 +2286,8 @@ streamlit = [
     {file = "streamlit-0.83.0.tar.gz", hash = "sha256:254b79b0951febbbae44b32817c1292762615a5b10e9f53a4f1c12df24702296"},
 ]
 streamlit-server-state = [
-    {file = "streamlit-server-state-0.7.0.tar.gz", hash = "sha256:c96986cf1ab19c01a56f60a64f347361e48522c2a204be753c370aa46ba04718"},
-    {file = "streamlit_server_state-0.7.0-py3-none-any.whl", hash = "sha256:739bae3de047a159d750ddfd34af7b183af68ecc2fa77a09c411a80261593663"},
+    {file = "streamlit-server-state-0.9.0.tar.gz", hash = "sha256:7ce3be5bbbc5fe9a5e9688b5b9c851665231ab4c39a54b4e70177cc60027cebc"},
+    {file = "streamlit_server_state-0.9.0-py3-none-any.whl", hash = "sha256:89e66ad1e2855a1e3a6528197a5d6a3ed0dd519ed7955624a58a5ee3bf2b560e"},
 ]
 terminado = [
     {file = "terminado-0.9.2-py3-none-any.whl", hash = "sha256:23a053e06b22711269563c8bb96b36a036a86be8b5353e85e804f89b84aaa23f"},
