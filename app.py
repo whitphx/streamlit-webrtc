@@ -142,6 +142,14 @@ def main():
     elif app_mode == programatically_control_page:
         app_programatically_play()
 
+    st.sidebar.markdown(
+        """
+---
+<a href="https://www.buymeacoffee.com/whitphx" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="180" height="50" ></a>
+    """,  # noqa: E501
+        unsafe_allow_html=True,
+    )
+
     logger.debug("=== Alive threads ===")
     for thread in threading.enumerate():
         if thread.is_alive():
