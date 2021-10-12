@@ -15,7 +15,7 @@ except ImportError:
 import streamlit as st
 import streamlit.components.v1 as components
 
-from . import SessionState
+from . import SessionState  # TODO: Remove this module
 from .config import (
     DEFAULT_AUDIO_HTML_ATTRS,
     DEFAULT_MEDIA_STREAM_CONSTRAINTS,
@@ -71,7 +71,7 @@ class ComponentValueSnapshot(NamedTuple):
 
 
 class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
-    state: WebRtcStreamerState
+    _state: WebRtcStreamerState
     _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker[VideoProcessorT, AudioProcessorT]]]"  # noqa
 
     _component_value_snapshot: Union[ComponentValueSnapshot, None]
@@ -81,20 +81,24 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]],
         state: WebRtcStreamerState,
     ) -> None:
-        self.set_worker(worker)
-        self.set_state(state)
+        self._set_worker(worker)
+        self._set_state(state)
         self._component_value_snapshot = None
 
-    def set_worker(
+    def _set_worker(
         self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
     ):
         self._worker_ref = weakref.ref(worker) if worker else None
 
-    def set_state(self, state: WebRtcStreamerState):
-        self.state = state
+    def _set_state(self, state: WebRtcStreamerState):
+        self._state = state
 
     def _get_worker(self) -> Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]:
         return self._worker_ref() if self._worker_ref else None
+
+    @property
+    def state(self) -> WebRtcStreamerState:
+        return self._state
 
     @property
     def video_processor(self) -> Optional[VideoProcessorT]:
@@ -430,7 +434,7 @@ def webrtc_streamer(
             key,
         )
         webrtc_worker.stop()
-        context.set_worker(None)
+        context._set_worker(None)
         webrtc_worker = None
         # Rerun to unset the SDP answer from the frontend args
         st.experimental_rerun()
@@ -457,7 +461,7 @@ def webrtc_streamer(
             sendback_audio=sendback_audio,
         )
         webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
-        context.set_worker(webrtc_worker)
+        context._set_worker(webrtc_worker)
         # Rerun to send the SDP answer to frontend
         st.experimental_rerun()
 
