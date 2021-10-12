@@ -359,7 +359,14 @@ def webrtc_streamer(
 
     if key in st.session_state:
         context = st.session_state[key]
-        if not isinstance(context, WebRtcStreamerContext):
+
+        # This if-clause below is an alternative to something like
+        # `if not isinstance(context, WebRtcStreamerContext)`.
+        # Under the Streamlit execution mechanism,
+        # the identity of the class object `WebRtcStreamerContext` changes at each run,
+        # so `isinstance` cannot be used.
+        # Then, type().__name__ is used for this purpose instead.
+        if type(context).__name__ != WebRtcStreamerContext.__name__:
             raise TypeError(
                 f'st.session_state["{key}"] has an invalid type: {type(context)}'
             )
@@ -472,4 +479,6 @@ def webrtc_streamer(
         # Rerun to send the SDP answer to frontend
         st.experimental_rerun()
 
+    context._set_worker(webrtc_worker)
+    context._set_state(WebRtcStreamerState(playing=playing, signalling=signalling))
     return context
