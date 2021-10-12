@@ -13,7 +13,7 @@ exclude = ["./streamlit_webrtc/frontend/[!build]*"]
 python = "^3.6"
 # For allow-same-origin, >=0.73.0 is required. See https://blog.streamlit.io/streamlit-components-security-and-a-five-month-quest-to-ship-a-single-line-of-code/
 # 0.84.0 has an error at marshalling component values.
-streamlit = ">=0.73.0,!=0.84.0"
+streamlit = ">=0.84.1"
 aiortc = "^1.1.2"
 typing_extensions = { version = "^3.7.4", python = "<3.8" }
 
