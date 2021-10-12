@@ -187,6 +187,9 @@ def app_mix():
             "audio": True,
         },
         source_video_track=mix_track,
+        desired_playing_state=input1_ctx.state.playing
+        or input2_ctx.state.playing
+        or input3_ctx.state.playing,
     )
 
     if mix_ctx.source_video_track and input1_video_process_track:
