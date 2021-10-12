@@ -175,8 +175,9 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
 
 def generate_frontend_component_key(original_key: str) -> str:
     return (
-        original_key + ":frontend"
-    )  # TODO: Make sure it does not conflict other session state keys
+        original_key + r':frontend 6)r])0Gea7e#2E#{y^i*_UzwU"@RJP<z'
+    )  # Random string to avoid conflicts.
+    # XXX: Any other cleaner way to ensure the key does not conflict?
 
 
 @overload
