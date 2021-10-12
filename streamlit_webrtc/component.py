@@ -173,6 +173,12 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         return worker.output_audio_track if worker else None
 
 
+def generate_frontend_component_key(original_key: str) -> str:
+    return (
+        original_key + ":frontend"
+    )  # TODO: Make sure it does not conflict other session state keys
+
+
 @overload
 def webrtc_streamer(
     key: str,
@@ -374,7 +380,7 @@ def webrtc_streamer(
         )
 
     component_value_raw: Union[Dict, str, None] = _component_func(
-        key=f"{key}:frontend",  # TODO: Avoid conflict
+        key=generate_frontend_component_key(key),
         sdp_answer_json=sdp_answer_json,
         mode=mode.name,
         settings=client_settings,
