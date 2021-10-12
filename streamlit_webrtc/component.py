@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import weakref
-from typing import Any, Dict, Generic, Hashable, NamedTuple, Optional, Union, overload
+from typing import Any, Dict, Generic, NamedTuple, Optional, Union, overload
 
 from aiortc.mediastreams import MediaStreamTrack
 
@@ -54,27 +54,6 @@ else:
     _component_func = components.declare_component("webrtc_streamer", path=build_dir)
 
 
-def _get_session_state():
-    return SessionState.get(
-        webrtc_workers={}, contexts={}, component_value_snapshots={}
-    )
-
-
-def _get_webrtc_worker(key: Hashable) -> Union[WebRtcWorker, None]:
-    session_state = _get_session_state()
-    return session_state.webrtc_workers.get(key)
-
-
-def _set_webrtc_worker(key: Hashable, webrtc_worker: WebRtcWorker) -> None:
-    session_state = _get_session_state()
-    session_state.webrtc_workers[key] = webrtc_worker
-
-
-def _unset_webrtc_worker(key: Hashable) -> None:
-    session_state = _get_session_state()
-    del session_state.webrtc_workers[key]
-
-
 class ClientSettings(TypedDict, total=False):
     rtc_configuration: RTCConfiguration
     media_stream_constraints: MediaStreamConstraints
@@ -85,9 +64,17 @@ class WebRtcStreamerState(NamedTuple):
     signalling: bool
 
 
+# To restore component value after `streamlit.experimental_rerun()`.
+class ComponentValueSnapshot(NamedTuple):
+    component_value: Union[Dict, None]
+    run_count: int
+
+
 class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     state: WebRtcStreamerState
     _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker[VideoProcessorT, AudioProcessorT]]]"  # noqa
+
+    _component_value_snapshot: Union[ComponentValueSnapshot, None]
 
     def __init__(
         self,
@@ -96,6 +83,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     ) -> None:
         self.set_worker(worker)
         self.set_state(state)
+        self._component_value_snapshot = None
 
     def set_worker(
         self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
@@ -179,45 +167,6 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     def output_audio_track(self) -> Optional[MediaStreamTrack]:
         worker = self._get_worker()
         return worker.output_audio_track if worker else None
-
-
-# To make the identity of the context object consistent over the session,
-# store it in SessionState.
-def _create_or_mutate_context(
-    key: str, worker: Optional[WebRtcWorker], state: WebRtcStreamerState
-) -> WebRtcStreamerContext:
-    session_state = _get_session_state()
-    contexts = session_state.contexts
-
-    if key in contexts:
-        context: WebRtcStreamerContext = contexts[key]
-        context.set_worker(worker)
-        context.set_state(state)
-        return context
-
-    new_context = WebRtcStreamerContext(worker=worker, state=state)
-
-    contexts[key] = new_context
-
-    return new_context
-
-
-# To restore component value after `streamlit.experimental_rerun()`.
-class ComponentValueSnapshot(NamedTuple):
-    component_value: Union[Dict, None]
-    run_count: int
-
-
-def _get_component_value_snapshot(key: str) -> Union[ComponentValueSnapshot, None]:
-    session_state = _get_session_state()
-    return session_state.component_value_snapshots.get(key)
-
-
-def _set_component_value_snapshot(
-    key: str, component_value: ComponentValueSnapshot
-) -> None:
-    session_state = _get_session_state()
-    session_state.component_value_snapshots[key] = component_value
 
 
 @overload
@@ -397,7 +346,19 @@ def webrtc_streamer(
     if audio_html_attrs is None:
         audio_html_attrs = DEFAULT_AUDIO_HTML_ATTRS
 
-    webrtc_worker = _get_webrtc_worker(key)
+    if key in st.session_state:
+        context = st.session_state[key]
+        if not isinstance(context, WebRtcStreamerContext):
+            raise TypeError(
+                f'st.session_state["{key}"] has an invalid type: {type(context)}'
+            )
+    else:
+        context = WebRtcStreamerContext(
+            worker=None, state=WebRtcStreamerState(playing=False, signalling=False)
+        )
+        st.session_state[key] = context
+
+    webrtc_worker = context._get_worker()
 
     sdp_answer_json = None
     if webrtc_worker:
@@ -409,7 +370,7 @@ def webrtc_streamer(
         )
 
     component_value_raw: Union[Dict, str, None] = _component_func(
-        key=key,
+        key=f"{key}:frontend",  # TODO: Avoid conflict
         sdp_answer_json=sdp_answer_json,
         mode=mode.name,
         settings=client_settings,
@@ -440,7 +401,7 @@ def webrtc_streamer(
     session_info = SessionState.get_this_session_info()
     run_count = session_info.report_run_count if session_info else None
     if component_value is None:
-        restored_component_value_snapshot = _get_component_value_snapshot(key)
+        restored_component_value_snapshot = context._component_value_snapshot
         if (
             restored_component_value_snapshot
             # Only the component value saved in the previous run is restored
@@ -450,9 +411,8 @@ def webrtc_streamer(
         ):
             LOGGER.debug("Restore the component value (key=%s)", key)
             component_value = restored_component_value_snapshot.component_value
-    _set_component_value_snapshot(
-        key,
-        ComponentValueSnapshot(component_value=component_value, run_count=run_count),
+    context._component_value_snapshot = ComponentValueSnapshot(
+        component_value=component_value, run_count=run_count
     )
 
     playing = False
@@ -470,7 +430,7 @@ def webrtc_streamer(
             key,
         )
         webrtc_worker.stop()
-        _unset_webrtc_worker(key)
+        context.set_worker(None)
         webrtc_worker = None
         # Rerun to unset the SDP answer from the frontend args
         st.experimental_rerun()
@@ -497,14 +457,8 @@ def webrtc_streamer(
             sendback_audio=sendback_audio,
         )
         webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
-        _set_webrtc_worker(key, webrtc_worker)
+        context.set_worker(webrtc_worker)
         # Rerun to send the SDP answer to frontend
         st.experimental_rerun()
 
-    ctx = _create_or_mutate_context(
-        key,
-        worker=webrtc_worker,
-        state=WebRtcStreamerState(playing=playing, signalling=signalling),
-    )
-
-    return ctx
+    return context
