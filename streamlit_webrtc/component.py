@@ -15,7 +15,6 @@ except ImportError:
 import streamlit as st
 import streamlit.components.v1 as components
 
-from . import SessionState  # TODO: Remove this module
 from .config import (
     DEFAULT_AUDIO_HTML_ATTRS,
     DEFAULT_MEDIA_STREAM_CONSTRAINTS,
@@ -25,6 +24,7 @@ from .config import (
     RTCConfiguration,
     VideoHTMLAttributes,
 )
+from .session_info import get_this_session_info
 from .webrtc import (
     AudioProcessorFactory,
     AudioProcessorT,
@@ -402,7 +402,7 @@ def webrtc_streamer(
     # in a script and `streamlit.experimental_rerun()` in the first one is called,
     # the component value of the second instance will be None in the next run
     # after `streamlit.experimental_rerun()`.
-    session_info = SessionState.get_this_session_info()
+    session_info = get_this_session_info()
     run_count = session_info.report_run_count if session_info else None
     if component_value is None:
         restored_component_value_snapshot = context._component_value_snapshot
