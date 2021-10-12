@@ -2,6 +2,9 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Feature
+- Session state compatibility - the context objects became accessible via `st.session_state` and internally, workers and states are all changed to be managed in the session state, #452.
+  - [BREAKING CHANGE] Stop supporting `streamlit<0.84.1`.
 
 ## [0.29.1] - 2021-09-21
 ### Fix
