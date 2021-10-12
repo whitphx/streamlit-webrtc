@@ -102,7 +102,9 @@ def main():
         "WebRTC is sendonly and audio frames are visualized with matplotlib (sendonly)"
     )
     loopback_page = "Simple video and audio loopback (sendrecv)"
-    media_constraints_page = "Configure media constraints with loopback (sendrecv)"
+    media_constraints_page = (
+        "Configure media constraints and HTML element styles with loopback (sendrecv)"
+    )
     programatically_control_page = "Control the playing state programatically"
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
