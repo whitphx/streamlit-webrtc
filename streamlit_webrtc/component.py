@@ -90,11 +90,11 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     ):
         self._worker_ref = weakref.ref(worker) if worker else None
 
-    def _set_state(self, state: WebRtcStreamerState):
-        self._state = state
-
     def _get_worker(self) -> Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]:
         return self._worker_ref() if self._worker_ref else None
+
+    def _set_state(self, state: WebRtcStreamerState):
+        self._state = state
 
     @property
     def state(self) -> WebRtcStreamerState:
