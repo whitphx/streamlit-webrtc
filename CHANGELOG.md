@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [0.31.0] - 2021-10-13
 ### Add
 - Include [`adapter.js`](https://github.com/webrtcHacks/adapter) for WebRTC interoperability, #455.
 
