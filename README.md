@@ -15,6 +15,30 @@
 
 ![Demo movie](https://aws1.discourse-cdn.com/business7/uploads/streamlit/original/2X/a/af111a7393c77cb69d7712ac8e71ca862feaeb24.gif)
 
+## Examples
+### [⚡️Showcase including following examples and more](https://github.com/whitphx/streamlit-webrtc-example): [🎈Online demo](https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py)
+
+* Object detection
+* OpenCV filter
+* Uni-directional video streaming
+* Audio processing
+
+### [⚡️Real-time Speech-to-Text](https://github.com/whitphx/streamlit-stt-app): [🎈Online demo](https://share.streamlit.io/whitphx/streamlit-stt-app/main/app_deepspeech.py)
+
+Converting your voice into text in real time.
+This app is self-contained; it does not depend on any external API.
+
+### [⚡️Real-time video style transfer](https://github.com/whitphx/style-transfer-web-app): [🎈Online demo](https://share.streamlit.io/whitphx/style-transfer-web-app/main/app.py)
+It applies wide variety of style transfer filters to real-time video streams.
+
+### [⚡️Video chat](https://github.com/whitphx/streamlit-video-chat-example)
+(Online demo not available)
+
+You can create video chat apps with ~100 lines of Python code.
+
+### [⚡️Tokyo 2020 Pictogram](https://github.com/whitphx/Tokyo2020-Pictogram-using-MediaPipe): [🎈Online demo](https://share.streamlit.io/whitphx/tokyo2020-pictogram-using-mediapipe/streamlit-app)
+It uses [MediaPipe](https://google.github.io/mediapipe/) for pose estimation.
+
 ## Install
 ```shell
 $ pip install -U streamlit-webrtc
@@ -65,13 +89,11 @@ As an example above, you can edit the video frames by defining a callback method
 This callback receives and returns a frame. The frame is an instance of [`av.VideoFrame`](https://pyav.org/docs/develop/api/video.html#av.video.frame.VideoFrame) (or [`av.AudioFrame`](https://pyav.org/docs/develop/api/audio.html#av.audio.frame.AudioFrame) when dealing with audio) of [`PyAV` library](https://pyav.org/).
 
 You can inject any kinds of image (or audio) processing inside the callback.
-See examples below for more applications.
+See examples above for more applications.
 
 Note that there are some limitations in this callback. See the section below.
 
 ## Example [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py)
-
-TODO
 
 You can try out the sample app using the following commands.
 ```
