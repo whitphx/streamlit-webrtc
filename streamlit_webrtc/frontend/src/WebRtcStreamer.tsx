@@ -16,6 +16,7 @@ import {
 } from "./webrtc";
 import { getMediaUsage } from "./media-constraint";
 import { ComponentValue, setComponentValue } from "./component-value";
+import "webrtc-adapter";
 
 interface WebRtcStreamerInnerProps {
   disabled: boolean;
