@@ -214,6 +214,7 @@ def app_video_filters():
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
         video_processor_factory=OpenCVVideoProcessor,
+        media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
     )
 
@@ -413,6 +414,7 @@ def app_object_detection():
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
         video_processor_factory=MobileNetSSDVideoProcessor,
+        media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
     )
 
