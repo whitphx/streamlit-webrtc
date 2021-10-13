@@ -2,9 +2,11 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Add
+- Include [`adapter.js`](https://github.com/webrtcHacks/adapter) for WebRTC interoperability, #455.
 
 ## [0.30.0] - 2021-10-12
-### Feature
+### Add
 - Session state compatibility - the context objects became accessible via `st.session_state` and internally, workers and states are all changed to be managed in the session state, #452.
   - [BREAKING CHANGE] Stop supporting `streamlit<0.84.1`.
 
