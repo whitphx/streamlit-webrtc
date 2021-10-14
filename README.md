@@ -119,7 +119,7 @@ The callback methods (`VideoProcessor.recv()` and similar ones) are executed in 
   * It's impossible even with the `global` keyword, which also does not work in the callbacks properly.
 * You have to care about thread-safety when accessing the same objects both from outside and inside the callbacks.
 
-### A technique to pass values between inside and outside the callbacks.
+### A technique to pass values between inside and outside the callbacks
 As stated above, you cannot directly pass variables from/to outside and inside the callback and have to consider about thread-safety.
 
 Usual cases are
