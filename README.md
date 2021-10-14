@@ -1,5 +1,5 @@
 # streamlit-webrtc
-**Handling and transmitting real-time video/audio streams over the network with Streamlit**
+**Handling and transmitting real-time video/audio streams over the network with Streamlit** [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py)
 
 [![Tests](https://github.com/whitphx/streamlit-webrtc/workflows/Tests/badge.svg?branch=main)](https://github.com/whitphx/streamlit-webrtc/actions?query=workflow%3ATests+branch%3Amain)
 [![Frontend Tests](https://github.com/whitphx/streamlit-webrtc/workflows/Frontend%20tests/badge.svg?branch=main)](https://github.com/whitphx/streamlit-webrtc/actions?query=workflow%3A%22Frontend+tests%22+branch%3Amain)
@@ -22,6 +22,12 @@
 * OpenCV filter
 * Uni-directional video streaming
 * Audio processing
+
+You can try out this sample app using the following commands on your local env.
+```
+$ pip install streamlit-webrtc opencv-python-headless matplotlib pydub
+$ streamlit run https://raw.githubusercontent.com/whitphx/streamlit-webrtc-example/main/app.py
+```
 
 ### [⚡️Real-time Speech-to-Text](https://github.com/whitphx/streamlit-stt-app): [🎈Online demo](https://share.streamlit.io/whitphx/streamlit-stt-app/main/app_deepspeech.py)
 
@@ -92,18 +98,6 @@ You can inject any kinds of image (or audio) processing inside the callback.
 See examples above for more applications.
 
 Note that there are some limitations in this callback. See the section below.
-
-## Example [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py)
-
-You can try out the sample app using the following commands.
-```
-$ pip install streamlit-webrtc opencv-python-headless matplotlib pydub
-$ streamlit run https://raw.githubusercontent.com/whitphx/streamlit-webrtc-example/main/app.py
-```
-
-You can also try it out on [Streamlit Sharing](https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py).
-
-The deployment of this sample app is managed in this repository: https://github.com/whitphx/streamlit-webrtc-example/.
 
 ## Limitations
 The callback methods (`VideoProcessor.recv()` and similar ones) are executed in threads different from the main thread, so there are some limitations:
