@@ -51,7 +51,7 @@ from streamlit_webrtc import webrtc_streamer
 
 webrtc_streamer(key="sample")
 ```
-Unlike other Streamlit components, `webrtc_streamer()` requires the `key` argument.
+Unlike other Streamlit components, `webrtc_streamer()` requires the `key` argument as a unique identifier. Set an arbitrary string to it.
 
 Then run it with Streamlit and open http://localhost:8501/.
 ```shell
@@ -85,8 +85,8 @@ webrtc_streamer(key="example", video_processor_factory=VideoProcessor)
 Now the video is vertically flipped.
 ![Vertically flipping example](./docs/images/streamlit_webrtc_flipped.gif)
 
-As an example above, you can edit the video frames by defining a callback method `recv(frame)` and a class including it and passing the class to the `video_processor_factory` argument.
-This callback receives and returns a frame. The frame is an instance of [`av.VideoFrame`](https://pyav.org/docs/develop/api/video.html#av.video.frame.VideoFrame) (or [`av.AudioFrame`](https://pyav.org/docs/develop/api/audio.html#av.audio.frame.AudioFrame) when dealing with audio) of [`PyAV` library](https://pyav.org/).
+As an example above, you can edit the video frames by defining a class with a callback method `recv(self, frame)` and passing it to the `video_processor_factory` argument.
+The callback receives and returns a frame. The frame is an instance of [`av.VideoFrame`](https://pyav.org/docs/develop/api/video.html#av.video.frame.VideoFrame) (or [`av.AudioFrame`](https://pyav.org/docs/develop/api/audio.html#av.audio.frame.AudioFrame) when dealing with audio) of [`PyAV` library](https://pyav.org/).
 
 You can inject any kinds of image (or audio) processing inside the callback.
 See examples above for more applications.
@@ -106,7 +106,49 @@ You can also try it out on [Streamlit Sharing](https://share.streamlit.io/whitph
 The deployment of this sample app is managed in this repository: https://github.com/whitphx/streamlit-webrtc-example/.
 
 ## Limitations
-TODO
+The callback methods (`VideoProcessor.recv()` and similar ones) are executed in threads different from the main thread, so there are some limitations:
+* Streamlit methods (`st.*` such as `st.write()`) do not work inside the callbacks.
+* Variables outside the callbacks cannot be referred to from inside, and vice versa.
+  * It's impossible even with the `global` keyword, which also does not work in the callbacks properly.
+* You have to care about thread-safety when accessing the same objects both from outside and inside the callbacks.
+
+### A technique to pass values between inside and outside the callbacks.
+As stated above, you cannot directly pass variables from/to outside and inside the callback and have to consider about thread-safety.
+
+Usual cases are
+* to change some parameters used in the callback to new values passed from the main scope.
+* to refer to the results of some processing inside the callback from the main scope.
+
+The solution is to use the properties of the processor object which is accessible via the context object returned from `webrtc_streamer()` as below.
+```python
+class VideoProcessor:
+    def __init__(self):
+        self.some_value = 0.5
+
+    def recv(self, frame):
+        img = frame.to_ndarray(format="bgr24")
+
+        ...
+        self.do_something(img, self.some_value)  # `some_value` is used here
+        ...
+
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+
+ctx = webrtc_streamer(key="example", video_processor_factory=VideoProcessor)
+
+if ctx.video_processor:
+    ctx.video_processor.some_value = st.slider(...)  # `some_value` is set here
+```
+
+If the passed value is a complex object, you may also have to consider about using something like [`threading.Lock`](https://docs.python.org/3/library/threading.html#threading.Lock) or [`queue.Queue`](https://docs.python.org/3/library/queue.html#queue.Queue) for thread-safety.
+
+[The sample app, `app.py`](https://github.com/whitphx/streamlit-webrtc/blob/main/app.py) has many cases where this technique is used and can be a hint for this topic.
+
+## Serving from remote host
+TODO: HTTPS...
+
+I recommend to use [Streamlit Cloud](https://streamlit.io/cloud), through which you can easily deploy Streamlit apps, and most importantly for this topic, it serves the apps via HTTPS automatically by defualt.
 
 ## API
 Currently there is no documentation about the interface. See the example [app.py](./app.py) for the usage.
