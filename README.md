@@ -77,8 +77,7 @@ Then run it with Streamlit and open http://localhost:8501/.
 $ streamlit run app.py
 ```
 
-You see this screen, so click the "START" button.
-![The default initial view](./docs/images/default_init_view.png)
+You see the app view, so click the "START" button.
 
 Then, video and audio streaming starts. If asked for permissions to access the camera and microphone, allow it.
 ![Basic example of streamlit-webrtc](./docs/images/streamlit_webrtc_basic.gif)
