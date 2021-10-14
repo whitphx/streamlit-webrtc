@@ -146,9 +146,24 @@ If the passed value is a complex object, you may also have to consider about usi
 [The sample app, `app.py`](https://github.com/whitphx/streamlit-webrtc/blob/main/app.py) has many cases where this technique is used and can be a hint for this topic.
 
 ## Serving from remote host
-TODO: HTTPS...
+When deploying apps to remote servers, there are some things you need to be aware of.
 
-I recommend to use [Streamlit Cloud](https://streamlit.io/cloud), through which you can easily deploy Streamlit apps, and most importantly for this topic, it serves the apps via HTTPS automatically by defualt.
+### HTTPS
+`streamlit-webrtc` uses [`getUserMedia()`](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia) API to access local media devices, and this method does not work in an insecure context.
+
+[This document](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#privacy_and_security) says
+> A secure context is, in short, a page loaded using HTTPS or the file:/// URL scheme, or a page loaded from localhost.
+
+So, when hosting your app on a remote server, it must be served via HTTPS if your app is using webcam or microphone.
+
+[Streamlit Cloud](https://streamlit.io/cloud) is a recommended way. You can easily deploy Streamlit apps with it, and most importantly for this topic, it serves the apps via HTTPS automatically by defualt.
+
+### Network connectivity
+Video streaming does not work in some network environments.
+For example, in some office or public networks, there are firewalls which drop the WebRTC packets.
+
+In such environments, setting up a [TURN server](https://webrtc.org/getting-started/turn-server) is a solution. See https://github.com/whitphx/streamlit-webrtc/issues/335#issuecomment-897326755.
+
 
 ## API
 Currently there is no documentation about the interface. See the example [app.py](./app.py) for the usage.
