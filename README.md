@@ -13,7 +13,20 @@
 
 <a href="https://www.buymeacoffee.com/whitphx" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="180" height="50" ></a>
 
-![Demo movie](https://aws1.discourse-cdn.com/business7/uploads/streamlit/original/2X/a/af111a7393c77cb69d7712ac8e71ca862feaeb24.gif)
+<table>
+<tr>
+<td width="48%">
+  <a href="https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py">
+    <img src="https://aws1.discourse-cdn.com/business7/uploads/streamlit/original/2X/a/af111a7393c77cb69d7712ac8e71ca862feaeb24.gif" />
+  </a>
+</id>
+<td width="48%">
+  <a href="https://share.streamlit.io/whitphx/style-transfer-web-app/main/app.py">
+    <img src="https://aws1.discourse-cdn.com/business7/uploads/streamlit/original/2X/b/b3cb8aa60eb746366e06726a9137720583c02c3a.gif" />
+  </a>
+</id>
+</tr>
+</table>
 
 ## Examples
 ### [⚡️Showcase including following examples and more](https://github.com/whitphx/streamlit-webrtc-example): [🎈Online demo](https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py)
