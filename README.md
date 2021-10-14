@@ -56,7 +56,7 @@ It applies wide variety of style transfer filters to real-time video streams.
 You can create video chat apps with ~100 lines of Python code.
 
 ### [⚡️Tokyo 2020 Pictogram](https://github.com/whitphx/Tokyo2020-Pictogram-using-MediaPipe): [🎈Online demo](https://share.streamlit.io/whitphx/tokyo2020-pictogram-using-mediapipe/streamlit-app)
-It uses [MediaPipe](https://google.github.io/mediapipe/) for pose estimation.
+[MediaPipe](https://google.github.io/mediapipe/) is used for pose estimation.
 
 ## Install
 ```shell
