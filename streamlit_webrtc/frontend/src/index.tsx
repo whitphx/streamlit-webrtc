@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { createTheme, ThemeProvider } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
-import { ErrorBoundary } from "streamlit-component-lib-react-hooks";
+import { StreamlitProvider } from "streamlit-component-lib-react-hooks";
 import WebRtcStreamer from "./WebRtcStreamer";
 
 const theme = createTheme({
@@ -22,12 +22,12 @@ const theme = createTheme({
 
 ReactDOM.render(
   <React.StrictMode>
-    <ErrorBoundary>
+    <StreamlitProvider>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <WebRtcStreamer />
       </ThemeProvider>
-    </ErrorBoundary>
+    </StreamlitProvider>
   </React.StrictMode>,
   document.getElementById("root")
 );

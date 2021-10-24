@@ -6,7 +6,7 @@ import DeviceSelector from "./DeviceSelector";
 import ThemeProvider from "./ThemeProvider";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
-import { useStreamlit } from "streamlit-component-lib-react-hooks";
+import { useRenderData } from "streamlit-component-lib-react-hooks";
 import {
   useWebRtc,
   WebRtcMode,
@@ -110,10 +110,7 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
 };
 
 const WebRtcStreamer: React.VFC = () => {
-  const renderData = useStreamlit();
-  if (renderData == null) {
-    return null;
-  }
+  const renderData = useRenderData();
 
   const mode = renderData.args["mode"];
   const desiredPlayingState = renderData.args["desired_playing_state"];
