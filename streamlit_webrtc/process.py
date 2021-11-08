@@ -105,6 +105,7 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self._thread = threading.Thread(
             target=self._run_worker_thread,
             name=f"async_media_processor_{next(media_processing_thread_id_generator)}",
+            daemon=True,
         )
         self._thread.start()
 
