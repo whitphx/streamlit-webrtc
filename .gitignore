@@ -139,8 +139,7 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# Machine learning models
-models/
-
 # Demo data
+models/
 data/
+*.flv
