@@ -178,10 +178,17 @@ async def _process_offer(
 
                 if out_recorder:
                     logger.info("Track %s is added to out_recorder", output_track.kind)
-                    out_recorder.addTrack(relay.subscribe(output_track))
+                    relayed_track = relay.subscribe(output_track)
+                    out_recorder.addTrack(relayed_track)
                 if in_recorder:
                     logger.info("Track %s is added to in_recorder", input_track.kind)
-                    in_recorder.addTrack(relay.subscribe(input_track))
+                    relayed_track = relay.subscribe(input_track)
+                    in_recorder.addTrack(relayed_track)
+
+                if input_track.kind == "video":
+                    context = in_recorder._MediaRecorder__tracks[relayed_track]
+                    context.stream.width = 1280
+                    context.stream.height = 720
 
                 if output_track.kind == "video":
                     on_track_created("output:video", output_track)
