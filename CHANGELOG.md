@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.31.2] - 2021-11-16
 ### Fix
 - Mark async processor's threads as daemon, #492.
 
