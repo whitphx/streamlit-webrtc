@@ -495,6 +495,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 logger.debug("Error occurred in process_offer")
                 logger.debug(e)
                 self._answer_queue.put(e)
+                return
 
             localDescription = done_task.result()
             self._answer_queue.put(localDescription)
