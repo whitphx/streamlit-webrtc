@@ -83,230 +83,218 @@ async def _process_offer(
     async_processing: bool,
     sendback_video: bool,
     sendback_audio: bool,
-    callback: Callable[[Union[RTCSessionDescription, Exception]], None],
     on_track_created: Callable[[TrackType, MediaStreamTrack], None],
 ):
-    try:
-        in_recorder = None
-        if in_recorder_factory:
-            in_recorder = in_recorder_factory()
+    in_recorder = None
+    if in_recorder_factory:
+        in_recorder = in_recorder_factory()
 
-        out_recorder = None
-        if out_recorder_factory:
-            out_recorder = out_recorder_factory()
+    out_recorder = None
+    if out_recorder_factory:
+        out_recorder = out_recorder_factory()
 
-        @pc.on("iceconnectionstatechange")
-        async def on_iceconnectionstatechange():
-            logger.info("ICE connection state is %s", pc.iceConnectionState)
-            if pc.iceConnectionState == "failed":
-                await pc.close()
+    @pc.on("iceconnectionstatechange")
+    async def on_iceconnectionstatechange():
+        logger.info("ICE connection state is %s", pc.iceConnectionState)
+        if pc.iceConnectionState == "failed":
+            await pc.close()
 
-        if mode == WebRtcMode.SENDRECV:
+    if mode == WebRtcMode.SENDRECV:
 
-            @pc.on("track")
-            def on_track(input_track):
-                logger.info("Track %s received", input_track.kind)
+        @pc.on("track")
+        def on_track(input_track):
+            logger.info("Track %s received", input_track.kind)
 
-                if input_track.kind == "video":
-                    on_track_created("input:video", input_track)
-                elif input_track.kind == "audio":
-                    on_track_created("input:audio", input_track)
+            if input_track.kind == "video":
+                on_track_created("input:video", input_track)
+            elif input_track.kind == "audio":
+                on_track_created("input:audio", input_track)
 
-                output_track = None
+            output_track = None
 
-                if input_track.kind == "audio":
-                    if source_audio_track:
-                        logger.info(
-                            "Set %s as an input audio track", source_audio_track
-                        )
-                        output_track = source_audio_track
-                    elif audio_processor:
+            if input_track.kind == "audio":
+                if source_audio_track:
+                    logger.info("Set %s as an input audio track", source_audio_track)
+                    output_track = source_audio_track
+                elif audio_processor:
+                    AudioTrack = (
+                        AsyncAudioProcessTrack
+                        if async_processing
+                        else AudioProcessTrack
+                    )
+                    logger.info(
+                        "Set %s as an input audio track with audio_processor %s",
+                        input_track,
+                        AudioTrack,
+                    )
+                    output_track = AudioTrack(
+                        track=relay.subscribe(input_track),
+                        processor=audio_processor,
+                    )
+                else:
+                    output_track = input_track  # passthrough
+            elif input_track.kind == "video":
+                if source_video_track:
+                    logger.info("Set %s as an input video track", source_video_track)
+                    output_track = source_video_track
+                elif video_processor:
+                    VideoTrack = (
+                        AsyncVideoProcessTrack
+                        if async_processing
+                        else VideoProcessTrack
+                    )
+                    logger.info(
+                        "Set %s as an input video track with video_processor %s",
+                        input_track,
+                        VideoTrack,
+                    )
+                    output_track = VideoTrack(
+                        track=relay.subscribe(input_track),
+                        processor=video_processor,
+                    )
+                else:
+                    output_track = input_track
+
+            if (output_track.kind == "video" and sendback_video) or (
+                output_track.kind == "audio" and sendback_audio
+            ):
+                logger.info(
+                    "Add a track %s of kind %s to %s",
+                    output_track,
+                    output_track.kind,
+                    pc,
+                )
+                pc.addTrack(relay.subscribe(output_track))
+            else:
+                logger.info(
+                    "Block a track %s of kind %s", output_track, output_track.kind
+                )
+
+            if out_recorder:
+                logger.info("Track %s is added to out_recorder", output_track.kind)
+                out_recorder.addTrack(relay.subscribe(output_track))
+            if in_recorder:
+                logger.info("Track %s is added to in_recorder", input_track.kind)
+                in_recorder.addTrack(relay.subscribe(input_track))
+
+            if output_track.kind == "video":
+                on_track_created("output:video", output_track)
+            elif output_track.kind == "audio":
+                on_track_created("output:audio", output_track)
+
+            @input_track.on("ended")
+            async def on_ended():
+                logger.info("Track %s ended", input_track.kind)
+                if in_recorder:
+                    await in_recorder.stop()
+                if out_recorder:
+                    await out_recorder.stop()
+
+    elif mode == WebRtcMode.SENDONLY:
+
+        @pc.on("track")
+        def on_track(input_track):
+            logger.info("Track %s received", input_track.kind)
+
+            if input_track.kind == "video":
+                on_track_created("input:video", input_track)
+            elif input_track.kind == "audio":
+                on_track_created("input:audio", input_track)
+
+            if input_track.kind == "audio":
+                if audio_receiver:
+                    logger.info(
+                        "Add a track %s to receiver %s", input_track, audio_receiver
+                    )
+                    audio_receiver.addTrack(input_track)
+            elif input_track.kind == "video":
+                if video_receiver:
+                    logger.info(
+                        "Add a track %s to receiver %s", input_track, video_receiver
+                    )
+                    video_receiver.addTrack(input_track)
+
+            if in_recorder:
+                logger.info("Track %s is added to in_recorder", input_track.kind)
+                in_recorder.addTrack(input_track)
+
+            @input_track.on("ended")
+            async def on_ended():
+                logger.info("Track %s ended", input_track.kind)
+                if video_receiver:
+                    video_receiver.stop()
+                if audio_receiver:
+                    audio_receiver.stop()
+                if in_recorder:
+                    await in_recorder.stop()
+
+    await pc.setRemoteDescription(offer)
+    if mode == WebRtcMode.RECVONLY:
+        for t in pc.getTransceivers():
+            output_track = None
+            if t.kind == "audio":
+                if source_audio_track:
+                    if audio_processor:
                         AudioTrack = (
                             AsyncAudioProcessTrack
                             if async_processing
                             else AudioProcessTrack
                         )
                         logger.info(
-                            "Set %s as an input audio track with audio_processor %s",
-                            input_track,
+                            "Set %s as an input audio track " "with audio_processor %s",
+                            source_audio_track,
                             AudioTrack,
                         )
                         output_track = AudioTrack(
-                            track=relay.subscribe(input_track),
-                            processor=audio_processor,
+                            track=source_audio_track, processor=audio_processor
                         )
                     else:
-                        output_track = input_track  # passthrough
-                elif input_track.kind == "video":
-                    if source_video_track:
-                        logger.info(
-                            "Set %s as an input video track", source_video_track
-                        )
-                        output_track = source_video_track
-                    elif video_processor:
+                        output_track = source_audio_track  # passthrough
+            elif t.kind == "video":
+                if source_video_track:
+                    if video_processor:
                         VideoTrack = (
                             AsyncVideoProcessTrack
                             if async_processing
                             else VideoProcessTrack
                         )
                         logger.info(
-                            "Set %s as an input video track with video_processor %s",
-                            input_track,
+                            "Set %s as an input video track " "with video_processor %s",
+                            source_video_track,
                             VideoTrack,
                         )
                         output_track = VideoTrack(
-                            track=relay.subscribe(input_track),
-                            processor=video_processor,
+                            track=source_video_track, processor=video_processor
                         )
                     else:
-                        output_track = input_track
+                        output_track = source_video_track  # passthrough
 
-                if (output_track.kind == "video" and sendback_video) or (
-                    output_track.kind == "audio" and sendback_audio
-                ):
-                    logger.info(
-                        "Add a track %s of kind %s to %s",
-                        output_track,
-                        output_track.kind,
-                        pc,
-                    )
-                    pc.addTrack(relay.subscribe(output_track))
-                else:
-                    logger.info(
-                        "Block a track %s of kind %s", output_track, output_track.kind
-                    )
-
-                if out_recorder:
-                    logger.info("Track %s is added to out_recorder", output_track.kind)
-                    out_recorder.addTrack(relay.subscribe(output_track))
-                if in_recorder:
-                    logger.info("Track %s is added to in_recorder", input_track.kind)
-                    in_recorder.addTrack(relay.subscribe(input_track))
+            if output_track:
+                logger.info("Add a track %s to %s", output_track, pc)
+                pc.addTrack(relay.subscribe(output_track))
+                # NOTE: Recording is not supported in this mode
+                # because connecting player to recorder does not work somehow;
+                # it generates unplayable movie files.
 
                 if output_track.kind == "video":
                     on_track_created("output:video", output_track)
                 elif output_track.kind == "audio":
                     on_track_created("output:audio", output_track)
 
-                @input_track.on("ended")
-                async def on_ended():
-                    logger.info("Track %s ended", input_track.kind)
-                    if in_recorder:
-                        await in_recorder.stop()
-                    if out_recorder:
-                        await out_recorder.stop()
+    if video_receiver and video_receiver.hasTrack():
+        video_receiver.start()
+    if audio_receiver and audio_receiver.hasTrack():
+        audio_receiver.start()
 
-        elif mode == WebRtcMode.SENDONLY:
+    if in_recorder:
+        await in_recorder.start()
+    if out_recorder:
+        await out_recorder.start()
 
-            @pc.on("track")
-            def on_track(input_track):
-                logger.info("Track %s received", input_track.kind)
+    answer = await pc.createAnswer()
+    await pc.setLocalDescription(answer)
 
-                if input_track.kind == "video":
-                    on_track_created("input:video", input_track)
-                elif input_track.kind == "audio":
-                    on_track_created("input:audio", input_track)
-
-                if input_track.kind == "audio":
-                    if audio_receiver:
-                        logger.info(
-                            "Add a track %s to receiver %s", input_track, audio_receiver
-                        )
-                        audio_receiver.addTrack(input_track)
-                elif input_track.kind == "video":
-                    if video_receiver:
-                        logger.info(
-                            "Add a track %s to receiver %s", input_track, video_receiver
-                        )
-                        video_receiver.addTrack(input_track)
-
-                if in_recorder:
-                    logger.info("Track %s is added to in_recorder", input_track.kind)
-                    in_recorder.addTrack(input_track)
-
-                @input_track.on("ended")
-                async def on_ended():
-                    logger.info("Track %s ended", input_track.kind)
-                    if video_receiver:
-                        video_receiver.stop()
-                    if audio_receiver:
-                        audio_receiver.stop()
-                    if in_recorder:
-                        await in_recorder.stop()
-
-        await pc.setRemoteDescription(offer)
-        if mode == WebRtcMode.RECVONLY:
-            for t in pc.getTransceivers():
-                output_track = None
-                if t.kind == "audio":
-                    if source_audio_track:
-                        if audio_processor:
-                            AudioTrack = (
-                                AsyncAudioProcessTrack
-                                if async_processing
-                                else AudioProcessTrack
-                            )
-                            logger.info(
-                                "Set %s as an input audio track "
-                                "with audio_processor %s",
-                                source_audio_track,
-                                AudioTrack,
-                            )
-                            output_track = AudioTrack(
-                                track=source_audio_track, processor=audio_processor
-                            )
-                        else:
-                            output_track = source_audio_track  # passthrough
-                elif t.kind == "video":
-                    if source_video_track:
-                        if video_processor:
-                            VideoTrack = (
-                                AsyncVideoProcessTrack
-                                if async_processing
-                                else VideoProcessTrack
-                            )
-                            logger.info(
-                                "Set %s as an input video track "
-                                "with video_processor %s",
-                                source_video_track,
-                                VideoTrack,
-                            )
-                            output_track = VideoTrack(
-                                track=source_video_track, processor=video_processor
-                            )
-                        else:
-                            output_track = source_video_track  # passthrough
-
-                if output_track:
-                    logger.info("Add a track %s to %s", output_track, pc)
-                    pc.addTrack(relay.subscribe(output_track))
-                    # NOTE: Recording is not supported in this mode
-                    # because connecting player to recorder does not work somehow;
-                    # it generates unplayable movie files.
-
-                    if output_track.kind == "video":
-                        on_track_created("output:video", output_track)
-                    elif output_track.kind == "audio":
-                        on_track_created("output:audio", output_track)
-
-        if video_receiver and video_receiver.hasTrack():
-            video_receiver.start()
-        if audio_receiver and audio_receiver.hasTrack():
-            audio_receiver.start()
-
-        if in_recorder:
-            await in_recorder.start()
-        if out_recorder:
-            await out_recorder.start()
-
-        answer = await pc.createAnswer()
-        await pc.setLocalDescription(answer)
-
-        callback(pc.localDescription)
-    except Exception as e:
-        logger.debug("Error occurred in process_offer")
-        logger.debug(e)
-        callback(e)
+    return pc.localDescription
 
 
 # See https://stackoverflow.com/a/42007659
@@ -432,9 +420,6 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         offer = RTCSessionDescription(sdp, type_)
 
-        def callback(localDescription):
-            self._answer_queue.put(localDescription)
-
         def on_track_created(track_type: TrackType, track: MediaStreamTrack):
             if track_type == "input:video":
                 self._input_video_track = track
@@ -486,7 +471,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             if iceConnectionState == "closed" or iceConnectionState == "failed":
                 self._unset_processors()
 
-        loop.create_task(
+        process_offer_task = loop.create_task(
             _process_offer(
                 self.mode,
                 self.pc,
@@ -503,10 +488,21 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 async_processing=self.async_processing,
                 sendback_video=self.sendback_video,
                 sendback_audio=self.sendback_audio,
-                callback=callback,
                 on_track_created=on_track_created,
             )
         )
+
+        def callback(done_task: asyncio.Task):
+            e = done_task.exception()
+            if e:
+                logger.debug("Error occurred in process_offer")
+                logger.debug(e)
+                self._answer_queue.put(e)
+
+            localDescription = done_task.result()
+            self._answer_queue.put(localDescription)
+
+        process_offer_task.add_done_callback(callback)
 
     def process_offer(
         self, sdp, type_, timeout: Union[float, None] = 10.0
