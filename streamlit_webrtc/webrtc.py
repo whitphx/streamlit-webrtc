@@ -544,6 +544,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._unset_processors()
         if self._process_offer_thread:
             self._process_offer_thread.join(timeout=timeout)
+            self._process_offer_thread = None
 
 
 async def _test():
