@@ -85,12 +85,6 @@ async def _process_offer(
     sendback_audio: bool,
     on_track_created: Callable[[TrackType, MediaStreamTrack], None],
 ):
-    @pc.on("iceconnectionstatechange")
-    async def on_iceconnectionstatechange():
-        logger.info("ICE connection state is %s", pc.iceConnectionState)
-        if pc.iceConnectionState == "failed":
-            await pc.close()
-
     if mode == WebRtcMode.SENDRECV:
 
         @pc.on("track")
@@ -467,9 +461,12 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         @self.pc.on("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
+            logger.info("ICE connection state is %s", self.pc.iceConnectionState)
             iceConnectionState = self.pc.iceConnectionState
             if iceConnectionState == "closed" or iceConnectionState == "failed":
                 self._unset_processors()
+            if self.pc.iceConnectionState == "failed":
+                await self.pc.close()
 
         process_offer_task = loop.create_task(
             _process_offer(
