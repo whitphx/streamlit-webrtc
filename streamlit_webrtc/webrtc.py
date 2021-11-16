@@ -12,7 +12,7 @@ except ImportError:
     from typing_extensions import Literal  # type: ignore
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaRelay
+from aiortc.contrib.media import MediaRecorder, MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
 
 from .eventloop import get_server_event_loop
@@ -74,8 +74,8 @@ async def _process_offer(
     relay: MediaRelay,
     source_video_track: Optional[MediaStreamTrack],
     source_audio_track: Optional[MediaStreamTrack],
-    in_recorder_factory: Optional[MediaRecorderFactory],
-    out_recorder_factory: Optional[MediaRecorderFactory],
+    in_recorder: Optional[MediaRecorder],
+    out_recorder: Optional[MediaRecorder],
     video_processor: Optional[VideoProcessorBase],
     audio_processor: Optional[AudioProcessorBase],
     video_receiver: Optional[VideoReceiver],
@@ -85,14 +85,6 @@ async def _process_offer(
     sendback_audio: bool,
     on_track_created: Callable[[TrackType, MediaStreamTrack], None],
 ):
-    in_recorder = None
-    if in_recorder_factory:
-        in_recorder = in_recorder_factory()
-
-    out_recorder = None
-    if out_recorder_factory:
-        out_recorder = out_recorder_factory()
-
     @pc.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
         logger.info("ICE connection state is %s", pc.iceConnectionState)
@@ -438,6 +430,14 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         if self.audio_processor_factory:
             audio_processor = self.audio_processor_factory()
 
+        in_recorder = None
+        if self.in_recorder_factory:
+            in_recorder = self.in_recorder_factory()
+
+        out_recorder = None
+        if self.out_recorder_factory:
+            out_recorder = self.out_recorder_factory()
+
         video_receiver = None
         audio_receiver = None
         if self.mode == WebRtcMode.SENDONLY:
@@ -479,8 +479,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 relay=relay,
                 source_video_track=source_video_track,
                 source_audio_track=source_audio_track,
-                in_recorder_factory=self.in_recorder_factory,
-                out_recorder_factory=self.out_recorder_factory,
+                in_recorder=in_recorder,
+                out_recorder=out_recorder,
                 video_processor=video_processor,
                 audio_processor=audio_processor,
                 video_receiver=video_receiver,
