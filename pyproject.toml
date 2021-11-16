@@ -15,7 +15,7 @@ python = "^3.6"
 # 0.84.0 has an error at marshalling component values.
 streamlit = ">=0.84.1"
 aiortc = "^1.1.2"
-typing_extensions = { version = "^3.7.4", python = "<3.8" }
+typing_extensions = { version = ">=3.7.4,<5.0.0", python = "<3.8" }
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
