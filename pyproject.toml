@@ -53,7 +53,6 @@ exclude = '''
 [tool.isort]
 # https://pycqa.github.io/isort/docs/configuration/black_compatibility/
 profile = "black"
-multi_line_output = 3
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
