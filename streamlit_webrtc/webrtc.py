@@ -12,7 +12,7 @@ except ImportError:
     from typing_extensions import Literal  # type: ignore
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaRelay
+from aiortc.contrib.media import MediaRecorder, MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
 
 from .eventloop import get_server_event_loop
@@ -67,15 +67,15 @@ class TimeoutError(Exception):
 TrackType = Literal["input:video", "input:audio", "output:video", "output:audio"]
 
 
-async def _process_offer(
+async def _process_offer_coro(
     mode: WebRtcMode,
     pc: RTCPeerConnection,
     offer: RTCSessionDescription,
     relay: MediaRelay,
     source_video_track: Optional[MediaStreamTrack],
     source_audio_track: Optional[MediaStreamTrack],
-    in_recorder_factory: Optional[MediaRecorderFactory],
-    out_recorder_factory: Optional[MediaRecorderFactory],
+    in_recorder: Optional[MediaRecorder],
+    out_recorder: Optional[MediaRecorder],
     video_processor: Optional[VideoProcessorBase],
     audio_processor: Optional[AudioProcessorBase],
     video_receiver: Optional[VideoReceiver],
@@ -85,20 +85,6 @@ async def _process_offer(
     sendback_audio: bool,
     on_track_created: Callable[[TrackType, MediaStreamTrack], None],
 ):
-    in_recorder = None
-    if in_recorder_factory:
-        in_recorder = in_recorder_factory()
-
-    out_recorder = None
-    if out_recorder_factory:
-        out_recorder = out_recorder_factory()
-
-    @pc.on("iceconnectionstatechange")
-    async def on_iceconnectionstatechange():
-        logger.info("ICE connection state is %s", pc.iceConnectionState)
-        if pc.iceConnectionState == "failed":
-            await pc.close()
-
     if mode == WebRtcMode.SENDRECV:
 
         @pc.on("track")
@@ -298,11 +284,11 @@ async def _process_offer(
 
 
 # See https://stackoverflow.com/a/42007659
-webrtc_thread_id_generator = itertools.count()
+process_offer_thread_id_generator = itertools.count()
 
 
 class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
-    _webrtc_thread: Union[threading.Thread, None]
+    _process_offer_thread: Union[threading.Thread, None]
     _answer_queue: queue.Queue
     _video_processor: Optional[VideoProcessorT]
     _audio_processor: Optional[AudioProcessorT]
@@ -365,7 +351,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         sendback_video: bool = True,
         sendback_audio: bool = True,
     ) -> None:
-        self._webrtc_thread = None
+        self._process_offer_thread = None
         self.pc = RTCPeerConnection()
         self._answer_queue = queue.Queue()
 
@@ -392,13 +378,13 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._output_video_track = None
         self._output_audio_track = None
 
-    def _run_webrtc_thread(
+    def _run_process_offer_thread(
         self,
         sdp: str,
         type_: str,
     ):
         try:
-            self._webrtc_thread_impl(
+            self._process_offer_thread_impl(
                 sdp=sdp,
                 type_=type_,
             )
@@ -406,13 +392,13 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             logger.warn("An error occurred in the WebRTC worker thread: %s", e)
             self._answer_queue.put(e)  # Send the error object to the main thread
 
-    def _webrtc_thread_impl(
+    def _process_offer_thread_impl(
         self,
         sdp: str,
         type_: str,
     ):
         logger.debug(
-            "_webrtc_thread_impl starts",
+            "_process_offer_thread_impl starts",
         )
 
         loop = get_server_event_loop()
@@ -437,6 +423,14 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         audio_processor = None
         if self.audio_processor_factory:
             audio_processor = self.audio_processor_factory()
+
+        in_recorder = None
+        if self.in_recorder_factory:
+            in_recorder = self.in_recorder_factory()
+
+        out_recorder = None
+        if self.out_recorder_factory:
+            out_recorder = self.out_recorder_factory()
 
         video_receiver = None
         audio_receiver = None
@@ -467,20 +461,23 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         @self.pc.on("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
+            logger.info("ICE connection state is %s", self.pc.iceConnectionState)
             iceConnectionState = self.pc.iceConnectionState
             if iceConnectionState == "closed" or iceConnectionState == "failed":
                 self._unset_processors()
+            if self.pc.iceConnectionState == "failed":
+                await self.pc.close()
 
         process_offer_task = loop.create_task(
-            _process_offer(
+            _process_offer_coro(
                 self.mode,
                 self.pc,
                 offer,
                 relay=relay,
                 source_video_track=source_video_track,
                 source_audio_track=source_audio_track,
-                in_recorder_factory=self.in_recorder_factory,
-                out_recorder_factory=self.out_recorder_factory,
+                in_recorder=in_recorder,
+                out_recorder=out_recorder,
                 video_processor=video_processor,
                 audio_processor=audio_processor,
                 video_receiver=video_receiver,
@@ -498,6 +495,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 logger.debug("Error occurred in process_offer")
                 logger.debug(e)
                 self._answer_queue.put(e)
+                return
 
             localDescription = done_task.result()
             self._answer_queue.put(localDescription)
@@ -507,16 +505,16 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     def process_offer(
         self, sdp, type_, timeout: Union[float, None] = 10.0
     ) -> RTCSessionDescription:
-        self._webrtc_thread = threading.Thread(
-            target=self._run_webrtc_thread,
+        self._process_offer_thread = threading.Thread(
+            target=self._run_process_offer_thread,
             kwargs={
                 "sdp": sdp,
                 "type_": type_,
             },
             daemon=True,
-            name=f"webrtc_worker_{next(webrtc_thread_id_generator)}",
+            name=f"process_offer_{next(process_offer_thread_id_generator)}",
         )
-        self._webrtc_thread.start()
+        self._process_offer_thread.start()
 
         try:
             result = self._answer_queue.get(block=True, timeout=timeout)
@@ -544,8 +542,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
     def stop(self, timeout: Union[float, None] = 1.0):
         self._unset_processors()
-        if self._webrtc_thread:
-            self._webrtc_thread.join(timeout=timeout)
+        if self._process_offer_thread:
+            self._process_offer_thread.join(timeout=timeout)
+            self._process_offer_thread = None
 
 
 async def _test():
