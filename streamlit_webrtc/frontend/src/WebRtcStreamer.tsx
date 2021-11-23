@@ -3,7 +3,6 @@ import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
 import Alert from "@material-ui/lab/Alert";
 import DeviceSelector from "./DeviceSelector";
-import ThemeProvider from "./ThemeProvider";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
 import { useRenderData } from "streamlit-component-lib-react-hooks";
@@ -126,19 +125,17 @@ const WebRtcStreamer: React.VFC = () => {
   }
 
   return (
-    <ThemeProvider theme={renderData.theme}>
-      <WebRtcStreamerInner
-        disabled={renderData.disabled}
-        mode={mode}
-        desiredPlayingState={desiredPlayingState}
-        sdpAnswerJson={sdpAnswerJson}
-        rtcConfiguration={rtcConfiguration}
-        mediaStreamConstraints={mediaStreamConstraints}
-        videoHtmlAttrs={videoHtmlAttrs}
-        audioHtmlAttrs={audioHtmlAttrs}
-        onComponentValueChange={setComponentValue}
-      />
-    </ThemeProvider>
+    <WebRtcStreamerInner
+      disabled={renderData.disabled}
+      mode={mode}
+      desiredPlayingState={desiredPlayingState}
+      sdpAnswerJson={sdpAnswerJson}
+      rtcConfiguration={rtcConfiguration}
+      mediaStreamConstraints={mediaStreamConstraints}
+      videoHtmlAttrs={videoHtmlAttrs}
+      audioHtmlAttrs={audioHtmlAttrs}
+      onComponentValueChange={setComponentValue}
+    />
   );
 };
 

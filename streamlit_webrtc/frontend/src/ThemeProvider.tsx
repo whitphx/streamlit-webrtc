@@ -1,18 +1,16 @@
 import React from "react";
-import { Theme } from "streamlit-component-lib";
+import { useRenderData } from "streamlit-component-lib-react-hooks";
 import {
   createTheme,
   ThemeProvider as MuiThemeProvider,
 } from "@material-ui/core/styles";
 import chroma from "chroma-js";
 
-interface StreamlitThemeProviderProps {
-  theme: Theme | undefined;
-}
+interface StreamlitThemeProviderProps {}
 export const ThemeProvider: React.VFC<
   React.PropsWithChildren<StreamlitThemeProviderProps>
 > = (props) => {
-  const stTheme = props.theme;
+  const { theme: stTheme } = useRenderData();
 
   const muiTheme = React.useMemo(() => {
     if (stTheme == null) {
