@@ -1,9 +1,9 @@
 import React from "react";
 import { useRenderData } from "streamlit-component-lib-react-hooks";
 import {
-  createTheme,
   ThemeProvider as MuiThemeProvider,
-} from "@material-ui/core/styles";
+  createTheme,
+} from "@mui/material/styles";
 import chroma from "chroma-js";
 
 interface StreamlitThemeProviderProps {}
@@ -15,9 +15,9 @@ export const ThemeProvider: React.VFC<
   const muiTheme = React.useMemo(() => {
     if (stTheme == null) {
       return createTheme({
-        overrides: {
+        components: {
           MuiCssBaseline: {
-            "@global": {
+            styleOverrides: {
               body: {
                 // Unset the background-color since <CssBaseLine /> applies the default Material Design background color
                 // (https://material-ui.com/components/css-baseline/#approach),

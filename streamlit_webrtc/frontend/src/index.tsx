@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { ThemeProvider } from "./ThemeProvider";
-import CssBaseline from "@material-ui/core/CssBaseline";
+import CssBaseline from "@mui/material/CssBaseline";
 import { StreamlitProvider } from "streamlit-component-lib-react-hooks";
 import WebRtcStreamer from "./WebRtcStreamer";
 

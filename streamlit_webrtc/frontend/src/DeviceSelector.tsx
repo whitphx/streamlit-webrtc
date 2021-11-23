@@ -1,34 +1,32 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Streamlit } from "streamlit-component-lib";
-import Box from "@material-ui/core/Box";
-import { makeStyles } from "@material-ui/core/styles";
-import Button, { ButtonProps } from "@material-ui/core/Button";
-import FormControl from "@material-ui/core/FormControl";
-import InputLabel from "@material-ui/core/InputLabel";
-import Select, { SelectProps } from "@material-ui/core/Select";
-import MenuItem from "@material-ui/core/MenuItem";
-import Popper, { PopperProps } from "@material-ui/core/Popper";
-import Paper from "@material-ui/core/Paper";
+import Box from "@mui/material/Box";
+import Button, { ButtonProps } from "@mui/material/Button";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import Select, { SelectProps } from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import Popper, { PopperProps } from "@mui/material/Popper";
+import Paper from "@mui/material/Paper";
+import { styled } from "@mui/material/styles";
 
-const useStyles = makeStyles((theme) => ({
-  paper: {
-    padding: theme.spacing(2),
-  },
-  formControl: {
-    maxWidth: "80vw",
-    margin: theme.spacing(1),
-    minWidth: 120,
-    display: "flex",
-  },
-  formButtonControl: {
-    margin: theme.spacing(2),
-    marginBottom: theme.spacing(1),
-    minWidth: 120,
-    display: "flex",
-  },
-  selectEmpty: {
-    marginTop: theme.spacing(2),
-  },
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(2),
+}));
+const StyledFormControl = styled(FormControl)(({ theme }) => ({
+  maxWidth: "80vw",
+  margin: theme.spacing(1),
+  minWidth: 120,
+  display: "flex",
+}));
+const StyledFormButtonControl = styled(FormControl)(({ theme }) => ({
+  margin: theme.spacing(2),
+  marginBottom: theme.spacing(1),
+  minWidth: 120,
+  display: "flex",
+}));
+const StyledSelect = styled(Select)(({ theme }) => ({
+  marginTop: theme.spacing(2),
 }));
 
 interface DevicesMap {
@@ -48,8 +46,6 @@ const DeviceSelecter = ({
   devices,
   onChange: onChangeProp,
 }: DeviceSelecterProps) => {
-  const classes = useStyles();
-
   const onChange = useCallback<NonNullable<SelectProps["onChange"]>>(
     (e) => {
       const selected = devices.find((d) => d.deviceId === e.target.value);
@@ -72,18 +68,13 @@ const DeviceSelecter = ({
   }
 
   return (
-    <Select
-      labelId={labelId}
-      value={value.deviceId}
-      onChange={onChange}
-      className={classes.selectEmpty}
-    >
+    <StyledSelect labelId={labelId} value={value.deviceId} onChange={onChange}>
       {devices.map((device) => (
         <MenuItem key={device.deviceId} value={device.deviceId}>
           {device.label}
         </MenuItem>
       ))}
-    </Select>
+    </StyledSelect>
   );
 };
 
@@ -140,8 +131,6 @@ const DeviceSelectPopper = ({
     [onSubmit, videoEnabled, audioEnabled, selectedVideo, selectedAudio]
   );
 
-  const classes = useStyles();
-
   const originalBodyHeightRef = useRef<string>();
   const popperRefFn = useCallback((popper: HTMLDivElement | null) => {
     // Manage <body>'s height reacting to popper appearance.
@@ -176,10 +165,10 @@ const DeviceSelectPopper = ({
       anchorEl={anchorEl}
       placement="left-end"
     >
-      <Paper className={classes.paper}>
+      <StyledPaper>
         <form onSubmit={handleSubmit}>
           {videoEnabled && (
-            <FormControl className={classes.formControl}>
+            <StyledFormControl>
               <InputLabel id="video-input-select">Video input</InputLabel>
               <DeviceSelecter
                 labelId="video-input-select"
@@ -187,10 +176,10 @@ const DeviceSelectPopper = ({
                 value={selectedVideo}
                 onChange={setSelectedVideo}
               />
-            </FormControl>
+            </StyledFormControl>
           )}
           {audioEnabled && (
-            <FormControl className={classes.formControl}>
+            <StyledFormControl>
               <InputLabel id="audio-input-select">Audio input</InputLabel>
               <DeviceSelecter
                 labelId="audio-input-select"
@@ -198,15 +187,15 @@ const DeviceSelectPopper = ({
                 value={selectedAudio}
                 onChange={setSelectedAudio}
               />
-            </FormControl>
+            </StyledFormControl>
           )}
-          <FormControl className={classes.formButtonControl}>
+          <StyledFormButtonControl>
             <Button type="submit" variant="contained" color="primary">
               OK
             </Button>
-          </FormControl>
+          </StyledFormButtonControl>
         </form>
-      </Paper>
+      </StyledPaper>
     </Popper>
   );
 };

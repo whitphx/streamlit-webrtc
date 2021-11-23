@@ -1,18 +1,16 @@
 import { Streamlit } from "streamlit-component-lib";
 import React, { useEffect } from "react";
-import { makeStyles } from "@material-ui/core/styles";
-import Paper from "@material-ui/core/Paper";
-import CircularProgress from "@material-ui/core/CircularProgress";
-import VideoLabelIcon from "@material-ui/icons/VideoLabel";
+import Paper from "@mui/material/Paper";
+import CircularProgress from "@mui/material/CircularProgress";
+import VideoLabelIcon from "@mui/icons-material/VideoLabel";
+import { styled } from "@mui/material/styles";
 
-const useStyles = makeStyles((theme) => ({
-  paper: {
-    padding: theme.spacing(4),
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
-  },
+const StyledPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(4),
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  width: "100%",
 }));
 
 interface PlaceholderProps {
@@ -23,16 +21,14 @@ const Placeholder: React.VFC<PlaceholderProps> = (props) => {
     Streamlit.setFrameHeight();
   });
 
-  const classes = useStyles();
-
   return (
-    <Paper className={classes.paper} elevation={0}>
+    <StyledPaper elevation={0}>
       {props.loading ? (
         <CircularProgress />
       ) : (
         <VideoLabelIcon fontSize="large" />
       )}
-    </Paper>
+    </StyledPaper>
   );
 };
 
