@@ -547,22 +547,44 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             self._process_offer_thread = None
 
 
-async def _test():
+def _test():
+    # Mock functions that depend on Streamlit global server object
+    from unittest.mock import Mock
+
+    global get_global_relay, get_server_event_loop
+
+    loop = asyncio.get_event_loop()
+    get_server_event_loop = Mock(return_value=loop)
+
+    get_global_relay = Mock(return_value=MediaRelay())
+
+    # Start the test
     client = RTCPeerConnection()
     client.createDataChannel("test")
 
-    offer = await client.createOffer()
+    offer = loop.run_until_complete(client.createOffer())
+    logger.debug("Offer for mock testing: %s", offer)
 
-    webrtc_worker = WebRtcWorker(mode=WebRtcMode.SENDRECV)
-    localDescription = webrtc_worker.process_offer(offer.sdp, offer.type)
+    def test_thread_fn():
+        webrtc_worker = WebRtcWorker(mode=WebRtcMode.SENDRECV)
+        localDescription = webrtc_worker.process_offer(offer.sdp, offer.type)
 
-    print("localDescription:")
-    print(localDescription)
+        logger.debug("localDescription:")
+        logger.debug(localDescription)
 
-    webrtc_worker.stop()
+        webrtc_worker.stop()
+
+    test_thread = threading.Thread(target=test_thread_fn)
+    test_thread.start()
+
+    # HACK
+    for _ in range(100):
+        loop.run_until_complete(asyncio.sleep(0.01))
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logger = logging.getLogger(__name__)
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.DEBUG)
 
-    asyncio.run(_test())
+    _test()
