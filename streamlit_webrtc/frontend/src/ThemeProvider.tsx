@@ -14,7 +14,20 @@ export const ThemeProvider: React.VFC<
 
   const muiTheme = React.useMemo(() => {
     if (stTheme == null) {
-      return undefined;
+      return createTheme({
+        overrides: {
+          MuiCssBaseline: {
+            "@global": {
+              body: {
+                // Unset the background-color since <CssBaseLine /> applies the default Material Design background color
+                // (https://material-ui.com/components/css-baseline/#approach),
+                // which however does not match the Streamlit's background.
+                backgroundColor: "initial",
+              },
+            },
+          },
+        },
+      });
     }
 
     const textColorScale = chroma
