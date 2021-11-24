@@ -150,11 +150,13 @@ const DeviceSelectPopper = ({
         }
       }, 0);
     } else {
-      const body = document.getElementsByTagName("body")[0];
-      if (originalBodyHeightRef.current != null) {
-        body.style.height = originalBodyHeightRef.current;
-      }
-      Streamlit.setFrameHeight();
+      setTimeout(() => {
+        const body = document.getElementsByTagName("body")[0];
+        if (originalBodyHeightRef.current != null) {
+          body.style.height = originalBodyHeightRef.current;
+        }
+        Streamlit.setFrameHeight();
+      }, 0);
     }
   }, []);
 
