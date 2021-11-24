@@ -4,7 +4,7 @@ import { useRenderData } from "streamlit-component-lib-react-hooks";
 import {
   createTheme,
   ThemeProvider as MuiThemeProvider,
-} from "@material-ui/core/styles";
+} from "@mui/material/styles";
 import chroma from "chroma-js";
 
 interface StreamlitThemeProviderProps {}

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
-import Box from "@material-ui/core/Box";
-import Button from "@material-ui/core/Button";
-import Alert from "@material-ui/lab/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Alert from "@mui/material/Alert";
 import DeviceSelector from "./DeviceSelector";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
