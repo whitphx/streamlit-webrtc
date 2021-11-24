@@ -159,12 +159,12 @@ def main():
 
 
 def app_loopback():
-    """ Simple video loopback """
+    """Simple video loopback"""
     webrtc_streamer(key="loopback")
 
 
 def app_video_filters():
-    """ Video transforms with OpenCV """
+    """Video transforms with OpenCV"""
 
     class OpenCVVideoProcessor(VideoProcessorBase):
         type: Literal["noop", "cartoon", "edges", "rotate"]
@@ -452,7 +452,7 @@ def app_object_detection():
 
 
 def app_streaming():
-    """ Media streamings """
+    """Media streamings"""
     MEDIAFILES = {
         "big_buck_bunny_720p_2mb.mp4 (local)": {
             "url": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_2mb.mp4",  # noqa: E501
@@ -673,7 +673,7 @@ def app_sendonly_audio():
 
 
 def app_media_constraints():
-    """ A sample to configure MediaStreamConstraints object """
+    """A sample to configure MediaStreamConstraints object"""
     frame_rate = 5
     webrtc_streamer(
         key="media-constraints",
@@ -692,7 +692,7 @@ def app_media_constraints():
 
 
 def app_programatically_play():
-    """ A sample of controlling the playing state from Python. """
+    """A sample of controlling the playing state from Python."""
     playing = st.checkbox("Playing", value=True)
 
     webrtc_streamer(
