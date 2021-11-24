@@ -1,14 +1,13 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Streamlit } from "streamlit-component-lib";
-import Box from "@mui/material/Box";
-import Button, { ButtonProps } from "@mui/material/Button";
+import Button from "@mui/material/Button";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
-import Select, { SelectProps } from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
 import Popper, { PopperProps } from "@mui/material/Popper";
 import Paper from "@mui/material/Paper";
 import { styled } from "@mui/material/styles";
+import DeviceSelecter from "./DeviceSelector";
+import { DevicesMap } from "./types";
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(2),
@@ -25,58 +24,6 @@ const StyledFormButtonControl = styled(FormControl)(({ theme }) => ({
   minWidth: 120,
   display: "flex",
 }));
-const StyledSelect = styled(Select)(({ theme }) => ({
-  marginTop: theme.spacing(2),
-}));
-
-interface DevicesMap {
-  audio: MediaDeviceInfo[];
-  video: MediaDeviceInfo[];
-}
-
-interface DeviceSelecterProps {
-  labelId: SelectProps["labelId"];
-  value: MediaDeviceInfo | null;
-  devices: MediaDeviceInfo[];
-  onChange: (device: MediaDeviceInfo | null) => void;
-}
-const DeviceSelecter = ({
-  labelId,
-  value,
-  devices,
-  onChange: onChangeProp,
-}: DeviceSelecterProps) => {
-  const onChange = useCallback<NonNullable<SelectProps["onChange"]>>(
-    (e) => {
-      const selected = devices.find((d) => d.deviceId === e.target.value);
-      onChangeProp(selected || null);
-    },
-    [devices, onChangeProp]
-  );
-
-  if (devices.length === 0) {
-    return (
-      <Select value="" disabled>
-        <option aria-label="None" value="" />
-      </Select>
-    );
-  }
-
-  if (value == null) {
-    setImmediate(() => onChangeProp(devices[0]));
-    return null;
-  }
-
-  return (
-    <StyledSelect labelId={labelId} value={value.deviceId} onChange={onChange}>
-      {devices.map((device) => (
-        <MenuItem key={device.deviceId} value={device.deviceId}>
-          {device.label}
-        </MenuItem>
-      ))}
-    </StyledSelect>
-  );
-};
 
 interface DeviceSelectPopperProps {
   open: boolean;
@@ -93,7 +40,7 @@ interface DeviceSelectPopperProps {
     audio: MediaDeviceInfo | null
   ) => void;
 }
-const DeviceSelectPopper = ({
+const DeviceSelectPopper: React.VFC<DeviceSelectPopperProps> = ({
   open,
   anchorEl,
   videoEnabled,
@@ -101,7 +48,7 @@ const DeviceSelectPopper = ({
   value,
   devicesMap,
   onSubmit,
-}: DeviceSelectPopperProps) => {
+}) => {
   const [selectedVideo, setSelectedVideo] = useState<MediaDeviceInfo | null>(
     null
   );
@@ -202,85 +149,4 @@ const DeviceSelectPopper = ({
   );
 };
 
-interface DeviceSelectorProps {
-  videoEnabled: boolean;
-  audioEnabled: boolean;
-  value: {
-    video: MediaDeviceInfo | null;
-    audio: MediaDeviceInfo | null;
-  };
-  onSelect: (
-    video: MediaDeviceInfo | null,
-    audio: MediaDeviceInfo | null
-  ) => void;
-}
-const DeviceSelector = ({
-  videoEnabled,
-  audioEnabled,
-  value,
-  onSelect,
-}: DeviceSelectorProps) => {
-  const [open, setOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
-  const [devicesMap, setDevicesMap] = useState<DevicesMap>();
-  const [unavailable, setUnavailable] = useState(false);
-
-  const onOpen = useCallback<NonNullable<ButtonProps["onClick"]>>((event) => {
-    setAnchorEl(event.currentTarget);
-
-    if (typeof navigator?.mediaDevices?.enumerateDevices !== "function") {
-      setDevicesMap(undefined);
-      setUnavailable(true);
-      return;
-    }
-
-    navigator.mediaDevices.enumerateDevices().then((devices) => {
-      const vidoeDevices = [];
-      const audioDevices = [];
-      for (const device of devices) {
-        if (device.kind === "videoinput") {
-          vidoeDevices.push(device);
-        } else if (device.kind === "audioinput") {
-          audioDevices.push(device);
-        }
-      }
-      setDevicesMap({
-        video: vidoeDevices,
-        audio: audioDevices,
-      });
-      setOpen(true);
-    });
-  }, []);
-  const onClose = useCallback(() => setOpen(false), []);
-
-  const onSubmit = useCallback(
-    (video: MediaDeviceInfo | null, audio: MediaDeviceInfo | null) => {
-      setDevicesMap(undefined);
-      setOpen(false);
-      onSelect(video, audio);
-    },
-    [onSelect]
-  );
-
-  return (
-    <Box>
-      {unavailable && <p>Unavailable</p>}
-      {devicesMap && (
-        <DeviceSelectPopper
-          open={open}
-          anchorEl={anchorEl}
-          videoEnabled={videoEnabled}
-          audioEnabled={audioEnabled}
-          value={value}
-          devicesMap={devicesMap}
-          onSubmit={onSubmit}
-        />
-      )}
-      <Button color="inherit" onClick={open ? onClose : onOpen}>
-        Select device
-      </Button>
-    </Box>
-  );
-};
-
-export default React.memo(DeviceSelector);
+export default DeviceSelectPopper;
