@@ -276,7 +276,9 @@ const DeviceSelector = ({
           onSubmit={onSubmit}
         />
       )}
-      <Button onClick={open ? onClose : onOpen}>Select device</Button>
+      <Button color="inherit" onClick={open ? onClose : onOpen}>
+        Select device
+      </Button>
     </Box>
   );
 };
