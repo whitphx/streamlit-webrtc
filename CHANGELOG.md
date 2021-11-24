@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.31.5] - 2021-11-24
+### Fix
+- Refactoring, #525, #526
+
 ## [0.31.4] - 2021-11-24
 ### Fix
 - Refactoring, #520
