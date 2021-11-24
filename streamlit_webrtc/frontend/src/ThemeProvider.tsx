@@ -1,20 +1,21 @@
 import React from "react";
 import { Theme } from "streamlit-component-lib";
+import { useRenderData } from "streamlit-component-lib-react-hooks";
 import {
   createTheme,
   ThemeProvider as MuiThemeProvider,
 } from "@material-ui/core/styles";
 import chroma from "chroma-js";
 
-interface StreamlitThemeProviderProps {
-  theme: Theme | undefined;
-}
+interface StreamlitThemeProviderProps {}
 export const ThemeProvider: React.VFC<
   React.PropsWithChildren<StreamlitThemeProviderProps>
 > = (props) => {
-  const stTheme = props.theme;
+  const { theme: stTheme } = useRenderData();
 
+  const stThemeJson = JSON.stringify(stTheme);
   const muiTheme = React.useMemo(() => {
+    const stTheme: Theme = JSON.parse(stThemeJson);
     if (stTheme == null) {
       return undefined;
     }
@@ -42,7 +43,7 @@ export const ThemeProvider: React.VFC<
         fontFamily: stTheme.font,
       },
     });
-  }, [stTheme]);
+  }, [stThemeJson]);
 
   if (muiTheme == null) {
     return <>{props.children}</>;
