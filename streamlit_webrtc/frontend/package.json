@@ -50,7 +50,7 @@
   },
   "homepage": ".",
   "devDependencies": {
-    "prettier": "^2.4.1"
+    "prettier": "^2.5.0"
   },
   "jest": {
     "transformIgnorePatterns": [
