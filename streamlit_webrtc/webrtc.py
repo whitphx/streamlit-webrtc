@@ -395,6 +395,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             self._report_session_stop_polling_thread = threading.Thread(
                 target=self._report_session_stop_polling_thread_impl,
                 kwargs={"report_session_ref": weakref.ref(session)},
+                daemon=True,
             )
             self._report_session_stop_polling_thread.start()
 
