@@ -4,7 +4,13 @@ import itertools
 import logging
 import queue
 import threading
+import time
+import weakref
 from typing import Callable, Generic, Optional, Union
+
+from streamlit.report_session import ReportSession, ReportSessionState
+
+from streamlit_webrtc.session_info import get_this_session_info
 
 try:
     from typing import Literal
@@ -379,6 +385,28 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._output_video_track = None
         self._output_audio_track = None
         self._player = None
+
+        session_info = get_this_session_info()
+        if session_info:
+            session = session_info.session
+            self._report_session_stop_polling_thread = threading.Thread(
+                target=self._report_session_stop_polling_thread_impl,
+                kwargs={"report_session_ref": weakref.ref(session)},
+            )
+            self._report_session_stop_polling_thread.start()
+
+    def _report_session_stop_polling_thread_impl(
+        self, report_session_ref: "weakref.ReferenceType[ReportSession]"
+    ):
+        while True:
+            time.sleep(1)
+            report_session = report_session_ref()
+            if not report_session:
+                break
+            if report_session._state == ReportSessionState.SHUTDOWN_REQUESTED:
+                break
+
+        self.stop()
 
     def _run_process_offer_thread(
         self,
