@@ -590,8 +590,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 self._player.audio.stop()
         self._player = None
 
-    def stop(self, timeout: Union[float, None] = 1.0):
-        self._unset_processors()
+    def _stop_report_session_polling_thread(self, timeout: Union[float, None] = 1.0):
         if (
             self._report_session_polling_thread
             and threading.current_thread() != self._report_session_polling_thread
@@ -599,6 +598,10 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             self._report_session_polling_thread_stop_event.set()
             self._report_session_polling_thread.join(timeout=timeout)
             self._report_session_polling_thread = None
+
+    def stop(self, timeout: Union[float, None] = 1.0):
+        self._unset_processors()
+        self._stop_report_session_polling_thread()
         if self._process_offer_thread:
             self._process_offer_thread.join(timeout=timeout)
             self._process_offer_thread = None
