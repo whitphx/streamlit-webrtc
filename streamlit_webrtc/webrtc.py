@@ -398,6 +398,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     def _report_session_stop_polling_thread_impl(
         self, report_session_ref: "weakref.ReferenceType[ReportSession]"
     ):
+        # Poll the Streamlit session state and stop the worker when the session ends.
+        # Polling is used because event-based method is not available to observe
+        # the session lifecycle.
         while True:
             time.sleep(1)
             report_session = report_session_ref()
