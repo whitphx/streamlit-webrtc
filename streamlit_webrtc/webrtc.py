@@ -569,6 +569,13 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             self._process_offer_thread.join(timeout=timeout)
             self._process_offer_thread = None
 
+        if self.pc and self.pc.connectionState != "closed":
+            loop = get_server_event_loop()
+            if loop.is_running():
+                loop.create_task(self.pc.close())
+            else:
+                loop.run_until_complete(self.pc.close())
+
         self._report_session_shutdown_observer.stop()
 
 
