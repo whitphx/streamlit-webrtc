@@ -4,12 +4,9 @@ import itertools
 import logging
 import queue
 import threading
-import weakref
 from typing import Callable, Generic, Optional, Union
 
-from streamlit.report_session import ReportSession, ReportSessionState
-
-from streamlit_webrtc.session_info import get_this_session_info
+from streamlit_webrtc.shutdown import ReportSessionShutdownObserver
 
 try:
     from typing import Literal
@@ -295,8 +292,7 @@ process_offer_thread_id_generator = itertools.count()
 class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _process_offer_thread: Union[threading.Thread, None]
     _answer_queue: queue.Queue
-    _report_session_polling_thread: Union[threading.Thread, None]
-    _report_session_polling_thread_stop_event: threading.Event
+    _report_session_shutdown_observer: ReportSessionShutdownObserver
     _video_processor: Optional[VideoProcessorT]
     _audio_processor: Optional[AudioProcessorT]
     _video_receiver: Optional[VideoReceiver]
@@ -387,32 +383,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._output_audio_track = None
         self._player = None
 
-        self._report_session_polling_thread = None
-        self._report_session_polling_thread_stop_event = threading.Event()
-        session_info = get_this_session_info()
-        if session_info:
-            session = session_info.session
-            self._report_session_polling_thread = threading.Thread(
-                target=self._report_session_polling_thread_impl,
-                kwargs={"report_session_ref": weakref.ref(session)},
-                daemon=True,
-            )
-            self._report_session_polling_thread.start()
-
-    def _report_session_polling_thread_impl(
-        self, report_session_ref: "weakref.ReferenceType[ReportSession]"
-    ):
-        # Poll the Streamlit session state and stop the worker when the session ends.
-        # Polling is used because event-based method is not available to observe
-        # the session lifecycle.
-        while not self._report_session_polling_thread_stop_event.wait(1.0):
-            report_session = report_session_ref()
-            if not report_session:
-                break
-            if report_session._state == ReportSessionState.SHUTDOWN_REQUESTED:
-                break
-
-        self.stop()
+        self._report_session_shutdown_observer = ReportSessionShutdownObserver(
+            self.stop
+        )
 
     def _run_process_offer_thread(
         self,
@@ -590,21 +563,13 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 self._player.audio.stop()
         self._player = None
 
-    def _stop_report_session_polling_thread(self, timeout: Union[float, None] = 1.0):
-        if (
-            self._report_session_polling_thread
-            and threading.current_thread() != self._report_session_polling_thread
-        ):
-            self._report_session_polling_thread_stop_event.set()
-            self._report_session_polling_thread.join(timeout=timeout)
-            self._report_session_polling_thread = None
-
     def stop(self, timeout: Union[float, None] = 1.0):
         self._unset_processors()
-        self._stop_report_session_polling_thread()
         if self._process_offer_thread:
             self._process_offer_thread.join(timeout=timeout)
             self._process_offer_thread = None
+
+        self._report_session_shutdown_observer.stop()
 
 
 def _test():
