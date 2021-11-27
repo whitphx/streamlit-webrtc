@@ -227,7 +227,7 @@ async def _process_offer_coro(
                             else AudioProcessTrack
                         )
                         logger.info(
-                            "Set %s as an input audio track " "with audio_processor %s",
+                            "Set %s as an input audio track with audio_processor %s",
                             source_audio_track,
                             AudioTrack,
                         )
@@ -245,7 +245,7 @@ async def _process_offer_coro(
                             else VideoProcessTrack
                         )
                         logger.info(
-                            "Set %s as an input video track " "with video_processor %s",
+                            "Set %s as an input video track with video_processor %s",
                             source_video_track,
                             VideoTrack,
                         )
