@@ -1,3 +1,4 @@
+import logging
 import threading
 import weakref
 from typing import Callable, Union
@@ -5,6 +6,8 @@ from typing import Callable, Union
 from streamlit.report_session import ReportSession, ReportSessionState
 
 from .session_info import get_this_session_info
+
+logger = logging.getLogger(__name__)
 
 Callback = Callable[[], None]
 
@@ -41,13 +44,19 @@ class ReportSessionShutdownObserver:
         while not self._polling_thread_stop_event.wait(1.0):
             report_session = report_session_ref()
             if not report_session:
+                logger.debug("ReportSession has removed.")
                 break
             if report_session._state == ReportSessionState.SHUTDOWN_REQUESTED:
+                logger.debug(
+                    "ReportSession %s has been requested to shutdown.",
+                    report_session.id,
+                )
                 break
 
         # Ensure the flag is set
         self._polling_thread_stop_event.set()
 
+        logger.debug("ReportSession shutdown has been detected.")
         callback()
 
     def stop(self):
