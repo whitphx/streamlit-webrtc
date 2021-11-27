@@ -335,6 +335,10 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     def output_audio_track(self) -> Optional[MediaStreamTrack]:
         return self._output_audio_track
 
+    @property
+    def player(self) -> Optional[MediaPlayer]:
+        return self._player
+
     def __init__(
         self,
         mode: WebRtcMode,

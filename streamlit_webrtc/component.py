@@ -4,6 +4,7 @@ import os
 import weakref
 from typing import Any, Dict, Generic, NamedTuple, Optional, Union, overload
 
+from aiortc.contrib.media import MediaPlayer
 from aiortc.mediastreams import MediaStreamTrack
 
 try:
@@ -171,6 +172,11 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     def output_audio_track(self) -> Optional[MediaStreamTrack]:
         worker = self._get_worker()
         return worker.output_audio_track if worker else None
+
+    @property
+    def player(self) -> Optional[MediaPlayer]:
+        worker = self._get_worker()
+        return worker.player if worker else None
 
 
 def generate_frontend_component_key(original_key: str) -> str:
