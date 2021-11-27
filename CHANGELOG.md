@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix
+- Stop players when the worker stops, #533.
+
 ## [0.31.5] - 2021-11-24
 ### Fix
 - Refactoring, #525, #526

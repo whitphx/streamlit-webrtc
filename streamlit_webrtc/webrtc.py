@@ -12,7 +12,7 @@ except ImportError:
     from typing_extensions import Literal  # type: ignore
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaRecorder, MediaRelay
+from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
 
 from .eventloop import get_server_event_loop
@@ -298,6 +298,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _input_audio_track: Optional[MediaStreamTrack]
     _output_video_track: Optional[MediaStreamTrack]
     _output_audio_track: Optional[MediaStreamTrack]
+    _player: Optional[MediaPlayer]
 
     @property
     def video_processor(self) -> Optional[VideoProcessorT]:
@@ -377,6 +378,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._input_audio_track = None
         self._output_video_track = None
         self._output_audio_track = None
+        self._player = None
 
     def _run_process_offer_thread(
         self,
@@ -449,6 +451,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         source_video_track = None
         if self.player_factory:
             player = self.player_factory()
+            self._player = player
             if player.audio:
                 source_audio_track = relay.subscribe(player.audio)
             if player.video:
@@ -533,12 +536,25 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     def _unset_processors(self):
         self._video_processor = None
         self._audio_processor = None
+
         if self._video_receiver:
             self._video_receiver.stop()
         self._video_receiver = None
+
         if self._audio_receiver:
             self._audio_receiver.stop()
         self._audio_receiver = None
+
+        # The player tracks are not automatically stopped when the WebRTC session ends
+        # because these tracks are connected to the consumer via `MediaRelay` proxies
+        # so `stop()` on the consumer is not delegated to the source tracks.
+        # So the player is stopped manually here when the worker stops.
+        if self._player:
+            if self._player.video:
+                self._player.video.stop()
+            if self._player.audio:
+                self._player.audio.stop()
+        self._player = None
 
     def stop(self, timeout: Union[float, None] = 1.0):
         self._unset_processors()
