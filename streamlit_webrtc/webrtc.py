@@ -546,8 +546,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._audio_receiver = None
 
         # The player tracks are not automatically stopped when the WebRTC session ends
-        # because these tracks are connected to the consumer through proxies (`MediaRelay`)
-        # and stop() on the consumer is not delegated to the source tracks.
+        # because these tracks are connected to the consumer via `MediaRelay` proxies
+        # so `stop()` on the consumer is not delegated to the source tracks.
         # So the player is stopped manually here when the worker stops.
         if self._player:
             if self._player.video:
