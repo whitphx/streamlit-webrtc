@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Add
+- `ctx.player` attribute, #536.
+
 ## [0.32.0] - 2021-11-28
 ### Fix
 - Stop players when the worker stops, #533.
