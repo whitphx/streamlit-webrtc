@@ -188,7 +188,7 @@ export const useWebRtc = (
       }
       console.log("transceivers", pc.getTransceivers());
 
-      pc.addEventListener("iceconnectionstatechange", (ev) => {
+      pc.addEventListener("iceconnectionstatechange", () => {
         console.log("iceconnectionstatechange", pc.iceConnectionState);
         if (
           pc.iceConnectionState === "disconnected" ||
