@@ -579,14 +579,21 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
 def _test():
     # Mock functions that depend on Streamlit global server object
-    from unittest.mock import Mock
-
     global get_global_relay, get_server_event_loop
 
     loop = asyncio.get_event_loop()
-    get_server_event_loop = Mock(return_value=loop)
 
-    get_global_relay = Mock(return_value=MediaRelay())
+    def get_server_event_loop_mock():
+        return loop
+
+    get_server_event_loop = get_server_event_loop_mock
+
+    fake_global_relay = MediaRelay()
+
+    def get_global_relay_mock():
+        return fake_global_relay
+
+    get_global_relay = get_global_relay_mock
 
     # Start the test
     client = RTCPeerConnection()
