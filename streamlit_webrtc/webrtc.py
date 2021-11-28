@@ -6,6 +6,8 @@ import queue
 import threading
 from typing import Callable, Generic, Optional, Union
 
+from streamlit_webrtc.shutdown import SessionShutdownObserver
+
 try:
     from typing import Literal
 except ImportError:
@@ -290,6 +292,7 @@ process_offer_thread_id_generator = itertools.count()
 class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _process_offer_thread: Union[threading.Thread, None]
     _answer_queue: queue.Queue
+    _session_shutdown_observer: SessionShutdownObserver
     _video_processor: Optional[VideoProcessorT]
     _audio_processor: Optional[AudioProcessorT]
     _video_receiver: Optional[VideoReceiver]
@@ -379,6 +382,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._output_video_track = None
         self._output_audio_track = None
         self._player = None
+
+        self._session_shutdown_observer = SessionShutdownObserver(self.stop)
 
     def _run_process_offer_thread(
         self,
@@ -561,6 +566,15 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         if self._process_offer_thread:
             self._process_offer_thread.join(timeout=timeout)
             self._process_offer_thread = None
+
+        if self.pc and self.pc.connectionState != "closed":
+            loop = get_server_event_loop()
+            if loop.is_running():
+                loop.create_task(self.pc.close())
+            else:
+                loop.run_until_complete(self.pc.close())
+
+        self._session_shutdown_observer.stop()
 
 
 def _test():
