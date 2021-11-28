@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 Callback = Callable[[], None]
 
 
-class ReportSessionShutdownObserver:
+class SessionShutdownObserver:
     _polling_thread: Union[threading.Thread, None]
     _polling_thread_stop_event: threading.Event
 
