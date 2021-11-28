@@ -77,6 +77,54 @@ export const useWebRtc = (
   );
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  const stop = useCallback(() => {
+    const stopInner = async () => {
+      if (state.webRtcState === "STOPPING") {
+        return;
+      }
+
+      const pc = pcRef.current;
+      pcRef.current = undefined;
+
+      dispatch({ type: "STOPPING" });
+
+      if (pc == null) {
+        return;
+      }
+
+      // close transceivers
+      if (pc.getTransceivers) {
+        pc.getTransceivers().forEach(function (transceiver) {
+          if (transceiver.stop) {
+            transceiver.stop();
+          }
+        });
+      }
+
+      // close local audio / video
+      pc.getSenders().forEach(function (sender) {
+        sender.track?.stop();
+      });
+
+      // close peer connection
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          pc.close();
+          resolve();
+        }, 500);
+      });
+    };
+
+    stopInner()
+      .catch((error) => dispatch({ type: "ERROR", error }))
+      .finally(() => {
+        dispatch({ type: "STOPPED" });
+      });
+  }, [state.webRtcState]);
+
+  const stopRef = useRef(stop);
+  stopRef.current = stop;
+
   const start = useCallback(() => {
     if (state.webRtcState !== "STOPPED") {
       return;
@@ -138,8 +186,18 @@ export const useWebRtc = (
         pc.addTransceiver("video", { direction: "recvonly" });
         pc.addTransceiver("audio", { direction: "recvonly" });
       }
-
       console.log("transceivers", pc.getTransceivers());
+
+      pc.addEventListener("iceconnectionstatechange", (ev) => {
+        console.log("iceconnectionstatechange", pc.iceConnectionState);
+        if (
+          pc.iceConnectionState === "disconnected" ||
+          pc.iceConnectionState === "failed" ||
+          pc.iceConnectionState === "closed"
+        ) {
+          stopRef.current();
+        }
+      });
 
       pcRef.current = pc;
 
@@ -166,51 +224,6 @@ export const useWebRtc = (
     state.webRtcState,
     videoInput?.deviceId,
   ]);
-
-  const stop = useCallback(() => {
-    const stopInner = async () => {
-      if (state.webRtcState === "STOPPING") {
-        return;
-      }
-
-      const pc = pcRef.current;
-      pcRef.current = undefined;
-
-      dispatch({ type: "STOPPING" });
-
-      if (pc == null) {
-        return;
-      }
-
-      // close transceivers
-      if (pc.getTransceivers) {
-        pc.getTransceivers().forEach(function (transceiver) {
-          if (transceiver.stop) {
-            transceiver.stop();
-          }
-        });
-      }
-
-      // close local audio / video
-      pc.getSenders().forEach(function (sender) {
-        sender.track?.stop();
-      });
-
-      // close peer connection
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          pc.close();
-          resolve();
-        }, 500);
-      });
-    };
-
-    stopInner()
-      .catch((error) => dispatch({ type: "ERROR", error }))
-      .finally(() => {
-        dispatch({ type: "STOPPED" });
-      });
-  }, [state.webRtcState]);
 
   // processAnswer
   useEffect(() => {
