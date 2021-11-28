@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.32.0] - 2021-11-28
 ### Fix
 - Stop players when the worker stops, #533.
 - Stop the worker when the Streamlit session ends, which makes it possible to terminate the server process by pressing ctrl-c during WebRTC session alive, #535.
