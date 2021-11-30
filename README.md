@@ -161,8 +161,10 @@ When deploying apps to remote servers, there are some things you need to be awar
 > A secure context is, in short, a page loaded using HTTPS or the file:/// URL scheme, or a page loaded from localhost.
 
 So, when hosting your app on a remote server, it must be served via HTTPS if your app is using webcam or microphone.
+If not, you will encounter an error when starting streaming. For example, it's something like below on Chrome.
+> Error: navigator.mediaDevices is undefined. It seems the current document is not loaded securely.
 
-[Streamlit Cloud](https://streamlit.io/cloud) is a recommended way. You can easily deploy Streamlit apps with it, and most importantly for this topic, it serves the apps via HTTPS automatically by defualt.
+[Streamlit Cloud](https://streamlit.io/cloud) is a recommended way for HTTPS serving. You can easily deploy Streamlit apps with it, and most importantly for this topic, it serves the apps via HTTPS automatically by defualt.
 
 ### Network connectivity
 Video streaming does not work in some network environments.
