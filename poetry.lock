@@ -1009,6 +1009,14 @@ python-versions = "*"
 cffi = ">=1.0.0"
 
 [[package]]
+name = "pympler"
+version = "1.0"
+description = "A development tool to measure, monitor and analyze the memory behavior of Python objects."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[[package]]
 name = "pyparsing"
 version = "2.4.7"
 description = "Python parsing module"
@@ -1123,7 +1131,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "streamlit"
-version = "1.0.0"
+version = "1.3.0"
 description = "The fastest way to build data apps in Python"
 category = "main"
 optional = false
@@ -1145,6 +1153,7 @@ pillow = ">=6.2.0"
 protobuf = ">=3.6.0,<3.11 || >3.11"
 pyarrow = "*"
 pydeck = ">=0.1.dev5"
+pympler = ">=0.9"
 python-dateutil = "*"
 requests = "*"
 toml = "*"
@@ -2175,6 +2184,10 @@ pylibsrtp = [
     {file = "pylibsrtp-0.6.7-pp37-pypy37_pp73-win32.whl", hash = "sha256:8db6c882f78cb34abf5c781fdb33f12a8691518f0fb18370ff06b7b2d2ce8b92"},
     {file = "pylibsrtp-0.6.7.tar.gz", hash = "sha256:fae7c7c74dfce52878c433ec3e44f4ba7653c4db5b83126cdf2dc88981704f5f"},
 ]
+pympler = [
+    {file = "Pympler-1.0-py3-none-any.whl", hash = "sha256:ca09ce58074a374a76328c27f0bb8a4e8d3964db1cbd1f9d3fd4c0d0746a9d16"},
+    {file = "Pympler-1.0.tar.gz", hash = "sha256:f2e82c3e33835d0378ed95fffabc00806f4070f00decaa38b340ca99b1aca25c"},
+]
 pyparsing = [
     {file = "pyparsing-2.4.7-py2.py3-none-any.whl", hash = "sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b"},
     {file = "pyparsing-2.4.7.tar.gz", hash = "sha256:c203ec8783bf771a155b207279b9bccb8dea02d8f0c9e5f8ead507bc3246ecc1"},
@@ -2304,8 +2317,8 @@ smmap = [
     {file = "smmap-3.0.5.tar.gz", hash = "sha256:84c2751ef3072d4f6b2785ec7ee40244c6f45eb934d9e543e2c51f1bd3d54c50"},
 ]
 streamlit = [
-    {file = "streamlit-1.0.0-py2.py3-none-any.whl", hash = "sha256:1cf88c7dc278d70136138bf3ee3e0dd8a185bc5a4375479c1ad871865b02aa12"},
-    {file = "streamlit-1.0.0.tar.gz", hash = "sha256:f94f8f588e70471377a7ecf8d994efc045cc3c10c00b74220d90032517294a91"},
+    {file = "streamlit-1.3.0-py2.py3-none-any.whl", hash = "sha256:9a2f8515514bf6bcd460f3522046a9a822dd44a4f16ca9b369dc79a7f08e7d1a"},
+    {file = "streamlit-1.3.0.tar.gz", hash = "sha256:599a973ee0586be0bf23d6d6b2c84fcedfcf7bd8ea1725366d1fa5499258a6cd"},
 ]
 streamlit-server-state = [
     {file = "streamlit-server-state-0.9.0.tar.gz", hash = "sha256:7ce3be5bbbc5fe9a5e9688b5b9c851665231ab4c39a54b4e70177cc60027cebc"},
