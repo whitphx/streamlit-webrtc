@@ -47,7 +47,7 @@ const setupOffer = (
     });
 };
 
-const SIGNALLING_TIMEOUT = 10 * 1000;
+const SIGNALLING_TIMEOUT = 3 * 1000;
 
 export const useWebRtc = (
   props: {
