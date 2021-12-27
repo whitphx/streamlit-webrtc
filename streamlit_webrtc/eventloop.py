@@ -7,7 +7,11 @@ from streamlit.server.server import Server
 
 def get_server_event_loop() -> asyncio.AbstractEventLoop:
     current_server = Server.get_current()
-    return current_server._ioloop.asyncio_loop
+    ioloop = current_server._ioloop
+
+    # `ioloop` is expected to be of type `BaseAsyncIOLoop`,
+    # which has the `asyncio_loop` attribute.
+    return getattr(ioloop, "asyncio_loop")
 
 
 @contextlib.contextmanager
