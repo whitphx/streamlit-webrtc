@@ -6,13 +6,15 @@ import queue
 import threading
 from typing import Callable, Generic, Optional, Union
 
+from streamlit_webrtc.shutdown import SessionShutdownObserver
+
 try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal  # type: ignore
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaRecorder, MediaRelay
+from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
 
 from .eventloop import get_server_event_loop
@@ -227,7 +229,7 @@ async def _process_offer_coro(
                             else AudioProcessTrack
                         )
                         logger.info(
-                            "Set %s as an input audio track " "with audio_processor %s",
+                            "Set %s as an input audio track with audio_processor %s",
                             source_audio_track,
                             AudioTrack,
                         )
@@ -245,7 +247,7 @@ async def _process_offer_coro(
                             else VideoProcessTrack
                         )
                         logger.info(
-                            "Set %s as an input video track " "with video_processor %s",
+                            "Set %s as an input video track with video_processor %s",
                             source_video_track,
                             VideoTrack,
                         )
@@ -290,6 +292,7 @@ process_offer_thread_id_generator = itertools.count()
 class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _process_offer_thread: Union[threading.Thread, None]
     _answer_queue: queue.Queue
+    _session_shutdown_observer: SessionShutdownObserver
     _video_processor: Optional[VideoProcessorT]
     _audio_processor: Optional[AudioProcessorT]
     _video_receiver: Optional[VideoReceiver]
@@ -298,6 +301,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _input_audio_track: Optional[MediaStreamTrack]
     _output_video_track: Optional[MediaStreamTrack]
     _output_audio_track: Optional[MediaStreamTrack]
+    _player: Optional[MediaPlayer]
 
     @property
     def video_processor(self) -> Optional[VideoProcessorT]:
@@ -377,6 +381,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._input_audio_track = None
         self._output_video_track = None
         self._output_audio_track = None
+        self._player = None
+
+        self._session_shutdown_observer = SessionShutdownObserver(self.stop)
 
     def _run_process_offer_thread(
         self,
@@ -449,6 +456,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         source_video_track = None
         if self.player_factory:
             player = self.player_factory()
+            self._player = player
             if player.audio:
                 source_audio_track = relay.subscribe(player.audio)
             if player.video:
@@ -533,12 +541,25 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     def _unset_processors(self):
         self._video_processor = None
         self._audio_processor = None
+
         if self._video_receiver:
             self._video_receiver.stop()
         self._video_receiver = None
+
         if self._audio_receiver:
             self._audio_receiver.stop()
         self._audio_receiver = None
+
+        # The player tracks are not automatically stopped when the WebRTC session ends
+        # because these tracks are connected to the consumer via `MediaRelay` proxies
+        # so `stop()` on the consumer is not delegated to the source tracks.
+        # So the player is stopped manually here when the worker stops.
+        if self._player:
+            if self._player.video:
+                self._player.video.stop()
+            if self._player.audio:
+                self._player.audio.stop()
+        self._player = None
 
     def stop(self, timeout: Union[float, None] = 1.0):
         self._unset_processors()
@@ -546,17 +567,33 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             self._process_offer_thread.join(timeout=timeout)
             self._process_offer_thread = None
 
+        if self.pc and self.pc.connectionState != "closed":
+            loop = get_server_event_loop()
+            if loop.is_running():
+                loop.create_task(self.pc.close())
+            else:
+                loop.run_until_complete(self.pc.close())
+
+        self._session_shutdown_observer.stop()
+
 
 def _test():
     # Mock functions that depend on Streamlit global server object
-    from unittest.mock import Mock
-
     global get_global_relay, get_server_event_loop
 
     loop = asyncio.get_event_loop()
-    get_server_event_loop = Mock(return_value=loop)
 
-    get_global_relay = Mock(return_value=MediaRelay())
+    def get_server_event_loop_mock():
+        return loop
+
+    get_server_event_loop = get_server_event_loop_mock
+
+    fake_global_relay = MediaRelay()
+
+    def get_global_relay_mock():
+        return fake_global_relay
+
+    get_global_relay = get_global_relay_mock
 
     # Start the test
     client = RTCPeerConnection()

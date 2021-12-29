@@ -147,6 +147,8 @@ def create_mix_track(
 ) -> MediaStreamMixTrack[MixerT]:
     wrapped_mixer_factory = ObjectHashWrapper(mixer_factory, None)
     ctx = ReportThread.get_report_ctx()
+    if ctx is None:
+        raise Exception("Failed to get the thread context")
     wrapped_output_track = _inner_create_mix_track(
         kind=kind,
         wrapped_mixer_factory=wrapped_mixer_factory,

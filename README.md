@@ -44,11 +44,11 @@ $ streamlit run https://raw.githubusercontent.com/whitphx/streamlit-webrtc-examp
 
 ### [⚡️Real-time Speech-to-Text](https://github.com/whitphx/streamlit-stt-app): [🎈Online demo](https://share.streamlit.io/whitphx/streamlit-stt-app/main/app_deepspeech.py)
 
-Converting your voice into text in real time.
+It converts your voice into text in real time.
 This app is self-contained; it does not depend on any external API.
 
 ### [⚡️Real-time video style transfer](https://github.com/whitphx/style-transfer-web-app): [🎈Online demo](https://share.streamlit.io/whitphx/style-transfer-web-app/main/app.py)
-It applies wide variety of style transfer filters to real-time video streams.
+It applies a wide variety of style transfer filters to real-time video streams.
 
 ### [⚡️Video chat](https://github.com/whitphx/streamlit-video-chat-example)
 (Online demo not available)
@@ -161,8 +161,10 @@ When deploying apps to remote servers, there are some things you need to be awar
 > A secure context is, in short, a page loaded using HTTPS or the file:/// URL scheme, or a page loaded from localhost.
 
 So, when hosting your app on a remote server, it must be served via HTTPS if your app is using webcam or microphone.
+If not, you will encounter an error when starting using the device. For example, it's something like below on Chrome.
+> Error: navigator.mediaDevices is undefined. It seems the current document is not loaded securely.
 
-[Streamlit Cloud](https://streamlit.io/cloud) is a recommended way. You can easily deploy Streamlit apps with it, and most importantly for this topic, it serves the apps via HTTPS automatically by defualt.
+[Streamlit Cloud](https://streamlit.io/cloud) is a recommended way for HTTPS serving. You can easily deploy Streamlit apps with it, and most importantly for this topic, it serves the apps via HTTPS automatically by defualt.
 
 ### Network connectivity
 Video streaming does not work in some network environments.
