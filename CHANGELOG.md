@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 ### Fix
 - Internal type annotations to be compatible with streamlit>=1.3, #581.
 - Set the frontend signalling timeout as 3 sec, #568.
+- Drop Python 3.6 support, #527.
 
 ## [0.32.0] - 2021-11-28
 ### Fix
