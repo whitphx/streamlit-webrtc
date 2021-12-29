@@ -44,11 +44,11 @@ $ streamlit run https://raw.githubusercontent.com/whitphx/streamlit-webrtc-examp
 
 ### [⚡️Real-time Speech-to-Text](https://github.com/whitphx/streamlit-stt-app): [🎈Online demo](https://share.streamlit.io/whitphx/streamlit-stt-app/main/app_deepspeech.py)
 
-Converting your voice into text in real time.
+It converts your voice into text in real time.
 This app is self-contained; it does not depend on any external API.
 
 ### [⚡️Real-time video style transfer](https://github.com/whitphx/style-transfer-web-app): [🎈Online demo](https://share.streamlit.io/whitphx/style-transfer-web-app/main/app.py)
-It applies wide variety of style transfer filters to real-time video streams.
+It applies a wide variety of style transfer filters to real-time video streams.
 
 ### [⚡️Video chat](https://github.com/whitphx/streamlit-video-chat-example)
 (Online demo not available)
