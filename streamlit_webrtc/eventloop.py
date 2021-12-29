@@ -3,6 +3,7 @@ import contextlib
 from typing import Union
 
 from streamlit.server.server import Server
+from tornado.platform.asyncio import BaseAsyncIOLoop
 
 
 def get_server_event_loop() -> asyncio.AbstractEventLoop:
@@ -11,7 +12,10 @@ def get_server_event_loop() -> asyncio.AbstractEventLoop:
 
     # `ioloop` is expected to be of type `BaseAsyncIOLoop`,
     # which has the `asyncio_loop` attribute.
-    return getattr(ioloop, "asyncio_loop")
+    if not isinstance(ioloop, BaseAsyncIOLoop):
+        raise Exception("Unexpectedly failed to access the asyncio event loop.")
+
+    return ioloop.asyncio_loop
 
 
 @contextlib.contextmanager
