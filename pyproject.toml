@@ -18,7 +18,7 @@ aiortc = "^1.1.2"
 typing_extensions = { version = ">=3.7.4,<5.0.0", python = "<3.8" }
 
 [tool.poetry.dev-dependencies]
-black = "^21.11b1"
+black = "^21.12b0"
 isort = "^5.10.1"
 flake8 = "^4.0.1"
 opencv-python = "^4.5.2"
