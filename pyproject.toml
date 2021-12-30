@@ -24,7 +24,7 @@ flake8 = "^4.0.1"
 opencv-python = "^4.5.3"
 mypy = "^0.930"
 pydub = "^0.25.1"
-matplotlib = "^3.3.4"
+matplotlib = "^3.5.1"
 deepspeech = "^0.9.3"
 streamlit-server-state = "0.9.0"
 
