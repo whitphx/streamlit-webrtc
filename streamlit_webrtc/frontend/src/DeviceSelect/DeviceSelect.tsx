@@ -1,13 +1,13 @@
 import React, {
   useReducer,
   Reducer,
-  useRef,
   useCallback,
   useState,
   useEffect,
 } from "react";
 import Select, { SelectProps } from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
+import VideoPreview from "./VideoPreview";
 
 function stopAllTracks(stream: MediaStream) {
   stream.getVideoTracks().forEach((track) => track.stop());
@@ -105,8 +105,6 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     selectedVideoInputDeviceId: null,
   });
 
-  const previewVideoRef = useRef<HTMLVideoElement>();
-
   // Ref: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/ondevicechange#example
   const updateDeviceList = useCallback(() => {
     if (typeof navigator?.mediaDevices?.enumerateDevices !== "function") {
@@ -161,27 +159,6 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     };
   }, [permitted, updateDeviceList]);
 
-  useEffect(() => {
-    if (selectedVideoInputDeviceId == null) {
-      return;
-    }
-
-    let stream: MediaStream | undefined = undefined;
-    navigator.mediaDevices
-      .getUserMedia({ video: { deviceId: selectedVideoInputDeviceId } })
-      .then((_stream) => {
-        stream = _stream;
-
-        previewVideoRef.current.srcObject = stream;
-      });
-
-    return () => {
-      if (stream) {
-        stopAllTracks(stream);
-      }
-    };
-  }, [selectedVideoInputDeviceId]);
-
   const handleChange = useCallback<
     SelectProps<typeof selectedVideoInputDeviceId>["onChange"]
   >((e) => {
@@ -205,7 +182,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
 
   return (
     <div>
-      <video ref={previewVideoRef} autoPlay muted />
+      <VideoPreview deviceId={selectedVideoInputDeviceId} />
       {selectedVideoInputDeviceId && (
         <Select value={selectedVideoInputDeviceId} onChange={handleChange}>
           {videoInputs.map((device) => (
