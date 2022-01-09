@@ -14,13 +14,28 @@ function stopAllTracks(stream: MediaStream) {
   stream.getAudioTracks().forEach((track) => track.stop());
 }
 
+function ensureValidSelection(
+  devices: MediaDeviceInfo[],
+  selectedDeviceId: MediaDeviceInfo["deviceId"]
+): MediaDeviceInfo["deviceId"] | null {
+  const deviceIds = devices.map((d) => d.deviceId);
+  if (deviceIds.includes(selectedDeviceId)) {
+    return selectedDeviceId;
+  }
+  if (deviceIds.length === 0) {
+    return null;
+  }
+  return deviceIds[0];
+}
+
 interface DeviceSelectionState {
   unavailable: boolean;
   videoInputs: MediaDeviceInfo[];
   audioInputs: MediaDeviceInfo[];
   audioOutputs: MediaDeviceInfo[];
-  // TODO: Add selectedAudioInputDeviceId and selectedAudioOutputDeviceId
+  // TODO: Add selectedAudioOutputDeviceId
   selectedVideoInputDeviceId: MediaDeviceInfo["deviceId"] | null;
+  selectedAudioInputDeviceId: MediaDeviceInfo["deviceId"] | null;
 }
 interface DeviceSelectionActionBase {
   type: string;
@@ -36,7 +51,10 @@ interface DeviceSelectionUpdateDevicesAction extends DeviceSelectionActionBase {
 interface DeviceSelectionUpdateSelectedDeviceIdAction
   extends DeviceSelectionActionBase {
   type: "UPDATE_SELECTED_DEVICE_ID";
-  selectedVideoInputDeviceId: MediaDeviceInfo["deviceId"];
+  payload: {
+    selectedVideoInputDeviceId?: MediaDeviceInfo["deviceId"];
+    selectedAudioInputDeviceId?: MediaDeviceInfo["deviceId"];
+  };
 }
 type DeviceSelectionAction =
   | DeviceSelectionSetUnavailableAction
@@ -54,6 +72,7 @@ const deviceSelectionReducer: Reducer<
         audioInputs: [],
         audioOutputs: [],
         selectedVideoInputDeviceId: null,
+        selectedAudioInputDeviceId: null,
       };
     }
     case "UPDATE_DEVICES": {
@@ -62,12 +81,14 @@ const deviceSelectionReducer: Reducer<
       const audioInputs = devices.filter((d) => d.kind === "audioinput");
       const audioOutputs = devices.filter((d) => d.kind === "audiooutput");
 
-      let selectedVideoInputDeviceId = state.selectedVideoInputDeviceId;
-      const videoInputDeviceIds = videoInputs.map((d) => d.deviceId);
-      if (!videoInputDeviceIds.includes(selectedVideoInputDeviceId)) {
-        selectedVideoInputDeviceId =
-          videoInputDeviceIds.length > 0 ? videoInputDeviceIds[0] : null;
-      }
+      const selectedVideoInputDeviceId = ensureValidSelection(
+        videoInputs,
+        state.selectedVideoInputDeviceId
+      );
+      const selectedAudioInputDeviceId = ensureValidSelection(
+        audioInputs,
+        state.selectedAudioInputDeviceId
+      );
 
       return {
         ...state,
@@ -75,12 +96,13 @@ const deviceSelectionReducer: Reducer<
         audioInputs,
         audioOutputs,
         selectedVideoInputDeviceId,
+        selectedAudioInputDeviceId,
       };
     }
     case "UPDATE_SELECTED_DEVICE_ID": {
       return {
         ...state,
-        selectedVideoInputDeviceId: action.selectedVideoInputDeviceId,
+        ...action.payload,
       };
     }
   }
@@ -95,7 +117,13 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   const [permitted, setPermitted] = useState(false);
 
   const [
-    { unavailable, videoInputs, selectedVideoInputDeviceId },
+    {
+      unavailable,
+      videoInputs,
+      selectedVideoInputDeviceId,
+      audioInputs,
+      selectedAudioInputDeviceId,
+    },
     deviceSelectionDispatch,
   ] = useReducer(deviceSelectionReducer, {
     unavailable: false,
@@ -103,6 +131,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     audioInputs: [],
     audioOutputs: [],
     selectedVideoInputDeviceId: null,
+    selectedAudioInputDeviceId: null,
   });
 
   // Ref: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/ondevicechange#example
@@ -159,12 +188,25 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     };
   }, [permitted, updateDeviceList]);
 
-  const handleChange = useCallback<
+  const handleVideoInputChange = useCallback<
     SelectProps<typeof selectedVideoInputDeviceId>["onChange"]
   >((e) => {
     deviceSelectionDispatch({
       type: "UPDATE_SELECTED_DEVICE_ID",
-      selectedVideoInputDeviceId: e.target.value,
+      payload: {
+        selectedVideoInputDeviceId: e.target.value,
+      },
+    });
+  }, []);
+
+  const handleAudioInputChange = useCallback<
+    SelectProps<typeof selectedAudioInputDeviceId>["onChange"]
+  >((e) => {
+    deviceSelectionDispatch({
+      type: "UPDATE_SELECTED_DEVICE_ID",
+      payload: {
+        selectedAudioInputDeviceId: e.target.value,
+      },
     });
   }, []);
 
@@ -184,8 +226,23 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     <div>
       <VideoPreview deviceId={selectedVideoInputDeviceId} />
       {selectedVideoInputDeviceId && (
-        <Select value={selectedVideoInputDeviceId} onChange={handleChange}>
+        <Select
+          value={selectedVideoInputDeviceId}
+          onChange={handleVideoInputChange}
+        >
           {videoInputs.map((device) => (
+            <MenuItem key={device.deviceId} value={device.deviceId}>
+              {device.label}
+            </MenuItem>
+          ))}
+        </Select>
+      )}
+      {selectedAudioInputDeviceId && (
+        <Select
+          value={selectedAudioInputDeviceId}
+          onChange={handleAudioInputChange}
+        >
+          {audioInputs.map((device) => (
             <MenuItem key={device.deviceId} value={device.deviceId}>
               {device.label}
             </MenuItem>
