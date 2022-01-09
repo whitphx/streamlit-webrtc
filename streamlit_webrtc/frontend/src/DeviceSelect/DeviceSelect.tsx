@@ -16,10 +16,10 @@ function stopAllTracks(stream: MediaStream) {
 
 function ensureValidSelection(
   devices: MediaDeviceInfo[],
-  selectedDeviceId: MediaDeviceInfo["deviceId"]
+  selectedDeviceId: MediaDeviceInfo["deviceId"] | null
 ): MediaDeviceInfo["deviceId"] | null {
   const deviceIds = devices.map((d) => d.deviceId);
-  if (deviceIds.includes(selectedDeviceId)) {
+  if (selectedDeviceId && deviceIds.includes(selectedDeviceId)) {
     return selectedDeviceId;
   }
   if (deviceIds.length === 0) {
@@ -52,8 +52,8 @@ interface DeviceSelectionUpdateSelectedDeviceIdAction
   extends DeviceSelectionActionBase {
   type: "UPDATE_SELECTED_DEVICE_ID";
   payload: {
-    selectedVideoInputDeviceId?: MediaDeviceInfo["deviceId"];
-    selectedAudioInputDeviceId?: MediaDeviceInfo["deviceId"];
+    selectedVideoInputDeviceId?: MediaDeviceInfo["deviceId"] | null;
+    selectedAudioInputDeviceId?: MediaDeviceInfo["deviceId"] | null;
   };
 }
 type DeviceSelectionAction =
@@ -188,12 +188,12 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
 
     // Clean up the event handler
     return () => {
-      navigator.mediaDevices.ondevicechange = undefined;
+      navigator.mediaDevices.ondevicechange = null;
     };
   }, [permitted, updateDeviceList]);
 
   const handleVideoInputChange = useCallback<
-    SelectProps<typeof selectedVideoInputDeviceId>["onChange"]
+    NonNullable<SelectProps<typeof selectedVideoInputDeviceId>["onChange"]>
   >((e) => {
     deviceSelectionDispatch({
       type: "UPDATE_SELECTED_DEVICE_ID",
@@ -204,7 +204,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   }, []);
 
   const handleAudioInputChange = useCallback<
-    SelectProps<typeof selectedAudioInputDeviceId>["onChange"]
+    NonNullable<SelectProps<typeof selectedAudioInputDeviceId>["onChange"]>
   >((e) => {
     deviceSelectionDispatch({
       type: "UPDATE_SELECTED_DEVICE_ID",
@@ -221,7 +221,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     const audioInput = props.audio
       ? audioInputs.find((d) => d.deviceId === selectedAudioInputDeviceId)
       : null;
-    props.onSelect({ video: videoInput, audio: audioInput });
+    props.onSelect({ video: videoInput || null, audio: audioInput || null });
   }, [
     props.video,
     props.audio,
@@ -246,38 +246,34 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
 
   return (
     <div>
-      {props.video && (
+      {props.video && selectedVideoInputDeviceId && (
         <div>
           <VideoPreview deviceId={selectedVideoInputDeviceId} />
-          {selectedVideoInputDeviceId && (
-            <Select
-              value={selectedVideoInputDeviceId}
-              onChange={handleVideoInputChange}
-            >
-              {videoInputs.map((device) => (
-                <MenuItem key={device.deviceId} value={device.deviceId}>
-                  {device.label}
-                </MenuItem>
-              ))}
-            </Select>
-          )}
+          <Select
+            value={selectedVideoInputDeviceId}
+            onChange={handleVideoInputChange}
+          >
+            {videoInputs.map((device) => (
+              <MenuItem key={device.deviceId} value={device.deviceId}>
+                {device.label}
+              </MenuItem>
+            ))}
+          </Select>
         </div>
       )}
-      {props.audio && (
+      {props.audio && selectedAudioInputDeviceId && (
         <div>
           {/* TODO: AudioPreview */}
-          {selectedAudioInputDeviceId && (
-            <Select
-              value={selectedAudioInputDeviceId}
-              onChange={handleAudioInputChange}
-            >
-              {audioInputs.map((device) => (
-                <MenuItem key={device.deviceId} value={device.deviceId}>
-                  {device.label}
-                </MenuItem>
-              ))}
-            </Select>
-          )}
+          <Select
+            value={selectedAudioInputDeviceId}
+            onChange={handleAudioInputChange}
+          >
+            {audioInputs.map((device) => (
+              <MenuItem key={device.deviceId} value={device.deviceId}>
+                {device.label}
+              </MenuItem>
+            ))}
+          </Select>
         </div>
       )}
     </div>

@@ -4,7 +4,7 @@ export interface VideoPreviewProps {
   deviceId: MediaDeviceInfo["deviceId"];
 }
 const VideoPreview: React.VFC<VideoPreviewProps> = (props) => {
-  const videoRef = useRef<HTMLVideoElement>();
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (props.deviceId == null) {
@@ -17,7 +17,9 @@ const VideoPreview: React.VFC<VideoPreviewProps> = (props) => {
       .then((_stream) => {
         stream = _stream;
 
-        videoRef.current.srcObject = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
       });
 
     return () => {
@@ -27,10 +29,6 @@ const VideoPreview: React.VFC<VideoPreviewProps> = (props) => {
       }
     };
   }, [props.deviceId]);
-
-  if (props.deviceId == null) {
-    return <p>No device selected</p>;
-  }
 
   return <video ref={videoRef} autoPlay muted />;
 };
