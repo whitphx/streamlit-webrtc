@@ -111,6 +111,10 @@ const deviceSelectionReducer: Reducer<
 export interface DeviceSelectProps {
   video: boolean;
   audio: boolean;
+  onSelect: (devices: {
+    video: MediaDeviceInfo | null;
+    audio: MediaDeviceInfo | null;
+  }) => void;
 }
 const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   const [waitingForPermission, setWaitingForPermission] = useState(false);
@@ -210,6 +214,24 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     });
   }, []);
 
+  useEffect(() => {
+    const videoInput = props.video
+      ? videoInputs.find((d) => d.deviceId === selectedVideoInputDeviceId)
+      : null;
+    const audioInput = props.audio
+      ? audioInputs.find((d) => d.deviceId === selectedAudioInputDeviceId)
+      : null;
+    props.onSelect({ video: videoInput, audio: audioInput });
+  }, [
+    props.video,
+    props.audio,
+    props.onSelect,
+    videoInputs,
+    audioInputs,
+    selectedVideoInputDeviceId,
+    selectedAudioInputDeviceId,
+  ]);
+
   if (unavailable) {
     return <p>Unavailable</p>;
   }
@@ -224,30 +246,39 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
 
   return (
     <div>
-      <VideoPreview deviceId={selectedVideoInputDeviceId} />
-      {selectedVideoInputDeviceId && (
-        <Select
-          value={selectedVideoInputDeviceId}
-          onChange={handleVideoInputChange}
-        >
-          {videoInputs.map((device) => (
-            <MenuItem key={device.deviceId} value={device.deviceId}>
-              {device.label}
-            </MenuItem>
-          ))}
-        </Select>
+      {props.video && (
+        <div>
+          <VideoPreview deviceId={selectedVideoInputDeviceId} />
+          {selectedVideoInputDeviceId && (
+            <Select
+              value={selectedVideoInputDeviceId}
+              onChange={handleVideoInputChange}
+            >
+              {videoInputs.map((device) => (
+                <MenuItem key={device.deviceId} value={device.deviceId}>
+                  {device.label}
+                </MenuItem>
+              ))}
+            </Select>
+          )}
+        </div>
       )}
-      {selectedAudioInputDeviceId && (
-        <Select
-          value={selectedAudioInputDeviceId}
-          onChange={handleAudioInputChange}
-        >
-          {audioInputs.map((device) => (
-            <MenuItem key={device.deviceId} value={device.deviceId}>
-              {device.label}
-            </MenuItem>
-          ))}
-        </Select>
+      {props.audio && (
+        <div>
+          {/* TODO: AudioPreview */}
+          {selectedAudioInputDeviceId && (
+            <Select
+              value={selectedAudioInputDeviceId}
+              onChange={handleAudioInputChange}
+            >
+              {audioInputs.map((device) => (
+                <MenuItem key={device.deviceId} value={device.deviceId}>
+                  {device.label}
+                </MenuItem>
+              ))}
+            </Select>
+          )}
+        </div>
       )}
     </div>
   );
