@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import VideoPreviewComponent from "./components/VideoPreview";
 
 export interface VideoPreviewProps {
   deviceId: MediaDeviceInfo["deviceId"];
@@ -30,7 +31,7 @@ const VideoPreview: React.VFC<VideoPreviewProps> = (props) => {
     };
   }, [props.deviceId]);
 
-  return <video ref={videoRef} autoPlay muted />;
+  return <VideoPreviewComponent ref={videoRef} autoPlay muted />;
 };
 
 export default React.memo(VideoPreview);
