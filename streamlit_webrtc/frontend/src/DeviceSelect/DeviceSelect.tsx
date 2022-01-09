@@ -16,8 +16,11 @@ function stopAllTracks(stream: MediaStream) {
 
 interface DeviceSelectionState {
   unavailable: boolean;
-  devices: MediaDeviceInfo[];
-  selectedDeviceId: MediaDeviceInfo["deviceId"] | null;
+  videoInputs: MediaDeviceInfo[];
+  audioInputs: MediaDeviceInfo[];
+  audioOutputs: MediaDeviceInfo[];
+  // TODO: Add selectedAudioInputDeviceId and selectedAudioOutputDeviceId
+  selectedVideoInputDeviceId: MediaDeviceInfo["deviceId"] | null;
 }
 interface DeviceSelectionActionBase {
   type: string;
@@ -33,7 +36,7 @@ interface DeviceSelectionUpdateDevicesAction extends DeviceSelectionActionBase {
 interface DeviceSelectionUpdateSelectedDeviceIdAction
   extends DeviceSelectionActionBase {
   type: "UPDATE_SELECTED_DEVICE_ID";
-  selectedDeviceId: MediaDeviceInfo["deviceId"];
+  selectedVideoInputDeviceId: MediaDeviceInfo["deviceId"];
 }
 type DeviceSelectionAction =
   | DeviceSelectionSetUnavailableAction
@@ -47,46 +50,60 @@ const deviceSelectionReducer: Reducer<
     case "SET_UNAVAILABLE": {
       return {
         unavailable: true,
-        devices: [],
-        selectedDeviceId: null,
+        videoInputs: [],
+        audioInputs: [],
+        audioOutputs: [],
+        selectedVideoInputDeviceId: null,
       };
     }
     case "UPDATE_DEVICES": {
       const devices = action.devices;
-      const deviceIds = devices.map((device) => device.deviceId);
-      if (!deviceIds.includes(state.selectedDeviceId)) {
-        const selectedDeviceId =
-          devices.length > 0 ? devices[0].deviceId : null;
-        return {
-          ...state,
-          devices,
-          selectedDeviceId,
-        };
+      const videoInputs = devices.filter((d) => d.kind === "videoinput");
+      const audioInputs = devices.filter((d) => d.kind === "audioinput");
+      const audioOutputs = devices.filter((d) => d.kind === "audiooutput");
+
+      let selectedVideoInputDeviceId = state.selectedVideoInputDeviceId;
+      const videoInputDeviceIds = videoInputs.map((d) => d.deviceId);
+      if (!videoInputDeviceIds.includes(selectedVideoInputDeviceId)) {
+        selectedVideoInputDeviceId =
+          videoInputDeviceIds.length > 0 ? videoInputDeviceIds[0] : null;
       }
+
       return {
         ...state,
-        devices: action.devices,
+        videoInputs,
+        audioInputs,
+        audioOutputs,
+        selectedVideoInputDeviceId,
       };
     }
     case "UPDATE_SELECTED_DEVICE_ID": {
       return {
         ...state,
-        selectedDeviceId: action.selectedDeviceId,
+        selectedVideoInputDeviceId: action.selectedVideoInputDeviceId,
       };
     }
   }
 };
 
-const VideoSelect: React.VFC = () => {
+export interface DeviceSelectProps {
+  video: boolean;
+  audio: boolean;
+}
+const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   const [waitingForPermission, setWaitingForPermission] = useState(false);
   const [permitted, setPermitted] = useState(false);
 
-  const [{ unavailable, devices, selectedDeviceId }, deviceSelectionDispatch] =
-    useReducer(deviceSelectionReducer, {
-      unavailable: false,
-      devices: [],
-      selectedDeviceId: null,
-    });
+  const [
+    { unavailable, videoInputs, selectedVideoInputDeviceId },
+    deviceSelectionDispatch,
+  ] = useReducer(deviceSelectionReducer, {
+    unavailable: false,
+    videoInputs: [],
+    audioInputs: [],
+    audioOutputs: [],
+    selectedVideoInputDeviceId: null,
+  });
 
   const previewVideoRef = useRef<HTMLVideoElement>();
 
@@ -98,12 +115,9 @@ const VideoSelect: React.VFC = () => {
     }
 
     return navigator.mediaDevices.enumerateDevices().then((devices) => {
-      const videoInputDevices = devices.filter(
-        (device) => device.kind === "videoinput"
-      );
       deviceSelectionDispatch({
         type: "UPDATE_DEVICES",
-        devices: videoInputDevices,
+        devices,
       });
     });
   }, []);
@@ -118,14 +132,14 @@ const VideoSelect: React.VFC = () => {
     setPermitted(false);
     setWaitingForPermission(true);
     navigator.mediaDevices
-      .getUserMedia({ video: true, audio: false })
+      .getUserMedia({ video: props.video, audio: props.audio })
       .then((stream) => {
         stopAllTracks(stream);
 
         setPermitted(true);
       })
       .finally(() => setWaitingForPermission(false));
-  }, [updateDeviceList]);
+  }, [props.video, props.audio, updateDeviceList]);
 
   // After permitted, update the device list.
   useEffect(() => {
@@ -148,13 +162,13 @@ const VideoSelect: React.VFC = () => {
   }, [permitted, updateDeviceList]);
 
   useEffect(() => {
-    if (selectedDeviceId == null) {
+    if (selectedVideoInputDeviceId == null) {
       return;
     }
 
     let stream: MediaStream | undefined = undefined;
     navigator.mediaDevices
-      .getUserMedia({ video: { deviceId: selectedDeviceId } })
+      .getUserMedia({ video: { deviceId: selectedVideoInputDeviceId } })
       .then((_stream) => {
         stream = _stream;
 
@@ -166,14 +180,14 @@ const VideoSelect: React.VFC = () => {
         stopAllTracks(stream);
       }
     };
-  }, [selectedDeviceId]);
+  }, [selectedVideoInputDeviceId]);
 
   const handleChange = useCallback<
-    SelectProps<typeof selectedDeviceId>["onChange"]
+    SelectProps<typeof selectedVideoInputDeviceId>["onChange"]
   >((e) => {
     deviceSelectionDispatch({
       type: "UPDATE_SELECTED_DEVICE_ID",
-      selectedDeviceId: e.target.value,
+      selectedVideoInputDeviceId: e.target.value,
     });
   }, []);
 
@@ -192,9 +206,9 @@ const VideoSelect: React.VFC = () => {
   return (
     <div>
       <video ref={previewVideoRef} autoPlay muted />
-      {selectedDeviceId && (
-        <Select value={selectedDeviceId} onChange={handleChange}>
-          {devices.map((device) => (
+      {selectedVideoInputDeviceId && (
+        <Select value={selectedVideoInputDeviceId} onChange={handleChange}>
+          {videoInputs.map((device) => (
             <MenuItem key={device.deviceId} value={device.deviceId}>
               {device.label}
             </MenuItem>
@@ -205,4 +219,4 @@ const VideoSelect: React.VFC = () => {
   );
 };
 
-export default VideoSelect;
+export default DeviceSelect;
