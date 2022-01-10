@@ -1,4 +1,3 @@
-import { Streamlit } from "streamlit-component-lib";
 import React, { useState, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -65,11 +64,9 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
   const [deviceSelectOpen, setDeviceSelectOpen] = useState(false);
   const openDeviceSelect = useCallback(() => {
     setDeviceSelectOpen(true);
-    setTimeout(() => Streamlit.setFrameHeight());
   }, []);
   const closeDeviceSelect = useCallback(() => {
     setDeviceSelectOpen(false);
-    setTimeout(() => Streamlit.setFrameHeight());
   }, []);
   if (deviceSelectOpen) {
     return (
