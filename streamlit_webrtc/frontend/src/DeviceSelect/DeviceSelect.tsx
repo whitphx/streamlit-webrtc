@@ -12,6 +12,7 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import DeviceSelectContainer from "./components/DeviceSelectContainer";
 import VideoPreviewContainer from "./components/VideoPreviewContainer";
+import DeviceSelectError from "./components/DeviceSelectError";
 import VoidVideoPreview from "./components/VoidVideoPreview";
 import VideoPreview from "./VideoPreview";
 
@@ -239,15 +240,19 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   ]);
 
   if (unavailable) {
-    return <p>Unavailable</p>;
+    return <DeviceSelectError>Unavailable</DeviceSelectError>;
   }
 
   if (waitingForPermission) {
-    return <p>Please allow the app to access the media devices</p>;
+    return (
+      <DeviceSelectError>
+        Please allow the app to access the media devices
+      </DeviceSelectError>
+    );
   }
 
   if (!permitted) {
-    return <p>Not permitted</p>;
+    return <DeviceSelectError>Not permitted</DeviceSelectError>;
   }
 
   return (
