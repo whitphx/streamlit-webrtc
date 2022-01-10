@@ -124,6 +124,8 @@ export interface DeviceSelectProps {
   }) => void;
 }
 const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
+  const { video: useVideo, audio: useAudio, onSelect } = props;
+
   const [waitingForPermission, setWaitingForPermission] = useState(false);
   const [permitted, setPermitted] = useState(false);
 
@@ -170,14 +172,14 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     setPermitted(false);
     setWaitingForPermission(true);
     navigator.mediaDevices
-      .getUserMedia({ video: props.video, audio: props.audio })
+      .getUserMedia({ video: useVideo, audio: useAudio })
       .then((stream) => {
         stopAllTracks(stream);
 
         setPermitted(true);
       })
       .finally(() => setWaitingForPermission(false));
-  }, [props.video, props.audio, updateDeviceList]);
+  }, [useVideo, useAudio, updateDeviceList]);
 
   // After permitted, update the device list.
   useEffect(() => {
@@ -221,18 +223,19 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     });
   }, []);
 
+  // Call onSelect
   useEffect(() => {
-    const videoInput = props.video
+    const videoInput = useVideo
       ? videoInputs.find((d) => d.deviceId === selectedVideoInputDeviceId)
       : null;
-    const audioInput = props.audio
+    const audioInput = useAudio
       ? audioInputs.find((d) => d.deviceId === selectedAudioInputDeviceId)
       : null;
-    props.onSelect({ video: videoInput || null, audio: audioInput || null });
+    onSelect({ video: videoInput || null, audio: audioInput || null });
   }, [
-    props.video,
-    props.audio,
-    props.onSelect,
+    useVideo,
+    useAudio,
+    onSelect,
     videoInputs,
     audioInputs,
     selectedVideoInputDeviceId,
@@ -262,14 +265,14 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   return (
     <DeviceSelectContainer>
       <VideoPreviewContainer>
-        {props.video && selectedVideoInputDeviceId ? (
+        {useVideo && selectedVideoInputDeviceId ? (
           <VideoPreview deviceId={selectedVideoInputDeviceId} />
         ) : (
           <VoidVideoPreview />
         )}
       </VideoPreviewContainer>
       <Stack spacing={2} justifyContent="center">
-        {props.video && selectedVideoInputDeviceId && (
+        {useVideo && selectedVideoInputDeviceId && (
           <FormControl fullWidth>
             <InputLabel htmlFor="device-select-video-input">
               Video Input
@@ -290,7 +293,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
             </NativeSelect>
           </FormControl>
         )}
-        {props.audio && selectedAudioInputDeviceId && (
+        {useAudio && selectedAudioInputDeviceId && (
           <FormControl fullWidth>
             <InputLabel htmlFor="device-select-audio-input">
               Audio Input
