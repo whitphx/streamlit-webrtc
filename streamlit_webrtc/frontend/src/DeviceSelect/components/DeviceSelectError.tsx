@@ -1,6 +1,5 @@
 import React from "react";
 import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -17,13 +16,7 @@ interface DeviceSelectErrorProps {
   children: React.ReactNode;
 }
 const DeviceSelectError: React.VFC<DeviceSelectErrorProps> = (props) => {
-  return (
-    <StyledPaper>
-      <Typography variant="h6" component="p">
-        {props.children}
-      </Typography>
-    </StyledPaper>
-  );
+  return <StyledPaper>{props.children}</StyledPaper>;
 };
 
 export default DeviceSelectError;
