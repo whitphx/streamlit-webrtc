@@ -1,3 +1,4 @@
+import { Streamlit } from "streamlit-component-lib";
 import React, {
   useReducer,
   Reducer,
@@ -239,6 +240,10 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     selectedAudioInputDeviceId,
   ]);
 
+  useEffect(() => {
+    Streamlit.setFrameHeight(); // TODO: Check if there are no redundant renderings.
+  });
+
   if (unavailable) {
     return <DeviceSelectError>Unavailable</DeviceSelectError>;
   }
@@ -264,7 +269,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
           <VoidVideoPreview />
         )}
       </VideoPreviewContainer>
-      <Stack spacing={2}>
+      <Stack spacing={2} justifyContent="center">
         {props.video && selectedVideoInputDeviceId && (
           <FormControl fullWidth>
             <InputLabel id="device-select-video-input">Video Input</InputLabel>
