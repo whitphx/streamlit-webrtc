@@ -6,10 +6,9 @@ import React, {
   useState,
   useEffect,
 } from "react";
-import Select, { SelectProps } from "@mui/material/Select";
+import NativeSelect, { NativeSelectProps } from "@mui/material/NativeSelect";
 import Stack from "@mui/material/Stack";
 import InputLabel from "@mui/material/InputLabel";
-import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import DeviceSelectContainer from "./components/DeviceSelectContainer";
 import VideoPreviewContainer from "./components/VideoPreviewContainer";
@@ -201,7 +200,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   }, [permitted, updateDeviceList]);
 
   const handleVideoInputChange = useCallback<
-    NonNullable<SelectProps<typeof selectedVideoInputDeviceId>["onChange"]>
+    NonNullable<NativeSelectProps["onChange"]>
   >((e) => {
     deviceSelectionDispatch({
       type: "UPDATE_SELECTED_DEVICE_ID",
@@ -212,7 +211,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   }, []);
 
   const handleAudioInputChange = useCallback<
-    NonNullable<SelectProps<typeof selectedAudioInputDeviceId>["onChange"]>
+    NonNullable<NativeSelectProps["onChange"]>
   >((e) => {
     deviceSelectionDispatch({
       type: "UPDATE_SELECTED_DEVICE_ID",
@@ -272,36 +271,44 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
       <Stack spacing={2} justifyContent="center">
         {props.video && selectedVideoInputDeviceId && (
           <FormControl fullWidth>
-            <InputLabel id="device-select-video-input">Video Input</InputLabel>
-            <Select
-              label="Video Input"
-              labelId="device-select-video-input"
+            <InputLabel htmlFor="device-select-video-input">
+              Video Input
+            </InputLabel>
+            <NativeSelect
+              inputProps={{
+                name: "video-input",
+                id: "device-select-video-input",
+              }}
               value={selectedVideoInputDeviceId}
               onChange={handleVideoInputChange}
             >
               {videoInputs.map((device) => (
-                <MenuItem key={device.deviceId} value={device.deviceId}>
+                <option key={device.deviceId} value={device.deviceId}>
                   {device.label}
-                </MenuItem>
+                </option>
               ))}
-            </Select>
+            </NativeSelect>
           </FormControl>
         )}
         {props.audio && selectedAudioInputDeviceId && (
           <FormControl fullWidth>
-            <InputLabel id="device-select-audio-input">Audio Input</InputLabel>
-            <Select
-              label="Audio Input"
-              labelId="device-select-audio-input"
+            <InputLabel htmlFor="device-select-audio-input">
+              Audio Input
+            </InputLabel>
+            <NativeSelect
+              inputProps={{
+                name: "audio-input",
+                id: "device-select-audio-input",
+              }}
               value={selectedAudioInputDeviceId}
               onChange={handleAudioInputChange}
             >
               {audioInputs.map((device) => (
-                <MenuItem key={device.deviceId} value={device.deviceId}>
+                <option key={device.deviceId} value={device.deviceId}>
                   {device.label}
-                </MenuItem>
+                </option>
               ))}
-            </Select>
+            </NativeSelect>
           </FormControl>
         )}
       </Stack>
