@@ -13,7 +13,7 @@ import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 import DeviceSelectContainer from "./components/DeviceSelectContainer";
 import VideoPreviewContainer from "./components/VideoPreviewContainer";
-import DeviceSelectError from "./components/DeviceSelectError";
+import DeviceSelectMessage from "./components/DeviceSelectMessage";
 import VoidVideoPreview from "./components/VoidVideoPreview";
 import VideoPreview from "./VideoPreview";
 
@@ -253,38 +253,40 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   });
 
   if (unavailable) {
-    return <DeviceSelectError>Unavailable</DeviceSelectError>;
+    return <DeviceSelectMessage>Unavailable</DeviceSelectMessage>;
   }
 
   if (waitingForPermission) {
     return (
-      <DeviceSelectError>
+      <DeviceSelectMessage>
         Please allow the app to access the media devices
-      </DeviceSelectError>
+      </DeviceSelectMessage>
     );
   }
 
   if (error) {
     if (error instanceof DOMException && error.name === "NotReadableError") {
       return (
-        <DeviceSelectError>
+        <DeviceSelectMessage>
           Device not available ({error.message})
-        </DeviceSelectError>
+        </DeviceSelectMessage>
       );
     } else if (
       error instanceof DOMException &&
       error.name === "NotAllowedError"
     ) {
       return (
-        <DeviceSelectError>Access denied ({error.message})</DeviceSelectError>
+        <DeviceSelectMessage>
+          Access denied ({error.message})
+        </DeviceSelectMessage>
       );
     } else {
       return (
-        <DeviceSelectError>
+        <DeviceSelectMessage>
           <Alert severity="error">
             {error.name}: {error.message}
           </Alert>
-        </DeviceSelectError>
+        </DeviceSelectMessage>
       );
     }
   }
@@ -292,7 +294,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   if (!permitted) {
     // Usually this block is not reached because this case should be handled
     // by the "NotAllowedError" block in the previous if-clause.
-    return <DeviceSelectError>Access denied</DeviceSelectError>;
+    return <DeviceSelectMessage>Access denied</DeviceSelectMessage>;
   }
 
   return (

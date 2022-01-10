@@ -12,11 +12,11 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   boxSizing: "border-box",
 }));
 
-interface DeviceSelectErrorProps {
+interface DeviceSelectMessageProps {
   children: React.ReactNode;
 }
-const DeviceSelectError: React.VFC<DeviceSelectErrorProps> = (props) => {
+const DeviceSelectMessage: React.VFC<DeviceSelectMessageProps> = (props) => {
   return <StyledPaper>{props.children}</StyledPaper>;
 };
 
-export default DeviceSelectError;
+export default DeviceSelectMessage;
