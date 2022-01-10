@@ -6,7 +6,13 @@ import React, {
   useEffect,
 } from "react";
 import Select, { SelectProps } from "@mui/material/Select";
+import Stack from "@mui/material/Stack";
+import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import DeviceSelectContainer from "./components/DeviceSelectContainer";
+import VideoPreviewContainer from "./components/VideoPreviewContainer";
+import VoidVideoPreview from "./components/VoidVideoPreview";
 import VideoPreview from "./VideoPreview";
 
 function stopAllTracks(stream: MediaStream) {
@@ -245,38 +251,51 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   }
 
   return (
-    <div>
-      {props.video && selectedVideoInputDeviceId && (
-        <div>
+    <DeviceSelectContainer>
+      <VideoPreviewContainer>
+        {props.video && selectedVideoInputDeviceId ? (
           <VideoPreview deviceId={selectedVideoInputDeviceId} />
-          <Select
-            value={selectedVideoInputDeviceId}
-            onChange={handleVideoInputChange}
-          >
-            {videoInputs.map((device) => (
-              <MenuItem key={device.deviceId} value={device.deviceId}>
-                {device.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </div>
-      )}
-      {props.audio && selectedAudioInputDeviceId && (
-        <div>
-          {/* TODO: AudioPreview */}
-          <Select
-            value={selectedAudioInputDeviceId}
-            onChange={handleAudioInputChange}
-          >
-            {audioInputs.map((device) => (
-              <MenuItem key={device.deviceId} value={device.deviceId}>
-                {device.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </div>
-      )}
-    </div>
+        ) : (
+          <VoidVideoPreview />
+        )}
+      </VideoPreviewContainer>
+      <Stack spacing={2}>
+        {props.video && selectedVideoInputDeviceId && (
+          <FormControl fullWidth>
+            <InputLabel id="device-select-video-input">Video Input</InputLabel>
+            <Select
+              label="Video Input"
+              labelId="device-select-video-input"
+              value={selectedVideoInputDeviceId}
+              onChange={handleVideoInputChange}
+            >
+              {videoInputs.map((device) => (
+                <MenuItem key={device.deviceId} value={device.deviceId}>
+                  {device.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+        {props.audio && selectedAudioInputDeviceId && (
+          <FormControl fullWidth>
+            <InputLabel id="device-select-audio-input">Audio Input</InputLabel>
+            <Select
+              label="Audio Input"
+              labelId="device-select-audio-input"
+              value={selectedAudioInputDeviceId}
+              onChange={handleAudioInputChange}
+            >
+              {audioInputs.map((device) => (
+                <MenuItem key={device.deviceId} value={device.deviceId}>
+                  {device.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+      </Stack>
+    </DeviceSelectContainer>
   );
 };
 
