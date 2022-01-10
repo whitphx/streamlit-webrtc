@@ -15,6 +15,7 @@ import DeviceSelectContainer from "./components/DeviceSelectContainer";
 import VideoPreviewContainer from "./components/VideoPreviewContainer";
 import DeviceSelectMessage from "./components/DeviceSelectMessage";
 import VoidVideoPreview from "./components/VoidVideoPreview";
+import Defer from "./components/Defer";
 import VideoPreview from "./VideoPreview";
 
 function stopAllTracks(stream: MediaStream) {
@@ -258,9 +259,11 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
 
   if (waitingForPermission) {
     return (
-      <DeviceSelectMessage>
-        Please allow the app to access the media devices
-      </DeviceSelectMessage>
+      <Defer time={1000}>
+        <DeviceSelectMessage>
+          Please allow the app to access the media devices
+        </DeviceSelectMessage>
+      </Defer>
     );
   }
 
