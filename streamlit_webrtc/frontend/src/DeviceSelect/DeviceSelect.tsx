@@ -117,6 +117,8 @@ const deviceSelectionReducer: Reducer<
   }
 };
 
+type PermissionState = "WAITING" | "ALLOWED" | Error;
+
 export interface DeviceSelectProps {
   video: boolean;
   audio: boolean;
@@ -128,9 +130,8 @@ export interface DeviceSelectProps {
 const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   const { video: useVideo, audio: useAudio, onSelect } = props;
 
-  const [waitingForPermission, setWaitingForPermission] = useState(false);
-  const [error, setError] = useState<Error>();
-  const [permitted, setPermitted] = useState(false);
+  const [permissionState, setPermissionState] =
+    useState<PermissionState>("WAITING");
 
   const [
     {
@@ -172,9 +173,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
       return;
     }
 
-    setPermitted(false);
-    setError(undefined);
-    setWaitingForPermission(true);
+    setPermissionState("WAITING");
     navigator.mediaDevices
       .getUserMedia({ video: useVideo, audio: useAudio })
       .then(async (stream) => {
@@ -182,12 +181,11 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
 
         await updateDeviceList();
 
-        setPermitted(true);
+        setPermissionState("ALLOWED");
       })
       .catch((err) => {
-        setError(err);
-      })
-      .finally(() => setWaitingForPermission(false));
+        setPermissionState(err);
+      });
   }, [useVideo, useAudio, updateDeviceList]);
 
   // Set up the ondevicechange event handler
@@ -251,7 +249,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     return <DeviceSelectMessage>Unavailable</DeviceSelectMessage>;
   }
 
-  if (waitingForPermission) {
+  if (permissionState === "WAITING") {
     return (
       <Defer time={1000}>
         <DeviceSelectMessage>
@@ -261,7 +259,8 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     );
   }
 
-  if (error) {
+  if (permissionState instanceof Error) {
+    const error = permissionState;
     if (error instanceof DOMException && error.name === "NotReadableError") {
       return (
         <DeviceSelectMessage>
@@ -286,12 +285,6 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
         </DeviceSelectMessage>
       );
     }
-  }
-
-  if (!permitted) {
-    // Usually this block is not reached because this case should be handled
-    // by the "NotAllowedError" block in the previous if-clause.
-    return <DeviceSelectMessage>Access denied</DeviceSelectMessage>;
   }
 
   return (
