@@ -261,7 +261,10 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
 
   if (permissionState instanceof Error) {
     const error = permissionState;
-    if (error instanceof DOMException && error.name === "NotReadableError") {
+    if (
+      error instanceof DOMException &&
+      (error.name === "NotReadableError" || error.name === "NotFoundError")
+    ) {
       return (
         <DeviceSelectMessage>
           Device not available ({error.message})
