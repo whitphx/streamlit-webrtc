@@ -253,7 +253,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     return (
       <Defer time={1000}>
         <DeviceSelectMessage>
-          Please allow the app to access the media devices
+          Please allow the app to use your media devices
         </DeviceSelectMessage>
       </Defer>
     );
