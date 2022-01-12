@@ -177,8 +177,10 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     setWaitingForPermission(true);
     navigator.mediaDevices
       .getUserMedia({ video: useVideo, audio: useAudio })
-      .then((stream) => {
+      .then(async (stream) => {
         stopAllTracks(stream);
+
+        await updateDeviceList();
 
         setPermitted(true);
       })
@@ -188,26 +190,17 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
       .finally(() => setWaitingForPermission(false));
   }, [useVideo, useAudio, updateDeviceList]);
 
-  // After permitted, update the device list.
+  // Set up the ondevicechange event handler
   useEffect(() => {
-    if (!permitted) {
-      return;
-    }
-
-    // The first update just after the permission granted
-    updateDeviceList();
-
-    // Event-based updates
     const handleDeviceChange = () => updateDeviceList();
     navigator.mediaDevices.ondevicechange = handleDeviceChange;
 
-    // Clean up the event handler
     return () => {
       if (navigator.mediaDevices.ondevicechange === handleDeviceChange) {
         navigator.mediaDevices.ondevicechange = null;
       }
     };
-  }, [permitted, updateDeviceList]);
+  }, [updateDeviceList]);
 
   const handleVideoInputChange = useCallback<
     NonNullable<NativeSelectProps["onChange"]>
