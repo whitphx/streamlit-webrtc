@@ -198,13 +198,14 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     updateDeviceList();
 
     // Event-based updates
-    navigator.mediaDevices.ondevicechange = function (event) {
-      updateDeviceList();
-    };
+    const handleDeviceChange = () => updateDeviceList();
+    navigator.mediaDevices.ondevicechange = handleDeviceChange;
 
     // Clean up the event handler
     return () => {
-      navigator.mediaDevices.ondevicechange = null;
+      if (navigator.mediaDevices.ondevicechange === handleDeviceChange) {
+        navigator.mediaDevices.ondevicechange = null;
+      }
     };
   }, [permitted, updateDeviceList]);
 
