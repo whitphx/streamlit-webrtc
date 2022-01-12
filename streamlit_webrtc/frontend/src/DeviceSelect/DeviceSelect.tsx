@@ -242,7 +242,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   ]);
 
   useEffect(() => {
-    Streamlit.setFrameHeight();
+    setTimeout(() => Streamlit.setFrameHeight());
   });
 
   if (unavailable) {
