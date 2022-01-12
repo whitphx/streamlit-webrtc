@@ -17,11 +17,7 @@ import DeviceSelectMessage from "./components/DeviceSelectMessage";
 import VoidVideoPreview from "./components/VoidVideoPreview";
 import Defer from "./components/Defer";
 import VideoPreview from "./VideoPreview";
-
-function stopAllTracks(stream: MediaStream) {
-  stream.getVideoTracks().forEach((track) => track.stop());
-  stream.getAudioTracks().forEach((track) => track.stop());
-}
+import { stopAllTracks } from "./utils";
 
 function ensureValidSelection(
   devices: MediaDeviceInfo[],

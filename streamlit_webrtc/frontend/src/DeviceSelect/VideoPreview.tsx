@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import VideoPreviewComponent from "./components/VideoPreview";
+import { stopAllTracks } from "./utils";
 
 export interface VideoPreviewProps {
   deviceId: MediaDeviceInfo["deviceId"];
@@ -13,10 +14,16 @@ const VideoPreview: React.VFC<VideoPreviewProps> = (props) => {
     }
 
     let stream: MediaStream | null = null;
+    let unmounted = false;
     navigator.mediaDevices
       .getUserMedia({ video: { deviceId: props.deviceId }, audio: false })
       .then((_stream) => {
         stream = _stream;
+
+        if (unmounted) {
+          stopAllTracks(stream);
+          return;
+        }
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -24,9 +31,9 @@ const VideoPreview: React.VFC<VideoPreviewProps> = (props) => {
       });
 
     return () => {
+      unmounted = true;
       if (stream) {
-        stream.getVideoTracks().forEach((track) => track.stop());
-        stream.getAudioTracks().forEach((track) => track.stop());
+        stopAllTracks(stream);
       }
     };
   }, [props.deviceId]);
