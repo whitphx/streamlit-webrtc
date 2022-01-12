@@ -122,6 +122,8 @@ type PermissionState = "WAITING" | "ALLOWED" | Error;
 export interface DeviceSelectProps {
   video: boolean;
   audio: boolean;
+  defaultVideoDeviceId: MediaDeviceInfo["deviceId"] | null;
+  defaultAudioDeviceId: MediaDeviceInfo["deviceId"] | null;
   onSelect: (devices: {
     video: MediaDeviceInfo | null;
     audio: MediaDeviceInfo | null;
@@ -147,8 +149,8 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     videoInputs: [],
     audioInputs: [],
     audioOutputs: [],
-    selectedVideoInputDeviceId: null,
-    selectedAudioInputDeviceId: null,
+    selectedVideoInputDeviceId: props.defaultVideoDeviceId,
+    selectedAudioInputDeviceId: props.defaultAudioDeviceId,
   });
 
   // Ref: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/ondevicechange#example

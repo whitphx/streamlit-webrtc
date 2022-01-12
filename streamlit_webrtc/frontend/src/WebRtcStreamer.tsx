@@ -73,6 +73,8 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
       <DeviceSelectForm
         video={videoEnabled}
         audio={audioEnabled}
+        defaultVideoDeviceId={devices.video ? devices.video.deviceId : null}
+        defaultAudioDeviceId={devices.audio ? devices.audio.deviceId : null}
         onSelect={handleDeviceSelect}
         onClose={closeDeviceSelect}
       />
