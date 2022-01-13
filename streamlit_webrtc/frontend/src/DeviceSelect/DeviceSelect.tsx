@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useState,
   useEffect,
+  useRef,
 } from "react";
 import NativeSelect, { NativeSelectProps } from "@mui/material/NativeSelect";
 import Alert from "@mui/material/Alert";
@@ -126,7 +127,13 @@ export interface DeviceSelectProps {
   }) => void;
 }
 const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
-  const { video: useVideo, audio: useAudio, onSelect } = props;
+  const {
+    video: useVideo,
+    audio: useAudio,
+    defaultVideoDeviceId,
+    defaultAudioDeviceId,
+    onSelect,
+  } = props;
 
   const [permissionState, setPermissionState] =
     useState<PermissionState>("WAITING");
@@ -145,8 +152,8 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     videoInputs: [],
     audioInputs: [],
     audioOutputs: [],
-    selectedVideoInputDeviceId: props.defaultVideoDeviceId,
-    selectedAudioInputDeviceId: props.defaultAudioDeviceId,
+    selectedVideoInputDeviceId: defaultVideoDeviceId,
+    selectedAudioInputDeviceId: defaultAudioDeviceId,
   });
 
   // Ref: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/ondevicechange#example
@@ -164,6 +171,17 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     });
   }, []);
 
+  // These values are passed to inside the useEffect below via a ref
+  // because they are used there only for UX improvement
+  // and should not be added to the dependency list to avoid triggering re-execution.
+  const defaultDeviceIdsRef = useRef({
+    video: defaultVideoDeviceId,
+    audio: defaultAudioDeviceId,
+  });
+  defaultDeviceIdsRef.current = {
+    video: defaultVideoDeviceId,
+    audio: defaultAudioDeviceId,
+  };
   // Call `getUserMedia()` to ask the user for the permission.
   useEffect(() => {
     if (typeof navigator?.mediaDevices?.getUserMedia !== "function") {
@@ -172,8 +190,20 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     }
 
     setPermissionState("WAITING");
+
+    const { video: videoDeviceId, audio: audioDeviceId } =
+      defaultDeviceIdsRef.current;
     navigator.mediaDevices
-      .getUserMedia({ video: useVideo, audio: useAudio })
+      .getUserMedia({
+        // Specify the target devices if the user already selected specific ones.
+        // This is not mandatory but beneficial for better UX
+        // as unused devices are not accessed so that their LED indicators
+        // will not be unnecessarily turned on.
+        video:
+          useVideo && videoDeviceId ? { deviceId: videoDeviceId } : useVideo,
+        audio:
+          useAudio && audioDeviceId ? { deviceId: audioDeviceId } : useAudio,
+      })
       .then(async (stream) => {
         stopAllTracks(stream);
 
