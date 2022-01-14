@@ -28,10 +28,10 @@ function ensureValidSelection(
   if (selectedDeviceId && deviceIds.includes(selectedDeviceId)) {
     return selectedDeviceId;
   }
-  if (deviceIds.length === 0) {
-    return null;
+  if (deviceIds.length > 0) {
+    return deviceIds[0];
   }
-  return deviceIds[0];
+  return null;
 }
 
 interface DeviceSelectionState {
