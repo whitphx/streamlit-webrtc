@@ -21,6 +21,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.7, 3.8, 3.9]
+        streamlit-version: [null, 1.0.0]
 
     steps:
     - uses: actions/checkout@v2.4.0
@@ -47,6 +48,11 @@ jobs:
       shell: bash
       run: timeout 10s poetry run pip --version || rm -rf .venv
 
+    - name: Install a specific version of Streamlit
+      if: ${{ matrix.streamlit-version }}
+      run: poetry add -D streamlit=="${STREAMLIT_VERSION}"
+      env:
+        STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
     - name: Install dependencies
       run: poetry install
     - name: Lint with black, isort, and flake8
@@ -57,6 +63,21 @@ jobs:
     - name: Type checking with mypy
       run: |
         poetry run mypy .
-    # - name: Test with pytest
-    #   run: |
-    #     pytest
+
+    # Frontend build is necessary for the package to be importable, in the tests
+    - name: Set up Node.js
+      uses: actions/setup-node@v2.5.1
+      with:
+        node-version: '14.x'
+        cache: 'npm'
+        cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
+    - name: Install fronend dependencies
+      run: npm ci
+      working-directory: streamlit_webrtc/frontend
+    - name: Built the frontend
+      run: npm run build --if-present
+      working-directory: streamlit_webrtc/frontend
+
+    - name: Test with pytest
+      run: |
+        poetry run pytest
