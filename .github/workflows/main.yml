@@ -57,6 +57,12 @@ jobs:
     - name: Type checking with mypy
       run: |
         poetry run mypy .
+
+    # Frontend build is necessary for the package to be importable
+    - name: Built the frontend
+      run: npm run build
+      working-directory: streamlit_webrtc/frontend
+
     - name: Test with pytest
       run: |
         poetry run pytest
