@@ -62,7 +62,7 @@
   },
   "homepage": ".",
   "devDependencies": {
-    "@storybook/addon-actions": "^6.4.9",
+    "@storybook/addon-actions": "^6.4.12",
     "@storybook/addon-essentials": "^6.4.9",
     "@storybook/addon-links": "^6.4.9",
     "@storybook/node-logger": "^6.4.9",
