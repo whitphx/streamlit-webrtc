@@ -1,4 +1,3 @@
-import React from "react";
 import Paper from "@mui/material/Paper";
 import { styled } from "@mui/material/styles";
 
@@ -12,11 +11,6 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   boxSizing: "border-box",
 }));
 
-interface DeviceSelectMessageProps {
-  children: React.ReactNode;
-}
-const DeviceSelectMessage: React.VFC<DeviceSelectMessageProps> = (props) => {
-  return <StyledPaper>{props.children}</StyledPaper>;
-};
+const DeviceSelectMessage = StyledPaper;
 
 export default DeviceSelectMessage;
