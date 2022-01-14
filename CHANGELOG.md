@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fix
+- New device selector, #594.
 
 ## [0.33.0] - 2021-12-30
 ### Fix

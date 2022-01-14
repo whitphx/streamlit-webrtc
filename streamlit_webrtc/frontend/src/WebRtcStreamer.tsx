@@ -2,7 +2,9 @@ import React, { useState, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
-import DeviceSelector from "./DeviceSelector";
+import DeviceSelectForm, {
+  DeviceSelectFormProps,
+} from "./DeviceSelect/DeviceSelectForm";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
 import { useRenderData } from "streamlit-component-lib-react-hooks";
@@ -52,12 +54,32 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
     props.mediaStreamConstraints
   );
 
-  const handleDeviceSelect = useCallback(
-    (video: MediaDeviceInfo | null, audio: MediaDeviceInfo | null) => {
+  const handleDeviceSelect = useCallback<DeviceSelectFormProps["onSelect"]>(
+    ({ video, audio }) => {
       setDevices({ video, audio });
     },
     []
   );
+
+  const [deviceSelectOpen, setDeviceSelectOpen] = useState(false);
+  const openDeviceSelect = useCallback(() => {
+    setDeviceSelectOpen(true);
+  }, []);
+  const closeDeviceSelect = useCallback(() => {
+    setDeviceSelectOpen(false);
+  }, []);
+  if (deviceSelectOpen) {
+    return (
+      <DeviceSelectForm
+        video={videoEnabled}
+        audio={audioEnabled}
+        defaultVideoDeviceId={devices.video ? devices.video.deviceId : null}
+        defaultAudioDeviceId={devices.audio ? devices.audio.deviceId : null}
+        onSelect={handleDeviceSelect}
+        onClose={closeDeviceSelect}
+      />
+    );
+  }
 
   return (
     <Box>
@@ -95,13 +117,10 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
             Start
           </Button>
         )}
-        {transmittable && (
-          <DeviceSelector
-            videoEnabled={videoEnabled}
-            audioEnabled={audioEnabled}
-            onSelect={handleDeviceSelect}
-            value={devices}
-          />
+        {transmittable && state.webRtcState === "STOPPED" && (
+          <Button color="inherit" onClick={openDeviceSelect}>
+            Select device
+          </Button>
         )}
       </Box>
     </Box>
