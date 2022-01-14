@@ -21,7 +21,13 @@ jobs:
     strategy:
       matrix:
         python-version: [3.7, 3.8, 3.9]
-        streamlit-version: [null, 1.0.0]
+        streamlit-version: [null]
+        include:
+          # Test with streamlit <1.4.0 and >=1.4.0. See https://github.com/whitphx/streamlit-webrtc/issues/598
+          - python-version: 3.9
+            streamlit-version: 1.0.0
+          - python-version: 3.9
+            streamlit-version: 1.4.0
 
     steps:
     - uses: actions/checkout@v2.4.0

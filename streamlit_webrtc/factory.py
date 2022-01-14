@@ -6,7 +6,6 @@ except ImportError:
     from typing_extensions import Literal  # type: ignore
 
 import streamlit as st
-import streamlit.report_thread as ReportThread
 from aiortc import MediaStreamTrack
 
 from .eventloop import get_server_event_loop, loop_context
@@ -20,6 +19,7 @@ from .process import (
     VideoProcessTrack,
 )
 from .relay import get_global_relay
+from .session_info import get_session_id
 from .webrtc import (
     AudioProcessorFactory,
     AudioProcessorT,
@@ -146,14 +146,12 @@ def create_mix_track(
     mixer_output_interval: float = 1 / 30,
 ) -> MediaStreamMixTrack[MixerT]:
     wrapped_mixer_factory = ObjectHashWrapper(mixer_factory, None)
-    ctx = ReportThread.get_report_ctx()
-    if ctx is None:
-        raise Exception("Failed to get the thread context")
+    session_id = get_session_id()
     wrapped_output_track = _inner_create_mix_track(
         kind=kind,
         wrapped_mixer_factory=wrapped_mixer_factory,
         mixer_output_interval=mixer_output_interval,
         key=key,  # To make the cache unique
-        session_id=ctx.session_id,  # To make the cache session-specific.
+        session_id=session_id,  # To make the cache session-specific.
     )
     return wrapped_output_track.obj

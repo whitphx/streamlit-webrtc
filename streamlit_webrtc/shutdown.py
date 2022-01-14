@@ -3,7 +3,14 @@ import threading
 import weakref
 from typing import Callable, Union
 
-from streamlit.report_session import ReportSession, ReportSessionState
+try:
+    from streamlit.app_session import AppSession, AppSessionState
+except ModuleNotFoundError:
+    # streamlit < 1.4
+    from streamlit.report_session import (  # type: ignore
+        ReportSession as AppSession,
+        ReportSessionState as AppSessionState,
+    )
 
 from .session_info import get_this_session_info
 
@@ -26,7 +33,7 @@ class SessionShutdownObserver:
             self._polling_thread = threading.Thread(
                 target=self._polling_thread_impl,
                 kwargs={
-                    "report_session_ref": weakref.ref(session),
+                    "app_session_ref": weakref.ref(session),
                     "callback": callback,
                 },
                 name=f"ShutdownPolling_{session.id}",
@@ -36,27 +43,27 @@ class SessionShutdownObserver:
 
     def _polling_thread_impl(
         self,
-        report_session_ref: "weakref.ReferenceType[ReportSession]",
+        app_session_ref: "weakref.ReferenceType[AppSession]",
         callback: Callback,
     ):
         # Use polling because event-based methods are not available
         # to observe the session lifecycle.
         while not self._polling_thread_stop_event.wait(1.0):
-            report_session = report_session_ref()
-            if not report_session:
-                logger.debug("ReportSession has removed.")
+            app_session = app_session_ref()
+            if not app_session:
+                logger.debug("AppSession has removed.")
                 break
-            if report_session._state == ReportSessionState.SHUTDOWN_REQUESTED:
+            if app_session._state == AppSessionState.SHUTDOWN_REQUESTED:
                 logger.debug(
-                    "ReportSession %s has been requested to shutdown.",
-                    report_session.id,
+                    "AppSession %s has been requested to shutdown.",
+                    app_session.id,
                 )
                 break
 
         # Ensure the flag is set
         self._polling_thread_stop_event.set()
 
-        logger.debug("ReportSession shutdown has been detected.")
+        logger.debug("AppSession shutdown has been detected.")
         callback()
 
     def stop(self):
