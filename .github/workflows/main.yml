@@ -59,6 +59,13 @@ jobs:
         poetry run mypy .
 
     # Frontend build is necessary for the package to be importable
+    - name: Set up Node.js
+      uses: actions/setup-node@v2.5.1
+      with:
+        node-version: '14.x'
+        cache: 'npm'
+        cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
+    - run: npm ci
     - name: Built the frontend
       run: npm run build
       working-directory: streamlit_webrtc/frontend
