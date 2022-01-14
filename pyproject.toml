@@ -27,6 +27,7 @@ pydub = "^0.25.1"
 matplotlib = "^3.5.1"
 deepspeech = "^0.9.3"
 streamlit-server-state = "0.11.0"
+pytest = "^6.2.5"
 
 [tool.black]
 line-length = 88
