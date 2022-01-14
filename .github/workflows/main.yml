@@ -21,6 +21,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.7, 3.8, 3.9]
+        streamlit-version: [null, 1.0.0]
 
     steps:
     - uses: actions/checkout@v2.4.0
@@ -47,6 +48,11 @@ jobs:
       shell: bash
       run: timeout 10s poetry run pip --version || rm -rf .venv
 
+    - name: Install a specific version of Streamlit
+      if: ${{ matrix.streamlit-version }}
+      run: poetry add -D streamlit=="${STREAMLIT_VERSION}"
+      env:
+        STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
     - name: Install dependencies
       run: poetry install
     - name: Lint with black, isort, and flake8
