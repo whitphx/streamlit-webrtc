@@ -58,7 +58,7 @@ jobs:
       run: |
         poetry run mypy .
 
-    # Frontend build is necessary for the package to be importable
+    # Frontend build is necessary for the package to be importable, in the tests
     - name: Set up Node.js
       uses: actions/setup-node@v2.5.1
       with:
