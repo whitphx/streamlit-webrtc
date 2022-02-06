@@ -1214,7 +1214,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "streamlit"
-version = "1.4.0"
+version = "1.5.0"
 description = "The fastest way to build data apps in Python"
 category = "main"
 optional = false
@@ -2376,8 +2376,8 @@ smmap = [
     {file = "smmap-3.0.5.tar.gz", hash = "sha256:84c2751ef3072d4f6b2785ec7ee40244c6f45eb934d9e543e2c51f1bd3d54c50"},
 ]
 streamlit = [
-    {file = "streamlit-1.4.0-py2.py3-none-any.whl", hash = "sha256:0f98c55194cabca3642752730a149dc07f4edf4abc56f2fffc67ed97b0d55a0c"},
-    {file = "streamlit-1.4.0.tar.gz", hash = "sha256:8cdb4c008ff63dc4522e86aed142912de53647244d97f82766a23dfee6ffe564"},
+    {file = "streamlit-1.5.0-py2.py3-none-any.whl", hash = "sha256:ac2ad021a4dc5407ca523890b60e940d383705d62f8084c58d62ac7ae877f54a"},
+    {file = "streamlit-1.5.0.tar.gz", hash = "sha256:ba4ddbce6d28726b70ffa68b923c43813137a7a35f994f73eb44c57577ac9023"},
 ]
 streamlit-server-state = [
     {file = "streamlit-server-state-0.12.0.tar.gz", hash = "sha256:e536cc9bbbb788a61a0a8fb2b0a2c9ab831bc4334f02c07ebc21f9c4d305d60c"},
