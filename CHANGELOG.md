@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+### Add
+- PEP-561 compatibility, #671.
+
 ## [0.34.2] - 2022-01-15
 ### Fix
 - Internal package updates.
