@@ -181,7 +181,7 @@ def generate_frontend_component_key(original_key: str) -> str:
     # XXX: Any other cleaner way to ensure the key does not conflict?
 
 
-def extract_state(component_value) -> WebRtcStreamerState:
+def compile_state(component_value) -> WebRtcStreamerState:
     playing = component_value.get("playing", False)
     signalling = bool(component_value.get("sdpOffer"))
     return WebRtcStreamerState(playing=playing, signalling=signalling)
@@ -401,14 +401,19 @@ def webrtc_streamer(
 
     frontend_key = generate_frontend_component_key(key)
 
-    if on_change:
+    def callback():
+        component_value = st.session_state[frontend_key]
+        new_state = compile_state(component_value)
 
-        def inner_callback():
-            component_value = st.session_state[frontend_key]
-            new_state = extract_state(component_value)
-            on_change(new_state)
+        context = st.session_state[key]
+        old_state = context.state
 
-        register_callback(element_key=frontend_key, callback=inner_callback)
+        context._set_state(new_state)
+
+        if on_change and old_state != new_state:
+            on_change()
+
+    register_callback(element_key=frontend_key, callback=callback)
 
     component_value_raw: Union[Dict, str, None] = _component_func(
         key=frontend_key,
@@ -459,9 +464,8 @@ def webrtc_streamer(
     sdp_offer = None
     if component_value:
         sdp_offer = component_value.get("sdpOffer")
-        state = extract_state(component_value)
 
-    if webrtc_worker and not state.playing and not state.signalling:
+    if webrtc_worker and not context.state.playing and not context.state.signalling:
         LOGGER.debug(
             "Unset the worker because the frontend state is "
             'neither playing nor signalling (key="%s").',
@@ -500,5 +504,4 @@ def webrtc_streamer(
         st.experimental_rerun()
 
     context._set_worker(webrtc_worker)
-    context._set_state(state)
     return context
