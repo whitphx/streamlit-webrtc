@@ -72,7 +72,7 @@ jobs:
 
     # Frontend build is necessary for the package to be importable, in the tests
     - name: Set up Node.js
-      uses: actions/setup-node@v2.5.1
+      uses: actions/setup-node@v3
       with:
         node-version: '14.x'
         cache: 'npm'
