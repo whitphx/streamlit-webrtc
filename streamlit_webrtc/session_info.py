@@ -37,4 +37,19 @@ def get_this_session_info() -> Optional[SessionInfo]:
 
 
 def get_script_run_count(session_info: SessionInfo) -> int:
-    return session_info.report_run_count
+    """\
+        Returns `session_info.script_run_count` or `session_info.report_run_count`
+        according to the Streamlit version.
+        See https://github.com/whitphx/streamlit-webrtc/issues/709
+    """
+    script_run_count = getattr(session_info, "script_run_count", None)
+    if script_run_count is None:
+        # For streamlit<1.6.0
+        script_run_count = getattr(session_info, "report_run_count", None)
+
+    if not isinstance(script_run_count, int):
+        raise ValueError(
+            f"script_run_count is unexpectedly not integer: {str(script_run_count)}"
+        )
+
+    return script_run_count
