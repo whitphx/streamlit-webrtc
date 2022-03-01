@@ -24,7 +24,7 @@ from .config import (
     RTCConfiguration,
     VideoHTMLAttributes,
 )
-from .session_info import get_this_session_info
+from .session_info import get_script_run_count, get_this_session_info
 from .webrtc import (
     AudioProcessorFactory,
     AudioProcessorT,
@@ -417,7 +417,7 @@ def webrtc_streamer(
     # the component value of the second instance will be None in the next run
     # after `streamlit.experimental_rerun()`.
     session_info = get_this_session_info()
-    run_count = session_info.report_run_count if session_info else None
+    run_count = get_script_run_count(session_info) if session_info else None
     if component_value is None:
         restored_component_value_snapshot = context._component_value_snapshot
         if (
@@ -429,9 +429,10 @@ def webrtc_streamer(
         ):
             LOGGER.debug("Restore the component value (key=%s)", key)
             component_value = restored_component_value_snapshot.component_value
-    context._component_value_snapshot = ComponentValueSnapshot(
-        component_value=component_value, run_count=run_count
-    )
+    if run_count is not None:
+        context._component_value_snapshot = ComponentValueSnapshot(
+            component_value=component_value, run_count=run_count
+        )
 
     playing = False
     sdp_offer = None
