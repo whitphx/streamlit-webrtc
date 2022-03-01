@@ -1,3 +1,7 @@
+from typing import Optional
+
+from streamlit.server.server import SessionInfo
+
 try:
     from streamlit.script_run_context import get_script_run_ctx
 except ModuleNotFoundError:
@@ -19,7 +23,7 @@ def get_session_id() -> str:
     return ctx.session_id
 
 
-def get_this_session_info():
+def get_this_session_info() -> Optional[SessionInfo]:
     current_server = Server.get_current()
 
     # The original implementation of SessionState (https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92) has a problem    # noqa: E501
