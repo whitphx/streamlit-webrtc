@@ -34,3 +34,7 @@ def get_this_session_info() -> Optional[SessionInfo]:
     session_info = current_server._get_session_info(session_id)
 
     return session_info
+
+
+def get_script_run_count(session_info: SessionInfo) -> int:
+    return session_info.report_run_count
