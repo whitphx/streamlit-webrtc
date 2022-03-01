@@ -429,9 +429,10 @@ def webrtc_streamer(
         ):
             LOGGER.debug("Restore the component value (key=%s)", key)
             component_value = restored_component_value_snapshot.component_value
-    context._component_value_snapshot = ComponentValueSnapshot(
-        component_value=component_value, run_count=run_count
-    )
+    if run_count is not None:
+        context._component_value_snapshot = ComponentValueSnapshot(
+            component_value=component_value, run_count=run_count
+        )
 
     playing = False
     sdp_offer = None
