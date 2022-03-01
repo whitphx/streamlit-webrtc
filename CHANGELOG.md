@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fix
+- Fix an internal attribute access to be compatible with streamlit>=1.6.0, #710.
 
 ## [0.35.1] - 2022-02-23
 ### Fix
