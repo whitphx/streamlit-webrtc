@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Add
+- Export `DEFAULT_*` values, #723.
+
 ## [0.35.2] - 2022-03-01
 ### Fix
 - Fix an internal attribute access to be compatible with streamlit>=1.6.0, #710.
