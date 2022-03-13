@@ -22,6 +22,7 @@ from .config import (
     AudioHTMLAttributes,
     MediaStreamConstraints,
     RTCConfiguration,
+    Translations,
     VideoHTMLAttributes,
 )
 from .session_info import get_script_run_count, get_this_session_info
@@ -201,6 +202,7 @@ def webrtc_streamer(
     sendback_audio: bool = True,
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
+    translations: Optional[Translations] = None,
     # Deprecated. Just for backward compatibility
     client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
@@ -234,6 +236,7 @@ def webrtc_streamer(
     sendback_audio: bool = True,
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
+    translations: Optional[Translations] = None,
     # Deprecated. Just for backward compatibility
     client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
@@ -263,6 +266,7 @@ def webrtc_streamer(
     sendback_audio: bool = True,
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
+    translations: Optional[Translations] = None,
     # Deprecated. Just for backward compatibility
     client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
@@ -292,6 +296,7 @@ def webrtc_streamer(
     sendback_audio: bool = True,
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
+    translations: Optional[Translations] = None,
     # Deprecated. Just for backward compatibility
     client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
@@ -320,6 +325,7 @@ def webrtc_streamer(
     sendback_audio: bool = True,
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
+    translations: Optional[Translations] = None,
     # Deprecated. Just for backward compatibility
     client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory=None,
@@ -398,6 +404,7 @@ def webrtc_streamer(
         media_stream_constraints=media_stream_constraints,
         video_html_attrs=video_html_attrs,
         audio_html_attrs=audio_html_attrs,
+        translations=translations,
         desired_playing_state=desired_playing_state,
     )
     # HOTFIX: The return value from _component_func()

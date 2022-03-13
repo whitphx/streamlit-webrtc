@@ -19,6 +19,12 @@ import { getMediaUsage } from "./media-constraint";
 import { ComponentValue, setComponentValue } from "./component-value";
 import "webrtc-adapter";
 
+interface Translations {
+  start: string;
+  stop: string;
+  select_device: string;
+}
+
 interface WebRtcStreamerInnerProps {
   disabled: boolean;
   mode: WebRtcMode;
@@ -28,6 +34,7 @@ interface WebRtcStreamerInnerProps {
   mediaStreamConstraints: MediaStreamConstraints | undefined;
   videoHtmlAttrs: any;
   audioHtmlAttrs: any;
+  translations?: Translations;
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
 const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
@@ -105,7 +112,7 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
         {state.webRtcState === "PLAYING" ||
         state.webRtcState === "SIGNALLING" ? (
           <Button variant="contained" onClick={stop} disabled={buttonDisabled}>
-            Stop
+            {props.translations?.stop || "Stop"}
           </Button>
         ) : (
           <Button
@@ -114,12 +121,12 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
             onClick={start}
             disabled={buttonDisabled}
           >
-            Start
+            {props.translations?.start || "Start"}
           </Button>
         )}
         {transmittable && state.webRtcState === "STOPPED" && (
           <Button color="inherit" onClick={openDeviceSelect}>
-            Select device
+            {props.translations?.select_device || "Select device"}
           </Button>
         )}
       </Box>
@@ -138,6 +145,7 @@ const WebRtcStreamer: React.VFC = () => {
     renderData.args.media_stream_constraints;
   const videoHtmlAttrs = renderData.args.video_html_attrs;
   const audioHtmlAttrs = renderData.args.audio_html_attrs;
+  const translations = renderData.args["translations"];
 
   if (!isWebRtcMode(mode)) {
     throw new Error(`Invalid mode ${mode}`);
@@ -154,6 +162,7 @@ const WebRtcStreamer: React.VFC = () => {
       videoHtmlAttrs={videoHtmlAttrs}
       audioHtmlAttrs={audioHtmlAttrs}
       onComponentValueChange={setComponentValue}
+      translations={translations}
     />
   );
 };

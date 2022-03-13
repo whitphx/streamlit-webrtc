@@ -127,6 +127,12 @@ class AudioHTMLAttributes(MediaHTMLAttributes, total=False):
     pass
 
 
+class Translations(TypedDict, total=False):
+    start: str
+    stop: str
+    select_device: str
+
+
 DEFAULT_MEDIA_STREAM_CONSTRAINTS = MediaStreamConstraints(audio=True, video=True)
 DEFAULT_VIDEO_HTML_ATTRS = VideoHTMLAttributes(
     autoPlay=True, controls=True, style={"width": "100%"}
