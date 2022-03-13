@@ -330,14 +330,14 @@ def webrtc_streamer(
         LOGGER.warning(
             "The argument video_transformer_factory is deprecated. "
             "Use video_processor_factory instead.\n"
-            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020"
+            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020"  # noqa: E501
         )
         video_processor_factory = video_transformer_factory
     if async_transform is not None:
         LOGGER.warning(
             "The argument async_transform is deprecated. "
             "Use async_processing instead.\n"
-            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020"
+            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020"  # noqa: E501
         )
         async_processing = async_transform
     if client_settings is not None:
