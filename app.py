@@ -106,6 +106,8 @@ def main():
         "Configure media constraints and HTML element styles with loopback (sendrecv)"
     )
     programatically_control_page = "Control the playing state programatically"
+    customize_ui_texts_page = "Customize UI texts"
+
     app_mode = st.sidebar.selectbox(
         "Choose the app mode",
         [
@@ -119,6 +121,7 @@ def main():
             loopback_page,
             media_constraints_page,
             programatically_control_page,
+            customize_ui_texts_page,
         ],
     )
     st.subheader(app_mode)
@@ -143,6 +146,8 @@ def main():
         app_media_constraints()
     elif app_mode == programatically_control_page:
         app_programatically_play()
+    elif app_mode == customize_ui_texts_page:
+        app_customize_ui_texts()
 
     st.sidebar.markdown(
         """
@@ -696,10 +701,22 @@ def app_programatically_play():
     playing = st.checkbox("Playing", value=True)
 
     webrtc_streamer(
-        key="media-constraints",
+        key="programatic_control",
         desired_playing_state=playing,
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
+    )
+
+
+def app_customize_ui_texts():
+    webrtc_streamer(
+        key="custom_ui_texts",
+        rtc_configuration=RTC_CONFIGURATION,
+        translations={
+            "start": "開始",
+            "stop": "停止",
+            "select_device": "デバイス選択",
+        },
     )
 
 
