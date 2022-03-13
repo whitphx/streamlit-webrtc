@@ -179,7 +179,11 @@ The API is not finalized yet and can be changed without backward compatiblity in
 
 ### For users since versions `<0.20`
 `VideoTransformerBase` and its `transform` method have been marked as deprecated in v0.20.0. Please use `VideoProcessorBase#recv()` instead.
-Note that the signature of the `recv` method is different from the `transform` in that the `recv` has to return an instance of `av.VideoFrame` or `av.AudioFrame`. See the samples in [app.py](./app.py).
+Note that the signature of the `recv` method is different from the `transform` in that the `recv` has to return an instance of `av.VideoFrame` or `av.AudioFrame`.
+
+Also, `webrtc_streamer()`'s `video_transformer_factory` and `async_transform` arguments are deprecated, so use `video_processor_factory` and `async_processing` respectively.
+
+See the samples in [app.py](./app.py) for their usage.
 
 ## Resources
 * [Developing web-based real-time video/audio processing apps quickly with Streamlit](https://www.whitphx.info/posts/20211231-streamlit-webrtc-video-app-tutorial/)
