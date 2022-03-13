@@ -14,6 +14,9 @@ from .component import (
     webrtc_streamer,
 )
 from .config import (
+    DEFAULT_AUDIO_HTML_ATTRS,
+    DEFAULT_MEDIA_STREAM_CONSTRAINTS,
+    DEFAULT_VIDEO_HTML_ATTRS,
     AudioHTMLAttributes,
     MediaStreamConstraints,
     RTCConfiguration,
@@ -71,4 +74,7 @@ __all__ = [
     "MixerBase",
     "WebRtcStreamerContext",
     "WebRtcStreamerState",
+    "DEFAULT_AUDIO_HTML_ATTRS",
+    "DEFAULT_MEDIA_STREAM_CONSTRAINTS",
+    "DEFAULT_VIDEO_HTML_ATTRS",
 ]
