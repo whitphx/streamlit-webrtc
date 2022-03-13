@@ -86,63 +86,28 @@ RTC_CONFIGURATION = RTCConfiguration(
 def main():
     st.header("WebRTC demo")
 
-    object_detection_page = "Real time object detection (sendrecv)"
-    video_filters_page = (
-        "Real time video transform with simple OpenCV filters (sendrecv)"
-    )
-    audio_filter_page = "Real time audio filter (sendrecv)"
-    delayed_echo_page = "Delayed echo (sendrecv)"
-    streaming_page = (
-        "Consuming media files on server-side and streaming it to browser (recvonly)"
-    )
-    video_sendonly_page = (
-        "WebRTC is sendonly and images are shown via st.image() (sendonly)"
-    )
-    audio_sendonly_page = (
-        "WebRTC is sendonly and audio frames are visualized with matplotlib (sendonly)"
-    )
-    loopback_page = "Simple video and audio loopback (sendrecv)"
-    media_constraints_page = (
-        "Configure media constraints and HTML element styles with loopback (sendrecv)"
-    )
-    programatically_control_page = "Control the playing state programatically"
-    app_mode = st.sidebar.selectbox(
-        "Choose the app mode",
-        [
-            object_detection_page,
-            video_filters_page,
-            audio_filter_page,
-            delayed_echo_page,
-            streaming_page,
-            video_sendonly_page,
-            audio_sendonly_page,
-            loopback_page,
-            media_constraints_page,
-            programatically_control_page,
-        ],
-    )
-    st.subheader(app_mode)
+    pages = {
+        "Real time object detection (sendrecv)": app_object_detection,
+        "Real time video transform with simple OpenCV filters (sendrecv)": app_video_filters,  # noqa: E501
+        "Real time audio filter (sendrecv)": app_audio_filter,
+        "Delayed echo (sendrecv)": app_delayed_echo,
+        "Consuming media files on server-side and streaming it to browser (recvonly)": app_streaming,  # noqa: E501
+        "WebRTC is sendonly and images are shown via st.image() (sendonly)": app_sendonly_video,  # noqa: E501
+        "WebRTC is sendonly and audio frames are visualized with matplotlib (sendonly)": app_sendonly_audio,  # noqa: E501
+        "Simple video and audio loopback (sendrecv)": app_loopback,
+        "Configure media constraints and HTML element styles with loopback (sendrecv)": app_media_constraints,  # noqa: E501
+        "Control the playing state programatically": app_programatically_play,
+    }
+    page_titles = pages.keys()
 
-    if app_mode == video_filters_page:
-        app_video_filters()
-    elif app_mode == object_detection_page:
-        app_object_detection()
-    elif app_mode == audio_filter_page:
-        app_audio_filter()
-    elif app_mode == delayed_echo_page:
-        app_delayed_echo()
-    elif app_mode == streaming_page:
-        app_streaming()
-    elif app_mode == video_sendonly_page:
-        app_sendonly_video()
-    elif app_mode == audio_sendonly_page:
-        app_sendonly_audio()
-    elif app_mode == loopback_page:
-        app_loopback()
-    elif app_mode == media_constraints_page:
-        app_media_constraints()
-    elif app_mode == programatically_control_page:
-        app_programatically_play()
+    page_title = st.sidebar.selectbox(
+        "Choose the app mode",
+        page_titles,
+    )
+    st.subheader(page_title)
+
+    page_func = pages[page_title]
+    page_func()
 
     st.sidebar.markdown(
         """
