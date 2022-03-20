@@ -2,6 +2,7 @@ FROM python:3.9
 
 RUN apt-get update && apt-get install -y \
     build-essential \
+    cmake \
     libgl1 \
     libglib2.0-0 \
  && rm -rf /var/lib/apt/lists/*
@@ -12,5 +13,7 @@ RUN pip install -U poetry
 
 ADD pyproject.toml /srv/pyproject.toml
 ADD poetry.lock /srv/poetry.lock
+
+WORKDIR /srv
 
 RUN poetry install
