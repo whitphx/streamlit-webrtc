@@ -12,4 +12,12 @@ docker/build/m1mac:
 	docker build --platform linux/amd64 -t streamlit-webrtc .
 
 docker/dev:
-	docker run --rm -it -p 8501:8501 -v `pwd`:/srv streamlit-webrtc bash
+	docker run \
+		--rm \
+		-it \
+		-p 8501:8501 \
+		--sysctl net.ipv4.ip_local_port_range="40000 40010" \
+		-p 40000-40010:40000-40010 \
+		-v `pwd`:/srv \
+		streamlit-webrtc \
+		poetry run streamlit run app.py
