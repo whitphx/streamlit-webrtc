@@ -277,17 +277,6 @@ optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*"
 
 [[package]]
-name = "deepspeech"
-version = "0.9.3"
-description = "A library for running inference on a DeepSpeech model"
-category = "dev"
-optional = false
-python-versions = "*"
-
-[package.dependencies]
-numpy = ">=1.9.0"
-
-[[package]]
 name = "defusedxml"
 version = "0.6.0"
 description = "XML bomb protection for Python stdlib modules"
@@ -1451,7 +1440,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "02353d53ff91bfca88e9db72d03217802159610dde060b91bf59cf366d41ff81"
+content-hash = "8fec26d3c655e2ba65721ea3d8247836b1b20b84738cdcfa6c63c500b0048ce5"
 
 [metadata.files]
 aioice = [
@@ -1678,24 +1667,6 @@ cycler = [
 decorator = [
     {file = "decorator-4.4.2-py2.py3-none-any.whl", hash = "sha256:41fa54c2a0cc4ba648be4fd43cff00aedf5b9465c9bf18d64325bc225f08f760"},
     {file = "decorator-4.4.2.tar.gz", hash = "sha256:e3a62f0520172440ca0dcc823749319382e377f37f140a0b99ef45fecb84bfe7"},
-]
-deepspeech = [
-    {file = "deepspeech-0.9.3-cp35-cp35m-macosx_10_10_x86_64.whl", hash = "sha256:70320d5e4a045a4c0f21930934cc9b95a2fa458e3ff16ede768a72664aa8a7a2"},
-    {file = "deepspeech-0.9.3-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:09e554420943465b48075cb7c5001eae949072104a616de51cde1827d91b519a"},
-    {file = "deepspeech-0.9.3-cp35-cp35m-win_amd64.whl", hash = "sha256:2fd85db182eee257075ede89fc6d3323ed40f6458bb34dd4b7386734e839b0d3"},
-    {file = "deepspeech-0.9.3-cp36-cp36m-macosx_10_10_x86_64.whl", hash = "sha256:ade7ff44c1556230e170ebe611a4af0e8d51324575261928f747ae742e090356"},
-    {file = "deepspeech-0.9.3-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:420f274f98704692c4590084a932ce49c03b4fea8d91785567eaf5d351eed963"},
-    {file = "deepspeech-0.9.3-cp36-cp36m-win_amd64.whl", hash = "sha256:9500efc5c2ffa2ad2e540f47c72a8a970c785fd4bc92fe3451910239a8e3be18"},
-    {file = "deepspeech-0.9.3-cp37-cp37m-linux_armv7l.whl", hash = "sha256:9af59b7c16ea711772fa5e1ca23420eb0b84a580de6330da40d3c9587416ebbe"},
-    {file = "deepspeech-0.9.3-cp37-cp37m-macosx_10_10_x86_64.whl", hash = "sha256:f387a1234b321ad17c7d9198091fa62799fc0450d5613fbb8569cc362fe7283f"},
-    {file = "deepspeech-0.9.3-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:7a71d5b5e388818d81afb16b75f4c881cbb28d242481db81e1f2ef8c2be8ba7d"},
-    {file = "deepspeech-0.9.3-cp37-cp37m-win_amd64.whl", hash = "sha256:bb35cfa11aef0379c823d50da1806153f6bc18f36deaf37e696b5317a2ca6af0"},
-    {file = "deepspeech-0.9.3-cp38-cp38-macosx_10_10_x86_64.whl", hash = "sha256:8a90186de75d5e2767ecf46cd70bde3964ec5b3c92301821c846a6103bb33010"},
-    {file = "deepspeech-0.9.3-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:4775256847d8c4b16c60462561f97a6dacf325183469c79f42bd744c06479e0c"},
-    {file = "deepspeech-0.9.3-cp38-cp38-win_amd64.whl", hash = "sha256:e042ac2cc9f8f9021ec6af1881bf0b6af0fab50d857c0f70608afbbf7c966ea0"},
-    {file = "deepspeech-0.9.3-cp39-cp39-macosx_10_10_x86_64.whl", hash = "sha256:e9251407bc9c51177739994941420d43afc18b972bb3f5296a2b1c11a2b92b06"},
-    {file = "deepspeech-0.9.3-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:e2e7295ba4997ab86b4fb1bd7a784319dfcdb508ce26638063515334c11fa05a"},
-    {file = "deepspeech-0.9.3-cp39-cp39-win_amd64.whl", hash = "sha256:b25e3203f598300f14cb73ae4e6796a64456ca9c746c167c04381fa939184f2c"},
 ]
 defusedxml = [
     {file = "defusedxml-0.6.0-py2.py3-none-any.whl", hash = "sha256:6687150770438374ab581bb7a1b327a847dd9c5749e396102de3fad4e8a3ef93"},
