@@ -7,3 +7,6 @@ format:
 	isort .
 	black .
 	flake8
+
+docker/build:
+	docker build --platform linux/amd64 -t streamlit-webrtc .
