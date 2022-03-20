@@ -8,5 +8,8 @@ format:
 	black .
 	flake8
 
-docker/build:
+docker/build/m1mac:
 	docker build --platform linux/amd64 -t streamlit-webrtc .
+
+docker/dev:
+	docker run --rm -it -p 8501:8501 -v `pwd`:/srv streamlit-webrtc bash
