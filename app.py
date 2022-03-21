@@ -307,79 +307,76 @@ def app_object_detection():
         name: str
         prob: float
 
-    class MobileNetSSDVideoProcessor(VideoProcessorBase):
-        confidence_threshold: float
-        result_queue: "queue.Queue[List[Detection]]"
+    @st.experimental_singleton
+    def get_model():
+        return cv2.dnn.readNetFromCaffe(str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH))
 
-        def __init__(self) -> None:
-            self._net = cv2.dnn.readNetFromCaffe(
-                str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH)
-            )
-            self.confidence_threshold = DEFAULT_CONFIDENCE_THRESHOLD
-            self.result_queue = queue.Queue()
+    confidence_threshold = st.slider(
+        "Confidence threshold", 0.0, 1.0, DEFAULT_CONFIDENCE_THRESHOLD, 0.05
+    )
 
-        def _annotate_image(self, image, detections):
-            # loop over the detections
-            (h, w) = image.shape[:2]
-            result: List[Detection] = []
-            for i in np.arange(0, detections.shape[2]):
-                confidence = detections[0, 0, i, 2]
+    def _annotate_image(image, detections):
+        # loop over the detections
+        (h, w) = image.shape[:2]
+        result: List[Detection] = []
+        for i in np.arange(0, detections.shape[2]):
+            confidence = detections[0, 0, i, 2]
 
-                if confidence > self.confidence_threshold:
-                    # extract the index of the class label from the `detections`,
-                    # then compute the (x, y)-coordinates of the bounding box for
-                    # the object
-                    idx = int(detections[0, 0, i, 1])
-                    box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-                    (startX, startY, endX, endY) = box.astype("int")
+            if confidence > confidence_threshold:
+                # extract the index of the class label from the `detections`,
+                # then compute the (x, y)-coordinates of the bounding box for
+                # the object
+                idx = int(detections[0, 0, i, 1])
+                box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+                (startX, startY, endX, endY) = box.astype("int")
 
-                    name = CLASSES[idx]
-                    result.append(Detection(name=name, prob=float(confidence)))
+                name = CLASSES[idx]
+                result.append(Detection(name=name, prob=float(confidence)))
 
-                    # display the prediction
-                    label = f"{name}: {round(confidence * 100, 2)}%"
-                    cv2.rectangle(image, (startX, startY), (endX, endY), COLORS[idx], 2)
-                    y = startY - 15 if startY - 15 > 15 else startY + 15
-                    cv2.putText(
-                        image,
-                        label,
-                        (startX, y),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        COLORS[idx],
-                        2,
-                    )
-            return image, result
+                # display the prediction
+                label = f"{name}: {round(confidence * 100, 2)}%"
+                cv2.rectangle(image, (startX, startY), (endX, endY), COLORS[idx], 2)
+                y = startY - 15 if startY - 15 > 15 else startY + 15
+                cv2.putText(
+                    image,
+                    label,
+                    (startX, y),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    COLORS[idx],
+                    2,
+                )
+        return image, result
 
-        def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-            image = frame.to_ndarray(format="bgr24")
-            blob = cv2.dnn.blobFromImage(
-                cv2.resize(image, (300, 300)), 0.007843, (300, 300), 127.5
-            )
-            self._net.setInput(blob)
-            detections = self._net.forward()
-            annotated_image, result = self._annotate_image(image, detections)
+    net = get_model()
 
-            # NOTE: This `recv` method is called in another thread,
-            # so it must be thread-safe.
-            self.result_queue.put(result)
+    result_queue = (
+        queue.Queue()
+    )  # TODO: A general-purpose shared state object may be more useful.
 
-            return av.VideoFrame.from_ndarray(annotated_image, format="bgr24")
+    def callback(frame: av.VideoFrame) -> av.VideoFrame:
+        image = frame.to_ndarray(format="bgr24")
+        blob = cv2.dnn.blobFromImage(
+            cv2.resize(image, (300, 300)), 0.007843, (300, 300), 127.5
+        )
+        net.setInput(blob)
+        detections = net.forward()
+        annotated_image, result = _annotate_image(image, detections)
+
+        # NOTE: This `recv` method is called in another thread,
+        # so it must be thread-safe.
+        result_queue.put(result)  # TODO:
+
+        return av.VideoFrame.from_ndarray(annotated_image, format="bgr24")
 
     webrtc_ctx = webrtc_streamer(
         key="object-detection",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
-        video_processor_factory=MobileNetSSDVideoProcessor,
+        video_process_callback=callback,
         media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
     )
-
-    confidence_threshold = st.slider(
-        "Confidence threshold", 0.0, 1.0, DEFAULT_CONFIDENCE_THRESHOLD, 0.05
-    )
-    if webrtc_ctx.video_processor:
-        webrtc_ctx.video_processor.confidence_threshold = confidence_threshold
 
     if st.checkbox("Show the detected labels", value=True):
         if webrtc_ctx.state.playing:
@@ -390,16 +387,11 @@ def app_object_detection():
             # Then the rendered video frames and the labels displayed here
             # are not strictly synchronized.
             while True:
-                if webrtc_ctx.video_processor:
-                    try:
-                        result = webrtc_ctx.video_processor.result_queue.get(
-                            timeout=1.0
-                        )
-                    except queue.Empty:
-                        result = None
-                    labels_placeholder.table(result)
-                else:
-                    break
+                try:
+                    result = result_queue.get(timeout=1.0)
+                except queue.Empty:
+                    result = None
+                labels_placeholder.table(result)
 
     st.markdown(
         "This demo uses a model and code from "
