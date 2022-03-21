@@ -115,3 +115,5 @@ class MixerBase(abc.ABC, Generic[FrameT]):
 
 
 MixerT = TypeVar("MixerT", bound=MixerBase)
+
+VideoProcessCallback = Callable[[av.VideoFrame], av.VideoFrame]

@@ -6,6 +6,8 @@ from typing import Any, Callable, Dict, Generic, NamedTuple, Optional, Union, ov
 
 from aiortc.mediastreams import MediaStreamTrack
 
+from streamlit_webrtc.models import VideoProcessCallback
+
 try:
     from typing import TypedDict
 except ImportError:
@@ -325,6 +327,7 @@ def webrtc_streamer(
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
+    video_process_callback: Optional[VideoProcessCallback] = None,
     video_processor_factory=None,
     audio_processor_factory=None,
     async_processing: bool = True,
@@ -487,6 +490,10 @@ def webrtc_streamer(
         # Rerun to unset the SDP answer from the frontend args
         st.experimental_rerun()
 
+    if webrtc_worker:
+        if video_process_callback:
+            webrtc_worker.update_video_process_callback(video_process_callback)
+
     if not webrtc_worker and sdp_offer:
         LOGGER.debug(
             "No worker exists though the offer SDP is set. "
@@ -498,6 +505,7 @@ def webrtc_streamer(
             player_factory=player_factory,
             in_recorder_factory=in_recorder_factory,
             out_recorder_factory=out_recorder_factory,
+            video_process_callback=video_process_callback,
             video_processor_factory=video_processor_factory,
             audio_processor_factory=audio_processor_factory,
             async_processing=async_processing,

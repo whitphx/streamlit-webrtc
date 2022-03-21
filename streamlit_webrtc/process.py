@@ -20,10 +20,19 @@ from .models import (
     ProcessorT,
     VideoProcessorBase,
     VideoProcessorT,
+    VideoProcessCallback,
 )
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
+
+
+class VideoCallbackProcessor(VideoProcessorBase):
+    def __init__(self, callback: VideoProcessCallback) -> None:
+        self.callback = callback
+
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        return self.callback(frame)
 
 
 class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
