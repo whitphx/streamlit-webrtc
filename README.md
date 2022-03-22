@@ -172,6 +172,23 @@ For example, in some office or public networks, there are firewalls which drop t
 
 In such environments, setting up a [TURN server](https://webrtc.org/getting-started/turn-server) is a solution. See https://github.com/whitphx/streamlit-webrtc/issues/335#issuecomment-897326755.
 
+## Logging
+For logging, this library uses the standard `logging` module and follows the practice described in [the official logging tutorial](https://docs.python.org/3/howto/logging.html#advanced-logging-tutorial). Then the logger names are the same as the module names - `streamlit_webrtc` or `streamlit_webrtc.*`.
+
+So you can get the logger instance with `logging.getLogger("streamlit_webrtc")` through which you can control the logs from this library.
+
+For example, if you want to set the log level on this library's logger as WARNING, you can use the following code.
+```python
+st_webrtc_logger = logging.getLogger("streamlit_webrtc")
+st_webrtc_logger.setLevel(logging.WARNING)
+```
+
+In practice, `aiortc`, a third-party package this library is internally using, also emits many INFO level logs and you may want to control its logs too.
+You can do it in the same way as below.
+```python
+aioice_logger = logging.getLogger("aioice")
+aioice_logger.setLevel(logging.WARNING)
+```
 
 ## API
 Currently there is no documentation about the interface. See the example [app.py](./app.py) for the usage.
