@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.36.1] - 2022-03-25
+
+### Fix
+- Rename internal imports to be compatible with streamlit>=1.8.0, #760.
+
 ## [0.36.0] - 2022-03-14
 
 ### Add
