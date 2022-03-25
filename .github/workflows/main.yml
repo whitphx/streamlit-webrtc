@@ -32,6 +32,9 @@ jobs:
           # Test with streamlit <1.6.0 and >=1.6.0. See https://github.com/whitphx/streamlit-webrtc/issues/709
           - python-version: 3.9
             streamlit-version: 1.6.0
+          # Test with streamlit <1.8.0 and >=1.8.0. See https://github.com/whitphx/streamlit-webrtc/issues/759
+          - python-version: 3.9
+            streamlit-version: 1.8.0
 
     steps:
     - uses: actions/checkout@v3
