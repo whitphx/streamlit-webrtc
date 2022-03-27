@@ -8,8 +8,12 @@ format:
 	black .
 	flake8
 
-docker/build/m1mac:
-	docker build --platform linux/amd64 -t streamlit-webrtc .
+docker/build:
+# Set `--platform linux/amd64` because some packages do not work with Docker on M1 mac for now.
+	docker build \
+		--platform linux/amd64 \
+		-t streamlit-webrtc \
+		.
 
 docker/dev:
 	docker run \
