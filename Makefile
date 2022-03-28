@@ -15,7 +15,7 @@ docker/build:
 		-t streamlit-webrtc \
 		.
 
-docker/dev:
+docker/run:
 	docker run \
 		--rm \
 		-it \
@@ -25,3 +25,15 @@ docker/dev:
 		-v `pwd`:/srv \
 		streamlit-webrtc \
 		poetry run streamlit run app.py
+
+docker/shell:
+	docker run \
+		--rm \
+		-it \
+		-p 8501:8501 \
+		--sysctl net.ipv4.ip_local_port_range="40000 40010" \
+		-p 40000-40010:40000-40010 \
+		-v `pwd`:/srv \
+		-e SHELL=/bin/bash \
+		streamlit-webrtc \
+		poetry shell
