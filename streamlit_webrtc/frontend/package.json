@@ -68,7 +68,7 @@
     "@storybook/node-logger": "^6.4.19",
     "@storybook/preset-create-react-app": "^4.0.1",
     "@storybook/react": "^6.4.19",
-    "prettier": "^2.5.1"
+    "prettier": "^2.6.1"
   },
   "jest": {
     "transformIgnorePatterns": [
