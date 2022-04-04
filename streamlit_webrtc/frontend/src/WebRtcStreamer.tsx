@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from "react";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
 import DeviceSelectForm, {
   DeviceSelectFormProps,
@@ -17,13 +16,8 @@ import {
 } from "./webrtc";
 import { getMediaUsage } from "./media-constraint";
 import { ComponentValue, setComponentValue } from "./component-value";
+import TranslatedButton from "./translation/components/TranslatedButton";
 import "webrtc-adapter";
-
-interface Translations {
-  start: string;
-  stop: string;
-  select_device: string;
-}
 
 interface WebRtcStreamerInnerProps {
   disabled: boolean;
@@ -34,7 +28,6 @@ interface WebRtcStreamerInnerProps {
   mediaStreamConstraints: MediaStreamConstraints | undefined;
   videoHtmlAttrs: any;
   audioHtmlAttrs: any;
-  translations?: Translations;
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
 const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
@@ -111,23 +104,27 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
       <Box display="flex" justifyContent="space-between">
         {state.webRtcState === "PLAYING" ||
         state.webRtcState === "SIGNALLING" ? (
-          <Button variant="contained" onClick={stop} disabled={buttonDisabled}>
-            {props.translations?.stop || "Stop"}
-          </Button>
+          <TranslatedButton
+            variant="contained"
+            onClick={stop}
+            disabled={buttonDisabled}
+            translationKey="stop"
+          />
         ) : (
-          <Button
+          <TranslatedButton
             variant="contained"
             color="primary"
             onClick={start}
             disabled={buttonDisabled}
-          >
-            {props.translations?.start || "Start"}
-          </Button>
+            translationKey="start"
+          />
         )}
         {transmittable && state.webRtcState === "STOPPED" && (
-          <Button color="inherit" onClick={openDeviceSelect}>
-            {props.translations?.select_device || "Select device"}
-          </Button>
+          <TranslatedButton
+            color="inherit"
+            onClick={openDeviceSelect}
+            translationKey="select_device"
+          />
         )}
       </Box>
     </Box>
@@ -145,7 +142,6 @@ const WebRtcStreamer: React.VFC = () => {
     renderData.args.media_stream_constraints;
   const videoHtmlAttrs = renderData.args.video_html_attrs;
   const audioHtmlAttrs = renderData.args.audio_html_attrs;
-  const translations = renderData.args["translations"];
 
   if (!isWebRtcMode(mode)) {
     throw new Error(`Invalid mode ${mode}`);
@@ -162,7 +158,6 @@ const WebRtcStreamer: React.VFC = () => {
       videoHtmlAttrs={videoHtmlAttrs}
       audioHtmlAttrs={audioHtmlAttrs}
       onComponentValueChange={setComponentValue}
-      translations={translations}
     />
   );
 };

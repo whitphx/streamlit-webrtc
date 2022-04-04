@@ -1,0 +1,41 @@
+import React, { useMemo, useContext } from "react";
+import { useRenderData } from "streamlit-component-lib-react-hooks";
+import { Translations } from "./types";
+
+const translationContext = React.createContext<Translations | undefined>(
+  undefined
+);
+
+export const useTranslation = (key: keyof Translations) => {
+  const contextValue = useContext(translationContext);
+  if (contextValue == null) {
+    throw new Error(
+      "useTranslation must be used inside <TranslationProvider />"
+    );
+  }
+
+  return contextValue[key];
+};
+
+interface TranslationProviderProps {
+  children: React.ReactNode;
+}
+const TranslationProvider: React.VFC<TranslationProviderProps> = (props) => {
+  const renderData = useRenderData();
+  const { start, stop, select_device } = renderData.args["translations"] || {};
+  const value: Translations = useMemo(
+    () => ({
+      start: start || "Start",
+      stop: stop || "Stop",
+      select_device: select_device || "Select Device",
+    }),
+    [start, stop, select_device]
+  );
+  return (
+    <translationContext.Provider value={value}>
+      {props.children}
+    </translationContext.Provider>
+  );
+};
+
+export default React.memo(TranslationProvider);
