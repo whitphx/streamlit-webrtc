@@ -31,9 +31,9 @@ const TranslationProvider: React.VFC<TranslationProviderProps> = (props) => {
   } = renderData.args["translations"] || {};
   const value: Translations = useMemo(
     () => ({
-      start: start || "Start",
-      stop: stop || "Stop",
-      select_device: select_device || "Select Device",
+      start,
+      stop,
+      select_device,
       device_ask_permission,
       device_not_available,
       device_access_denied,

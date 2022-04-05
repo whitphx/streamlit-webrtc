@@ -109,6 +109,7 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
             onClick={stop}
             disabled={buttonDisabled}
             translationKey="stop"
+            defaultText="Stop"
           />
         ) : (
           <TranslatedButton
@@ -117,6 +118,7 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
             onClick={start}
             disabled={buttonDisabled}
             translationKey="start"
+            defaultText="Start"
           />
         )}
         {transmittable && state.webRtcState === "STOPPED" && (
@@ -124,6 +126,7 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
             color="inherit"
             onClick={openDeviceSelect}
             translationKey="select_device"
+            defaultText="Select Device"
           />
         )}
       </Box>
