@@ -9,9 +9,7 @@ const translationContext = React.createContext<Translations | undefined>(
 export const useTranslation = (key: keyof Translations) => {
   const contextValue = useContext(translationContext);
   if (contextValue == null) {
-    throw new Error(
-      "useTranslation must be used inside <TranslationProvider />"
-    );
+    return null;
   }
 
   return contextValue[key];
@@ -22,14 +20,34 @@ interface TranslationProviderProps {
 }
 const TranslationProvider: React.VFC<TranslationProviderProps> = (props) => {
   const renderData = useRenderData();
-  const { start, stop, select_device } = renderData.args["translations"] || {};
+  const {
+    start,
+    stop,
+    select_device,
+    device_ask_permission,
+    device_not_available,
+    device_access_denied,
+    media_api_not_available,
+  } = renderData.args["translations"] || {};
   const value: Translations = useMemo(
     () => ({
       start: start || "Start",
       stop: stop || "Stop",
       select_device: select_device || "Select Device",
+      device_ask_permission,
+      device_not_available,
+      device_access_denied,
+      media_api_not_available,
     }),
-    [start, stop, select_device]
+    [
+      start,
+      stop,
+      select_device,
+      device_ask_permission,
+      device_not_available,
+      device_access_denied,
+      media_api_not_available,
+    ]
   );
   return (
     <translationContext.Provider value={value}>

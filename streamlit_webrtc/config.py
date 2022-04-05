@@ -131,6 +131,10 @@ class Translations(TypedDict, total=False):
     start: str
     stop: str
     select_device: str
+    media_api_not_available: str
+    device_ask_permission: str
+    device_not_available: str
+    device_access_denied: str
 
 
 DEFAULT_MEDIA_STREAM_CONSTRAINTS = MediaStreamConstraints(audio=True, video=True)

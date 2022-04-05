@@ -11,6 +11,6 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   boxSizing: "border-box",
 }));
 
-const DeviceSelectMessage = StyledPaper;
+const Message = StyledPaper;
 
-export default DeviceSelectMessage;
+export default Message;
