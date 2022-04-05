@@ -66,7 +66,7 @@
     "@storybook/addon-essentials": "^6.4.20",
     "@storybook/addon-links": "^6.4.20",
     "@storybook/node-logger": "^6.4.20",
-    "@storybook/preset-create-react-app": "^3.2.0",
+    "@storybook/preset-create-react-app": "^4.1.0",
     "@storybook/react": "^6.4.20",
     "prettier": "^2.6.2"
   },
