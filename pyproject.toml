@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "streamlit-webrtc"
-version = "0.36.0"
+version = "0.36.1"
 description = ""
 authors = ["Yuichiro Tsuchiya <t.yic.yt@gmail.com>"]
 license = "MIT"
@@ -22,12 +22,12 @@ black = "^21.12b0"
 isort = "^5.10.1"
 flake8 = "^4.0.1"
 opencv-python = "^4.5.3"
-mypy = "^0.941"
+mypy = "^0.942"
 pydub = "^0.25.1"
 matplotlib = "^3.5.1"
 deepspeech = "^0.9.3"
-streamlit-server-state = "^0.12.0"
-pytest = "^7.0.1"
+streamlit-server-state = "^0.12.2"
+pytest = "^7.1.1"
 
 [tool.black]
 line-length = 88
