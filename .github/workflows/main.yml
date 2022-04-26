@@ -84,10 +84,10 @@ jobs:
         node-version: '14.x'
         cache: 'npm'
         cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
-    - name: Install fronend dependencies
+    - name: Install the frontend dependencies
       run: npm ci
       working-directory: streamlit_webrtc/frontend
-    - name: Built the frontend
+    - name: Build the frontend
       run: npm run build --if-present
       working-directory: streamlit_webrtc/frontend
 
