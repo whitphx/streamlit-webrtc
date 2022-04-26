@@ -21,7 +21,6 @@ typing_extensions = { version = ">=3.7.4,<5.0.0", python = "<3.8" }
 black = "^21.12b0"
 isort = "^5.10.1"
 flake8 = "^4.0.1"
-opencv-python = "^4.5.3"
 mypy = "^0.942"
 pydub = "^0.25.1"
 matplotlib = "^3.5.1"
