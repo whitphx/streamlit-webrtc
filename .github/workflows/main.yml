@@ -36,7 +36,13 @@ jobs:
           - python-version: 3.9
             streamlit-version: 1.8.0
 
+    env:
+      CC:   gcc-11
+      CXX:  g++-11
+
     steps:
+    - name: GCC version
+      run: gcc --version
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
