@@ -21,13 +21,13 @@ typing_extensions = { version = ">=3.7.4,<5.0.0", python = "<3.8" }
 black = "^21.12b0"
 isort = "^5.10.1"
 flake8 = "^4.0.1"
+opencv-python = "^4.5.3"
 mypy = "^0.942"
 pydub = "^0.25.1"
 matplotlib = "^3.5.1"
 deepspeech = { version = "^0.9.3", python = ">=3.5,<=3.9" }  # DeepSpeech 0.9.3 supports Python version 3.5, 3.6, 3.7, 3.8 and 3.9; https://github.com/mozilla/DeepSpeech/releases/tag/v0.9.3
 streamlit-server-state = "^0.12.2"
 pytest = "^7.1.2"
-opencv-python-headless = "^4.5.5"
 
 [tool.black]
 line-length = 88
