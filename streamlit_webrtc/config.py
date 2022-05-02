@@ -127,6 +127,16 @@ class AudioHTMLAttributes(MediaHTMLAttributes, total=False):
     pass
 
 
+class Translations(TypedDict, total=False):
+    start: str
+    stop: str
+    select_device: str
+    media_api_not_available: str
+    device_ask_permission: str
+    device_not_available: str
+    device_access_denied: str
+
+
 DEFAULT_MEDIA_STREAM_CONSTRAINTS = MediaStreamConstraints(audio=True, video=True)
 DEFAULT_VIDEO_HTML_ATTRS = VideoHTMLAttributes(
     autoPlay=True, controls=True, style={"width": "100%"}

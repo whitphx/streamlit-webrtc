@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from "react";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
 import DeviceSelectForm, {
   DeviceSelectFormProps,
@@ -17,6 +16,7 @@ import {
 } from "./webrtc";
 import { getMediaUsage } from "./media-constraint";
 import { ComponentValue, setComponentValue } from "./component-value";
+import TranslatedButton from "./translation/components/TranslatedButton";
 import "webrtc-adapter";
 
 interface WebRtcStreamerInnerProps {
@@ -104,23 +104,30 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
       <Box display="flex" justifyContent="space-between">
         {state.webRtcState === "PLAYING" ||
         state.webRtcState === "SIGNALLING" ? (
-          <Button variant="contained" onClick={stop} disabled={buttonDisabled}>
-            Stop
-          </Button>
+          <TranslatedButton
+            variant="contained"
+            onClick={stop}
+            disabled={buttonDisabled}
+            translationKey="stop"
+            defaultText="Stop"
+          />
         ) : (
-          <Button
+          <TranslatedButton
             variant="contained"
             color="primary"
             onClick={start}
             disabled={buttonDisabled}
-          >
-            Start
-          </Button>
+            translationKey="start"
+            defaultText="Start"
+          />
         )}
         {transmittable && state.webRtcState === "STOPPED" && (
-          <Button color="inherit" onClick={openDeviceSelect}>
-            Select device
-          </Button>
+          <TranslatedButton
+            color="inherit"
+            onClick={openDeviceSelect}
+            translationKey="select_device"
+            defaultText="Select Device"
+          />
         )}
       </Box>
     </Box>

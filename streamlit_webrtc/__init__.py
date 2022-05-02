@@ -20,6 +20,7 @@ from .config import (
     AudioHTMLAttributes,
     MediaStreamConstraints,
     RTCConfiguration,
+    Translations,
     VideoHTMLAttributes,
 )
 from .factory import create_mix_track, create_process_track
@@ -67,6 +68,7 @@ __all__ = [
     "WebRtcWorker",
     "MediaStreamConstraints",
     "RTCConfiguration",
+    "Translations",
     "VideoHTMLAttributes",
     "AudioHTMLAttributes",
     "create_process_track",

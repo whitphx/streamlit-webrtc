@@ -97,6 +97,7 @@ def main():
         "Simple video and audio loopback (sendrecv)": app_loopback,
         "Configure media constraints and HTML element styles with loopback (sendrecv)": app_media_constraints,  # noqa: E501
         "Control the playing state programatically": app_programatically_play,
+        "Customize UI texts": app_customize_ui_texts,
     }
     page_titles = pages.keys()
 
@@ -661,10 +662,26 @@ def app_programatically_play():
     playing = st.checkbox("Playing", value=True)
 
     webrtc_streamer(
-        key="media-constraints",
+        key="programatic_control",
         desired_playing_state=playing,
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
+    )
+
+
+def app_customize_ui_texts():
+    webrtc_streamer(
+        key="custom_ui_texts",
+        rtc_configuration=RTC_CONFIGURATION,
+        translations={
+            "start": "開始",
+            "stop": "停止",
+            "select_device": "デバイス選択",
+            "media_api_not_available": "Media APIが利用できない環境です",
+            "device_ask_permission": "メディアデバイスへのアクセスを許可してください",
+            "device_not_available": "メディアデバイスを利用できません",
+            "device_access_denied": "メディアデバイスへのアクセスが拒否されました",
+        },
     )
 
 

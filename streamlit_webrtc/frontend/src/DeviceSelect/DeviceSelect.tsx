@@ -14,7 +14,11 @@ import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 import DeviceSelectContainer from "./components/DeviceSelectContainer";
 import VideoPreviewContainer from "./components/VideoPreviewContainer";
-import DeviceSelectMessage from "./components/DeviceSelectMessage";
+import Message from "./components/messages/Message";
+import MediaApiNotAvailableMessage from "./components/messages/MediaApiNotAvailableMessage";
+import AskPermissionMessage from "./components/messages/AskPermissionMessage";
+import AccessDeniedMessage from "./components/messages/AccessDeniedMessage";
+import DeviceNotAvailableMessage from "./components/messages/DeviceNotAvailableMessage";
 import VoidVideoPreview from "./components/VoidVideoPreview";
 import Defer from "./components/Defer";
 import VideoPreview from "./VideoPreview";
@@ -274,15 +278,13 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
   });
 
   if (unavailable) {
-    return <DeviceSelectMessage>Unavailable</DeviceSelectMessage>;
+    return <MediaApiNotAvailableMessage />;
   }
 
   if (permissionState === "WAITING") {
     return (
       <Defer time={1000}>
-        <DeviceSelectMessage>
-          Please allow the app to use your media devices
-        </DeviceSelectMessage>
+        <AskPermissionMessage />
       </Defer>
     );
   }
@@ -293,27 +295,19 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
       error instanceof DOMException &&
       (error.name === "NotReadableError" || error.name === "NotFoundError")
     ) {
-      return (
-        <DeviceSelectMessage>
-          Device not available ({error.message})
-        </DeviceSelectMessage>
-      );
+      return <DeviceNotAvailableMessage error={error} />;
     } else if (
       error instanceof DOMException &&
       error.name === "NotAllowedError"
     ) {
-      return (
-        <DeviceSelectMessage>
-          Access denied ({error.message})
-        </DeviceSelectMessage>
-      );
+      return <AccessDeniedMessage error={error} />;
     } else {
       return (
-        <DeviceSelectMessage>
+        <Message>
           <Alert severity="error">
             {error.name}: {error.message}
           </Alert>
-        </DeviceSelectMessage>
+        </Message>
       );
     }
   }
