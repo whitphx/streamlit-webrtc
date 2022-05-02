@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Add
+- `on_change` callback, #695.
+
 ## [0.36.1] - 2022-03-25
 
 ### Fix
