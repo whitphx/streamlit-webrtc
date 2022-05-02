@@ -48,6 +48,10 @@ jobs:
         echo "$HOME/.poetry/bin" >> $GITHUB_PATH
 
     # Ref: https://github.com/python-poetry/poetry/blob/de0b32c245c72568cf546090600d4626917cd3a4/.github/workflows/main.yml#L46-L60
+    - name: Get full Python version
+      id: full-python-version
+      shell: bash
+      run: echo ::set-output name=version::$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))")
     - name: Configure poetry
       run: poetry config virtualenvs.in-project true
     - name: Set up cache
@@ -84,10 +88,10 @@ jobs:
         node-version: '14.x'
         cache: 'npm'
         cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
-    - name: Install fronend dependencies
+    - name: Install the frontend dependencies
       run: npm ci
       working-directory: streamlit_webrtc/frontend
-    - name: Built the frontend
+    - name: Build the frontend
       run: npm run build --if-present
       working-directory: streamlit_webrtc/frontend
 

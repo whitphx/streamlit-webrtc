@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import weakref
-from typing import Any, Dict, Generic, NamedTuple, Optional, Union, overload
+from typing import Any, Callable, Dict, Generic, NamedTuple, Optional, Union, overload
 
 from aiortc.mediastreams import MediaStreamTrack
 
@@ -15,6 +15,7 @@ except ImportError:
 import streamlit as st
 import streamlit.components.v1 as components
 
+from .components_callbacks import register_callback
 from .config import (
     DEFAULT_AUDIO_HTML_ATTRS,
     DEFAULT_MEDIA_STREAM_CONSTRAINTS,
@@ -181,6 +182,12 @@ def generate_frontend_component_key(original_key: str) -> str:
     # XXX: Any other cleaner way to ensure the key does not conflict?
 
 
+def compile_state(component_value) -> WebRtcStreamerState:
+    playing = component_value.get("playing", False)
+    signalling = bool(component_value.get("sdpOffer"))
+    return WebRtcStreamerState(playing=playing, signalling=signalling)
+
+
 @overload
 def webrtc_streamer(
     key: str,
@@ -203,6 +210,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
+    on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
@@ -237,6 +245,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
+    on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
@@ -267,6 +276,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
+    on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
@@ -297,6 +307,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
+    on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
@@ -326,6 +337,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
+    on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory=None,
@@ -395,8 +407,24 @@ def webrtc_streamer(
             }
         )
 
+    frontend_key = generate_frontend_component_key(key)
+
+    def callback():
+        component_value = st.session_state[frontend_key]
+        new_state = compile_state(component_value)
+
+        context = st.session_state[key]
+        old_state = context.state
+
+        context._set_state(new_state)
+
+        if on_change and old_state != new_state:
+            on_change()
+
+    register_callback(element_key=frontend_key, callback=callback)
+
     component_value_raw: Union[Dict, str, None] = _component_func(
-        key=generate_frontend_component_key(key),
+        key=frontend_key,
         sdp_answer_json=sdp_answer_json,
         mode=mode.name,
         settings=client_settings,
@@ -443,15 +471,11 @@ def webrtc_streamer(
             component_value=component_value, run_count=run_count
         )
 
-    playing = False
     sdp_offer = None
     if component_value:
-        playing = component_value.get("playing", False)
         sdp_offer = component_value.get("sdpOffer")
 
-    signalling = bool(sdp_offer)
-
-    if webrtc_worker and not playing and not signalling:
+    if webrtc_worker and not context.state.playing and not context.state.signalling:
         LOGGER.debug(
             "Unset the worker because the frontend state is "
             'neither playing nor signalling (key="%s").',
@@ -490,5 +514,4 @@ def webrtc_streamer(
         st.experimental_rerun()
 
     context._set_worker(webrtc_worker)
-    context._set_state(WebRtcStreamerState(playing=playing, signalling=signalling))
     return context
