@@ -25,7 +25,7 @@ from .config import (
     RTCConfiguration,
     VideoHTMLAttributes,
 )
-from .session_info import get_this_session_info
+from .session_info import get_script_run_count, get_this_session_info
 from .webrtc import (
     AudioProcessorFactory,
     AudioProcessorT,
@@ -341,13 +341,15 @@ def webrtc_streamer(
     if video_transformer_factory is not None:
         LOGGER.warning(
             "The argument video_transformer_factory is deprecated. "
-            "Use video_processor_factory instead."
+            "Use video_processor_factory instead.\n"
+            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020"  # noqa: E501
         )
         video_processor_factory = video_transformer_factory
     if async_transform is not None:
         LOGGER.warning(
             "The argument async_transform is deprecated. "
-            "Use async_processing instead."
+            "Use async_processing instead.\n"
+            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020"  # noqa: E501
         )
         async_processing = async_transform
     if client_settings is not None:
@@ -445,7 +447,7 @@ def webrtc_streamer(
     # the component value of the second instance will be None in the next run
     # after `streamlit.experimental_rerun()`.
     session_info = get_this_session_info()
-    run_count = session_info.report_run_count if session_info else None
+    run_count = get_script_run_count(session_info) if session_info else None
     if component_value is None:
         restored_component_value_snapshot = context._component_value_snapshot
         if (
@@ -457,9 +459,10 @@ def webrtc_streamer(
         ):
             LOGGER.debug("Restore the component value (key=%s)", key)
             component_value = restored_component_value_snapshot.component_value
-    context._component_value_snapshot = ComponentValueSnapshot(
-        component_value=component_value, run_count=run_count
-    )
+    if run_count is not None:
+        context._component_value_snapshot = ComponentValueSnapshot(
+            component_value=component_value, run_count=run_count
+        )
 
     sdp_offer = None
     if component_value:

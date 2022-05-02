@@ -19,8 +19,9 @@ jobs:
 
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
         streamlit-version: [null]
         include:
           # Test with streamlit <1.4.0 and >=1.4.0. See https://github.com/whitphx/streamlit-webrtc/issues/598
@@ -28,11 +29,17 @@ jobs:
             streamlit-version: 1.0.0
           - python-version: 3.9
             streamlit-version: 1.4.0
+          # Test with streamlit <1.6.0 and >=1.6.0. See https://github.com/whitphx/streamlit-webrtc/issues/709
+          - python-version: 3.9
+            streamlit-version: 1.6.0
+          # Test with streamlit <1.8.0 and >=1.8.0. See https://github.com/whitphx/streamlit-webrtc/issues/759
+          - python-version: 3.9
+            streamlit-version: 1.8.0
 
     steps:
-    - uses: actions/checkout@v2.4.0
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2.3.2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install poetry
@@ -41,10 +48,14 @@ jobs:
         echo "$HOME/.poetry/bin" >> $GITHUB_PATH
 
     # Ref: https://github.com/python-poetry/poetry/blob/de0b32c245c72568cf546090600d4626917cd3a4/.github/workflows/main.yml#L46-L60
+    - name: Get full Python version
+      id: full-python-version
+      shell: bash
+      run: echo ::set-output name=version::$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))")
     - name: Configure poetry
       run: poetry config virtualenvs.in-project true
     - name: Set up cache
-      uses: actions/cache@v2.1.7
+      uses: actions/cache@v3
       id: cache
       with:
         path: .venv
@@ -72,15 +83,15 @@ jobs:
 
     # Frontend build is necessary for the package to be importable, in the tests
     - name: Set up Node.js
-      uses: actions/setup-node@v2.5.1
+      uses: actions/setup-node@v3
       with:
         node-version: '14.x'
         cache: 'npm'
         cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
-    - name: Install fronend dependencies
+    - name: Install the frontend dependencies
       run: npm ci
       working-directory: streamlit_webrtc/frontend
-    - name: Built the frontend
+    - name: Build the frontend
       run: npm run build --if-present
       working-directory: streamlit_webrtc/frontend
 

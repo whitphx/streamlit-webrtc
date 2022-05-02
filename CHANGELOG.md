@@ -3,6 +3,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.36.1] - 2022-03-25
+
+### Fix
+- Rename internal imports to be compatible with streamlit>=1.8.0, #760.
+
+## [0.36.0] - 2022-03-14
+
+### Add
+- Export `DEFAULT_*` values, #723.
+
+### Fix
+- Deprecated warning messages, #732.
+
+## [0.35.2] - 2022-03-01
+### Fix
+- Fix an internal attribute access to be compatible with streamlit>=1.6.0, #710.
+
+## [0.35.1] - 2022-02-23
+### Fix
+- Internal package updates.
+
 ## [0.35.0] - 2022-02-13
 ### Add
 - PEP-561 compatibility, #671.
