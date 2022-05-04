@@ -64,6 +64,11 @@ $ pip install -U streamlit-webrtc
 ```
 
 ## Quick tutorial
+
+See also ["Developing Web-Based Real-Time Video/Audio Processing Apps Quickly with Streamlit"](https://towardsdatascience.com/developing-web-based-real-time-video-audio-processing-apps-quickly-with-streamlit-7c7bcd0bc5a8).
+
+---
+
 Create `app.py` with the content below.
 ```py
 from streamlit_webrtc import webrtc_streamer
@@ -166,8 +171,33 @@ If not, you will encounter an error when starting using the device. For example,
 
 [Streamlit Cloud](https://streamlit.io/cloud) is a recommended way for HTTPS serving. You can easily deploy Streamlit apps with it, and most importantly for this topic, it serves the apps via HTTPS automatically by defualt.
 
-### Network connectivity
-Video streaming does not work in some network environments.
+### Configure the STUN server
+To deploy the app to the cloud, we have to configure the *STUN* server via the `rtc_configuration` argument on `webrtc_streamer()` like below.
+
+```python
+webrtc_streamer(
+    # ...
+    rtc_configuration={  # Add this config
+        "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+    }
+    # ...
+)
+```
+
+This configuration is necessary to establish the media streaming connection when the server is on a remote host.
+
+`streamlit_webrtc` uses WebRTC for its video and audio streaming. It has to access a "STUN server" in the global network for the remote peers (precisely, peers over the NATs) to establish WebRTC connections.
+As we don't see the details about STUN servers here, please google it if interested with keywords such as STUN, TURN, or NAT traversal, or read these articles ([1](https://towardsdatascience.com/developing-web-based-real-time-video-audio-processing-apps-quickly-with-streamlit-7c7bcd0bc5a8#1cec), [2](https://dev.to/whitphx/python-webrtc-basics-with-aiortc-48id), [3](https://www.3cx.com/pbx/what-is-a-stun-server/)).
+
+The example above is configured to use `stun.l.google.com:19302`, which is a free STUN server provided by Google.
+
+You can also use any other STUN servers.
+For example, [one user reported](https://github.com/whitphx/streamlit-webrtc/issues/283#issuecomment-889753789) that the Google's STUN server had a huge delay when using from China network, and the problem was solved by changing the STUN server.
+
+For those who know about the browser WebRTC API: The value of the rtc_configuration argument will be passed to the [`RTCPeerConnection`](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/RTCPeerConnection) constructor on the frontend.
+
+### Configure the TURN server if necessary
+Even if the STUN server is properly configured, media streaming may not work in some network environments.
 For example, in some office or public networks, there are firewalls which drop the WebRTC packets.
 
 In such environments, setting up a [TURN server](https://webrtc.org/getting-started/turn-server) is a solution. See https://github.com/whitphx/streamlit-webrtc/issues/335#issuecomment-897326755.
