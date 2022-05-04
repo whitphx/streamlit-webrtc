@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.37.0] - 2022-05-04
+
 ### Add
 - `on_change` callback, #695.
 - `translations` option, #733.
