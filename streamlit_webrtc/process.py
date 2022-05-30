@@ -18,9 +18,9 @@ from .models import (
     AudioProcessorT,
     FrameT,
     ProcessorT,
+    VideoProcessCallback,
     VideoProcessorBase,
     VideoProcessorT,
-    VideoProcessCallback,
 )
 
 logger = logging.getLogger(__name__)
