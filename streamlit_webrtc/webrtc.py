@@ -19,9 +19,11 @@ from aiortc.mediastreams import MediaStreamTrack
 
 from .eventloop import get_server_event_loop
 from .models import (
+    AsyncFramesCallback,
     AudioProcessorBase,
     AudioProcessorFactory,
     AudioProcessorT,
+    FrameCallback,
     MediaPlayerFactory,
     MediaRecorderFactory,
     VideoProcessorBase,
@@ -78,8 +80,12 @@ async def _process_offer_coro(
     source_audio_track: Optional[MediaStreamTrack],
     in_recorder: Optional[MediaRecorder],
     out_recorder: Optional[MediaRecorder],
-    video_processor: Optional[VideoProcessorBase],
-    audio_processor: Optional[AudioProcessorBase],
+    video_frame_callback: Optional[FrameCallback],
+    video_async_frames_callback: Optional[AsyncFramesCallback],
+    video_on_ended: Optional[Callable[[], None]],
+    audio_frame_callback: Optional[FrameCallback],
+    audio_async_frames_callback: Optional[AsyncFramesCallback],
+    audio_on_ended: Optional[Callable[[], None]],
     video_receiver: Optional[VideoReceiver],
     audio_receiver: Optional[AudioReceiver],
     async_processing: bool,
@@ -87,6 +93,13 @@ async def _process_offer_coro(
     sendback_audio: bool,
     on_track_created: Callable[[TrackType, MediaStreamTrack], None],
 ):
+    should_process_audio = bool(
+        audio_frame_callback or audio_async_frames_callback or audio_on_ended
+    )
+    should_process_video = bool(
+        video_frame_callback or video_async_frames_callback or video_on_ended
+    )
+
     if mode == WebRtcMode.SENDRECV:
 
         @pc.on("track")
@@ -104,7 +117,7 @@ async def _process_offer_coro(
                 if source_audio_track:
                     logger.info("Set %s as an input audio track", source_audio_track)
                     output_track = source_audio_track
-                elif audio_processor:
+                elif should_process_audio:
                     AudioTrack = (
                         AsyncAudioProcessTrack
                         if async_processing
@@ -117,15 +130,9 @@ async def _process_offer_coro(
                     )
                     output_track = AudioTrack(
                         track=relay.subscribe(input_track),
-                        frame_callback=audio_processor.recv
-                        if hasattr(audio_processor, "recv")
-                        else None,
-                        async_frames_callback=audio_processor.recv_queued
-                        if hasattr(audio_processor, "recv_queued")
-                        else None,
-                        on_ended=audio_processor.on_ended
-                        if hasattr(audio_processor, "on_ended")
-                        else None,
+                        frame_callback=audio_frame_callback,
+                        async_frames_callback=audio_async_frames_callback,
+                        on_ended=audio_on_ended,
                     )
                 else:
                     output_track = input_track  # passthrough
@@ -133,7 +140,7 @@ async def _process_offer_coro(
                 if source_video_track:
                     logger.info("Set %s as an input video track", source_video_track)
                     output_track = source_video_track
-                elif video_processor:
+                elif should_process_video:
                     VideoTrack = (
                         AsyncVideoProcessTrack
                         if async_processing
@@ -146,15 +153,9 @@ async def _process_offer_coro(
                     )
                     output_track = VideoTrack(
                         track=relay.subscribe(input_track),
-                        frame_callback=video_processor.recv
-                        if hasattr(video_processor, "recv")
-                        else None,
-                        async_frames_callback=video_processor.recv_queued
-                        if hasattr(video_processor, "recv_queued")
-                        else None,
-                        on_ended=video_processor.on_ended
-                        if hasattr(video_processor, "on_ended")
-                        else None,
+                        frame_callback=video_frame_callback,
+                        async_frames_callback=video_async_frames_callback,
+                        on_ended=video_on_ended,
                     )
                 else:
                     output_track = input_track
@@ -238,7 +239,7 @@ async def _process_offer_coro(
             output_track = None
             if t.kind == "audio":
                 if source_audio_track:
-                    if audio_processor:
+                    if should_process_audio:
                         AudioTrack = (
                             AsyncAudioProcessTrack
                             if async_processing
@@ -251,21 +252,15 @@ async def _process_offer_coro(
                         )
                         output_track = AudioTrack(
                             track=source_audio_track,
-                            frame_callback=audio_processor.recv
-                            if hasattr(audio_processor, "recv")
-                            else None,
-                            async_frames_callback=audio_processor.recv_queued
-                            if hasattr(audio_processor, "recv_queued")
-                            else None,
-                            on_ended=audio_processor.on_ended
-                            if hasattr(audio_processor, "on_ended")
-                            else None,
+                            frame_callback=audio_frame_callback,
+                            async_frames_callback=audio_async_frames_callback,
+                            on_ended=audio_on_ended,
                         )
                     else:
                         output_track = source_audio_track  # passthrough
             elif t.kind == "video":
                 if source_video_track:
-                    if video_processor:
+                    if should_process_video:
                         VideoTrack = (
                             AsyncVideoProcessTrack
                             if async_processing
@@ -278,15 +273,9 @@ async def _process_offer_coro(
                         )
                         output_track = VideoTrack(
                             track=source_video_track,
-                            frame_callback=video_processor.recv
-                            if hasattr(video_processor, "recv")
-                            else None,
-                            async_frames_callback=video_processor.recv_queued
-                            if hasattr(video_processor, "recv_queued")
-                            else None,
-                            on_ended=video_processor.on_ended
-                            if hasattr(video_processor, "on_ended")
-                            else None,
+                            frame_callback=video_frame_callback,
+                            async_frames_callback=video_async_frames_callback,
+                            on_ended=video_on_ended,
                         )
                     else:
                         output_track = source_video_track  # passthrough
@@ -520,8 +509,24 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 source_audio_track=source_audio_track,
                 in_recorder=in_recorder,
                 out_recorder=out_recorder,
-                video_processor=video_processor,
-                audio_processor=audio_processor,
+                video_frame_callback=video_processor.recv
+                if video_processor and hasattr(video_processor, "recv")
+                else None,
+                video_async_frames_callback=video_processor.recv_queued
+                if video_processor and hasattr(video_processor, "recv_queued")
+                else None,
+                video_on_ended=video_processor.on_ended
+                if video_processor and hasattr(video_processor, "on_ended")
+                else None,
+                audio_frame_callback=audio_processor.recv
+                if audio_processor and hasattr(audio_processor, "recv")
+                else None,
+                audio_async_frames_callback=audio_processor.recv_queued
+                if audio_processor and hasattr(audio_processor, "recv_queued")
+                else None,
+                audio_on_ended=audio_processor.on_ended
+                if audio_processor and hasattr(audio_processor, "on_ended")
+                else None,
                 video_receiver=video_receiver,
                 audio_receiver=audio_receiver,
                 async_processing=self.async_processing,
