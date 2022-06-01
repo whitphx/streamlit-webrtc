@@ -4,7 +4,7 @@ import itertools
 import logging
 import queue
 import threading
-from typing import Callable, Generic, Optional, Union
+from typing import Callable, Generic, Optional, Union, cast
 
 from streamlit_webrtc.shutdown import SessionShutdownObserver
 
@@ -295,7 +295,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _process_offer_thread: Union[threading.Thread, None]
     _answer_queue: queue.Queue
     _session_shutdown_observer: SessionShutdownObserver
-    _video_processor: Optional[VideoProcessorT]
+    _video_processor: Optional[Union[VideoProcessorT, VideoCallbackProcessor]]
     _audio_processor: Optional[AudioProcessorT]
     _video_receiver: Optional[VideoReceiver]
     _audio_receiver: Optional[AudioReceiver]
@@ -306,7 +306,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _player: Optional[MediaPlayer]
 
     @property
-    def video_processor(self) -> Optional[VideoProcessorT]:
+    def video_processor(
+        self,
+    ) -> Optional[Union[VideoProcessorT, VideoCallbackProcessor]]:
         return self._video_processor
 
     @property
@@ -427,7 +429,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             elif track_type == "output:audio":
                 self._output_audio_track = track
 
-        video_processor = None
+        video_processor: Optional[Union[VideoProcessorT, VideoCallbackProcessor]] = None
         if self.video_process_callback:
             video_processor = VideoCallbackProcessor(self.video_process_callback)
         elif self.video_processor_factory:
@@ -549,11 +551,14 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         if not self.video_processor:
             raise TypeError("video_processor is None")
+
         if type(self.video_processor).__name__ != VideoCallbackProcessor.__name__:
             raise TypeError(
                 f"video_processor has an invalid type: {type(self.video_processor)}"
             )
-        self.video_processor.callback = callback
+        video_callback_processor = cast(VideoCallbackProcessor, self.video_processor)
+
+        video_callback_processor.callback = callback
 
     def _unset_processors(self):
         self._video_processor = None

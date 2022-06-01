@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, Generic, NamedTuple, Optional, Union, ov
 from aiortc.mediastreams import MediaStreamTrack
 
 from streamlit_webrtc.models import VideoProcessCallback
+from streamlit_webrtc.process import VideoCallbackProcessor
 
 try:
     from typing import TypedDict
@@ -105,7 +106,9 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         return self._state
 
     @property
-    def video_processor(self) -> Optional[VideoProcessorT]:
+    def video_processor(
+        self,
+    ) -> Optional[Union[VideoProcessorT, VideoCallbackProcessor]]:
         """
         A video processor instance which has been created through
         the callable provided as `video_processor_factory` argument
@@ -125,7 +128,9 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         return worker.audio_processor if worker else None
 
     @property
-    def video_transformer(self) -> Optional[VideoProcessorT]:
+    def video_transformer(
+        self,
+    ) -> Optional[Union[VideoProcessorT, VideoCallbackProcessor]]:
         """
         A video transformer instance which has been created through
         the callable provided as `video_transformer_factory` argument
@@ -200,6 +205,7 @@ def webrtc_streamer(
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
+    video_process_callback: Optional[VideoProcessCallback] = None,
     video_processor_factory: None = None,
     audio_processor_factory: None = None,
     async_processing: bool = True,
@@ -235,6 +241,7 @@ def webrtc_streamer(
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
+    video_process_callback: Optional[VideoProcessCallback] = None,
     video_processor_factory: Optional[VideoProcessorFactory[VideoProcessorT]] = None,
     audio_processor_factory: None = None,
     async_processing: bool = True,
@@ -266,6 +273,7 @@ def webrtc_streamer(
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
+    video_process_callback: Optional[VideoProcessCallback] = None,
     video_processor_factory: None = None,
     audio_processor_factory: Optional[AudioProcessorFactory[AudioProcessorT]] = None,
     async_processing: bool = True,
@@ -297,6 +305,7 @@ def webrtc_streamer(
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
+    video_process_callback: Optional[VideoProcessCallback] = None,
     video_processor_factory: Optional[VideoProcessorFactory[VideoProcessorT]] = None,
     audio_processor_factory: Optional[AudioProcessorFactory[AudioProcessorT]] = None,
     async_processing: bool = True,
