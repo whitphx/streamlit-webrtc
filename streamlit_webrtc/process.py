@@ -7,15 +7,18 @@ import threading
 import time
 import traceback
 from collections import deque
-from typing import Generic, List, Optional, Union
+from inspect import isawaitable
+from typing import Callable, Generic, List, Optional, Union
 
 import av
 from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
 from .models import (
+    AsyncFramesCallback,
     AudioProcessorBase,
     AudioProcessorT,
+    FrameCallback,
     FrameT,
     ProcessorT,
     VideoProcessorBase,
@@ -27,10 +30,18 @@ logger.addHandler(logging.NullHandler())
 
 
 class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
-    def __init__(self, track: MediaStreamTrack, processor: ProcessorT):
+    def __init__(
+        self,
+        track: MediaStreamTrack,
+        frame_callback: Optional[FrameCallback] = None,
+        async_frames_callback: Optional[AsyncFramesCallback] = None,
+        on_ended: Optional[Callable[[], None]] = None,
+    ):
         super().__init__()  # don't forget this!
         self.track = track
-        self.processor: ProcessorT = processor
+        self.frame_callback = frame_callback
+        self.async_frames_callback = async_frames_callback
+        self.on_ended = on_ended
 
         @self.track.on("ended")
         def on_input_track_ended():
@@ -43,7 +54,14 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
 
         frame = await self.track.recv()
 
-        new_frame = self.processor.recv(frame)
+        if self.frame_callback:
+            new_frame = self.frame_callback(frame)
+        elif self.async_frames_callback:
+            [new_frame] = asyncio.run(self.async_frames_callback([new_frame]))
+        else:
+            logger.warning("No callback set")
+            new_frame = frame
+
         new_frame.pts = frame.pts
         new_frame.time_base = frame.time_base
 
@@ -52,8 +70,8 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
     def stop(self):
         super().stop()
 
-        if hasattr(self.processor, "on_ended"):
-            self.processor.on_ended()
+        if self.on_ended:
+            self.on_ended()
 
 
 class VideoProcessTrack(
@@ -80,13 +98,17 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
     def __init__(
         self,
         track: MediaStreamTrack,
-        processor: ProcessorT,
+        frame_callback: Optional[FrameCallback] = None,
+        async_frames_callback: Optional[AsyncFramesCallback] = None,
+        on_ended: Optional[Callable[[], None]] = None,
         stop_timeout: Optional[float] = None,
     ):
         super().__init__()  # don't forget this!
 
         self.track = track
-        self.processor: ProcessorT = processor
+        self.frame_callback = frame_callback
+        self.async_frames_callback = async_frames_callback
+        self.on_ended = on_ended
 
         self._last_out_frame: Union[FrameT, None] = None
 
@@ -125,16 +147,21 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                 for tbline in tb.rstrip().splitlines():
                     logger.error(tbline.rstrip())
 
-    async def _fallback_recv_queued(self, frames: List[FrameT]) -> FrameT:
-        """
-        Used as a fallback when the processor does not have its own `recv_queued`.
-        """
+    async def _call_frame_callback(self, frames: List[FrameT]) -> FrameT:
         if len(frames) > 1:
             logger.warning(
                 "Some frames have been dropped. "
                 "`recv_queued` is recommended to use instead."
             )
-        return [self.processor.recv(frames[-1])]
+        if not self.frame_callback:
+            logger.warning("No callback set.")
+            return frames[-1]
+
+        coro_or_frames = self.frame_callback(frames[-1])
+        if isawaitable(coro_or_frames):
+            return await coro_or_frames
+        else:
+            return coro_or_frames
 
     def _worker_thread(self):
         loop = asyncio.new_event_loop()
@@ -164,15 +191,15 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                 raise Exception("Unexpectedly, queued frames do not exist")
 
             # Set up a task, providing the frames.
-            if hasattr(self.processor, "recv_queued"):
-                coro = self.processor.recv_queued(queued_frames)
+            if self.async_frames_callback:
+                coro = self.async_frames_callback(queued_frames)
             else:
-                coro = self._fallback_recv_queued(queued_frames)
+                coro = self._call_frame_callback(queued_frames)
 
             task = loop.create_task(coro=coro)
             tasks.append(task)
 
-            # NOTE: If the execution time of recv_queued() increases
+            # NOTE: If the execution time of async_frames_callback() increases
             #       with the length of the input frames,
             #       it increases exponentially over the calls.
             #       Then, the execution time has to be monitored.
@@ -186,7 +213,8 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                 elapsed_time > 10
             ):  # No reason for 10 seconds... It's an ad-hoc decision.
                 raise Exception(
-                    "recv_queued() or recv() is taking too long to execute, "
+                    "async_frames_callback() or frame_callback() is "
+                    "taking too long to execute, "
                     f"{elapsed_time}s."
                 )
 
@@ -223,8 +251,8 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self._in_queue.put(__SENTINEL__)
         self._thread.join(self.stop_timeout)
 
-        if hasattr(self.processor, "on_ended"):
-            self.processor.on_ended()
+        if self.on_ended:
+            self.on_ended()
 
     async def recv(self):
         if self.readyState != "live":

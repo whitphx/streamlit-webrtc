@@ -1,6 +1,6 @@
 import abc
 import logging
-from typing import Callable, Generic, List, TypeVar
+from typing import Awaitable, Callable, Generic, List, TypeVar, Union
 
 import av
 import numpy as np
@@ -104,6 +104,9 @@ AudioProcessorFactory = Callable[[], AudioProcessorT]
 
 ProcessorT = TypeVar("ProcessorT", VideoProcessorBase, AudioProcessorBase)
 FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
+
+FrameCallback = Callable[[FrameT], Union[FrameT, Awaitable[FrameT]]]
+AsyncFramesCallback = Callable[[List[FrameT]], Awaitable[List[FrameT]]]
 
 
 class MixerBase(abc.ABC, Generic[FrameT]):

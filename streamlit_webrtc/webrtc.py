@@ -117,7 +117,15 @@ async def _process_offer_coro(
                     )
                     output_track = AudioTrack(
                         track=relay.subscribe(input_track),
-                        processor=audio_processor,
+                        frame_callback=audio_processor.recv
+                        if hasattr(audio_processor, "recv")
+                        else None,
+                        async_frames_callback=audio_processor.recv_queued
+                        if hasattr(audio_processor, "recv_queued")
+                        else None,
+                        on_ended=audio_processor.on_ended
+                        if hasattr(audio_processor, "on_ended")
+                        else None,
                     )
                 else:
                     output_track = input_track  # passthrough
@@ -138,7 +146,15 @@ async def _process_offer_coro(
                     )
                     output_track = VideoTrack(
                         track=relay.subscribe(input_track),
-                        processor=video_processor,
+                        frame_callback=video_processor.recv
+                        if hasattr(video_processor, "recv")
+                        else None,
+                        async_frames_callback=video_processor.recv_queued
+                        if hasattr(video_processor, "recv_queued")
+                        else None,
+                        on_ended=video_processor.on_ended
+                        if hasattr(video_processor, "on_ended")
+                        else None,
                     )
                 else:
                     output_track = input_track
@@ -234,7 +250,16 @@ async def _process_offer_coro(
                             AudioTrack,
                         )
                         output_track = AudioTrack(
-                            track=source_audio_track, processor=audio_processor
+                            track=source_audio_track,
+                            frame_callback=audio_processor.recv
+                            if hasattr(audio_processor, "recv")
+                            else None,
+                            async_frames_callback=audio_processor.recv_queued
+                            if hasattr(audio_processor, "recv_queued")
+                            else None,
+                            on_ended=audio_processor.on_ended
+                            if hasattr(audio_processor, "on_ended")
+                            else None,
                         )
                     else:
                         output_track = source_audio_track  # passthrough
@@ -252,7 +277,16 @@ async def _process_offer_coro(
                             VideoTrack,
                         )
                         output_track = VideoTrack(
-                            track=source_video_track, processor=video_processor
+                            track=source_video_track,
+                            frame_callback=video_processor.recv
+                            if hasattr(video_processor, "recv")
+                            else None,
+                            async_frames_callback=video_processor.recv_queued
+                            if hasattr(video_processor, "recv_queued")
+                            else None,
+                            on_ended=video_processor.on_ended
+                            if hasattr(video_processor, "on_ended")
+                            else None,
                         )
                     else:
                         output_track = source_video_track  # passthrough
