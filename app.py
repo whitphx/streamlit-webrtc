@@ -174,7 +174,7 @@ def app_video_filters():
         key="opencv-filter",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
-        video_process_callback=callback,
+        video_frame_callback=callback,
         media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
     )
@@ -214,7 +214,7 @@ def app_audio_filter():
         key="audio-filter",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
-        audio_process_callback=process_audio,
+        audio_frame_callback=process_audio,
         async_processing=True,
     )
 
@@ -355,7 +355,7 @@ def app_object_detection():
         key="object-detection",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
-        video_process_callback=callback,
+        video_frame_callback=callback,
         media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
     )

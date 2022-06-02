@@ -17,10 +17,10 @@ from typing import (
 from aiortc.mediastreams import MediaStreamTrack
 
 from streamlit_webrtc.models import (
-    AudioProcessCallback,
+    AudioFrameCallback,
     QueuedAudioFramesCallback,
     QueuedVideoFramesCallback,
-    VideoProcessCallback,
+    VideoFrameCallback,
 )
 
 try:
@@ -225,8 +225,8 @@ def webrtc_streamer(
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
-    video_process_callback: Optional[VideoProcessCallback] = None,
-    audio_process_callback: Optional[AudioProcessCallback] = None,
+    video_frame_callback: Optional[VideoFrameCallback] = None,
+    audio_frame_callback: Optional[AudioFrameCallback] = None,
     queued_video_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     queued_audio_frames_callback: Optional[QueuedAudioFramesCallback] = None,
     video_processor_factory: None = None,
@@ -264,8 +264,8 @@ def webrtc_streamer(
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
-    video_process_callback: Optional[VideoProcessCallback] = None,
-    audio_process_callback: Optional[AudioProcessCallback] = None,
+    video_frame_callback: Optional[VideoFrameCallback] = None,
+    audio_frame_callback: Optional[AudioFrameCallback] = None,
     queued_video_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     queued_audio_frames_callback: Optional[QueuedAudioFramesCallback] = None,
     video_processor_factory: Optional[VideoProcessorFactory[VideoProcessorT]] = None,
@@ -299,8 +299,8 @@ def webrtc_streamer(
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
-    video_process_callback: Optional[VideoProcessCallback] = None,
-    audio_process_callback: Optional[AudioProcessCallback] = None,
+    video_frame_callback: Optional[VideoFrameCallback] = None,
+    audio_frame_callback: Optional[AudioFrameCallback] = None,
     queued_video_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     queued_audio_frames_callback: Optional[QueuedAudioFramesCallback] = None,
     video_processor_factory: None = None,
@@ -334,8 +334,8 @@ def webrtc_streamer(
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
-    video_process_callback: Optional[VideoProcessCallback] = None,
-    audio_process_callback: Optional[AudioProcessCallback] = None,
+    video_frame_callback: Optional[VideoFrameCallback] = None,
+    audio_frame_callback: Optional[AudioFrameCallback] = None,
     queued_video_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     queued_audio_frames_callback: Optional[QueuedAudioFramesCallback] = None,
     video_processor_factory: Optional[VideoProcessorFactory[VideoProcessorT]] = None,
@@ -368,8 +368,8 @@ def webrtc_streamer(
     player_factory: Optional[MediaPlayerFactory] = None,
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
-    video_process_callback: Optional[VideoProcessCallback] = None,
-    audio_process_callback: Optional[AudioProcessCallback] = None,
+    video_frame_callback: Optional[VideoFrameCallback] = None,
+    audio_frame_callback: Optional[AudioFrameCallback] = None,
     queued_video_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     queued_audio_frames_callback: Optional[QueuedAudioFramesCallback] = None,
     video_processor_factory=None,
@@ -535,10 +535,10 @@ def webrtc_streamer(
         st.experimental_rerun()
 
     if webrtc_worker:
-        if video_process_callback:
-            webrtc_worker.update_video_process_callback(video_process_callback)
-        if audio_process_callback:
-            webrtc_worker.update_audio_process_callback(audio_process_callback)
+        if video_frame_callback:
+            webrtc_worker.update_video_frame_callback(video_frame_callback)
+        if audio_frame_callback:
+            webrtc_worker.update_audio_frame_callback(audio_frame_callback)
         if queued_video_frames_callback:
             webrtc_worker.update_queued_video_frames_callback(
                 queued_video_frames_callback
@@ -559,8 +559,8 @@ def webrtc_streamer(
             player_factory=player_factory,
             in_recorder_factory=in_recorder_factory,
             out_recorder_factory=out_recorder_factory,
-            video_process_callback=video_process_callback,
-            audio_process_callback=audio_process_callback,
+            video_frame_callback=video_frame_callback,
+            audio_frame_callback=audio_frame_callback,
             queued_video_frames_callback=queued_video_frames_callback,
             queued_audio_frames_callback=queued_audio_frames_callback,
             video_processor_factory=video_processor_factory,

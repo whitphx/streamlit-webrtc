@@ -14,14 +14,14 @@ from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
 from .models import (
-    AudioProcessCallback,
+    AudioFrameCallback,
     AudioProcessorBase,
     AudioProcessorT,
     FrameT,
     ProcessorT,
     QueuedAudioFramesCallback,
     QueuedVideoFramesCallback,
-    VideoProcessCallback,
+    VideoFrameCallback,
     VideoProcessorBase,
     VideoProcessorT,
 )
@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-class VideoCallbackProcessor(VideoProcessorBase):
-    def __init__(self, callback: VideoProcessCallback) -> None:
+class VideoFrameCallbackProcessor(VideoProcessorBase):
+    def __init__(self, callback: VideoFrameCallback) -> None:
         self.callback = callback
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
@@ -46,8 +46,8 @@ class QueuedVideoFramesCallbackProcessor(VideoProcessorBase):
         return await self.callback(frames)
 
 
-class AudioCallbackProcessor(AudioProcessorBase):
-    def __init__(self, callback: AudioProcessCallback) -> None:
+class AudioFrameCallbackProcessor(AudioProcessorBase):
+    def __init__(self, callback: AudioFrameCallback) -> None:
         self.callback = callback
 
     def recv(self, frame: av.AudioFrame) -> av.AudioFrame:

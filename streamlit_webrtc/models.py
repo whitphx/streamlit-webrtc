@@ -116,11 +116,11 @@ class MixerBase(abc.ABC, Generic[FrameT]):
 
 MixerT = TypeVar("MixerT", bound=MixerBase)
 
-VideoProcessCallback = Callable[[av.VideoFrame], av.VideoFrame]
+VideoFrameCallback = Callable[[av.VideoFrame], av.VideoFrame]
 QueuedVideoFramesCallback = Callable[
     [List[av.VideoFrame]], Awaitable[List[av.VideoFrame]]
 ]
-AudioProcessCallback = Callable[[av.AudioFrame], av.AudioFrame]
+AudioFrameCallback = Callable[[av.AudioFrame], av.AudioFrame]
 QueuedAudioFramesCallback = Callable[
     [List[av.AudioFrame]], Awaitable[List[av.AudioFrame]]
 ]
