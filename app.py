@@ -20,7 +20,6 @@ import streamlit as st
 from aiortc.contrib.media import MediaPlayer
 
 from streamlit_webrtc import (
-    AudioProcessorBase,
     RTCConfiguration,
     VideoProcessorBase,
     WebRtcMode,
@@ -221,36 +220,29 @@ def app_audio_filter():
 
 
 def app_delayed_echo():
-    DEFAULT_DELAY = 1.0
+    delay = st.slider("Delay", 0.0, 5.0, 1.0, 0.05)
 
-    class VideoProcessor(VideoProcessorBase):
-        delay = DEFAULT_DELAY
+    async def queued_video_frames_callback(
+        frames: List[av.VideoFrame],
+    ) -> List[av.VideoFrame]:
+        logger.debug("Delay:", delay)
+        await asyncio.sleep(delay)
+        return frames
 
-        async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
-            logger.debug("Delay:", self.delay)
-            await asyncio.sleep(self.delay)
-            return frames
+    async def queued_audio_frames_callback(
+        frames: List[av.AudioFrame],
+    ) -> List[av.AudioFrame]:
+        await asyncio.sleep(delay)
+        return frames
 
-    class AudioProcessor(AudioProcessorBase):
-        delay = DEFAULT_DELAY
-
-        async def recv_queued(self, frames: List[av.AudioFrame]) -> List[av.AudioFrame]:
-            await asyncio.sleep(self.delay)
-            return frames
-
-    webrtc_ctx = webrtc_streamer(
+    webrtc_streamer(
         key="delay",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
-        video_processor_factory=VideoProcessor,
-        audio_processor_factory=AudioProcessor,
+        queued_video_frames_callback=queued_video_frames_callback,
+        queued_audio_frames_callback=queued_audio_frames_callback,
         async_processing=True,
     )
-
-    if webrtc_ctx.video_processor and webrtc_ctx.audio_processor:
-        delay = st.slider("Delay", 0.0, 5.0, DEFAULT_DELAY, 0.05)
-        webrtc_ctx.video_processor.delay = delay
-        webrtc_ctx.audio_processor.delay = delay
 
 
 def app_object_detection():

@@ -25,6 +25,8 @@ from .models import (
     AudioProcessorT,
     MediaPlayerFactory,
     MediaRecorderFactory,
+    QueuedAudioFramesCallback,
+    QueuedVideoFramesCallback,
     VideoProcessCallback,
     VideoProcessorBase,
     VideoProcessorFactory,
@@ -36,6 +38,8 @@ from .process import (
     AsyncVideoProcessTrack,
     AudioCallbackProcessor,
     AudioProcessTrack,
+    QueuedAudioFramesCallbackProcessor,
+    QueuedVideoFramesCallbackProcessor,
     VideoCallbackProcessor,
     VideoProcessTrack,
 )
@@ -297,8 +301,16 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _process_offer_thread: Union[threading.Thread, None]
     _answer_queue: queue.Queue
     _session_shutdown_observer: SessionShutdownObserver
-    _video_processor: Optional[Union[VideoProcessorT, VideoCallbackProcessor]]
-    _audio_processor: Optional[Union[AudioProcessorT, AudioCallbackProcessor]]
+    _video_processor: Optional[
+        Union[
+            VideoProcessorT, VideoCallbackProcessor, QueuedVideoFramesCallbackProcessor
+        ]
+    ]
+    _audio_processor: Optional[
+        Union[
+            AudioProcessorT, AudioCallbackProcessor, QueuedAudioFramesCallbackProcessor
+        ]
+    ]
     _video_receiver: Optional[VideoReceiver]
     _audio_receiver: Optional[AudioReceiver]
     _input_video_track: Optional[MediaStreamTrack]
@@ -310,13 +322,21 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     @property
     def video_processor(
         self,
-    ) -> Optional[Union[VideoProcessorT, VideoCallbackProcessor]]:
+    ) -> Optional[
+        Union[
+            VideoProcessorT, VideoCallbackProcessor, QueuedVideoFramesCallbackProcessor
+        ]
+    ]:
         return self._video_processor
 
     @property
     def audio_processor(
         self,
-    ) -> Optional[Union[AudioProcessorT, AudioCallbackProcessor]]:
+    ) -> Optional[
+        Union[
+            AudioProcessorT, AudioCallbackProcessor, QueuedAudioFramesCallbackProcessor
+        ]
+    ]:
         return self._audio_processor
 
     @property
@@ -353,6 +373,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         out_recorder_factory: Optional[MediaRecorderFactory] = None,
         video_process_callback: Optional[VideoProcessCallback] = None,
         audio_process_callback: Optional[AudioProcessCallback] = None,
+        queued_video_frames_callback: Optional[QueuedVideoFramesCallback] = None,
+        queued_audio_frames_callback: Optional[QueuedAudioFramesCallback] = None,
         video_processor_factory: Optional[
             VideoProcessorFactory[VideoProcessorT]
         ] = None,
@@ -377,6 +399,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self.out_recorder_factory = out_recorder_factory
         self.video_process_callback = video_process_callback
         self.audio_process_callback = audio_process_callback
+        self.queued_video_frames_callback = queued_video_frames_callback
+        self.queued_audio_frames_callback = queued_audio_frames_callback
         self.video_processor_factory = video_processor_factory
         self.audio_processor_factory = audio_processor_factory
         self.async_processing = async_processing
@@ -435,14 +459,34 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             elif track_type == "output:audio":
                 self._output_audio_track = track
 
-        video_processor: Optional[Union[VideoProcessorT, VideoCallbackProcessor]] = None
-        if self.video_process_callback:
+        video_processor: Optional[
+            Union[
+                VideoProcessorT,
+                VideoCallbackProcessor,
+                QueuedVideoFramesCallbackProcessor,
+            ]
+        ] = None
+        if self.queued_video_frames_callback:
+            video_processor = QueuedVideoFramesCallbackProcessor(
+                self.queued_video_frames_callback
+            )
+        elif self.video_process_callback:
             video_processor = VideoCallbackProcessor(self.video_process_callback)
         elif self.video_processor_factory:
             video_processor = self.video_processor_factory()
 
-        audio_processor: Optional[Union[AudioProcessorT, AudioCallbackProcessor]] = None
-        if self.audio_process_callback:
+        audio_processor: Optional[
+            Union[
+                AudioProcessorT,
+                AudioCallbackProcessor,
+                QueuedAudioFramesCallbackProcessor,
+            ]
+        ] = None
+        if self.queued_audio_frames_callback:
+            audio_processor = QueuedAudioFramesCallbackProcessor(
+                self.queued_audio_frames_callback
+            )
+        elif self.audio_process_callback:
             audio_processor = AudioCallbackProcessor(self.audio_process_callback)
         elif self.audio_processor_factory:
             audio_processor = self.audio_processor_factory()
@@ -576,8 +620,43 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             raise TypeError(
                 f"audio_processor has an invalid type: {type(self.audio_processor)}"
             )
-
         audio_callback_processor = cast(AudioCallbackProcessor, self.audio_processor)
+
+        audio_callback_processor.callback = callback
+
+    def update_queued_video_frames_callback(self, callback: QueuedVideoFramesCallback):
+        self.queued_video_frames_callback = callback
+
+        if not self.video_processor:
+            raise TypeError("video_processor is None")
+        if (
+            type(self.video_processor).__name__
+            != QueuedVideoFramesCallbackProcessor.__name__
+        ):
+            raise TypeError(
+                f"video_processor has an invalid type: {type(self.video_processor)}"
+            )
+        video_callback_processor = cast(
+            QueuedVideoFramesCallbackProcessor, self.video_processor
+        )
+
+        video_callback_processor.callback = callback
+
+    def update_queued_audio_frames_callback(self, callback: QueuedAudioFramesCallback):
+        self.queued_audio_frames_callback = callback
+
+        if not self.audio_processor:
+            raise TypeError("audio_processor is None")
+        if (
+            type(self.audio_processor).__name__
+            != QueuedAudioFramesCallbackProcessor.__name__
+        ):
+            raise TypeError(
+                f"audio_processor has an invalid type: {type(self.audio_processor)}"
+            )
+        audio_callback_processor = cast(
+            QueuedAudioFramesCallbackProcessor, self.audio_processor
+        )
 
         audio_callback_processor.callback = callback
 

@@ -19,6 +19,8 @@ from .models import (
     AudioProcessorT,
     FrameT,
     ProcessorT,
+    QueuedAudioFramesCallback,
+    QueuedVideoFramesCallback,
     VideoProcessCallback,
     VideoProcessorBase,
     VideoProcessorT,
@@ -36,12 +38,28 @@ class VideoCallbackProcessor(VideoProcessorBase):
         return self.callback(frame)
 
 
+class QueuedVideoFramesCallbackProcessor(VideoProcessorBase):
+    def __init__(self, callback: QueuedVideoFramesCallback) -> None:
+        self.callback = callback
+
+    async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
+        return await self.callback(frames)
+
+
 class AudioCallbackProcessor(AudioProcessorBase):
     def __init__(self, callback: AudioProcessCallback) -> None:
         self.callback = callback
 
     def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
         return self.callback(frame)
+
+
+class QueuedAudioFramesCallbackProcessor(AudioProcessorBase):
+    def __init__(self, callback: QueuedAudioFramesCallback) -> None:
+        self.callback = callback
+
+    async def recv_queued(self, frames: List[av.AudioFrame]) -> List[av.AudioFrame]:
+        return await self.callback(frames)
 
 
 class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):

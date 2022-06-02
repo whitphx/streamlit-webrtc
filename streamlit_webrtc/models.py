@@ -1,6 +1,6 @@
 import abc
 import logging
-from typing import Callable, Generic, List, TypeVar
+from typing import Awaitable, Callable, Generic, List, TypeVar
 
 import av
 import numpy as np
@@ -36,7 +36,7 @@ class VideoProcessorBase(abc.ABC):
         new_image = self.transform(frame)
         return av.VideoFrame.from_ndarray(new_image, format="bgr24")
 
-    async def recv_queued(self, frames: List[av.VideoFrame]) -> av.VideoFrame:
+    async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
         """
         Receives all the frames arrived after the previous recv_queued() call
         and returns new frames when running in async mode.
@@ -75,7 +75,7 @@ class AudioProcessorBase(abc.ABC):
         """
         raise NotImplementedError("recv() is not implemented.")
 
-    async def recv_queued(self, frames: List[av.AudioFrame]) -> av.AudioFrame:
+    async def recv_queued(self, frames: List[av.AudioFrame]) -> List[av.AudioFrame]:
         """
         Receives all the frames arrived after the previous recv_queued() call
         and returns new frames when running in async mode.
@@ -117,4 +117,10 @@ class MixerBase(abc.ABC, Generic[FrameT]):
 MixerT = TypeVar("MixerT", bound=MixerBase)
 
 VideoProcessCallback = Callable[[av.VideoFrame], av.VideoFrame]
+QueuedVideoFramesCallback = Callable[
+    [List[av.VideoFrame]], Awaitable[List[av.VideoFrame]]
+]
 AudioProcessCallback = Callable[[av.AudioFrame], av.AudioFrame]
+QueuedAudioFramesCallback = Callable[
+    [List[av.AudioFrame]], Awaitable[List[av.AudioFrame]]
+]
