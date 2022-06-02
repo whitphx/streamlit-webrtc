@@ -278,7 +278,12 @@ def app_object_detection():
         "train",
         "tvmonitor",
     ]
-    COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
+
+    @st.experimental_singleton
+    def generate_label_colors():
+        return np.random.uniform(0, 255, size=(len(CLASSES), 3))
+
+    COLORS = generate_label_colors()
 
     download_file(MODEL_URL, MODEL_LOCAL_PATH, expected_size=23147564)
     download_file(PROTOTXT_URL, PROTOTXT_LOCAL_PATH, expected_size=29353)
@@ -289,7 +294,7 @@ def app_object_detection():
         name: str
         prob: float
 
-    @st.experimental_singleton
+    @st.cache
     def get_model():
         return cv2.dnn.readNetFromCaffe(str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH))
 
