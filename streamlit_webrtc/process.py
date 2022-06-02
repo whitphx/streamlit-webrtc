@@ -14,6 +14,7 @@ from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
 from .models import (
+    AudioProcessCallback,
     AudioProcessorBase,
     AudioProcessorT,
     FrameT,
@@ -32,6 +33,14 @@ class VideoCallbackProcessor(VideoProcessorBase):
         self.callback = callback
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        return self.callback(frame)
+
+
+class AudioCallbackProcessor(AudioProcessorBase):
+    def __init__(self, callback: AudioProcessCallback) -> None:
+        self.callback = callback
+
+    def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
         return self.callback(frame)
 
 

@@ -2,12 +2,21 @@ import json
 import logging
 import os
 import weakref
-from typing import Any, Callable, Dict, Generic, NamedTuple, Optional, Union, overload
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    NamedTuple,
+    Optional,
+    Union,
+    cast,
+    overload,
+)
 
 from aiortc.mediastreams import MediaStreamTrack
 
-from streamlit_webrtc.models import VideoProcessCallback
-from streamlit_webrtc.process import VideoCallbackProcessor
+from streamlit_webrtc.models import AudioProcessCallback, VideoProcessCallback
 
 try:
     from typing import TypedDict
@@ -106,16 +115,19 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         return self._state
 
     @property
-    def video_processor(
-        self,
-    ) -> Optional[Union[VideoProcessorT, VideoCallbackProcessor]]:
+    def video_processor(self) -> Optional[VideoProcessorT]:
         """
         A video processor instance which has been created through
         the callable provided as `video_processor_factory` argument
         to `webrtc_streamer()`.
         """
         worker = self._get_worker()
-        return worker.video_processor if worker else None
+
+        # worker.video_processor is Union[VideoProcessorT, VideoCallbackProcessor],
+        # but the callback processor is usually not used through this property
+        # as class-less callback API is used in that case,
+        # so we can ignore that type here by casting the type into VideoProcessorT only.
+        return cast(VideoProcessorT, worker.video_processor) if worker else None
 
     @property
     def audio_processor(self) -> Optional[AudioProcessorT]:
@@ -125,12 +137,15 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         to `webrtc_streamer()`.
         """
         worker = self._get_worker()
-        return worker.audio_processor if worker else None
+
+        # worker.audio_processor is Union[AudioProcessorT, AudioCallbackProcessor],
+        # but the callback processor is usually not used through this property
+        # as class-less callback API is used in that case,
+        # so we can ignore that type here by casting the type into AudioProcessorT only.
+        return cast(AudioProcessorT, worker.audio_processor) if worker else None
 
     @property
-    def video_transformer(
-        self,
-    ) -> Optional[Union[VideoProcessorT, VideoCallbackProcessor]]:
+    def video_transformer(self) -> Optional[VideoProcessorT]:
         """
         A video transformer instance which has been created through
         the callable provided as `video_transformer_factory` argument
@@ -139,7 +154,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         .. deprecated:: 0.20.0
         """
         worker = self._get_worker()
-        return worker.video_processor if worker else None
+        return cast(VideoProcessorT, worker.video_processor) if worker else None
 
     @property
     def video_receiver(self) -> Optional[VideoReceiver]:
@@ -206,6 +221,7 @@ def webrtc_streamer(
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
     video_process_callback: Optional[VideoProcessCallback] = None,
+    audio_process_callback: Optional[AudioProcessCallback] = None,
     video_processor_factory: None = None,
     audio_processor_factory: None = None,
     async_processing: bool = True,
@@ -242,6 +258,7 @@ def webrtc_streamer(
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
     video_process_callback: Optional[VideoProcessCallback] = None,
+    audio_process_callback: Optional[AudioProcessCallback] = None,
     video_processor_factory: Optional[VideoProcessorFactory[VideoProcessorT]] = None,
     audio_processor_factory: None = None,
     async_processing: bool = True,
@@ -274,6 +291,7 @@ def webrtc_streamer(
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
     video_process_callback: Optional[VideoProcessCallback] = None,
+    audio_process_callback: Optional[AudioProcessCallback] = None,
     video_processor_factory: None = None,
     audio_processor_factory: Optional[AudioProcessorFactory[AudioProcessorT]] = None,
     async_processing: bool = True,
@@ -306,6 +324,7 @@ def webrtc_streamer(
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
     video_process_callback: Optional[VideoProcessCallback] = None,
+    audio_process_callback: Optional[AudioProcessCallback] = None,
     video_processor_factory: Optional[VideoProcessorFactory[VideoProcessorT]] = None,
     audio_processor_factory: Optional[AudioProcessorFactory[AudioProcessorT]] = None,
     async_processing: bool = True,
@@ -337,6 +356,7 @@ def webrtc_streamer(
     in_recorder_factory: Optional[MediaRecorderFactory] = None,
     out_recorder_factory: Optional[MediaRecorderFactory] = None,
     video_process_callback: Optional[VideoProcessCallback] = None,
+    audio_process_callback: Optional[AudioProcessCallback] = None,
     video_processor_factory=None,
     audio_processor_factory=None,
     async_processing: bool = True,
@@ -502,6 +522,8 @@ def webrtc_streamer(
     if webrtc_worker:
         if video_process_callback:
             webrtc_worker.update_video_process_callback(video_process_callback)
+        if audio_process_callback:
+            webrtc_worker.update_audio_process_callback(audio_process_callback)
 
     if not webrtc_worker and sdp_offer:
         LOGGER.debug(
@@ -515,6 +537,7 @@ def webrtc_streamer(
             in_recorder_factory=in_recorder_factory,
             out_recorder_factory=out_recorder_factory,
             video_process_callback=video_process_callback,
+            audio_process_callback=audio_process_callback,
             video_processor_factory=video_processor_factory,
             audio_processor_factory=audio_processor_factory,
             async_processing=async_processing,
