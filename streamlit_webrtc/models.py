@@ -105,7 +105,7 @@ QueuedAudioFramesCallback = Callable[
 MediaEndedCallback = Callable[[], None]
 
 
-class VideoCallbackContainer:
+class MediaCallbackContainer:
     recv: Optional[VideoFrameCallback]
     recv_queued: Optional[QueuedVideoFramesCallback]
     on_ended: Optional[MediaEndedCallback]
@@ -114,22 +114,6 @@ class VideoCallbackContainer:
         self,
         frame_callback: Optional[VideoFrameCallback],
         queued_frames_callback: Optional[QueuedVideoFramesCallback],
-        on_ended: Optional[MediaEndedCallback],
-    ) -> None:
-        self.recv = frame_callback
-        self.recv_queued = queued_frames_callback
-        self.on_ended = on_ended
-
-
-class AudioCallbackContainer:
-    recv: Optional[VideoFrameCallback]
-    recv_queued: Optional[QueuedVideoFramesCallback]
-    on_ended: Optional[MediaEndedCallback]
-
-    def __init__(
-        self,
-        frame_callback: Optional[AudioFrameCallback],
-        queued_frames_callback: Optional[QueuedAudioFramesCallback],
         on_ended: Optional[MediaEndedCallback],
     ) -> None:
         self.recv = frame_callback
@@ -149,8 +133,7 @@ ProcessorT = TypeVar(
     "ProcessorT",
     VideoProcessorBase,
     AudioProcessorBase,
-    VideoCallbackContainer,
-    AudioCallbackContainer,
+    MediaCallbackContainer,
 )
 FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
 

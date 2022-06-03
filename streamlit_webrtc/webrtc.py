@@ -19,17 +19,16 @@ from aiortc.mediastreams import MediaStreamTrack
 
 from .eventloop import get_server_event_loop
 from .models import (
-    AudioCallbackContainer,
     AudioFrameCallback,
     AudioProcessorBase,
     AudioProcessorFactory,
     AudioProcessorT,
+    MediaCallbackContainer,
     MediaEndedCallback,
     MediaPlayerFactory,
     MediaRecorderFactory,
     QueuedAudioFramesCallback,
     QueuedVideoFramesCallback,
-    VideoCallbackContainer,
     VideoFrameCallback,
     VideoProcessorBase,
     VideoProcessorFactory,
@@ -85,8 +84,8 @@ async def _process_offer_coro(
     source_audio_track: Optional[MediaStreamTrack],
     in_recorder: Optional[MediaRecorder],
     out_recorder: Optional[MediaRecorder],
-    video_processor: Optional[Union[VideoProcessorBase, VideoCallbackContainer]],
-    audio_processor: Optional[Union[AudioProcessorBase, AudioCallbackContainer]],
+    video_processor: Optional[Union[VideoProcessorBase, MediaCallbackContainer]],
+    audio_processor: Optional[Union[AudioProcessorBase, MediaCallbackContainer]],
     video_receiver: Optional[VideoReceiver],
     audio_receiver: Optional[AudioReceiver],
     async_processing: bool,
@@ -300,8 +299,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _process_offer_thread: Union[threading.Thread, None]
     _answer_queue: queue.Queue
     _session_shutdown_observer: SessionShutdownObserver
-    _video_processor: Optional[Union[VideoProcessorT, VideoCallbackContainer]]
-    _audio_processor: Optional[Union[AudioProcessorT, AudioCallbackContainer]]
+    _video_processor: Optional[Union[VideoProcessorT, MediaCallbackContainer]]
+    _audio_processor: Optional[Union[AudioProcessorT, MediaCallbackContainer]]
     _video_receiver: Optional[VideoReceiver]
     _audio_receiver: Optional[AudioReceiver]
     _input_video_track: Optional[MediaStreamTrack]
@@ -313,13 +312,13 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     @property
     def video_processor(
         self,
-    ) -> Optional[Union[VideoProcessorT, VideoCallbackContainer]]:
+    ) -> Optional[Union[VideoProcessorT, MediaCallbackContainer]]:
         return self._video_processor
 
     @property
     def audio_processor(
         self,
-    ) -> Optional[Union[AudioProcessorT, AudioCallbackContainer]]:
+    ) -> Optional[Union[AudioProcessorT, MediaCallbackContainer]]:
         return self._audio_processor
 
     @property
@@ -446,13 +445,13 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             elif track_type == "output:audio":
                 self._output_audio_track = track
 
-        video_processor: Optional[Union[VideoProcessorT, VideoCallbackContainer]] = None
+        video_processor: Optional[Union[VideoProcessorT, MediaCallbackContainer]] = None
         if (
             self.video_frame_callback
             or self.queued_video_frames_callback
             or self.on_video_ended
         ):
-            video_processor = VideoCallbackContainer(
+            video_processor = MediaCallbackContainer(
                 frame_callback=self.video_frame_callback,
                 queued_frames_callback=self.queued_video_frames_callback,
                 on_ended=self.on_video_ended,
@@ -460,13 +459,13 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         elif self.video_processor_factory:
             video_processor = self.video_processor_factory()
 
-        audio_processor: Optional[Union[AudioProcessorT, AudioCallbackContainer]] = None
+        audio_processor: Optional[Union[AudioProcessorT, MediaCallbackContainer]] = None
         if (
             self.audio_frame_callback
             or self.queued_audio_frames_callback
             or self.on_audio_ended
         ):
-            audio_processor = AudioCallbackContainer(
+            audio_processor = MediaCallbackContainer(
                 frame_callback=self.audio_frame_callback,
                 queued_frames_callback=self.queued_audio_frames_callback,
                 on_ended=self.on_audio_ended,
@@ -593,11 +592,11 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         if not self.video_processor:
             raise TypeError("video_processor is None")
-        if type(self.video_processor).__name__ != VideoCallbackContainer.__name__:
+        if type(self.video_processor).__name__ != MediaCallbackContainer.__name__:
             raise TypeError(
                 f"video_processor has an invalid type: {type(self.video_processor)}"
             )
-        video_callback_processor = cast(VideoCallbackContainer, self.video_processor)
+        video_callback_processor = cast(MediaCallbackContainer, self.video_processor)
 
         video_callback_processor.recv = frame_callback
         video_callback_processor.recv_queued = queued_frames_callback
@@ -615,11 +614,11 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         if not self.audio_processor:
             raise TypeError("audio_processor is None")
-        if type(self.audio_processor).__name__ != AudioCallbackContainer.__name__:
+        if type(self.audio_processor).__name__ != MediaCallbackContainer.__name__:
             raise TypeError(
                 f"audio_processor has an invalid type: {type(self.audio_processor)}"
             )
-        audio_callback_processor = cast(AudioCallbackContainer, self.audio_processor)
+        audio_callback_processor = cast(MediaCallbackContainer, self.audio_processor)
 
         audio_callback_processor.recv = frame_callback
         audio_callback_processor.recv_queued = queued_frames_callback
