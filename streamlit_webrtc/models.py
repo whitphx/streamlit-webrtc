@@ -1,6 +1,6 @@
 import abc
 import logging
-from typing import Awaitable, Callable, Generic, List, TypeVar
+from typing import Awaitable, Callable, Generic, List, Optional, TypeVar
 
 import av
 import numpy as np
@@ -94,6 +94,42 @@ class AudioProcessorBase(abc.ABC):
         """
 
 
+VideoFrameCallback = Callable[[av.VideoFrame], av.VideoFrame]
+QueuedVideoFramesCallback = Callable[
+    [List[av.VideoFrame]], Awaitable[List[av.VideoFrame]]
+]
+AudioFrameCallback = Callable[[av.AudioFrame], av.AudioFrame]
+QueuedAudioFramesCallback = Callable[
+    [List[av.AudioFrame]], Awaitable[List[av.AudioFrame]]
+]
+
+
+class VideoCallbackContainer:
+    recv: Optional[VideoFrameCallback]
+    recv_queued: Optional[QueuedVideoFramesCallback]
+
+    def __init__(
+        self,
+        frame_callback: Optional[VideoFrameCallback],
+        queued_frames_callback: Optional[QueuedVideoFramesCallback],
+    ) -> None:
+        self.recv = frame_callback
+        self.recv_queued = queued_frames_callback
+
+
+class AudioCallbackContainer:
+    recv: Optional[VideoFrameCallback]
+    recv_queued: Optional[QueuedVideoFramesCallback]
+
+    def __init__(
+        self,
+        frame_callback: Optional[AudioFrameCallback],
+        queued_frames_callback: Optional[QueuedAudioFramesCallback],
+    ) -> None:
+        self.recv = frame_callback
+        self.recv_queued = queued_frames_callback
+
+
 VideoProcessorT = TypeVar("VideoProcessorT", bound=VideoProcessorBase)
 AudioProcessorT = TypeVar("AudioProcessorT", bound=AudioProcessorBase)
 
@@ -102,7 +138,13 @@ MediaRecorderFactory = Callable[[], MediaRecorder]
 VideoProcessorFactory = Callable[[], VideoProcessorT]
 AudioProcessorFactory = Callable[[], AudioProcessorT]
 
-ProcessorT = TypeVar("ProcessorT", VideoProcessorBase, AudioProcessorBase)
+ProcessorT = TypeVar(
+    "ProcessorT",
+    VideoProcessorBase,
+    AudioProcessorBase,
+    VideoCallbackContainer,
+    AudioCallbackContainer,
+)
 FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
 
 
@@ -115,12 +157,3 @@ class MixerBase(abc.ABC, Generic[FrameT]):
 
 
 MixerT = TypeVar("MixerT", bound=MixerBase)
-
-VideoFrameCallback = Callable[[av.VideoFrame], av.VideoFrame]
-QueuedVideoFramesCallback = Callable[
-    [List[av.VideoFrame]], Awaitable[List[av.VideoFrame]]
-]
-AudioFrameCallback = Callable[[av.AudioFrame], av.AudioFrame]
-QueuedAudioFramesCallback = Callable[
-    [List[av.AudioFrame]], Awaitable[List[av.AudioFrame]]
-]

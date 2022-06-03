@@ -14,52 +14,16 @@ from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
 from .models import (
-    AudioFrameCallback,
     AudioProcessorBase,
     AudioProcessorT,
     FrameT,
     ProcessorT,
-    QueuedAudioFramesCallback,
-    QueuedVideoFramesCallback,
-    VideoFrameCallback,
     VideoProcessorBase,
     VideoProcessorT,
 )
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-
-
-class VideoFrameCallbackProcessor(VideoProcessorBase):
-    def __init__(self, callback: VideoFrameCallback) -> None:
-        self.callback = callback
-
-    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-        return self.callback(frame)
-
-
-class QueuedVideoFramesCallbackProcessor(VideoProcessorBase):
-    def __init__(self, callback: QueuedVideoFramesCallback) -> None:
-        self.callback = callback
-
-    async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
-        return await self.callback(frames)
-
-
-class AudioFrameCallbackProcessor(AudioProcessorBase):
-    def __init__(self, callback: AudioFrameCallback) -> None:
-        self.callback = callback
-
-    def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
-        return self.callback(frame)
-
-
-class QueuedAudioFramesCallbackProcessor(AudioProcessorBase):
-    def __init__(self, callback: QueuedAudioFramesCallback) -> None:
-        self.callback = callback
-
-    async def recv_queued(self, frames: List[av.AudioFrame]) -> List[av.AudioFrame]:
-        return await self.callback(frames)
 
 
 class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
@@ -170,7 +134,11 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                 "Some frames have been dropped. "
                 "`recv_queued` is recommended to use instead."
             )
-        return [self.processor.recv(frames[-1])]
+        if self.processor.recv:
+            return [self.processor.recv(frames[-1])]
+
+        logger.warning("No callback set.")
+        return frames[-1]
 
     def _worker_thread(self):
         loop = asyncio.new_event_loop()
@@ -200,7 +168,7 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                 raise Exception("Unexpectedly, queued frames do not exist")
 
             # Set up a task, providing the frames.
-            if hasattr(self.processor, "recv_queued"):
+            if hasattr(self.processor, "recv_queued") and self.processor.recv_queued:
                 coro = self.processor.recv_queued(queued_frames)
             else:
                 coro = self._fallback_recv_queued(queued_frames)

@@ -535,17 +535,15 @@ def webrtc_streamer(
         st.experimental_rerun()
 
     if webrtc_worker:
-        if video_frame_callback:
-            webrtc_worker.update_video_frame_callback(video_frame_callback)
-        if audio_frame_callback:
-            webrtc_worker.update_audio_frame_callback(audio_frame_callback)
-        if queued_video_frames_callback:
-            webrtc_worker.update_queued_video_frames_callback(
-                queued_video_frames_callback
+        if video_frame_callback or queued_video_frames_callback:
+            webrtc_worker.update_video_callbacks(
+                frame_callback=video_frame_callback,
+                queued_frames_callback=queued_video_frames_callback,
             )
-        if queued_audio_frames_callback:
-            webrtc_worker.update_queued_audio_frames_callback(
-                queued_audio_frames_callback
+        if audio_frame_callback or queued_audio_frames_callback:
+            webrtc_worker.update_audio_callbacks(
+                frame_callback=audio_frame_callback,
+                queued_frames_callback=queued_audio_frames_callback,
             )
 
     if not webrtc_worker and sdp_offer:
