@@ -24,6 +24,7 @@ from .models import (
     AudioProcessorBase,
     AudioProcessorFactory,
     AudioProcessorT,
+    MediaEndedCallback,
     MediaPlayerFactory,
     MediaRecorderFactory,
     QueuedAudioFramesCallback,
@@ -357,6 +358,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         audio_frame_callback: Optional[AudioFrameCallback] = None,
         queued_video_frames_callback: Optional[QueuedVideoFramesCallback] = None,
         queued_audio_frames_callback: Optional[QueuedAudioFramesCallback] = None,
+        on_video_ended: Optional[MediaEndedCallback] = None,
+        on_audio_ended: Optional[MediaEndedCallback] = None,
         video_processor_factory: Optional[
             VideoProcessorFactory[VideoProcessorT]
         ] = None,
@@ -383,6 +386,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self.audio_frame_callback = audio_frame_callback
         self.queued_video_frames_callback = queued_video_frames_callback
         self.queued_audio_frames_callback = queued_audio_frames_callback
+        self.on_video_ended = on_video_ended
+        self.on_audio_ended = on_audio_ended
         self.video_processor_factory = video_processor_factory
         self.audio_processor_factory = audio_processor_factory
         self.async_processing = async_processing
@@ -442,19 +447,29 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 self._output_audio_track = track
 
         video_processor: Optional[Union[VideoProcessorT, VideoCallbackContainer]] = None
-        if self.video_frame_callback or self.queued_video_frames_callback:
+        if (
+            self.video_frame_callback
+            or self.queued_video_frames_callback
+            or self.on_video_ended
+        ):
             video_processor = VideoCallbackContainer(
                 frame_callback=self.video_frame_callback,
                 queued_frames_callback=self.queued_video_frames_callback,
+                on_ended=self.on_video_ended,
             )
         elif self.video_processor_factory:
             video_processor = self.video_processor_factory()
 
         audio_processor: Optional[Union[AudioProcessorT, AudioCallbackContainer]] = None
-        if self.audio_frame_callback:
+        if (
+            self.audio_frame_callback
+            or self.queued_audio_frames_callback
+            or self.on_audio_ended
+        ):
             audio_processor = AudioCallbackContainer(
                 frame_callback=self.audio_frame_callback,
                 queued_frames_callback=self.queued_audio_frames_callback,
+                on_ended=self.on_audio_ended,
             )
         elif self.audio_processor_factory:
             audio_processor = self.audio_processor_factory()
@@ -570,9 +585,11 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self,
         frame_callback: Optional[VideoFrameCallback],
         queued_frames_callback: Optional[QueuedVideoFramesCallback],
+        on_ended: Optional[MediaEndedCallback],
     ):
         self.video_frame_callback = frame_callback
         self.queued_video_frames_callback = queued_frames_callback
+        self.on_video_ended = on_ended
 
         if not self.video_processor:
             raise TypeError("video_processor is None")
@@ -584,14 +601,17 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         video_callback_processor.recv = frame_callback
         video_callback_processor.recv_queued = queued_frames_callback
+        video_callback_processor.on_ended = on_ended
 
     def update_audio_callbacks(
         self,
         frame_callback: Optional[AudioFrameCallback],
         queued_frames_callback: Optional[QueuedAudioFramesCallback],
+        on_ended: Optional[MediaEndedCallback],
     ):
         self.audio_frame_callback = frame_callback
         self.queued_audio_frames_callback = queued_frames_callback
+        self.on_audio_ended = on_ended
 
         if not self.audio_processor:
             raise TypeError("audio_processor is None")
@@ -603,6 +623,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         audio_callback_processor.recv = frame_callback
         audio_callback_processor.recv_queued = queued_frames_callback
+        audio_callback_processor.on_ended = on_ended
 
     def _unset_processors(self):
         self._video_processor = None
