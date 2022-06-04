@@ -129,7 +129,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         """
         worker = self._get_worker()
 
-        # worker.video_processor is Union[VideoProcessorT, VideoCallbackProcessor],
+        # worker.video_processor is Union[VideoProcessorT, MediaCallbackContainer],
         # but the callback processor is usually not used through this property
         # as class-less callback API is used in that case,
         # so we can ignore that type here by casting the type into VideoProcessorT only.
@@ -144,7 +144,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         """
         worker = self._get_worker()
 
-        # worker.audio_processor is Union[AudioProcessorT, AudioCallbackProcessor],
+        # worker.audio_processor is Union[AudioProcessorT, MediaCallbackContainer],
         # but the callback processor is usually not used through this property
         # as class-less callback API is used in that case,
         # so we can ignore that type here by casting the type into AudioProcessorT only.
