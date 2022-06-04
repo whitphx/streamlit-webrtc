@@ -574,6 +574,8 @@ def webrtc_streamer(
             audio_frame_callback=audio_frame_callback,
             queued_video_frames_callback=queued_video_frames_callback,
             queued_audio_frames_callback=queued_audio_frames_callback,
+            on_video_ended=on_video_ended,
+            on_audio_ended=on_audio_ended,
             video_processor_factory=video_processor_factory,
             audio_processor_factory=audio_processor_factory,
             async_processing=async_processing,
