@@ -226,13 +226,17 @@ def app_delayed_echo():
         frames: List[av.VideoFrame],
     ) -> List[av.VideoFrame]:
         logger.debug("Delay:", delay)
-        await asyncio.sleep(delay)
+        # A standalone `await ...` is interpreted as an expression and
+        # the Streamlit magic's target, which leads implicit calls of `st.write`.
+        # To prevent it, fix it as `_ = await ...`, a statement.
+        # See https://discuss.streamlit.io/t/issue-with-asyncio-run-in-streamlit/7745/15
+        _ = await asyncio.sleep(delay)
         return frames
 
     async def queued_audio_frames_callback(
         frames: List[av.AudioFrame],
     ) -> List[av.AudioFrame]:
-        await asyncio.sleep(delay)
+        _ = await asyncio.sleep(delay)
         return frames
 
     webrtc_streamer(
