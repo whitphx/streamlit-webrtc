@@ -9,7 +9,61 @@ from aiortc.contrib.media import MediaPlayer, MediaRecorder
 logger = logging.getLogger(__name__)
 
 
-class VideoProcessorBase(abc.ABC):
+VideoFrameCallback = Callable[[av.VideoFrame], av.VideoFrame]
+QueuedVideoFramesCallback = Callable[
+    [List[av.VideoFrame]], Awaitable[List[av.VideoFrame]]
+]
+AudioFrameCallback = Callable[[av.AudioFrame], av.AudioFrame]
+QueuedAudioFramesCallback = Callable[
+    [List[av.AudioFrame]], Awaitable[List[av.AudioFrame]]
+]
+MediaEndedCallback = Callable[[], None]
+
+
+class ProcessorBase(abc.ABC):
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        raise NotImplementedError()
+
+    async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
+        raise NotImplementedError()
+
+    def on_ended(self):
+        raise NotImplementedError()
+
+
+class CallbackAttachableProcessor(ProcessorBase):
+    frame_callback: Optional[VideoFrameCallback]
+    queued_frames_callback: Optional[QueuedVideoFramesCallback]
+    media_ended_callback: Optional[MediaEndedCallback]
+
+    def __init__(
+        self,
+        frame_callback: Optional[VideoFrameCallback],
+        queued_frames_callback: Optional[QueuedVideoFramesCallback],
+        ended_callback: Optional[MediaEndedCallback],
+    ) -> None:
+        self.frame_callback = frame_callback
+        self.queued_frames_callback = queued_frames_callback
+        self.media_ended_callback = ended_callback
+
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        if self.frame_callback:
+            return self.frame_callback(frame)
+        else:
+            return frame
+
+    async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
+        if self.queued_frames_callback:
+            return await self.queued_frames_callback(frames)
+        else:
+            return [self.recv(frames[-1])]
+
+    def on_ended(self):
+        if self.on_ended:
+            return self.media_ended_callback
+
+
+class VideoProcessorBase(ProcessorBase):
     """
     A base class for video processors.
     """
@@ -59,7 +113,7 @@ class VideoTransformerBase(VideoProcessorBase):  # Backward compatiblity
     """
 
 
-class AudioProcessorBase(abc.ABC):
+class AudioProcessorBase(ProcessorBase):
     """
     A base class for audio processors.
     """
@@ -94,33 +148,6 @@ class AudioProcessorBase(abc.ABC):
         """
 
 
-VideoFrameCallback = Callable[[av.VideoFrame], av.VideoFrame]
-QueuedVideoFramesCallback = Callable[
-    [List[av.VideoFrame]], Awaitable[List[av.VideoFrame]]
-]
-AudioFrameCallback = Callable[[av.AudioFrame], av.AudioFrame]
-QueuedAudioFramesCallback = Callable[
-    [List[av.AudioFrame]], Awaitable[List[av.AudioFrame]]
-]
-MediaEndedCallback = Callable[[], None]
-
-
-class MediaCallbackContainer:
-    recv: Optional[VideoFrameCallback]
-    recv_queued: Optional[QueuedVideoFramesCallback]
-    on_ended: Optional[MediaEndedCallback]
-
-    def __init__(
-        self,
-        frame_callback: Optional[VideoFrameCallback],
-        queued_frames_callback: Optional[QueuedVideoFramesCallback],
-        on_ended: Optional[MediaEndedCallback],
-    ) -> None:
-        self.recv = frame_callback
-        self.recv_queued = queued_frames_callback
-        self.on_ended = on_ended
-
-
 VideoProcessorT = TypeVar("VideoProcessorT", bound=VideoProcessorBase)
 AudioProcessorT = TypeVar("AudioProcessorT", bound=AudioProcessorBase)
 
@@ -129,12 +156,7 @@ MediaRecorderFactory = Callable[[], MediaRecorder]
 VideoProcessorFactory = Callable[[], VideoProcessorT]
 AudioProcessorFactory = Callable[[], AudioProcessorT]
 
-ProcessorT = TypeVar(
-    "ProcessorT",
-    VideoProcessorBase,
-    AudioProcessorBase,
-    MediaCallbackContainer,
-)
+ProcessorT = TypeVar("ProcessorT", bound=ProcessorBase)
 FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
 
 
