@@ -227,7 +227,7 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self._thread.join(self.stop_timeout)
 
         if hasattr(self.processor, "on_ended"):
-            self.processor.media_ended_callback()
+            self.processor.on_ended()
 
     async def recv(self):
         if self.readyState != "live":

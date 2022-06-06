@@ -59,8 +59,8 @@ class CallbackAttachableProcessor(ProcessorBase):
             return [self.recv(frames[-1])]
 
     def on_ended(self):
-        if self.on_ended:
-            return self.media_ended_callback
+        if self.media_ended_callback:
+            return self.media_ended_callback()
 
 
 class VideoProcessorBase(ProcessorBase):
