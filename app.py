@@ -221,7 +221,7 @@ def app_delayed_echo():
     async def queued_video_frames_callback(
         frames: List[av.VideoFrame],
     ) -> List[av.VideoFrame]:
-        logger.debug("Delay:", delay)
+        logger.debug("Delay: %f", delay)
         # A standalone `await ...` is interpreted as an expression and
         # the Streamlit magic's target, which leads implicit calls of `st.write`.
         # To prevent it, fix it as `_ = await ...`, a statement.
