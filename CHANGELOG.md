@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Add
+- Class-less callback, #747.
+
 ## [0.37.0] - 2022-05-04
 
 ### Add
