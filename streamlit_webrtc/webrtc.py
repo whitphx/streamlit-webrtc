@@ -604,9 +604,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             CallbackAttachableProcessor, self.video_processor
         )
 
-        video_callback_processor.frame_callback = frame_callback
-        video_callback_processor.queued_frames_callback = queued_frames_callback
-        video_callback_processor.media_ended_callback = on_ended
+        video_callback_processor.update_callbacks(
+            frame_callback, queued_frames_callback, on_ended
+        )
 
     def update_audio_callbacks(
         self,
@@ -628,9 +628,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             CallbackAttachableProcessor, self.audio_processor
         )
 
-        audio_callback_processor.frame_callback = frame_callback
-        audio_callback_processor.queued_frames_callback = queued_frames_callback
-        audio_callback_processor.media_ended_callback = on_ended
+        audio_callback_processor.update_callbacks(
+            frame_callback, queued_frames_callback, on_ended
+        )
 
     def _unset_processors(self):
         self._video_processor = None
