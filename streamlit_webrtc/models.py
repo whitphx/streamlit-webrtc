@@ -60,22 +60,22 @@ class CallbackAttachableProcessor(ProcessorBase):
             self.media_ended_callback = ended_callback
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-        if self.frame_callback:
-            with self._lock:
+        with self._lock:
+            if self.frame_callback:
                 return self.frame_callback(frame)
-        else:
-            return frame
+
+        return frame
 
     async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
-        if self.queued_frames_callback:
-            with self._lock:
+        with self._lock:
+            if self.queued_frames_callback:
                 return await self.queued_frames_callback(frames)
-        else:
-            return [self.recv(frames[-1])]
+
+        return [self.recv(frames[-1])]
 
     def on_ended(self):
-        if self.media_ended_callback:
-            with self._lock:
+        with self._lock:
+            if self.media_ended_callback:
                 return self.media_ended_callback()
 
 
