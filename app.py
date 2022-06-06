@@ -4,12 +4,7 @@ import queue
 import threading
 import urllib.request
 from pathlib import Path
-from typing import List, NamedTuple
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal  # type: ignore
+from typing import List, NamedTuple, Optional
 
 import av
 import cv2
@@ -21,8 +16,8 @@ from aiortc.contrib.media import MediaPlayer
 
 from streamlit_webrtc import (
     RTCConfiguration,
-    VideoProcessorBase,
     WebRtcMode,
+    WebRtcStreamerContext,
     webrtc_streamer,
 )
 from streamlit_webrtc.session_info import get_session_id
@@ -442,51 +437,54 @@ def app_streaming():
         #     options={"framerate": "30", "video_size": "1280x720"},
         # )
 
-    class OpenCVVideoProcessor(VideoProcessorBase):
-        type: Literal["noop", "cartoon", "edges", "rotate"]
+    key = f"media-streaming-{media_file_label}"
+    ctx: Optional[WebRtcStreamerContext] = st.session_state.get(key)
+    if media_file_info["type"] == "video" and ctx and ctx.state.playing:
+        _type = st.radio(
+            "Select transform type", ("noop", "cartoon", "edges", "rotate")
+        )
+    else:
+        _type = "noop"
 
-        def __init__(self) -> None:
-            self.type = "noop"
+    def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
+        img = frame.to_ndarray(format="bgr24")
 
-        def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-            img = frame.to_ndarray(format="bgr24")
+        if _type == "noop":
+            pass
+        elif _type == "cartoon":
+            # prepare color
+            img_color = cv2.pyrDown(cv2.pyrDown(img))
+            for _ in range(6):
+                img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
+            img_color = cv2.pyrUp(cv2.pyrUp(img_color))
 
-            if self.type == "noop":
-                pass
-            elif self.type == "cartoon":
-                # prepare color
-                img_color = cv2.pyrDown(cv2.pyrDown(img))
-                for _ in range(6):
-                    img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
-                img_color = cv2.pyrUp(cv2.pyrUp(img_color))
+            # prepare edges
+            img_edges = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+            img_edges = cv2.adaptiveThreshold(
+                cv2.medianBlur(img_edges, 7),
+                255,
+                cv2.ADAPTIVE_THRESH_MEAN_C,
+                cv2.THRESH_BINARY,
+                9,
+                2,
+            )
+            img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
 
-                # prepare edges
-                img_edges = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-                img_edges = cv2.adaptiveThreshold(
-                    cv2.medianBlur(img_edges, 7),
-                    255,
-                    cv2.ADAPTIVE_THRESH_MEAN_C,
-                    cv2.THRESH_BINARY,
-                    9,
-                    2,
-                )
-                img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
+            # combine color and edges
+            img = cv2.bitwise_and(img_color, img_edges)
+        elif _type == "edges":
+            # perform edge detection
+            img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
+        elif _type == "rotate":
+            # rotate image
+            rows, cols, _ = img.shape
+            M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
+            img = cv2.warpAffine(img, M, (cols, rows))
 
-                # combine color and edges
-                img = cv2.bitwise_and(img_color, img_edges)
-            elif self.type == "edges":
-                # perform edge detection
-                img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
-            elif self.type == "rotate":
-                # rotate image
-                rows, cols, _ = img.shape
-                M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
-                img = cv2.warpAffine(img, M, (cols, rows))
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-            return av.VideoFrame.from_ndarray(img, format="bgr24")
-
-    webrtc_ctx = webrtc_streamer(
-        key=f"media-streaming-{media_file_label}",
+    webrtc_streamer(
+        key=key,
         mode=WebRtcMode.RECVONLY,
         rtc_configuration=RTC_CONFIGURATION,
         media_stream_constraints={
@@ -494,13 +492,8 @@ def app_streaming():
             "audio": media_file_info["type"] == "audio",
         },
         player_factory=create_player,
-        video_processor_factory=OpenCVVideoProcessor,
+        video_frame_callback=video_frame_callback,
     )
-
-    if media_file_info["type"] == "video" and webrtc_ctx.video_processor:
-        webrtc_ctx.video_processor.type = st.radio(
-            "Select transform type", ("noop", "cartoon", "edges", "rotate")
-        )
 
     st.markdown(
         "The video filter in this demo is based on "
