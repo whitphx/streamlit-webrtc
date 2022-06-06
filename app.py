@@ -25,6 +25,7 @@ from streamlit_webrtc import (
     WebRtcMode,
     webrtc_streamer,
 )
+from streamlit_webrtc.session_info import get_session_id
 
 HERE = Path(__file__).parent
 
@@ -299,8 +300,12 @@ def app_object_detection():
         prob: float
 
     @st.cache
-    def get_model():
+    def get_model(
+        session_id,
+    ):  # HACK: Pass session_id as an arg to make the cache session-specific
         return cv2.dnn.readNetFromCaffe(str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH))
+
+    net = get_model(get_session_id())
 
     confidence_threshold = st.slider(
         "Confidence threshold", 0.0, 1.0, DEFAULT_CONFIDENCE_THRESHOLD, 0.05
@@ -338,8 +343,6 @@ def app_object_detection():
                     2,
                 )
         return image, result
-
-    net = get_model()
 
     result_queue = (
         queue.Queue()
