@@ -33,9 +33,9 @@ class ProcessorBase(abc.ABC):
 
 
 class CallbackAttachableProcessor(ProcessorBase):
-    frame_callback: Optional[VideoFrameCallback]
-    queued_frames_callback: Optional[QueuedVideoFramesCallback]
-    media_ended_callback: Optional[MediaEndedCallback]
+    _frame_callback: Optional[VideoFrameCallback]
+    _queued_frames_callback: Optional[QueuedVideoFramesCallback]
+    _media_ended_callback: Optional[MediaEndedCallback]
 
     def __init__(
         self,
@@ -44,9 +44,9 @@ class CallbackAttachableProcessor(ProcessorBase):
         ended_callback: Optional[MediaEndedCallback],
     ) -> None:
         self._lock = threading.Lock()
-        self.frame_callback = frame_callback
-        self.queued_frames_callback = queued_frames_callback
-        self.media_ended_callback = ended_callback
+        self._frame_callback = frame_callback
+        self._queued_frames_callback = queued_frames_callback
+        self._media_ended_callback = ended_callback
 
     def update_callbacks(
         self,
@@ -55,28 +55,28 @@ class CallbackAttachableProcessor(ProcessorBase):
         ended_callback: Optional[MediaEndedCallback],
     ) -> None:
         with self._lock:
-            self.frame_callback = frame_callback
-            self.queued_frames_callback = queued_frames_callback
-            self.media_ended_callback = ended_callback
+            self._frame_callback = frame_callback
+            self._queued_frames_callback = queued_frames_callback
+            self._media_ended_callback = ended_callback
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         with self._lock:
-            if self.frame_callback:
-                return self.frame_callback(frame)
+            if self._frame_callback:
+                return self._frame_callback(frame)
 
         return frame
 
     async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
         with self._lock:
-            if self.queued_frames_callback:
-                return await self.queued_frames_callback(frames)
+            if self._queued_frames_callback:
+                return await self._queued_frames_callback(frames)
 
         return [self.recv(frames[-1])]
 
     def on_ended(self):
         with self._lock:
-            if self.media_ended_callback:
-                return self.media_ended_callback()
+            if self._media_ended_callback:
+                return self._media_ended_callback()
 
 
 class VideoProcessorBase(ProcessorBase):
