@@ -65,6 +65,8 @@ $ pip install -U streamlit-webrtc
 
 ## Quick tutorial
 
+See also [the sample app, `app.py`](https://github.com/whitphx/streamlit-webrtc/blob/main/app.py), which contains a wide variety of usage.
+
 See also ["Developing Web-Based Real-Time Video/Audio Processing Apps Quickly with Streamlit"](https://towardsdatascience.com/developing-web-based-real-time-video-audio-processing-apps-quickly-with-streamlit-7c7bcd0bc5a8).
 
 ---
@@ -93,68 +95,114 @@ from streamlit_webrtc import webrtc_streamer
 import av
 
 
-class VideoProcessor:
-    def recv(self, frame):
-        img = frame.to_ndarray(format="bgr24")
+def video_frame_callback(frame):
+    img = frame.to_ndarray(format="bgr24")
 
-        flipped = img[::-1,:,:]
+    flipped = img[::-1,:,:]
 
-        return av.VideoFrame.from_ndarray(flipped, format="bgr24")
+    return av.VideoFrame.from_ndarray(flipped, format="bgr24")
 
 
-webrtc_streamer(key="example", video_processor_factory=VideoProcessor)
+webrtc_streamer(key="example", video_frame_callback=video_frame_callback)
 ```
 
 Now the video is vertically flipped.
 ![Vertically flipping example](./docs/images/streamlit_webrtc_flipped.gif)
 
-As an example above, you can edit the video frames by defining a class with a callback method `recv(self, frame)` and passing it to the `video_processor_factory` argument.
-The callback receives and returns a frame. The frame is an instance of [`av.VideoFrame`](https://pyav.org/docs/develop/api/video.html#av.video.frame.VideoFrame) (or [`av.AudioFrame`](https://pyav.org/docs/develop/api/audio.html#av.audio.frame.AudioFrame) when dealing with audio) of [`PyAV` library](https://pyav.org/).
+As an example above, you can edit the video frames by defining a callback that receives and returns a frame and passing it to the `video_frame_callback` argument (or `audio_frame_callback` for audio manipulation).
+The input and output frames are the instance of [`av.VideoFrame`](https://pyav.org/docs/develop/api/video.html#av.video.frame.VideoFrame) (or [`av.AudioFrame`](https://pyav.org/docs/develop/api/audio.html#av.audio.frame.AudioFrame) when dealing with audio) of [`PyAV` library](https://pyav.org/).
 
 You can inject any kinds of image (or audio) processing inside the callback.
 See examples above for more applications.
 
-Note that there are some limitations in this callback. See the section below.
+### Pass parameters to the callback
 
-## Limitations
-The callback methods (`VideoProcessor.recv()` and similar ones) are executed in threads different from the main thread, so there are some limitations:
-* Streamlit methods (`st.*` such as `st.write()`) do not work inside the callbacks.
-* Variables outside the callbacks cannot be referred to from inside, and vice versa.
-  * It's impossible even with the `global` keyword, which also does not work in the callbacks properly.
-* You have to care about thread-safety when accessing the same objects both from outside and inside the callbacks.
+You can also pass parameters to the callback.
 
-### A technique to pass values between inside and outside the callbacks
-As stated above, you cannot directly pass variables from/to outside and inside the callback and have to consider about thread-safety.
-
-Usual cases are
-* to change some parameters used in the callback to new values passed from the main scope.
-* to refer to the results of some processing inside the callback from the main scope.
-
-The solution is to use the properties of the processor object which is accessible via the context object returned from `webrtc_streamer()` as below.
+In the example below, a boolean `flip` flag is used to turn on/off the image flipping.
 ```python
-class VideoProcessor:
-    def __init__(self):
-        self.some_value = 0.5
-
-    def recv(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-
-        ...
-        self.do_something(img, self.some_value)  # `some_value` is used here
-        ...
-
-        return av.VideoFrame.from_ndarray(img, format="bgr24")
+import streamlit as st
+from streamlit_webrtc import webrtc_streamer
+import av
 
 
-ctx = webrtc_streamer(key="example", video_processor_factory=VideoProcessor)
+flip = st.checkbox("Flip")
 
-if ctx.video_processor:
-    ctx.video_processor.some_value = st.slider(...)  # `some_value` is set here
+
+def video_frame_callback(frame):
+    img = frame.to_ndarray(format="bgr24")
+
+    flipped = img[::-1,:,:] if flip else img
+
+    return av.VideoFrame.from_ndarray(flipped, format="bgr24")
+
+
+webrtc_streamer(key="example", video_frame_callback=video_frame_callback)
 ```
 
-If the passed value is a complex object, you may also have to consider about using something like [`threading.Lock`](https://docs.python.org/3/library/threading.html#threading.Lock) or [`queue.Queue`](https://docs.python.org/3/library/queue.html#queue.Queue) for thread-safety.
+### Pull values from the callback
 
-[The sample app, `app.py`](https://github.com/whitphx/streamlit-webrtc/blob/main/app.py) has many cases where this technique is used and can be a hint for this topic.
+Sometimes we want to read the values generated in the callback from the outer scope.
+
+Note that the callback is executed in a forked thread running independently of the main script, so we have to take care of the following points and need some tricks for implementation like the example below (See also the section below for some limitations in the callback due to multi-threading).
+
+* Thread-safety
+  * Passing the values between inside and outside the callback must be thread-safe.
+* Using a loop to poll the values
+  * During media streaming, while the callback continues to be called, the main script execution stops at the bottom as usual. So we need to use a loop to keep the main script running and get the values from the callback in the outer scope.
+
+The following example is to pass the image frames from the callback to the outer scope and continuously process it in the loop. In this example, a simple image analysis (calculating the histogram like [this OpenCV tutorial](https://docs.opencv.org/4.x/d1/db7/tutorial_py_histogram_begins.html)) is done on the image frames.
+
+[`threading.Lock`](https://docs.python.org/3/library/threading.html#lock-objects) is one standard way to control variable accesses across threads.
+A dict object `img_container` here is a mutable container shared by the callback and the outer scope and the `lock` object is used at assigning and reading the values to/from the container for thread-safety.
+
+```python
+import threading
+
+import cv2
+import streamlit as st
+from matplotlib import pyplot as plt
+
+from streamlit_webrtc import webrtc_streamer
+
+lock = threading.Lock()
+img_container = {"img": None}
+
+
+def video_frame_callback(frame):
+    img = frame.to_ndarray(format="bgr24")
+    with lock:
+        img_container["img"] = img
+
+    return frame
+
+
+ctx = webrtc_streamer(key="example", video_frame_callback=video_frame_callback)
+
+fig_place = st.empty()
+fig, ax = plt.subplots(1, 1)
+
+while ctx.state.playing:
+    with lock:
+        img = img_container["img"]
+    if img is None:
+        continue
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    ax.cla()
+    ax.hist(gray.ravel(), 256, [0, 256])
+    fig_place.pyplot(fig)
+```
+
+## Callback limitations
+The callbacks are executed in forked threads different from the main one, so there are some limitations:
+* Streamlit methods (`st.*` such as `st.write()`) do not work inside the callbacks.
+* Variables inside the callbacks cannot be directly referred to from the outside.
+* The `global` keyword does not work expectedly in the callbacks.
+* You have to care about thread-safety when accessing the same objects both from outside and inside the callbacks as stated in the section above.
+
+## Class-based callbacks
+Until v0.37, the class-based callbacks were the standard.
+See the [old version of the README](https://github.com/whitphx/streamlit-webrtc/blob/v0.37.0/README.md#quick-tutorial) about it.
 
 ## Serving from remote host
 When deploying apps to remote servers, there are some things you need to be aware of.
@@ -220,9 +268,9 @@ aioice_logger = logging.getLogger("aioice")
 aioice_logger.setLevel(logging.WARNING)
 ```
 
-## API
+## API changes
 Currently there is no documentation about the interface. See the example [app.py](./app.py) for the usage.
-The API is not finalized yet and can be changed without backward compatiblity in the future releases until v1.0.
+The API is not finalized yet and can be changed without backward compatibility in the future releases until v1.0.
 
 ### For users since versions `<0.20`
 `VideoTransformerBase` and its `transform` method have been marked as deprecated in v0.20.0. Please use `VideoProcessorBase#recv()` instead.
