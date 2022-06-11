@@ -28,6 +28,8 @@ deepspeech = { version = "^0.9.3", python = ">=3.5,<=3.9" }  # DeepSpeech 0.9.3 
 streamlit-server-state = "^0.12.2"
 pytest = "^7.1.2"
 opencv-python-headless = "^4.5.4.58"
+# It is necessary to specify numpy and pandas versions for Poetry to resolve the package versions correctly and avoid errors.
+numpy = "^1.21.0"
 pandas = [
   {version = "1.1.5", python = ">=3.7,<3.8"},
   {version = "^1.4.0", python = ">=3.8,<3.11"},
