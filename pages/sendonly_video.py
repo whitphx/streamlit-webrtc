@@ -5,7 +5,6 @@ import logging
 import queue
 
 import streamlit as st
-
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
 logger = logging.getLogger(__name__)

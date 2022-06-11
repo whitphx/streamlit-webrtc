@@ -1,7 +1,6 @@
 """A sample of controlling the playing state from Python."""
 
 import streamlit as st
-
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
 playing = st.checkbox("Playing", value=True)

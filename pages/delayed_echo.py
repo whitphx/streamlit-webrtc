@@ -4,7 +4,6 @@ from typing import List
 
 import av
 import streamlit as st
-
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
 logger = logging.getLogger(__name__)

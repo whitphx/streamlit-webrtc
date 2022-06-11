@@ -7,9 +7,9 @@ import av
 import cv2
 import streamlit as st
 from aiortc.contrib.media import MediaPlayer
+from streamlit_webrtc import WebRtcMode, WebRtcStreamerContext, webrtc_streamer
 
 from sample_utils.download import download_file
-from streamlit_webrtc import WebRtcMode, WebRtcStreamerContext, webrtc_streamer
 
 HERE = Path(__file__).parent
 ROOT = HERE.parent

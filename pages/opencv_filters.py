@@ -3,7 +3,6 @@
 import av
 import cv2
 import streamlit as st
-
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
 _type = st.radio("Select transform type", ("noop", "cartoon", "edges", "rotate"))

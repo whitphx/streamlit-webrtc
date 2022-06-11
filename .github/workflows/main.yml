@@ -75,7 +75,7 @@ jobs:
     - name: Lint with black, isort, and flake8
       run: |
         poetry run black . --check
-        poetry run isort . --check
+        poetry run isort . --check --resolve-all-configs
         poetry run flake8
     - name: Type checking with mypy
       run: |

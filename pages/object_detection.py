@@ -12,10 +12,10 @@ import av
 import cv2
 import numpy as np
 import streamlit as st
-
-from sample_utils.download import download_file
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 from streamlit_webrtc.session_info import get_session_id
+
+from sample_utils.download import download_file
 
 HERE = Path(__file__).parent
 ROOT = HERE.parent

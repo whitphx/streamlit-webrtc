@@ -2,7 +2,6 @@ import av
 import numpy as np
 import pydub
 import streamlit as st
-
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
 gain = st.slider("Gain", -10.0, +20.0, 1.0, 0.05)

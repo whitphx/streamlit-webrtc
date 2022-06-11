@@ -1,7 +1,6 @@
 """A sample to configure MediaStreamConstraints object"""
 
 import streamlit as st
-
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
 frame_rate = 5
