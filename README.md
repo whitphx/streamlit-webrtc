@@ -36,12 +36,6 @@
 * Uni-directional video streaming
 * Audio processing
 
-You can try out this sample app using the following commands on your local env.
-```
-$ pip install streamlit-webrtc opencv-python-headless matplotlib pydub
-$ streamlit run https://raw.githubusercontent.com/whitphx/streamlit-webrtc-example/main/app.py
-```
-
 ### [⚡️Real-time Speech-to-Text](https://github.com/whitphx/streamlit-stt-app): [🎈Online demo](https://share.streamlit.io/whitphx/streamlit-stt-app/main/app_deepspeech.py)
 
 It converts your voice into text in real time.

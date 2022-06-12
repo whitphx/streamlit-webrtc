@@ -4,9 +4,9 @@ pkg/build:
 	poetry build
 
 format:
-	isort .
-	black .
-	flake8
+	poetry run isort . --resolve-all-configs
+	poetry run black .
+	poetry run flake8
 
 docker/build:
 # Set `--platform linux/amd64` because some packages do not work with Docker on M1 mac for now.
