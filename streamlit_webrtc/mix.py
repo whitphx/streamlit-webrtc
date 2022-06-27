@@ -8,7 +8,7 @@ import time
 import traceback
 import weakref
 from collections import OrderedDict
-from typing import Generic, List, NamedTuple, Optional, Union
+from typing import Callable, Generic, List, NamedTuple, Optional, Union
 
 import av
 from aiortc import MediaStreamTrack
@@ -16,11 +16,11 @@ from aiortc.contrib.media import RelayStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
 from .eventloop import get_server_event_loop, loop_context
-from .models import MixerBase, MixerT
+from .models import FrameT
 from .relay import get_global_relay
 
 __all__ = [
-    "MixerBase",
+    "MixerCallback",
     "MediaStreamMixTrack",
 ]
 
@@ -36,6 +36,7 @@ VIDEO_CLOCK_RATE = 90000
 VIDEO_TIME_BASE = fractions.Fraction(1, VIDEO_CLOCK_RATE)
 
 
+MixerCallback = Callable[[List[FrameT]], FrameT]
 Frame = Union[av.VideoFrame, av.AudioFrame]
 
 
@@ -93,7 +94,7 @@ async def mix_coro(mix_track: "MediaStreamMixTrack"):
             await mix_track._get_latest_frames()
         )  # Wait for new frames arrive
         try:
-            output_frame = mix_track.mixer.on_update(latest_frames)
+            output_frame = mix_track._mixer_callback(latest_frames)
 
             if output_frame.pts is None and output_frame.time_base is None:
                 timestamp = time.monotonic() - started_at
@@ -115,9 +116,10 @@ async def mix_coro(mix_track: "MediaStreamMixTrack"):
         await asyncio.sleep(wait)
 
 
-class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
+class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
     kind: str
-    mixer: MixerT
+    # _mixer_callback: MixerCallback  # Commented out this line due to a mypy problem: https://github.com/python/mypy/issues/2427  # noqa: E501
+    _mixer_callback_lock: threading.Lock
 
     _loop: asyncio.AbstractEventLoop
     _input_proxies_lock: threading.Lock
@@ -136,10 +138,14 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
     mixer_output_interval: float
 
     def __init__(
-        self, kind: str, mixer: MixerT, mixer_output_interval: float = 1 / 30
+        self,
+        kind: str,
+        mixer_callback: MixerCallback[FrameT],
+        mixer_output_interval: float = 1 / 30,
     ) -> None:
         self.kind = kind
-        self.mixer = mixer
+        self._mixer_callback = mixer_callback
+        self._mixer_callback_lock = threading.Lock()
 
         self.mixer_output_interval = mixer_output_interval
 
@@ -167,6 +173,10 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[MixerT]):
             self._mix_task = None
 
             self._output_started = False
+
+    def _update_mixer_callback(self, mixer_callback: MixerCallback[FrameT]) -> None:
+        with self._mixer_callback_lock:
+            self._mixer_callback = mixer_callback
 
     def _start(self):
         if self._output_started:

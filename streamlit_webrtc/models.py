@@ -1,7 +1,7 @@
 import abc
 import logging
 import threading
-from typing import Awaitable, Callable, Generic, List, Optional, TypeVar
+from typing import Awaitable, Callable, List, Optional, TypeVar
 
 import av
 import numpy as np
@@ -33,6 +33,7 @@ class ProcessorBase(abc.ABC):
 
 
 class CallbackAttachableProcessor(ProcessorBase):
+    _lock: threading.Lock
     _frame_callback: Optional[VideoFrameCallback]
     _queued_frames_callback: Optional[QueuedVideoFramesCallback]
     _media_ended_callback: Optional[MediaEndedCallback]
@@ -174,14 +175,3 @@ AudioProcessorFactory = Callable[[], AudioProcessorT]
 
 ProcessorT = TypeVar("ProcessorT", bound=ProcessorBase)
 FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
-
-
-class MixerBase(abc.ABC, Generic[FrameT]):
-    @abc.abstractmethod
-    def on_update(self, frames: List[FrameT]) -> FrameT:
-        """
-        Receives frames from input tracks and returns one frame to output.
-        """
-
-
-MixerT = TypeVar("MixerT", bound=MixerBase)

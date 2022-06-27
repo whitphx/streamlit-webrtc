@@ -14,7 +14,6 @@ import streamlit as st
 from streamlit_server_state import server_state, server_state_lock
 
 from streamlit_webrtc import (
-    MixerBase,
     VideoProcessorBase,
     WebRtcMode,
     WebRtcStreamerContext,
@@ -70,50 +69,49 @@ class OpenCVVideoProcessor(VideoProcessorBase):
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 
-class MultiWindowMixer(MixerBase):
-    def on_update(self, frames: List[av.VideoFrame]) -> av.VideoFrame:
-        buf_w = 640
-        buf_h = 480
-        buffer = np.zeros((buf_h, buf_w, 3), dtype=np.uint8)
+def mixer_callback(frames: List[av.VideoFrame]) -> av.VideoFrame:
+    buf_w = 640
+    buf_h = 480
+    buffer = np.zeros((buf_h, buf_w, 3), dtype=np.uint8)
 
-        n_inputs = len(frames)
+    n_inputs = len(frames)
 
-        n_cols = math.ceil(math.sqrt(n_inputs))
-        n_rows = math.ceil(n_inputs / n_cols)
-        grid_w = buf_w // n_cols
-        grid_h = buf_h // n_rows
+    n_cols = math.ceil(math.sqrt(n_inputs))
+    n_rows = math.ceil(n_inputs / n_cols)
+    grid_w = buf_w // n_cols
+    grid_h = buf_h // n_rows
 
-        for i in range(n_inputs):
-            frame = frames[i]
-            if frame is None:
-                continue
+    for i in range(n_inputs):
+        frame = frames[i]
+        if frame is None:
+            continue
 
-            grid_x = (i % n_cols) * grid_w
-            grid_y = (i // n_cols) * grid_h
+        grid_x = (i % n_cols) * grid_w
+        grid_y = (i // n_cols) * grid_h
 
-            img = frame.to_ndarray(format="bgr24")
-            src_h, src_w = img.shape[0:2]
+        img = frame.to_ndarray(format="bgr24")
+        src_h, src_w = img.shape[0:2]
 
-            aspect_ratio = src_w / src_h
+        aspect_ratio = src_w / src_h
 
-            window_w = min(grid_w, int(grid_h * aspect_ratio))
-            window_h = min(grid_h, int(window_w / aspect_ratio))
+        window_w = min(grid_w, int(grid_h * aspect_ratio))
+        window_h = min(grid_h, int(window_w / aspect_ratio))
 
-            window_offset_x = (grid_w - window_w) // 2
-            window_offset_y = (grid_h - window_h) // 2
+        window_offset_x = (grid_w - window_w) // 2
+        window_offset_y = (grid_h - window_h) // 2
 
-            window_x0 = grid_x + window_offset_x
-            window_y0 = grid_y + window_offset_y
-            window_x1 = window_x0 + window_w
-            window_y1 = window_y0 + window_h
+        window_x0 = grid_x + window_offset_x
+        window_y0 = grid_y + window_offset_y
+        window_x1 = window_x0 + window_w
+        window_y1 = window_y0 + window_h
 
-            buffer[window_y0:window_y1, window_x0:window_x1, :] = cv2.resize(
-                img, (window_w, window_h)
-            )
+        buffer[window_y0:window_y1, window_x0:window_x1, :] = cv2.resize(
+            img, (window_w, window_h)
+        )
 
-        new_frame = av.VideoFrame.from_ndarray(buffer, format="bgr24")
+    new_frame = av.VideoFrame.from_ndarray(buffer, format="bgr24")
 
-        return new_frame
+    return new_frame
 
 
 def main():
@@ -124,7 +122,7 @@ def main():
     with server_state_lock["mix_track"]:
         if "mix_track" not in server_state:
             server_state["mix_track"] = create_mix_track(
-                kind="video", mixer_factory=MultiWindowMixer, key="mix"
+                kind="video", mixer_callback=mixer_callback, key="mix"
             )
 
     mix_track = server_state["mix_track"]
