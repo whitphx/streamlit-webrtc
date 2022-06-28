@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.41.0] - 2022-06-28
+
 ### Fix
 - `create_mix_track()` has been modified to accept a callback function instead of a class object, #940.
 
