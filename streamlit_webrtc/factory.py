@@ -1,4 +1,4 @@
-from typing import Callable, Generic, Hashable, TypeVar, Union, overload
+from typing import Generic, Hashable, TypeVar, Union, overload
 
 try:
     from typing import Literal
@@ -9,7 +9,8 @@ import streamlit as st
 from aiortc import MediaStreamTrack
 
 from .eventloop import get_server_event_loop, loop_context
-from .mix import MediaStreamMixTrack, MixerBase, MixerT
+from .mix import MediaStreamMixTrack, MixerCallback
+from .models import FrameT
 from .process import (
     AsyncAudioProcessTrack,
     AsyncMediaProcessTrack,
@@ -19,7 +20,6 @@ from .process import (
     VideoProcessTrack,
 )
 from .relay import get_global_relay
-from .session_info import get_session_id
 from .webrtc import (
     AudioProcessorFactory,
     AudioProcessorT,
@@ -122,36 +122,24 @@ def create_process_track(
     return wrapped_output_track.obj
 
 
-@st.cache(hash_funcs={ObjectHashWrapper: lambda o: o.hash})
-def _inner_create_mix_track(
-    kind: str,
-    wrapped_mixer_factory: ObjectHashWrapper[Callable[[], MixerBase]],
-    mixer_output_interval: float,
-    key: str,
-    session_id: str,
-) -> ObjectHashWrapper[MediaStreamMixTrack]:
-    mixer_factory = wrapped_mixer_factory.obj
-    mixer = mixer_factory()
-
-    output_track = MediaStreamMixTrack(
-        kind=kind, mixer=mixer, mixer_output_interval=mixer_output_interval
-    )
-    return ObjectHashWrapper(output_track, output_track.id)
+_MIXER_TRACK_CACHE_KEY_PREFIX = "__MIXER_TRACK_CACHE__"
 
 
 def create_mix_track(
     kind: str,
-    mixer_factory: Callable[[], MixerT],
+    mixer_callback: MixerCallback[FrameT],
     key: str,
     mixer_output_interval: float = 1 / 30,
-) -> MediaStreamMixTrack[MixerT]:
-    wrapped_mixer_factory = ObjectHashWrapper(mixer_factory, None)
-    session_id = get_session_id()
-    wrapped_output_track = _inner_create_mix_track(
-        kind=kind,
-        wrapped_mixer_factory=wrapped_mixer_factory,
-        mixer_output_interval=mixer_output_interval,
-        key=key,  # To make the cache unique
-        session_id=session_id,  # To make the cache session-specific.
-    )
-    return wrapped_output_track.obj
+) -> MediaStreamMixTrack[FrameT]:
+    cache_key = _MIXER_TRACK_CACHE_KEY_PREFIX + key
+    if cache_key in st.session_state:
+        mixer_track: MediaStreamMixTrack = st.session_state[cache_key]
+        mixer_track._update_mixer_callback(mixer_callback)
+    else:
+        mixer_track = MediaStreamMixTrack(
+            kind=kind,
+            mixer_callback=mixer_callback,
+            mixer_output_interval=mixer_output_interval,
+        )
+        st.session_state[cache_key] = mixer_track
+    return mixer_track
