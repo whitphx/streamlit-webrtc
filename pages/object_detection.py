@@ -78,6 +78,8 @@ else:
     net = cv2.dnn.readNetFromCaffe(str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH))
     st.session_state[cache_key] = net
 
+streaming_placeholder = st.empty()
+
 confidence_threshold = st.slider(
     "Confidence threshold", 0.0, 1.0, DEFAULT_CONFIDENCE_THRESHOLD, 0.05
 )
@@ -138,14 +140,15 @@ def callback(frame: av.VideoFrame) -> av.VideoFrame:
     return av.VideoFrame.from_ndarray(annotated_image, format="bgr24")
 
 
-webrtc_ctx = webrtc_streamer(
-    key="object-detection",
-    mode=WebRtcMode.SENDRECV,
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-    video_frame_callback=callback,
-    media_stream_constraints={"video": True, "audio": False},
-    async_processing=True,
-)
+with streaming_placeholder.container():
+    webrtc_ctx = webrtc_streamer(
+        key="object-detection",
+        mode=WebRtcMode.SENDRECV,
+        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+        video_frame_callback=callback,
+        media_stream_constraints={"video": True, "audio": False},
+        async_processing=True,
+    )
 
 if st.checkbox("Show the detected labels", value=True):
     if webrtc_ctx.state.playing:
