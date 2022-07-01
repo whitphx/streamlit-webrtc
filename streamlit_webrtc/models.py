@@ -20,18 +20,18 @@ QueuedAudioFramesCallback = QueuedFramesCallback[av.AudioFrame]
 MediaEndedCallback = Callable[[], None]
 
 
-class ProcessorBase(abc.ABC):
-    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+class ProcessorBase(abc.ABC, Generic[FrameT]):
+    def recv(self, frame: FrameT) -> FrameT:
         raise NotImplementedError()
 
-    async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
+    async def recv_queued(self, frames: List[FrameT]) -> List[FrameT]:
         raise NotImplementedError()
 
     def on_ended(self):
         raise NotImplementedError()
 
 
-class CallbackAttachableProcessor(ProcessorBase, Generic[FrameT]):
+class CallbackAttachableProcessor(ProcessorBase[FrameT]):
     _lock: threading.Lock
     _frame_callback: Optional[FrameCallback[FrameT]]
     _queued_frames_callback: Optional[QueuedFramesCallback[FrameT]]
@@ -79,7 +79,7 @@ class CallbackAttachableProcessor(ProcessorBase, Generic[FrameT]):
                 return self._media_ended_callback()
 
 
-class VideoProcessorBase(ProcessorBase):
+class VideoProcessorBase(ProcessorBase[av.VideoFrame]):
     """
     A base class for video processors.
     """
@@ -129,7 +129,7 @@ class VideoTransformerBase(VideoProcessorBase):  # Backward compatiblity
     """
 
 
-class AudioProcessorBase(ProcessorBase):
+class AudioProcessorBase(ProcessorBase[av.AudioFrame]):
     """
     A base class for audio processors.
     """
