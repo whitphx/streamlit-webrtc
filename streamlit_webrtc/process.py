@@ -13,14 +13,7 @@ import av
 from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
-from .models import (
-    AudioProcessorBase,
-    AudioProcessorT,
-    FrameT,
-    ProcessorT,
-    VideoProcessorBase,
-    VideoProcessorT,
-)
+from .models import AudioProcessorT, FrameT, ProcessorT, VideoProcessorT
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -56,16 +49,12 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             self.processor.on_ended()
 
 
-class VideoProcessTrack(
-    MediaProcessTrack[VideoProcessorBase, av.VideoFrame], Generic[VideoProcessorT]
-):
+class VideoProcessTrack(MediaProcessTrack[VideoProcessorT, av.VideoFrame]):
     kind = "video"
     processor: VideoProcessorT
 
 
-class AudioProcessTrack(
-    MediaProcessTrack[AudioProcessorBase, av.AudioFrame], Generic[AudioProcessorT]
-):
+class AudioProcessTrack(MediaProcessTrack[AudioProcessorT, av.AudioFrame]):
     kind = "audio"
     processor: AudioProcessorT
 
@@ -256,15 +245,11 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         return frame
 
 
-class AsyncVideoProcessTrack(
-    AsyncMediaProcessTrack[VideoProcessorBase, av.VideoFrame], Generic[VideoProcessorT]
-):
+class AsyncVideoProcessTrack(AsyncMediaProcessTrack[VideoProcessorT, av.VideoFrame]):
     kind = "video"
     processor: VideoProcessorT
 
 
-class AsyncAudioProcessTrack(
-    AsyncMediaProcessTrack[AudioProcessorBase, av.AudioFrame], Generic[AudioProcessorT]
-):
+class AsyncAudioProcessTrack(AsyncMediaProcessTrack[AudioProcessorT, av.AudioFrame]):
     kind = "audio"
     processor: AudioProcessorT
