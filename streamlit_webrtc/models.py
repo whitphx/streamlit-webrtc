@@ -9,15 +9,14 @@ from aiortc.contrib.media import MediaPlayer, MediaRecorder
 
 logger = logging.getLogger(__name__)
 
+FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
 
-VideoFrameCallback = Callable[[av.VideoFrame], av.VideoFrame]
-QueuedVideoFramesCallback = Callable[
-    [List[av.VideoFrame]], Awaitable[List[av.VideoFrame]]
-]
-AudioFrameCallback = Callable[[av.AudioFrame], av.AudioFrame]
-QueuedAudioFramesCallback = Callable[
-    [List[av.AudioFrame]], Awaitable[List[av.AudioFrame]]
-]
+FrameCallback = Callable[[FrameT], FrameT]
+QueuedFramesCallback = Callable[[List[FrameT]], Awaitable[List[FrameT]]]
+VideoFrameCallback = FrameCallback[av.VideoFrame]
+QueuedVideoFramesCallback = QueuedFramesCallback[av.VideoFrame]
+AudioFrameCallback = FrameCallback[av.AudioFrame]
+QueuedAudioFramesCallback = QueuedFramesCallback[av.AudioFrame]
 MediaEndedCallback = Callable[[], None]
 
 
@@ -174,4 +173,3 @@ VideoProcessorFactory = Callable[[], VideoProcessorT]
 AudioProcessorFactory = Callable[[], AudioProcessorT]
 
 ProcessorT = TypeVar("ProcessorT", bound=ProcessorBase)
-FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
