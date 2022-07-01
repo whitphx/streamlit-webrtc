@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, overload
 
 try:
     from typing import Literal
@@ -11,12 +11,16 @@ from aiortc import MediaStreamTrack
 from .eventloop import get_server_event_loop, loop_context
 from .mix import MediaStreamMixTrack, MixerCallback
 from .models import (
+    AudioProcessorFactory,
+    AudioProcessorT,
     CallbackAttachableProcessor,
     FrameCallback,
     FrameT,
     MediaEndedCallback,
     ProcessorFactory,
     QueuedVideoFramesCallback,
+    VideoProcessorFactory,
+    VideoProcessorT,
 )
 from .process import (
     AsyncAudioProcessTrack,
@@ -46,6 +50,86 @@ def _get_track_class(
             return AudioProcessTrack
     else:
         raise ValueError(f"Unsupported track type: {kind}")
+
+
+# Overloads for the case where the processor_factory is specified
+@overload
+def create_process_track(
+    input_track,
+    *,
+    processor_factory: AudioProcessorFactory[AudioProcessorT],
+    async_processing: Literal[False],
+    frame_callback: Optional[FrameCallback] = None,
+    queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
+    on_ended: Optional[MediaEndedCallback] = None,
+) -> AudioProcessTrack[AudioProcessorT]:
+    ...
+
+
+@overload
+def create_process_track(
+    input_track,
+    *,
+    processor_factory: AudioProcessorFactory[AudioProcessorT],
+    async_processing: Literal[True] = True,
+    frame_callback: Optional[FrameCallback] = None,
+    queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
+    on_ended: Optional[MediaEndedCallback] = None,
+) -> AsyncAudioProcessTrack[AudioProcessorT]:
+    ...
+
+
+@overload
+def create_process_track(
+    input_track,
+    *,
+    processor_factory: VideoProcessorFactory[VideoProcessorT],
+    async_processing: Literal[False],
+    frame_callback: Optional[FrameCallback] = None,
+    queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
+    on_ended: Optional[MediaEndedCallback] = None,
+) -> VideoProcessTrack[VideoProcessorT]:
+    ...
+
+
+@overload
+def create_process_track(
+    input_track,
+    *,
+    processor_factory: VideoProcessorFactory[VideoProcessorT],
+    async_processing: Literal[True] = True,
+    frame_callback: Optional[FrameCallback] = None,
+    queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
+    on_ended: Optional[MediaEndedCallback] = None,
+) -> AsyncVideoProcessTrack[VideoProcessorT]:
+    ...
+
+
+# Overloads for the case where the processor_factory is NOT specified
+@overload
+def create_process_track(
+    input_track,
+    *,
+    frame_callback: FrameCallback[FrameT],
+    async_processing: Literal[False],
+    processor_factory: Literal[None] = None,
+    queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
+    on_ended: Optional[MediaEndedCallback] = None,
+) -> MediaProcessTrack[CallbackAttachableProcessor[FrameT], FrameT]:
+    ...
+
+
+@overload
+def create_process_track(
+    input_track,
+    *,
+    frame_callback: FrameCallback[FrameT],
+    processor_factory: Literal[None] = None,
+    async_processing: Literal[True] = True,
+    queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
+    on_ended: Optional[MediaEndedCallback] = None,
+) -> AsyncMediaProcessTrack[CallbackAttachableProcessor[FrameT], FrameT]:
+    ...
 
 
 def create_process_track(
