@@ -1,7 +1,7 @@
 import abc
 import logging
 import threading
-from typing import Awaitable, Callable, List, Optional, TypeVar
+from typing import Awaitable, Callable, Generic, List, Optional, TypeVar
 
 import av
 import numpy as np
@@ -9,39 +9,38 @@ from aiortc.contrib.media import MediaPlayer, MediaRecorder
 
 logger = logging.getLogger(__name__)
 
+FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
 
-VideoFrameCallback = Callable[[av.VideoFrame], av.VideoFrame]
-QueuedVideoFramesCallback = Callable[
-    [List[av.VideoFrame]], Awaitable[List[av.VideoFrame]]
-]
-AudioFrameCallback = Callable[[av.AudioFrame], av.AudioFrame]
-QueuedAudioFramesCallback = Callable[
-    [List[av.AudioFrame]], Awaitable[List[av.AudioFrame]]
-]
+FrameCallback = Callable[[FrameT], FrameT]
+QueuedFramesCallback = Callable[[List[FrameT]], Awaitable[List[FrameT]]]
+VideoFrameCallback = FrameCallback[av.VideoFrame]
+QueuedVideoFramesCallback = QueuedFramesCallback[av.VideoFrame]
+AudioFrameCallback = FrameCallback[av.AudioFrame]
+QueuedAudioFramesCallback = QueuedFramesCallback[av.AudioFrame]
 MediaEndedCallback = Callable[[], None]
 
 
-class ProcessorBase(abc.ABC):
-    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+class ProcessorBase(abc.ABC, Generic[FrameT]):
+    def recv(self, frame: FrameT) -> FrameT:
         raise NotImplementedError()
 
-    async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
+    async def recv_queued(self, frames: List[FrameT]) -> List[FrameT]:
         raise NotImplementedError()
 
     def on_ended(self):
         raise NotImplementedError()
 
 
-class CallbackAttachableProcessor(ProcessorBase):
+class CallbackAttachableProcessor(ProcessorBase[FrameT]):
     _lock: threading.Lock
-    _frame_callback: Optional[VideoFrameCallback]
-    _queued_frames_callback: Optional[QueuedVideoFramesCallback]
+    _frame_callback: Optional[FrameCallback[FrameT]]
+    _queued_frames_callback: Optional[QueuedFramesCallback[FrameT]]
     _media_ended_callback: Optional[MediaEndedCallback]
 
     def __init__(
         self,
-        frame_callback: Optional[VideoFrameCallback],
-        queued_frames_callback: Optional[QueuedVideoFramesCallback],
+        frame_callback: Optional[FrameCallback[FrameT]],
+        queued_frames_callback: Optional[QueuedFramesCallback[FrameT]],
         ended_callback: Optional[MediaEndedCallback],
     ) -> None:
         self._lock = threading.Lock()
@@ -51,8 +50,8 @@ class CallbackAttachableProcessor(ProcessorBase):
 
     def update_callbacks(
         self,
-        frame_callback: Optional[VideoFrameCallback],
-        queued_frames_callback: Optional[QueuedVideoFramesCallback],
+        frame_callback: Optional[FrameCallback[FrameT]],
+        queued_frames_callback: Optional[QueuedFramesCallback[FrameT]],
         ended_callback: Optional[MediaEndedCallback],
     ) -> None:
         with self._lock:
@@ -60,14 +59,14 @@ class CallbackAttachableProcessor(ProcessorBase):
             self._queued_frames_callback = queued_frames_callback
             self._media_ended_callback = ended_callback
 
-    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+    def recv(self, frame: FrameT) -> FrameT:
         with self._lock:
             if self._frame_callback:
                 return self._frame_callback(frame)
 
         return frame
 
-    async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
+    async def recv_queued(self, frames: List[FrameT]) -> List[FrameT]:
         with self._lock:
             if self._queued_frames_callback:
                 return await self._queued_frames_callback(frames)
@@ -80,7 +79,7 @@ class CallbackAttachableProcessor(ProcessorBase):
                 return self._media_ended_callback()
 
 
-class VideoProcessorBase(ProcessorBase):
+class VideoProcessorBase(ProcessorBase[av.VideoFrame]):
     """
     A base class for video processors.
     """
@@ -130,7 +129,7 @@ class VideoTransformerBase(VideoProcessorBase):  # Backward compatiblity
     """
 
 
-class AudioProcessorBase(ProcessorBase):
+class AudioProcessorBase(ProcessorBase[av.AudioFrame]):
     """
     A base class for audio processors.
     """
@@ -174,4 +173,3 @@ VideoProcessorFactory = Callable[[], VideoProcessorT]
 AudioProcessorFactory = Callable[[], AudioProcessorT]
 
 ProcessorT = TypeVar("ProcessorT", bound=ProcessorBase)
-FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)

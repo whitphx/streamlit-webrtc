@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix
+- Callback type definitions, #950.
+
 ## [0.41.0] - 2022-06-28
 
 ### Fix
