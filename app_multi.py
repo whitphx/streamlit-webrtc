@@ -130,7 +130,6 @@ def app_mix():
             input_track=input1_ctx.output_video_track,
             frame_callback=callback,
         )
-        input1_video_process_track.processor.type = filter1_type
 
     st.write("Input 2")
     input2_ctx = webrtc_streamer(
@@ -150,7 +149,6 @@ def app_mix():
         input2_video_process_track = create_process_track(
             input_track=input2_ctx.output_video_track, frame_callback=callback
         )
-        input2_video_process_track.processor.type = filter2_type
 
     st.write("Input 3 (no filter)")
     input3_ctx = webrtc_streamer(
