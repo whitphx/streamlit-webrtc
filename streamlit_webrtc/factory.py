@@ -15,6 +15,7 @@ from .models import (
     FrameCallback,
     FrameT,
     MediaEndedCallback,
+    ProcessorFactory,
     QueuedVideoFramesCallback,
 )
 from .process import (
@@ -95,23 +96,28 @@ def create_process_track(
     frame_callback: Optional[FrameCallback] = None,
     queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     on_ended: Optional[MediaEndedCallback] = None,
+    processor_factory: Optional[ProcessorFactory] = None,  # Old API
     async_processing=True,
 ) -> Union[MediaProcessTrack, AsyncMediaProcessTrack]:
     cache_key = _PROCESSOR_TRACK_CACHE_KEY_PREFIX + str(input_track.id)
     if cache_key in st.session_state:
         processor_track = st.session_state[cache_key]
-        processor: CallbackAttachableProcessor = processor_track.processor
-        processor.update_callbacks(
-            frame_callback=frame_callback,
-            queued_frames_callback=queued_frames_callback,
-            ended_callback=on_ended,
-        )
+        if not processor_factory:
+            processor: CallbackAttachableProcessor = processor_track.processor
+            processor.update_callbacks(
+                frame_callback=frame_callback,
+                queued_frames_callback=queued_frames_callback,
+                ended_callback=on_ended,
+            )
     else:
-        processor = CallbackAttachableProcessor(
-            frame_callback=frame_callback,
-            queued_frames_callback=queued_frames_callback,
-            ended_callback=on_ended,
-        )
+        if processor_factory:
+            processor = processor_factory()
+        else:
+            processor = CallbackAttachableProcessor(
+                frame_callback=frame_callback,
+                queued_frames_callback=queued_frames_callback,
+                ended_callback=on_ended,
+            )
         Track = _get_track_class(input_track.kind, async_processing)
         loop = get_server_event_loop()
         relay = get_global_relay()

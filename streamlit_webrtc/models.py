@@ -1,7 +1,7 @@
 import abc
 import logging
 import threading
-from typing import Awaitable, Callable, Generic, List, Optional, TypeVar
+from typing import Awaitable, Callable, Generic, List, Optional, TypeVar, Union
 
 import av
 import numpy as np
@@ -171,5 +171,6 @@ MediaPlayerFactory = Callable[[], MediaPlayer]
 MediaRecorderFactory = Callable[[], MediaRecorder]
 VideoProcessorFactory = Callable[[], VideoProcessorT]
 AudioProcessorFactory = Callable[[], AudioProcessorT]
+ProcessorFactory = Union[VideoProcessorFactory, AudioProcessorFactory]
 
 ProcessorT = TypeVar("ProcessorT", bound=ProcessorBase)
