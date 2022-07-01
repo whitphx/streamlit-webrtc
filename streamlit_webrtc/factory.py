@@ -1,4 +1,4 @@
-from typing import Optional, Union, overload
+from typing import Optional, Union
 
 try:
     from typing import Literal
@@ -27,49 +27,6 @@ from .process import (
     VideoProcessTrack,
 )
 from .relay import get_global_relay
-from .webrtc import (
-    AudioProcessorFactory,
-    AudioProcessorT,
-    VideoProcessorFactory,
-    VideoProcessorT,
-)
-
-
-@overload
-def create_process_track(
-    input_track: MediaStreamTrack,
-    processor_factory: VideoProcessorFactory[VideoProcessorT],
-    async_processing: Literal[True] = True,
-) -> AsyncVideoProcessTrack[VideoProcessorT]:
-    pass
-
-
-@overload
-def create_process_track(
-    input_track: MediaStreamTrack,
-    processor_factory: VideoProcessorFactory[VideoProcessorT],
-    async_processing: Literal[False],
-) -> VideoProcessTrack[VideoProcessorT]:
-    pass
-
-
-@overload
-def create_process_track(
-    input_track: MediaStreamTrack,
-    processor_factory: AudioProcessorFactory[AudioProcessorT],
-    async_processing: Literal[True] = True,
-) -> AsyncAudioProcessTrack[AudioProcessorT]:
-    pass
-
-
-@overload
-def create_process_track(
-    input_track: MediaStreamTrack,
-    processor_factory: AudioProcessorFactory[AudioProcessorT],
-    async_processing: Literal[False],
-) -> AudioProcessTrack[AudioProcessorT]:
-    pass
-
 
 _PROCESSOR_TRACK_CACHE_KEY_PREFIX = "__PROCESSOR_TRACK_CACHE__"
 
