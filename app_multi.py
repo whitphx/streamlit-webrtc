@@ -120,10 +120,7 @@ def app_mix():
         key="input1_ctx",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=COMMON_RTC_CONFIG,
-        media_stream_constraints={
-            "video": True,
-            "audio": True,
-        },
+        media_stream_constraints={"video": True, "audio": False},
     )
     filter1_type = st.radio(
         "Select transform type",
@@ -143,10 +140,7 @@ def app_mix():
         key="input2_ctx",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=COMMON_RTC_CONFIG,
-        media_stream_constraints={
-            "video": True,
-            "audio": True,
-        },
+        media_stream_constraints={"video": True, "audio": False},
     )
     filter2_type = st.radio(
         "Select transform type",
@@ -166,10 +160,7 @@ def app_mix():
         key="input3_ctx",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=COMMON_RTC_CONFIG,
-        media_stream_constraints={
-            "video": True,
-            "audio": True,
-        },
+        media_stream_constraints={"video": True, "audio": False},
     )
 
     st.write("Mixed output")
@@ -178,10 +169,6 @@ def app_mix():
         key="mix",
         mode=WebRtcMode.RECVONLY,
         rtc_configuration=COMMON_RTC_CONFIG,
-        media_stream_constraints={
-            "video": True,
-            "audio": True,
-        },
         source_video_track=mix_track,
         desired_playing_state=input1_ctx.state.playing
         or input2_ctx.state.playing
@@ -204,10 +191,7 @@ def app_fork():
         key="loopback",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=COMMON_RTC_CONFIG,
-        media_stream_constraints={
-            "video": True,
-            "audio": True,
-        },
+        media_stream_constraints={"video": True, "audio": False},
     )
 
     filter1_ctx = webrtc_streamer(
@@ -217,10 +201,7 @@ def app_fork():
         source_video_track=ctx.output_video_track,
         desired_playing_state=ctx.state.playing,
         rtc_configuration=COMMON_RTC_CONFIG,
-        media_stream_constraints={
-            "video": True,
-            "audio": True,
-        },
+        media_stream_constraints={"video": True, "audio": False},
     )
 
     if filter1_ctx.video_processor:
@@ -237,10 +218,7 @@ def app_fork():
         source_video_track=ctx.output_video_track,
         desired_playing_state=ctx.state.playing,
         rtc_configuration=COMMON_RTC_CONFIG,
-        media_stream_constraints={
-            "video": True,
-            "audio": True,
-        },
+        media_stream_constraints={"video": True, "audio": False},
     )
     if filter2_ctx.video_processor:
         filter2_ctx.video_processor.type = st.radio(
