@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.42.0] - 2022-07-02
+
 ### Fix
 - Callback type definitions, #950.
 - Update `create_process_track()` to accept callback functions instead of a class object, #951.
