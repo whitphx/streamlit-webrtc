@@ -111,7 +111,7 @@ def mixer_callback(frames: List[av.VideoFrame]) -> av.VideoFrame:
 def app_mix():
     COMMON_RTC_CONFIG = {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 
-    st.write("Input 1")
+    st.header("Input 1")
     input1_ctx = webrtc_streamer(
         key="input1_ctx",
         mode=WebRtcMode.SENDRECV,
@@ -131,7 +131,7 @@ def app_mix():
             frame_callback=callback,
         )
 
-    st.write("Input 2")
+    st.header("Input 2")
     input2_ctx = webrtc_streamer(
         key="input2_ctx",
         mode=WebRtcMode.SENDRECV,
@@ -150,7 +150,7 @@ def app_mix():
             input_track=input2_ctx.output_video_track, frame_callback=callback
         )
 
-    st.write("Input 3 (no filter)")
+    st.header("Input 3 (no filter)")
     input3_ctx = webrtc_streamer(
         key="input3_ctx",
         mode=WebRtcMode.SENDRECV,
@@ -158,7 +158,7 @@ def app_mix():
         media_stream_constraints={"video": True, "audio": False},
     )
 
-    st.write("Mixed output")
+    st.header("Mixed output")
     mix_track = create_mix_track(kind="video", mixer_callback=mixer_callback, key="mix")
     mix_ctx = webrtc_streamer(
         key="mix",
@@ -182,6 +182,7 @@ def app_mix():
 def app_fork():
     COMMON_RTC_CONFIG = {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 
+    st.header("Input")
     ctx = webrtc_streamer(
         key="loopback",
         mode=WebRtcMode.SENDRECV,
@@ -189,6 +190,7 @@ def app_fork():
         media_stream_constraints={"video": True, "audio": False},
     )
 
+    st.header("Forked output 1")
     filter1_type = st.radio(
         "Select transform type",
         ("noop", "cartoon", "edges", "rotate"),
@@ -205,6 +207,7 @@ def app_fork():
         media_stream_constraints={"video": True, "audio": False},
     )
 
+    st.header("Forked output 2")
     filter2_type = st.radio(
         "Select transform type",
         ("noop", "cartoon", "edges", "rotate"),
