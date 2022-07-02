@@ -141,6 +141,7 @@ def create_process_track(
     async_processing=True,
 ) -> Union[MediaProcessTrack, AsyncMediaProcessTrack]:
     cache_key = _PROCESSOR_TRACK_CACHE_KEY_PREFIX + str(input_track.id)
+
     if cache_key in st.session_state:
         processor_track = st.session_state[cache_key]
         if not processor_factory:
