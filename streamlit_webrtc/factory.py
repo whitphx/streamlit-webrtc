@@ -52,7 +52,7 @@ def _get_track_class(
         raise ValueError(f"Unsupported track type: {kind}")
 
 
-# Overloads for the case where the processor_factory is specified
+# Overloads for the cases where the processor_factory is specified
 @overload
 def create_process_track(
     input_track,
@@ -105,7 +105,7 @@ def create_process_track(
     ...
 
 
-# Overloads for the case where the processor_factory is NOT specified
+# Overloads for the cases where the processor_factory is NOT specified
 @overload
 def create_process_track(
     input_track,
