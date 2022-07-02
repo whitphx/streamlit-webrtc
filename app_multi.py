@@ -13,7 +13,6 @@ import numpy as np
 import streamlit as st
 
 from streamlit_webrtc import (
-    VideoProcessorBase,
     WebRtcMode,
     create_mix_track,
     create_process_track,
@@ -23,18 +22,13 @@ from streamlit_webrtc import (
 logger = logging.getLogger(__name__)
 
 
-class OpenCVVideoProcessor(VideoProcessorBase):
-    type: Literal["noop", "cartoon", "edges", "rotate"]
-
-    def __init__(self) -> None:
-        self.type = "noop"
-
-    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+def make_video_frame_callback(_type: Literal["noop", "cartoon", "edges", "rotate"]):
+    def callback(frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
 
-        if self.type == "noop":
+        if _type == "noop":
             pass
-        elif self.type == "cartoon":
+        elif _type == "cartoon":
             # prepare color
             img_color = cv2.pyrDown(cv2.pyrDown(img))
             for _ in range(6):
@@ -55,16 +49,18 @@ class OpenCVVideoProcessor(VideoProcessorBase):
 
             # combine color and edges
             img = cv2.bitwise_and(img_color, img_edges)
-        elif self.type == "edges":
+        elif _type == "edges":
             # perform edge detection
             img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
-        elif self.type == "rotate":
+        elif _type == "rotate":
             # rotate image
             rows, cols, _ = img.shape
             M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
             img = cv2.warpAffine(img, M, (cols, rows))
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+    return callback
 
 
 def mixer_callback(frames: List[av.VideoFrame]) -> av.VideoFrame:
@@ -125,15 +121,15 @@ def app_mix():
     filter1_type = st.radio(
         "Select transform type",
         ("noop", "cartoon", "edges", "rotate"),
-        key="filter1-type",
+        key="mix-filter1-type",
     )
+    callback = make_video_frame_callback(filter1_type)
     input1_video_process_track = None
     if input1_ctx.output_video_track:
         input1_video_process_track = create_process_track(
             input_track=input1_ctx.output_video_track,
-            processor_factory=OpenCVVideoProcessor,
+            frame_callback=callback,
         )
-        input1_video_process_track.processor.type = filter1_type
 
     st.write("Input 2")
     input2_ctx = webrtc_streamer(
@@ -145,15 +141,14 @@ def app_mix():
     filter2_type = st.radio(
         "Select transform type",
         ("noop", "cartoon", "edges", "rotate"),
-        key="input2-filter-type",
+        key="mix-filter2-type",
     )
+    callback = make_video_frame_callback(filter2_type)
     input2_video_process_track = None
     if input2_ctx.output_video_track:
         input2_video_process_track = create_process_track(
-            input_track=input2_ctx.output_video_track,
-            processor_factory=OpenCVVideoProcessor,
+            input_track=input2_ctx.output_video_track, frame_callback=callback
         )
-        input2_video_process_track.processor.type = filter2_type
 
     st.write("Input 3 (no filter)")
     input3_ctx = webrtc_streamer(
@@ -194,38 +189,37 @@ def app_fork():
         media_stream_constraints={"video": True, "audio": False},
     )
 
-    filter1_ctx = webrtc_streamer(
+    filter1_type = st.radio(
+        "Select transform type",
+        ("noop", "cartoon", "edges", "rotate"),
+        key="fork-filter1-type",
+    )
+    callback = make_video_frame_callback(filter1_type)
+    webrtc_streamer(
         key="filter1",
         mode=WebRtcMode.RECVONLY,
-        video_processor_factory=OpenCVVideoProcessor,
+        video_frame_callback=callback,
         source_video_track=ctx.output_video_track,
         desired_playing_state=ctx.state.playing,
         rtc_configuration=COMMON_RTC_CONFIG,
         media_stream_constraints={"video": True, "audio": False},
     )
 
-    if filter1_ctx.video_processor:
-        filter1_ctx.video_processor.type = st.radio(
-            "Select transform type",
-            ("noop", "cartoon", "edges", "rotate"),
-            key="filter1-type",
-        )
-
-    filter2_ctx = webrtc_streamer(
+    filter2_type = st.radio(
+        "Select transform type",
+        ("noop", "cartoon", "edges", "rotate"),
+        key="fork-filter2-type",
+    )
+    callback = make_video_frame_callback(filter2_type)
+    webrtc_streamer(
         key="filter2",
         mode=WebRtcMode.RECVONLY,
-        video_processor_factory=OpenCVVideoProcessor,
+        video_frame_callback=callback,
         source_video_track=ctx.output_video_track,
         desired_playing_state=ctx.state.playing,
         rtc_configuration=COMMON_RTC_CONFIG,
         media_stream_constraints={"video": True, "audio": False},
     )
-    if filter2_ctx.video_processor:
-        filter2_ctx.video_processor.type = st.radio(
-            "Select transform type",
-            ("noop", "cartoon", "edges", "rotate"),
-            key="filter2-type",
-        )
 
 
 def menu():
