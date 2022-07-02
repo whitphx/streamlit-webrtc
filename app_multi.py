@@ -188,6 +188,7 @@ def app_fork():
         rtc_configuration=COMMON_RTC_CONFIG,
         media_stream_constraints={"video": True, "audio": False},
     )
+
     filter1_type = st.radio(
         "Select transform type",
         ("noop", "cartoon", "edges", "rotate"),
