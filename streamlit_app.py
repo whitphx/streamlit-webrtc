@@ -15,13 +15,15 @@ if __name__ == "__main__":
     logging.basicConfig(
         format="[%(asctime)s] %(levelname)7s from %(name)s in %(pathname)s:%(lineno)d: "
         "%(message)s",
+        level=logging.DEBUG if DEBUG else logging.INFO,
         force=True,
     )
 
-    logger.setLevel(level=logging.DEBUG if DEBUG else logging.INFO)
-
-    st_webrtc_logger = logging.getLogger("streamlit_webrtc")
-    st_webrtc_logger.setLevel(logging.DEBUG)
-
     fsevents_logger = logging.getLogger("fsevents")
     fsevents_logger.setLevel(logging.WARNING)
+
+    aiortc_logger = logging.getLogger("aiortc")
+    aiortc_logger.setLevel(logging.INFO)
+
+    aioice_logger = logging.getLogger("aioice")
+    aioice_logger.setLevel(logging.INFO)
