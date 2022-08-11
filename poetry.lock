@@ -1397,37 +1397,37 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "streamlit"
-version = "1.10.0"
+version = "1.11.1"
 description = "The fastest way to build data apps in Python"
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [package.dependencies]
 altair = ">=3.2.0"
-attrs = "*"
-blinker = "*"
+attrs = ">=16.0.0"
+blinker = ">=1.0.0"
 cachetools = ">=4.0"
 click = ">=7.0"
 gitpython = "!=3.1.19"
 importlib-metadata = ">=1.4"
 numpy = "*"
-packaging = "*"
+packaging = ">=14.1"
 pandas = ">=0.21.0"
 pillow = ">=6.2.0"
 protobuf = ">=3.12,<4"
-pyarrow = "*"
+pyarrow = ">=4.0"
 pydeck = ">=0.1.dev5"
 pympler = ">=0.9"
 python-dateutil = "*"
-requests = "*"
-rich = "*"
+requests = ">=2.4"
+rich = ">=10.11.0"
 semver = "*"
 toml = "*"
 tornado = ">=5.0"
-typing-extensions = "*"
-tzlocal = "*"
-validators = "*"
+typing-extensions = ">=3.10.0.0"
+tzlocal = ">=1.1"
+validators = ">=0.2"
 watchdog = {version = "*", markers = "platform_system != \"Darwin\""}
 
 [[package]]
@@ -1636,7 +1636,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<3.11"
-content-hash = "e6a2fa435a1ca544c133e6e041036ebe2acd345d493f995a3a03ed12a35ac863"
+content-hash = "3c7c350f553c340c8a025669eb75c28bcfad607d1d09c2abceeb19d6ad167368"
 
 [metadata.files]
 aioice = [
@@ -2810,10 +2810,7 @@ soupsieve = [
     {file = "soupsieve-2.3.2.post1-py3-none-any.whl", hash = "sha256:3b2503d3c7084a42b1ebd08116e5f81aadfaea95863628c80a3b774a11b7c759"},
     {file = "soupsieve-2.3.2.post1.tar.gz", hash = "sha256:fc53893b3da2c33de295667a0e19f078c14bf86544af307354de5fcf12a3f30d"},
 ]
-streamlit = [
-    {file = "streamlit-1.10.0-py2.py3-none-any.whl", hash = "sha256:4febd37144a62177e583d6970ab50f351a2bfd4eb112cf19e38c25b12246a4db"},
-    {file = "streamlit-1.10.0.tar.gz", hash = "sha256:9479d623dd4bec1fc7bd27e85d5012672351210e640889022ee7b4631c4efb2c"},
-]
+streamlit = []
 streamlit-server-state = [
     {file = "streamlit-server-state-0.12.2.tar.gz", hash = "sha256:ce3af2ff7475aa3b607d7b179523ef60817f6f5ca96d1b13f275db3afa4e7cba"},
     {file = "streamlit_server_state-0.12.2-py3-none-any.whl", hash = "sha256:cf85dfa538a0ee6f46e503b768f520e0ffb715cdd5151765af5620901bbe11d7"},
