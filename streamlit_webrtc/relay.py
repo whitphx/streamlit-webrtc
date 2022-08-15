@@ -1,13 +1,13 @@
 from aiortc.contrib.media import MediaRelay
-from streamlit.server.server import Server
 
 from .eventloop import get_server_event_loop, loop_context
+from .server import get_current_server
 
 _SERVER_GLOBAL_RELAY_ATTR_NAME_ = "streamlit-webrtc-global-relay"
 
 
 def get_global_relay() -> MediaRelay:
-    server = Server.get_current()
+    server = get_current_server()
 
     if hasattr(server, _SERVER_GLOBAL_RELAY_ATTR_NAME_):
         return getattr(server, _SERVER_GLOBAL_RELAY_ATTR_NAME_)

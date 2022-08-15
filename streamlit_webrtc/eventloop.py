@@ -2,12 +2,17 @@ import asyncio
 import contextlib
 from typing import Union
 
-from streamlit.server.server import Server
 from tornado.platform.asyncio import BaseAsyncIOLoop
+
+from .server import _is_modern_architecture, get_current_server
 
 
 def get_server_event_loop() -> asyncio.AbstractEventLoop:
-    current_server = Server.get_current()
+    current_server = get_current_server()
+
+    if _is_modern_architecture():
+        return current_server._eventloop
+
     ioloop = current_server._ioloop
 
     # `ioloop` is expected to be of type `BaseAsyncIOLoop`,
