@@ -1,20 +1,28 @@
 from typing import Optional
 
-from streamlit.server.server import SessionInfo
+try:
+    from streamlit.web.server.server import SessionInfo
+except ModuleNotFoundError:
+    # streamlit < 1.12.0
+    from streamlit.server.server import SessionInfo  # type: ignore
 
 try:
-    from streamlit.scriptrunner import get_script_run_ctx
+    from streamlit.runtime.scriptrunner import get_script_run_ctx
 except ModuleNotFoundError:
-    # streamlit < 1.8
+    # streamlit < 1.12.0
     try:
-        from streamlit.script_run_context import get_script_run_ctx  # type: ignore
+        from streamlit.scriptrunner import get_script_run_ctx  # type: ignore
     except ModuleNotFoundError:
-        # streamlit < 1.4
-        from streamlit.report_thread import (  # type: ignore
-            get_report_ctx as get_script_run_ctx,
-        )
+        # streamlit < 1.8
+        try:
+            from streamlit.script_run_context import get_script_run_ctx  # type: ignore
+        except ModuleNotFoundError:
+            # streamlit < 1.4
+            from streamlit.report_thread import (  # type: ignore
+                get_report_ctx as get_script_run_ctx,
+            )
 
-from streamlit.server.server import Server
+from .server import get_current_server
 
 # Ref: https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92
 
@@ -28,7 +36,7 @@ def get_session_id() -> str:
 
 
 def get_this_session_info() -> Optional[SessionInfo]:
-    current_server = Server.get_current()
+    current_server = get_current_server()
 
     # The original implementation of SessionState (https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92) has a problem    # noqa: E501
     # as referred to in https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92#gistcomment-3484515,                         # noqa: E501
