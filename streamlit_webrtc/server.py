@@ -1,10 +1,13 @@
 import logging
 
 import streamlit as st
+from packaging import version
 
 logger = logging.getLogger(__name__)
 
 _server = None
+
+VERSION_1_12_0 = version.parse("1.12.0")
 
 
 def _is_modern_architecture() -> bool:
@@ -20,11 +23,7 @@ def _is_modern_architecture() -> bool:
     that we have been using as a server-wide global object,
     so we have to change the way to access it.
     """
-    try:
-        major, minor = [int(s) for s in st.__version__.split(".")][:2]
-        return major >= 1 and minor >= 12
-    except Exception:
-        return False
+    return version.parse(st.__version__) >= VERSION_1_12_0
 
 
 def get_current_server():
