@@ -1190,13 +1190,14 @@ watchdog = {version = "*", markers = "platform_system != \"Darwin\""}
 
 [[package]]
 name = "streamlit-server-state"
-version = "0.12.2"
+version = "0.14.0"
 description = ""
 category = "dev"
 optional = false
 python-versions = ">=3.7,<4.0"
 
 [package.dependencies]
+packaging = ">=20.0"
 streamlit = ">=0.65.0"
 
 [[package]]
@@ -1352,7 +1353,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<3.11,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
-content-hash = "cae0b7351c768fb3f6cef1398abc07b48be527a1e8531779de03e141a41db22f"
+content-hash = "e1e852f7527c14ff0fc4a07de272aba0a66b43f965717765bce828789ded6b82"
 
 [metadata.files]
 aioice = [
@@ -2083,10 +2084,7 @@ smmap = [
     {file = "smmap-5.0.0.tar.gz", hash = "sha256:c840e62059cd3be204b0c9c9f74be2c09d5648eddd4580d9314c3ecde0b30936"},
 ]
 streamlit = []
-streamlit-server-state = [
-    {file = "streamlit-server-state-0.12.2.tar.gz", hash = "sha256:ce3af2ff7475aa3b607d7b179523ef60817f6f5ca96d1b13f275db3afa4e7cba"},
-    {file = "streamlit_server_state-0.12.2-py3-none-any.whl", hash = "sha256:cf85dfa538a0ee6f46e503b768f520e0ffb715cdd5151765af5620901bbe11d7"},
-]
+streamlit-server-state = []
 toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
     {file = "toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"},
