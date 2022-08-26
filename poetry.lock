@@ -1352,7 +1352,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<3.11,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
-content-hash = "a53baf27ef89781d31e323703ffc426a11be43aedd3f1c0d0f42a355f450bd92"
+content-hash = "cae0b7351c768fb3f6cef1398abc07b48be527a1e8531779de03e141a41db22f"
 
 [metadata.files]
 aioice = [
