@@ -1,10 +1,14 @@
 from typing import Optional
 
 try:
-    from streamlit.web.server.server import SessionInfo
+    from streamlit.runtime.runtime import SessionInfo
 except ModuleNotFoundError:
-    # streamlit < 1.12.0
-    from streamlit.server.server import SessionInfo  # type: ignore
+    # streamlit < 1.12.1
+    try:
+        from streamlit.web.server.server import SessionInfo  # type: ignore
+    except ModuleNotFoundError:
+        # streamlit < 1.12.0
+        from streamlit.server.server import SessionInfo  # type: ignore
 
 try:
     from streamlit.runtime.scriptrunner import get_script_run_ctx
@@ -43,7 +47,12 @@ def get_this_session_info() -> Optional[SessionInfo]:
     # then fixed here.
     # This code only works with streamlit>=0.65, https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92#gistcomment-3418729 # noqa: E501
     session_id = get_session_id()
-    session_info = current_server._get_session_info(session_id)
+
+    try:
+        session_info = current_server._runtime._get_session_info(session_id)
+    except AttributeError:
+        # streamlit < 1.12.1
+        session_info = current_server._get_session_info(session_id)
 
     return session_info
 

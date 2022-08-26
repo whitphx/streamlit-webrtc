@@ -4,13 +4,17 @@ from typing import Union
 
 from tornado.platform.asyncio import BaseAsyncIOLoop
 
-from .server import _is_modern_architecture, get_current_server
+from .server import VER_GTE_1_12_0, VER_GTE_1_12_1, get_current_server
 
 
 def get_server_event_loop() -> asyncio.AbstractEventLoop:
     current_server = get_current_server()
 
-    if _is_modern_architecture():
+    if VER_GTE_1_12_1:
+        async_objs = current_server._runtime._get_async_objs()
+        return async_objs.eventloop
+
+    if VER_GTE_1_12_0:
         return current_server._eventloop
 
     ioloop = current_server._ioloop
