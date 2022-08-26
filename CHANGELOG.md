@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.43.1] - 2022-08-26
+
+### Fix
+- Compatibility with streamlit>=1.12.1, #1026.
+
 ## [0.43.0] - 2022-08-15
 
 ### Fix

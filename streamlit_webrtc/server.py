@@ -7,23 +7,31 @@ logger = logging.getLogger(__name__)
 
 _server = None
 
+ST_VERSION = version.parse(st.__version__)
+
 VERSION_1_12_0 = version.parse("1.12.0")
+VERSION_1_12_1 = version.parse("1.12.1")
 
+VER_GTE_1_12_0 = ST_VERSION >= VERSION_1_12_0
+""" Since 1.12.0, Streamlit has changed its internal architecture
+creating new `web` and `runtime` submodules to which some files have been moved
+decoupling the web server-related files and the core runtime,
+e.g. https://github.com/streamlit/streamlit/pull/4956.
 
-def _is_modern_architecture() -> bool:
-    """Returns if the imported streamlit package version is >=1.12.0.
-    It is because since that version, streamlit has changed its internal architecture
-    making `web` and `runtime` submodules to which some files have been moved
-    decoupling the web server-related files and the core runtime,
-    e.g. https://github.com/streamlit/streamlit/pull/4956.
+During this a huge refactoring, `Server._singleton` and
+its accessor `Server.get_current()` have been removed
+(https://github.com/streamlit/streamlit/pull/4966)
+that we have been using as a server-wide global object,
+so we have to change the way to access it.
+"""
 
-    During this a huge refactoring, `Server._singleton` and
-    its accessor `Server.get_current()` have been removed
-    (https://github.com/streamlit/streamlit/pull/4966)
-    that we have been using as a server-wide global object,
-    so we have to change the way to access it.
-    """
-    return version.parse(st.__version__) >= VERSION_1_12_0
+VER_GTE_1_12_1 = ST_VERSION >= VERSION_1_12_1
+""" Since 1.12.1, as a part of the decoupling of the runtime and the web server,
+a large part of the `Server` class attributes including the session states
+has moved to the `runtime` submodule.
+
+Ref: https://github.com/streamlit/streamlit/pull/5136
+"""
 
 
 def get_current_server():
@@ -31,7 +39,7 @@ def get_current_server():
     if _server:
         return _server
 
-    if _is_modern_architecture():
+    if VER_GTE_1_12_0:
         logger.debug(
             "The running Streamlit version is gte 1.12.0. "
             "Try to get the server instance"
