@@ -26,7 +26,7 @@ except ModuleNotFoundError:
                 get_report_ctx as get_script_run_ctx,
             )
 
-from .server import get_current_server
+from .server import VER_GTE_1_12_1, get_current_server
 
 # Ref: https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92
 
@@ -48,9 +48,9 @@ def get_this_session_info() -> Optional[SessionInfo]:
     # This code only works with streamlit>=0.65, https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92#gistcomment-3418729 # noqa: E501
     session_id = get_session_id()
 
-    try:
+    if VER_GTE_1_12_1:
         session_info = current_server._runtime._get_session_info(session_id)
-    except AttributeError:
+    else:
         # streamlit < 1.12.1
         session_info = current_server._get_session_info(session_id)
 
