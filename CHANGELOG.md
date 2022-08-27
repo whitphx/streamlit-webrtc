@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.43.2] - 2022-08-27
+
 ### Fix
 - Refactoring, #1033.
 
