@@ -18,7 +18,7 @@ aiortc = "^1.1.2"
 typing_extensions = { version = ">=3.7.4,<5.0.0", python = "<3.8" }
 packaging = ">=20.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 black = "^21.12b0"
 click = ">=7.0,<8.0"  # We must specify the click version because we install older versions of Streamlit in the CI process and their depending click version is different from the newer releases.
 isort = "^5.10.1"
@@ -65,5 +65,5 @@ exclude = '''
 profile = "black"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.2.0"]
 build-backend = "poetry.core.masonry.api"
