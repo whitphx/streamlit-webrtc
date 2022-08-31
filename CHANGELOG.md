@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.43.3] - 2022-09-01
+
 ### Fix
 
 - Catch `ReferenceError` during searching the server object , #1042.
