@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix
+- `poetry-core` version, #1049.
+
 ## [0.43.3] - 2022-09-01
 
 ### Fix
