@@ -62,7 +62,7 @@ jobs:
       run: echo "$HOME/.local/bin" >> $GITHUB_PATH
 
     - name: Configure poetry
-      run: poetry config virtualenvs.in-project false
+      run: poetry config virtualenvs.in-project true
 
     - name: Set up cache
       uses: actions/cache@v3
