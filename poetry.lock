@@ -1205,7 +1205,7 @@ watchdog = {version = "*", markers = "platform_system != \"Darwin\""}
 
 [[package]]
 name = "streamlit-server-state"
-version = "0.14.1"
+version = "0.14.2"
 description = ""
 category = "dev"
 optional = false
@@ -1367,8 +1367,8 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 
 [metadata]
 lock-version = "1.1"
-python-versions = ">=3.7,<3.11,!=3.9.7"
-content-hash = "c62cc5130596cb814e1c0b7d78585d62f863386b12f05248a23d06c10b34f5e8"
+python-versions = ">=3.7,<3.11,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
+content-hash = "911c8014b6baa8210c111d812c4c184be1b17744ff02ef2bd69e27883bb9b8ee"
 
 [metadata.files]
 aioice = [
@@ -2532,8 +2532,8 @@ streamlit = [
     {file = "streamlit-1.12.2.tar.gz", hash = "sha256:f0461bebd6c1b58c38f0f602ee9bb6699f66dfe14fd2e05abc25ebe96ff4ba21"},
 ]
 streamlit-server-state = [
-    {file = "streamlit-server-state-0.14.1.tar.gz", hash = "sha256:a322e79015d8d5e3abc788aae8ec9d70ae5020758667928d10ad6d414968d0a2"},
-    {file = "streamlit_server_state-0.14.1-py3-none-any.whl", hash = "sha256:96fc93c0e0fa19c21da685eb2298bb2bfec0f66eb48eb8c1466dad5d988a2376"},
+    {file = "streamlit-server-state-0.14.2.tar.gz", hash = "sha256:2fa04af459ff3d20a7b034b24dbc059f5b98888d8e35e5840852d9aaabfbf85d"},
+    {file = "streamlit_server_state-0.14.2-py3-none-any.whl", hash = "sha256:da8c5715372310b001caa4ef1dcd55a5f1f9b6ba04501243f82fb2de40c2006a"},
 ]
 toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
