@@ -2,7 +2,7 @@ import math
 from typing import List
 
 try:
-    from typing import Literal
+    from typing import Literal, cast
 except ImportError:
     from typing_extensions import Literal  # type: ignore
 
@@ -23,8 +23,10 @@ Mix multiple inputs with different video filters into one stream.
 """
 )
 
+VideoFilterType = Literal["noop", "cartoon", "edges", "rotate"]
 
-def make_video_frame_callback(_type: Literal["noop", "cartoon", "edges", "rotate"]):
+
+def make_video_frame_callback(_type: VideoFilterType):
     def callback(frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
 
@@ -124,7 +126,7 @@ filter1_type = st.radio(
     ("noop", "cartoon", "edges", "rotate"),
     key="mix-filter1-type",
 )
-callback = make_video_frame_callback(filter1_type)
+callback = make_video_frame_callback(cast(VideoFilterType, filter1_type))
 input1_video_process_track = None
 if input1_ctx.output_video_track:
     input1_video_process_track = create_process_track(
@@ -144,7 +146,7 @@ filter2_type = st.radio(
     ("noop", "cartoon", "edges", "rotate"),
     key="mix-filter2-type",
 )
-callback = make_video_frame_callback(filter2_type)
+callback = make_video_frame_callback(cast(VideoFilterType, filter2_type))
 input2_video_process_track = None
 if input2_ctx.output_video_track:
     input2_video_process_track = create_process_track(

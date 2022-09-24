@@ -3,6 +3,8 @@ try:
 except ImportError:
     from typing_extensions import Literal  # type: ignore
 
+from typing import cast
+
 import av
 import cv2
 import streamlit as st
@@ -14,8 +16,10 @@ Fork one input to multiple outputs with different video filters.
 """
 )
 
+VideoFilterType = Literal["noop", "cartoon", "edges", "rotate"]
 
-def make_video_frame_callback(_type: Literal["noop", "cartoon", "edges", "rotate"]):
+
+def make_video_frame_callback(_type: VideoFilterType):
     def callback(frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
 
@@ -72,7 +76,7 @@ filter1_type = st.radio(
     ("noop", "cartoon", "edges", "rotate"),
     key="fork-filter1-type",
 )
-callback = make_video_frame_callback(filter1_type)
+callback = make_video_frame_callback(cast(VideoFilterType, filter1_type))
 webrtc_streamer(
     key="filter1",
     mode=WebRtcMode.RECVONLY,
@@ -89,7 +93,7 @@ filter2_type = st.radio(
     ("noop", "cartoon", "edges", "rotate"),
     key="fork-filter2-type",
 )
-callback = make_video_frame_callback(filter2_type)
+callback = make_video_frame_callback(cast(VideoFilterType, filter2_type))
 webrtc_streamer(
     key="filter2",
     mode=WebRtcMode.RECVONLY,
