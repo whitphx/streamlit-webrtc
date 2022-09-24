@@ -1,7 +1,7 @@
 """Media streamings"""
 import logging
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, cast
 
 import av
 import cv2
@@ -44,7 +44,7 @@ MEDIAFILES: Dict[str, Dict] = {
     },
 }
 media_file_label = st.radio("Select a media source to stream", tuple(MEDIAFILES.keys()))
-media_file_info = MEDIAFILES[media_file_label]
+media_file_info = MEDIAFILES[cast(str, media_file_label)]
 if "local_file_path" in media_file_info:
     download_file(media_file_info["url"], media_file_info["local_file_path"])
 
