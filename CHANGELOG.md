@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix
+
+- Use `MediaRelay` at the track connections in the SENDONLY mode, #1089.
+
 ## [0.43.4] - 2022-09-03
 
 ### Fix
