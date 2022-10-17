@@ -200,17 +200,17 @@ async def _process_offer_coro(
                     logger.info(
                         "Add a track %s to receiver %s", input_track, audio_receiver
                     )
-                    audio_receiver.addTrack(input_track)
+                    audio_receiver.addTrack(relay.subscribe(input_track))
             elif input_track.kind == "video":
                 if video_receiver:
                     logger.info(
                         "Add a track %s to receiver %s", input_track, video_receiver
                     )
-                    video_receiver.addTrack(input_track)
+                    video_receiver.addTrack(relay.subscribe(input_track))
 
             if in_recorder:
                 logger.info("Track %s is added to in_recorder", input_track.kind)
-                in_recorder.addTrack(input_track)
+                in_recorder.addTrack(relay.subscribe(input_track))
 
             @input_track.on("ended")
             async def on_ended():
