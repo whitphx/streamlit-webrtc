@@ -90,6 +90,8 @@ jobs:
     - name: Type checking with mypy
       run: |
         poetry run mypy .
+    - name: Release check
+      run: python scripts/release_check.py streamlit_webrtc/component.py
 
     # Frontend build is necessary for the package to be importable, in the tests
     - name: Set up Node.js
