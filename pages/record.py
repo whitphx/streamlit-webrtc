@@ -1,7 +1,6 @@
 import av
 import cv2
 from aiortc.contrib.media import MediaRecorder
-
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
 
