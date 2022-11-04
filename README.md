@@ -55,7 +55,7 @@ $ pip install -U streamlit-webrtc
 
 ## Quick tutorial
 
-See also [the sample app, `app.py`](https://github.com/whitphx/streamlit-webrtc/blob/main/app.py), which contains a wide variety of usage.
+See also [the sample pages, `pages/*.py`](https://github.com/whitphx/streamlit-webrtc/tree/main/pages), which contain a wide variety of usage.
 
 See also ["Developing Web-Based Real-Time Video/Audio Processing Apps Quickly with Streamlit"](https://towardsdatascience.com/developing-web-based-real-time-video-audio-processing-apps-quickly-with-streamlit-7c7bcd0bc5a8).
 
