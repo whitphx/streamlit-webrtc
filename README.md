@@ -259,7 +259,7 @@ aioice_logger.setLevel(logging.WARNING)
 ```
 
 ## API changes
-Currently there is no documentation about the interface. See the example [app.py](./app.py) for the usage.
+Currently there is no documentation about the interface. See the examples in [./pages/*.py](./pages) for the usage.
 The API is not finalized yet and can be changed without backward compatibility in the future releases until v1.0.
 
 ### For users since versions `<0.20`
