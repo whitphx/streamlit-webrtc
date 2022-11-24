@@ -11,8 +11,25 @@
   ```
 * In another shell, run `app.py`
   ```shell
-  $ streamlit run app.py
+  $ streamlit run home.py
   ```
+
+### If you want to use Docker
+Build the image:
+```shell
+make docker/build
+```
+
+Run the sample app:
+```shell
+make docker/run
+```
+
+Log in to the shell:
+```shell
+make docker/shell
+```
+
 
 ## Release
 1. Edit `CHANGELOG.md` and commit it.
