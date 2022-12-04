@@ -23,7 +23,7 @@ docker/run:
 		-v `pwd`:/srv \
 		-e STREAMLIT_SERVER_FILE_WATCHER_TYPE=poll \
 		streamlit-webrtc \
-		poetry run streamlit run streamlit_app.py
+		poetry run streamlit run home.py
 
 docker/shell:
 	docker run \
