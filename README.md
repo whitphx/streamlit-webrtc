@@ -24,6 +24,8 @@
 </tr>
 </table>
 
+Sister project: [`streamlit-fesion`](https://github.com/whitphx/streamlit-fesion) to execute video filters on browsers with Wasm.
+
 ## Examples
 ### [⚡️Showcase including following examples and more](https://github.com/whitphx/streamlit-webrtc-example): [🎈Online demo](https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py)
 
