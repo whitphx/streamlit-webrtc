@@ -1168,7 +1168,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "streamlit"
-version = "1.15.2"
+version = "1.16.0"
 description = "The fastest way to build data apps in Python"
 category = "main"
 optional = false
@@ -1199,6 +1199,9 @@ typing-extensions = ">=3.10.0.0"
 tzlocal = ">=1.1"
 validators = ">=0.2"
 watchdog = {version = "*", markers = "platform_system != \"Darwin\""}
+
+[package.extras]
+snowflake = ["snowflake-snowpark-python"]
 
 [[package]]
 name = "streamlit-server-state"
@@ -2533,8 +2536,8 @@ smmap = [
     {file = "smmap-5.0.0.tar.gz", hash = "sha256:c840e62059cd3be204b0c9c9f74be2c09d5648eddd4580d9314c3ecde0b30936"},
 ]
 streamlit = [
-    {file = "streamlit-1.15.2-py2.py3-none-any.whl", hash = "sha256:40933b64e7b3a1770d798918cbd2ae52a6671a52266ac069f62e1b66f38e0662"},
-    {file = "streamlit-1.15.2.tar.gz", hash = "sha256:31b2fa33848f8dbcf526e6c93017cf58c81a8479844c4f6ff553382e1bac6152"},
+    {file = "streamlit-1.16.0-py2.py3-none-any.whl", hash = "sha256:4c135621ede6eb8e9d6e738cc5496d90d66bdb78340eab1eb2dbf1978cc7af80"},
+    {file = "streamlit-1.16.0.tar.gz", hash = "sha256:11f98f9c854f61145e78109d2d0694354122136230397a2b8fdc7d6778883c60"},
 ]
 streamlit-server-state = [
     {file = "streamlit-server-state-0.14.2.tar.gz", hash = "sha256:2fa04af459ff3d20a7b034b24dbc059f5b98888d8e35e5840852d9aaabfbf85d"},
