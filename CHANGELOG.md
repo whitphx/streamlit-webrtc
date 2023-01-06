@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.44.1] - 2023-01-07
+
 ### Fix
 
 - Specify the version of `cryptography` to avoid the bug reported at [#1164](https://github.com/whitphx/streamlit-webrtc/issues/1164), #1167.
