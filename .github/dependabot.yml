@@ -4,6 +4,9 @@ updates:
   directory: "/"
   schedule:
     interval: daily
+  ignore:
+    - dependency-name: "cryptography"
+      versions: ["39.0.0"]  # https://github.com/whitphx/streamlit-webrtc/issues/1164
   open-pull-requests-limit: 10
 - package-ecosystem: npm
   directory: "/streamlit_webrtc/frontend"
