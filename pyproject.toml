@@ -17,7 +17,7 @@ streamlit = ">=0.84.1"
 aiortc = "^1.1.2"
 typing_extensions = { version = ">=3.7.4,<5.0.0", python = "<3.8" }
 packaging = ">=20.0"
-cryptography = "<39"  # See https://github.com/whitphx/streamlit-webrtc/issues/1164. TODO: Specify more detailed version after this problem is solved.
+cryptography = "<40"  # See https://github.com/whitphx/streamlit-webrtc/issues/1164. TODO: Specify more detailed version after this problem is solved.
 
 [tool.poetry.group.dev.dependencies]
 black = "^21.12b0"
