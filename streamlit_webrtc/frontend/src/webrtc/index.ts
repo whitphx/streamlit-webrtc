@@ -57,8 +57,8 @@ export const useWebRtc = (
     rtcConfiguration: RTCConfiguration | undefined;
     mediaStreamConstraints: MediaStreamConstraints | undefined;
   },
-  videoDeviceIdRequest: string | undefined,
-  audioDeviceIdRequest: string | undefined,
+  videoDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
+  audioDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
   onComponentValueChange: (newComponentValue: ComponentValue) => void,
   onDevicesOpened: (openedDeviceIds: { video?: string; audio?: string }) => void
 ) => {
@@ -172,7 +172,10 @@ export const useWebRtc = (
             throw new Error("getUserMedia is not implemented in this browser");
           }
 
-          const openedDeviceIds: { video?: string; audio?: string } = {};
+          const openedDeviceIds: {
+            video?: MediaDeviceInfo["deviceId"];
+            audio?: MediaDeviceInfo["deviceId"];
+          } = {};
           const stream = await navigator.mediaDevices.getUserMedia(constraints);
           stream.getTracks().forEach((track) => {
             pc.addTrack(track, stream);

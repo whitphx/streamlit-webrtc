@@ -32,8 +32,8 @@ interface WebRtcStreamerInnerProps {
 }
 const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
   const [deviceIds, setDeviceIds] = useState<{
-    video: string | undefined;
-    audio: string | undefined;
+    video: MediaDeviceInfo["deviceId"] | undefined;
+    audio: MediaDeviceInfo["deviceId"] | undefined;
   }>({ video: undefined, audio: undefined });
   const { state, start, stop } = useWebRtc(
     props,
