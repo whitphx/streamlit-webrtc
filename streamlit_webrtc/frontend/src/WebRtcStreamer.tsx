@@ -31,15 +31,23 @@ interface WebRtcStreamerInnerProps {
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
 const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
-  const [devices, setDevices] = useState<{
-    video: MediaDeviceInfo | null;
-    audio: MediaDeviceInfo | null;
-  }>({ video: null, audio: null });
+  const [deviceIds, setDeviceIds] = useState<{
+    video: string | undefined;
+    audio: string | undefined;
+  }>({ video: undefined, audio: undefined });
   const { state, start, stop } = useWebRtc(
     props,
-    devices.video,
-    devices.audio,
-    props.onComponentValueChange
+    deviceIds.video,
+    deviceIds.audio,
+    props.onComponentValueChange,
+    useCallback(
+      (openedDeviceIds) =>
+        setDeviceIds({
+          video: openedDeviceIds.video,
+          audio: openedDeviceIds.audio,
+        }),
+      []
+    )
   );
 
   const mode = props.mode;
@@ -56,7 +64,8 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
 
   const handleDeviceSelect = useCallback<DeviceSelectFormProps["onSelect"]>(
     ({ video, audio }) => {
-      setDevices({ video, audio });
+      // TODO: Fix <DeviceSelectForm /> to return deviceId string instead of MediaDeviceInfo so that we can pass setDeviceIds to its callback directly removing this wrapper callback.
+      setDeviceIds({ video: video?.deviceId, audio: audio?.deviceId });
     },
     []
   );
@@ -73,8 +82,8 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
       <DeviceSelectForm
         video={videoEnabled}
         audio={audioEnabled}
-        defaultVideoDeviceId={devices.video ? devices.video.deviceId : null}
-        defaultAudioDeviceId={devices.audio ? devices.audio.deviceId : null}
+        defaultVideoDeviceId={deviceIds.video ? deviceIds.video : null}
+        defaultAudioDeviceId={deviceIds.audio ? deviceIds.audio : null}
         onSelect={handleDeviceSelect}
         onClose={closeDeviceSelect}
       />
