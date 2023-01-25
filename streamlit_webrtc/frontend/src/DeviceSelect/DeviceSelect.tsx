@@ -26,8 +26,8 @@ import { stopAllTracks } from "./utils";
 
 function ensureValidSelection(
   devices: MediaDeviceInfo[],
-  selectedDeviceId: MediaDeviceInfo["deviceId"] | null
-): MediaDeviceInfo["deviceId"] | null {
+  selectedDeviceId: MediaDeviceInfo["deviceId"] | undefined
+): MediaDeviceInfo["deviceId"] | undefined {
   const deviceIds = devices.map((d) => d.deviceId);
   if (selectedDeviceId && deviceIds.includes(selectedDeviceId)) {
     return selectedDeviceId;
@@ -35,7 +35,7 @@ function ensureValidSelection(
   if (deviceIds.length > 0) {
     return deviceIds[0];
   }
-  return null;
+  return undefined;
 }
 
 interface DeviceSelectionState {
@@ -44,8 +44,8 @@ interface DeviceSelectionState {
   audioInputs: MediaDeviceInfo[];
   audioOutputs: MediaDeviceInfo[];
   // TODO: Add selectedAudioOutputDeviceId
-  selectedVideoInputDeviceId: MediaDeviceInfo["deviceId"] | null;
-  selectedAudioInputDeviceId: MediaDeviceInfo["deviceId"] | null;
+  selectedVideoInputDeviceId: MediaDeviceInfo["deviceId"] | undefined;
+  selectedAudioInputDeviceId: MediaDeviceInfo["deviceId"] | undefined;
 }
 interface DeviceSelectionActionBase {
   type: string;
@@ -62,8 +62,8 @@ interface DeviceSelectionUpdateSelectedDeviceIdAction
   extends DeviceSelectionActionBase {
   type: "UPDATE_SELECTED_DEVICE_ID";
   payload: {
-    selectedVideoInputDeviceId?: MediaDeviceInfo["deviceId"] | null;
-    selectedAudioInputDeviceId?: MediaDeviceInfo["deviceId"] | null;
+    selectedVideoInputDeviceId?: MediaDeviceInfo["deviceId"] | undefined;
+    selectedAudioInputDeviceId?: MediaDeviceInfo["deviceId"] | undefined;
   };
 }
 type DeviceSelectionAction =
@@ -81,8 +81,8 @@ const deviceSelectionReducer: Reducer<
         videoInputs: [],
         audioInputs: [],
         audioOutputs: [],
-        selectedVideoInputDeviceId: null,
-        selectedAudioInputDeviceId: null,
+        selectedVideoInputDeviceId: undefined,
+        selectedAudioInputDeviceId: undefined,
       };
     }
     case "UPDATE_DEVICES": {
@@ -123,8 +123,8 @@ type PermissionState = "WAITING" | "ALLOWED" | Error;
 export interface DeviceSelectProps {
   video: boolean;
   audio: boolean;
-  defaultVideoDeviceId: MediaDeviceInfo["deviceId"] | null;
-  defaultAudioDeviceId: MediaDeviceInfo["deviceId"] | null;
+  defaultVideoDeviceId: MediaDeviceInfo["deviceId"] | undefined;
+  defaultAudioDeviceId: MediaDeviceInfo["deviceId"] | undefined;
   onSelect: (devices: {
     video: MediaDeviceInfo["deviceId"] | undefined;
     audio: MediaDeviceInfo["deviceId"] | undefined;
