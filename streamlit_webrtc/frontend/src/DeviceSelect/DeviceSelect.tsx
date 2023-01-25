@@ -126,8 +126,8 @@ export interface DeviceSelectProps {
   defaultVideoDeviceId: MediaDeviceInfo["deviceId"] | null;
   defaultAudioDeviceId: MediaDeviceInfo["deviceId"] | null;
   onSelect: (devices: {
-    video: MediaDeviceInfo | null;
-    audio: MediaDeviceInfo | null;
+    video: MediaDeviceInfo["deviceId"] | undefined;
+    audio: MediaDeviceInfo["deviceId"] | undefined;
   }) => void;
 }
 const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
@@ -262,7 +262,7 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
     const audioInput = useAudio
       ? audioInputs.find((d) => d.deviceId === selectedAudioInputDeviceId)
       : null;
-    onSelect({ video: videoInput || null, audio: audioInput || null });
+    onSelect({ video: videoInput?.deviceId, audio: audioInput?.deviceId });
   }, [
     useVideo,
     useAudio,

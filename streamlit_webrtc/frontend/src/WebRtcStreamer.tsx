@@ -64,8 +64,7 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
 
   const handleDeviceSelect = useCallback<DeviceSelectFormProps["onSelect"]>(
     ({ video, audio }) => {
-      // TODO: Fix <DeviceSelectForm /> to return deviceId string instead of MediaDeviceInfo so that we can pass setDeviceIds to its callback directly removing this wrapper callback.
-      setDeviceIds({ video: video?.deviceId, audio: audio?.deviceId });
+      setDeviceIds({ video, audio });
     },
     []
   );
