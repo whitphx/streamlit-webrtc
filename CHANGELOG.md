@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fix
+
+- Internal change for more reliable device selection, #1180.
+
 ## [0.44.2] - 2023-01-07
 
 ### Fix
