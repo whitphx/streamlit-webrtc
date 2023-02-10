@@ -33,7 +33,7 @@ except ModuleNotFoundError:
                 get_report_ctx as get_script_run_ctx,
             )
 
-from .server import VER_GTE_1_12_1, VER_GTE_1_14_0, get_current_server
+from .server import VER_GTE_1_12_1, VER_GTE_1_14_0, VER_GTE_1_18_0, get_current_server
 
 # Ref: https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92
 
@@ -56,7 +56,10 @@ def get_this_session_info() -> Optional[SessionInfo]:
     if VER_GTE_1_14_0:
         from streamlit.runtime.runtime import Runtime
 
-        return Runtime.instance()._session_mgr.get_active_session_info(session_id)  # type: ignore  # noqa: E501
+        if VER_GTE_1_18_0:
+            return Runtime.instance()._session_mgr.get_active_session_info(session_id)  # type: ignore  # noqa: E501
+        else:
+            return Runtime.instance()._get_session_info(session_id)  # type: ignore  # noqa: E501
 
     current_server = get_current_server()
 
