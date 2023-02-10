@@ -11,7 +11,7 @@ def get_server_event_loop() -> asyncio.AbstractEventLoop:
     if VER_GTE_1_14_0:
         from streamlit.runtime.runtime import Runtime
 
-        async_objs = Runtime.instance()._get_async_objs()
+        async_objs = Runtime.instance()._get_async_objs()  # type: ignore
         return async_objs.eventloop
 
     current_server = get_current_server()

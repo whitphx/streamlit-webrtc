@@ -56,7 +56,7 @@ def get_this_session_info() -> Optional[SessionInfo]:
     if VER_GTE_1_14_0:
         from streamlit.runtime.runtime import Runtime
 
-        return Runtime.instance()._session_mgr.get_active_session_info(session_id)
+        return Runtime.instance()._session_mgr.get_active_session_info(session_id)  # type: ignore  # noqa: E501
 
     current_server = get_current_server()
 

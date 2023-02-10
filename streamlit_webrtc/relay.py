@@ -10,7 +10,7 @@ def get_global_relay() -> MediaRelay:
     if VER_GTE_1_14_0:
         from streamlit.runtime.runtime import Runtime
 
-        singleton = Runtime.instance()
+        singleton = Runtime.instance()  # type: ignore
     else:
         singleton = get_current_server()
 
