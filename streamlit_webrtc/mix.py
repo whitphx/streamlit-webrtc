@@ -15,7 +15,7 @@ from aiortc import MediaStreamTrack
 from aiortc.contrib.media import RelayStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
-from .eventloop import get_server_event_loop, loop_context
+from .eventloop import get_global_event_loop, loop_context
 from .models import FrameT
 from .relay import get_global_relay
 
@@ -149,7 +149,7 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
 
         self.mixer_output_interval = mixer_output_interval
 
-        loop = get_server_event_loop()
+        loop = get_global_event_loop()
 
         with loop_context(loop):
             super().__init__()

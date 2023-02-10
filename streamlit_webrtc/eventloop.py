@@ -7,7 +7,7 @@ from tornado.platform.asyncio import BaseAsyncIOLoop
 from .server import VER_GTE_1_12_0, VER_GTE_1_12_1, VER_GTE_1_14_0, get_current_server
 
 
-def get_server_event_loop() -> asyncio.AbstractEventLoop:
+def get_global_event_loop() -> asyncio.AbstractEventLoop:
     if VER_GTE_1_14_0:
         from streamlit.runtime.runtime import Runtime
 
