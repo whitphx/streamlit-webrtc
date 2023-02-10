@@ -11,6 +11,7 @@ ST_VERSION = version.parse(st.__version__)
 
 VERSION_1_12_0 = version.parse("1.12.0")
 VERSION_1_12_1 = version.parse("1.12.1")
+VERSION_1_18_0 = version.parse("1.18.0")
 
 VER_GTE_1_12_0 = ST_VERSION >= VERSION_1_12_0
 """ Since 1.12.0, Streamlit has changed its internal architecture
@@ -31,6 +32,13 @@ a large part of the `Server` class attributes including the session states
 has moved to the `runtime` submodule.
 
 Ref: https://github.com/streamlit/streamlit/pull/5136
+"""
+
+VER_GTE_1_18_0 = ST_VERSION >= VERSION_1_18_0
+""" Since 1.18.0, Streamlit introduced `SessionManager` protocol
+to abstract and improve the session behavior.
+
+Ref: https://github.com/streamlit/streamlit/pull/5856
 """
 
 

@@ -1,14 +1,21 @@
 from typing import Optional
 
 try:
-    from streamlit.runtime.runtime import SessionInfo
+    # `SessionManager.get_active_session_info()`, which plays the same role
+    # as the old `get_session_info()` returns an instance of `ActiveSessionInfo`,
+    # not `SessionInfo` since 1.18.0.
+    from streamlit.runtime.session_manager import ActiveSessionInfo as SessionInfo
 except ModuleNotFoundError:
-    # streamlit < 1.12.1
+    # streamlit < 1.18.0
     try:
-        from streamlit.web.server.server import SessionInfo  # type: ignore
+        from streamlit.runtime.runtime import SessionInfo
     except ModuleNotFoundError:
-        # streamlit < 1.12.0
-        from streamlit.server.server import SessionInfo  # type: ignore
+        # streamlit < 1.12.1
+        try:
+            from streamlit.web.server.server import SessionInfo  # type: ignore
+        except ModuleNotFoundError:
+            # streamlit < 1.12.0
+            from streamlit.server.server import SessionInfo  # type: ignore
 
 try:
     from streamlit.runtime.scriptrunner import get_script_run_ctx
@@ -26,7 +33,7 @@ except ModuleNotFoundError:
                 get_report_ctx as get_script_run_ctx,
             )
 
-from .server import VER_GTE_1_12_1, get_current_server
+from .server import VER_GTE_1_12_1, VER_GTE_1_18_0, get_current_server
 
 # Ref: https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92
 
@@ -48,7 +55,13 @@ def get_this_session_info() -> Optional[SessionInfo]:
     # This code only works with streamlit>=0.65, https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92#gistcomment-3418729 # noqa: E501
     session_id = get_session_id()
 
-    if VER_GTE_1_12_1:
+    if VER_GTE_1_18_0:
+        # TODO: `current_server._runtime` can be replaced with `Runtime.instance()`
+        session_info = current_server._runtime._session_mgr.get_active_session_info(
+            session_id
+        )
+    elif VER_GTE_1_12_1:
+        # TODO: `current_server._runtime` can be replaced with `Runtime.instance()`
         session_info = current_server._runtime._get_session_info(session_id)
     else:
         # streamlit < 1.12.1
