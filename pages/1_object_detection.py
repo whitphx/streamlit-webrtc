@@ -52,7 +52,7 @@ CLASSES = [
 ]
 
 
-@st.experimental_singleton  # type: ignore # See https://github.com/python/mypy/issues/7781, https://github.com/python/mypy/issues/12566  # noqa: E501
+@st.cache_resource  # type: ignore
 def generate_label_colors():
     return np.random.uniform(0, 255, size=(len(CLASSES), 3))
 
