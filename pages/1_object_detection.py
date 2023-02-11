@@ -6,7 +6,7 @@ https://github.com/robmarkcole/object-detection-app
 import logging
 import queue
 from pathlib import Path
-from typing import NamedTuple
+from typing import List, NamedTuple
 
 import av
 import cv2
@@ -52,6 +52,13 @@ CLASSES = [
 ]
 
 
+class Detection(NamedTuple):
+    class_id: int
+    label: str
+    prob: float
+    box: np.ndarray
+
+
 @st.cache_resource  # type: ignore
 def generate_label_colors():
     return np.random.uniform(0, 255, size=(len(CLASSES), 3))
@@ -61,13 +68,6 @@ COLORS = generate_label_colors()
 
 download_file(MODEL_URL, MODEL_LOCAL_PATH, expected_size=23147564)
 download_file(PROTOTXT_URL, PROTOTXT_LOCAL_PATH, expected_size=29353)
-
-
-class Detection(NamedTuple):
-    class_id: int
-    label: str
-    prob: float
-    box: np.ndarray
 
 
 # Session-specific caching
@@ -80,9 +80,11 @@ else:
 
 confidence_threshold = st.slider("Confidence threshold", 0.0, 1.0, 0.5, 0.05)
 
-result_queue: queue.Queue = (
-    queue.Queue()
-)  # TODO: A general-purpose shared state object may be more useful.
+# NOTE: The callback will be called in another thread,
+#       so use a queue here for thread-safety to pass the data
+#       from inside to outside the callback.
+# TODO: A general-purpose shared state object may be more useful.
+result_queue: "queue.Queue[List[Detection]]" = queue.Queue()
 
 
 def callback(frame: av.VideoFrame) -> av.VideoFrame:
@@ -127,8 +129,6 @@ def callback(frame: av.VideoFrame) -> av.VideoFrame:
             2,
         )
 
-    # NOTE: This callback is called in another thread,
-    # so it must be thread-safe.
     result_queue.put(detections)
 
     return av.VideoFrame.from_ndarray(image, format="bgr24")
