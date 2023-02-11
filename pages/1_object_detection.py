@@ -62,8 +62,6 @@ COLORS = generate_label_colors()
 download_file(MODEL_URL, MODEL_LOCAL_PATH, expected_size=23147564)
 download_file(PROTOTXT_URL, PROTOTXT_LOCAL_PATH, expected_size=29353)
 
-DEFAULT_CONFIDENCE_THRESHOLD = 0.5
-
 
 class Detection(NamedTuple):
     name: str
@@ -78,11 +76,7 @@ else:
     net = cv2.dnn.readNetFromCaffe(str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH))
     st.session_state[cache_key] = net
 
-streaming_placeholder = st.empty()
-
-confidence_threshold = st.slider(
-    "Confidence threshold", 0.0, 1.0, DEFAULT_CONFIDENCE_THRESHOLD, 0.05
-)
+confidence_threshold = st.slider("Confidence threshold", 0.0, 1.0, 0.5, 0.05)
 
 
 def _annotate_image(image, detections):
@@ -133,22 +127,21 @@ def callback(frame: av.VideoFrame) -> av.VideoFrame:
     detections = net.forward()
     annotated_image, result = _annotate_image(image, detections)
 
-    # NOTE: This `recv` method is called in another thread,
+    # NOTE: This callback is called in another thread,
     # so it must be thread-safe.
-    result_queue.put(result)  # TODO:
+    result_queue.put(result)
 
     return av.VideoFrame.from_ndarray(annotated_image, format="bgr24")
 
 
-with streaming_placeholder.container():
-    webrtc_ctx = webrtc_streamer(
-        key="object-detection",
-        mode=WebRtcMode.SENDRECV,
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-        video_frame_callback=callback,
-        media_stream_constraints={"video": True, "audio": False},
-        async_processing=True,
-    )
+webrtc_ctx = webrtc_streamer(
+    key="object-detection",
+    mode=WebRtcMode.SENDRECV,
+    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+    video_frame_callback=callback,
+    media_stream_constraints={"video": True, "audio": False},
+    async_processing=True,
+)
 
 if st.checkbox("Show the detected labels", value=True):
     if webrtc_ctx.state.playing:
