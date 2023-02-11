@@ -17,7 +17,7 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
 
-from .eventloop import get_server_event_loop
+from .eventloop import get_global_event_loop
 from .models import (
     AudioFrameCallback,
     AudioProcessorBase,
@@ -430,7 +430,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             "_process_offer_thread_impl starts",
         )
 
-        loop = get_server_event_loop()
+        loop = get_global_event_loop()
         asyncio.set_event_loop(loop)
 
         offer = RTCSessionDescription(sdp, type_)
@@ -662,7 +662,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             self._process_offer_thread = None
 
         if self.pc and self.pc.connectionState != "closed":
-            loop = get_server_event_loop()
+            loop = get_global_event_loop()
             if loop.is_running():
                 loop.create_task(self.pc.close())
             else:
@@ -673,14 +673,14 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
 def _test():
     # Mock functions that depend on Streamlit global server object
-    global get_global_relay, get_server_event_loop
+    global get_global_relay, get_global_event_loop
 
     loop = asyncio.get_event_loop()
 
-    def get_server_event_loop_mock():
+    def get_global_event_loop_mock():
         return loop
 
-    get_server_event_loop = get_server_event_loop_mock
+    get_global_event_loop = get_global_event_loop_mock
 
     fake_global_relay = MediaRelay()
 
