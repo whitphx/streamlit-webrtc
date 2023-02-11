@@ -87,7 +87,7 @@ confidence_threshold = st.slider("Confidence threshold", 0.0, 1.0, 0.5, 0.05)
 result_queue: "queue.Queue[List[Detection]]" = queue.Queue()
 
 
-def callback(frame: av.VideoFrame) -> av.VideoFrame:
+def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
     image = frame.to_ndarray(format="bgr24")
 
     # Run inference
@@ -138,7 +138,7 @@ webrtc_ctx = webrtc_streamer(
     key="object-detection",
     mode=WebRtcMode.SENDRECV,
     rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-    video_frame_callback=callback,
+    video_frame_callback=video_frame_callback,
     media_stream_constraints={"video": True, "audio": False},
     async_processing=True,
 )
