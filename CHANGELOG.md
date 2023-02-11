@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.44.3] - 2023-02-11
+
+### Fix
+- Compatibility with streamlit>=1.18.0, #1189.
+- Refactoring on the object detection demo code, #1191.
+
 ## [0.44.2] - 2023-01-07
 
 ### Fix
