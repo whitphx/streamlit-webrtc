@@ -55,7 +55,7 @@ CLASSES = [
 class Detection(NamedTuple):
     class_id: int
     label: str
-    prob: float
+    score: float
     box: np.ndarray
 
 
@@ -78,7 +78,7 @@ else:
     net = cv2.dnn.readNetFromCaffe(str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH))
     st.session_state[cache_key] = net
 
-confidence_threshold = st.slider("Confidence threshold", 0.0, 1.0, 0.5, 0.05)
+score_threshold = st.slider("Score threshold", 0.0, 1.0, 0.5, 0.05)
 
 # NOTE: The callback will be called in another thread,
 #       so use a queue here for thread-safety to pass the data
@@ -101,12 +101,12 @@ def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
 
     # Convert the output array into a structured form.
     output = output.squeeze()  # (1, 1, N, 7) -> (N, 7)
-    output = output[output[:, 2] >= confidence_threshold]
+    output = output[output[:, 2] >= score_threshold]
     detections = [
         Detection(
             class_id=int(detection[1]),
             label=CLASSES[int(detection[1])],
-            prob=float(detection[2]),
+            score=float(detection[2]),
             box=(detection[3:7] * np.array([w, h, w, h])),
         )
         for detection in output
@@ -114,7 +114,7 @@ def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
 
     # Render bounding boxes and captions
     for detection in detections:
-        caption = f"{detection.label}: {round(detection.prob * 100, 2)}%"
+        caption = f"{detection.label}: {round(detection.score * 100, 2)}%"
         color = COLORS[detection.class_id]
         xmin, ymin, xmax, ymax = detection.box.astype("int")
 
