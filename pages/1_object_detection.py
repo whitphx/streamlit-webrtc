@@ -152,10 +152,7 @@ if st.checkbox("Show the detected labels", value=True):
         # Then the rendered video frames and the labels displayed here
         # are not strictly synchronized.
         while True:
-            try:
-                result = result_queue.get(timeout=1.0)
-            except queue.Empty:
-                result = None
+            result = result_queue.get()
             labels_placeholder.table(result)
 
 st.markdown(
