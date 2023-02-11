@@ -41,6 +41,9 @@ jobs:
           # Test with streamlit >=1.12.1. See https://github.com/whitphx/streamlit-webrtc/issues/1024
           - python-version: 3.9
             streamlit-version: 1.12.1
+          # Test with streamlit >=1.14.0. See https://github.com/whitphx/streamlit-webrtc/pull/1189
+          - python-version: 3.9
+            streamlit-version: 1.14.0
           # Test with streamlit >=1.18.0. See https://github.com/whitphx/streamlit-webrtc/issues/1187
           - python-version: 3.9
             streamlit-version: 1.18.0
