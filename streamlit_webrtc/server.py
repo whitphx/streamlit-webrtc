@@ -25,7 +25,7 @@ so we have to change the way to access it.
 VER_GTE_1_12_1 = ST_VERSION >= version.parse("1.12.1")
 """ Since 1.12.1, as a part of the decoupling of the runtime and the web server,
 a large part of the `Server` class attributes including the session states
-has moved to the `runtime` submodule.
+has moved to the `runtime` submodule, and the `Server` class has a `_runtime` attribute.
 
 Ref: https://github.com/streamlit/streamlit/pull/5136
 """
