@@ -3,9 +3,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.44.4] - 2023-02-12
+
+### Fix
+
+- Specify a higher version of `aiortc` dependency to avoid the cryptography problem that was worked around in 0.44.1, #1193.
+
 ## [0.44.3] - 2023-02-11
 
 ### Fix
+
 - Compatibility with streamlit>=1.18.0, #1189.
 - Refactoring on the object detection demo code, #1191.
 
