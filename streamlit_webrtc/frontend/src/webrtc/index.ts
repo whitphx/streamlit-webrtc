@@ -57,9 +57,10 @@ export const useWebRtc = (
     rtcConfiguration: RTCConfiguration | undefined;
     mediaStreamConstraints: MediaStreamConstraints | undefined;
   },
-  videoInput: MediaDeviceInfo | null,
-  audioInput: MediaDeviceInfo | null,
-  onComponentValueChange: (newComponentValue: ComponentValue) => void
+  videoDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
+  audioDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
+  onComponentValueChange: (newComponentValue: ComponentValue) => void,
+  onDevicesOpened: (openedDeviceIds: { video?: string; audio?: string }) => void
 ) => {
   // Initialize component value
   useEffect(() => {
@@ -154,8 +155,8 @@ export const useWebRtc = (
       if (mode === "SENDRECV" || mode === "SENDONLY") {
         const constraints = compileMediaConstraints(
           props.mediaStreamConstraints,
-          videoInput?.deviceId,
-          audioInput?.deviceId
+          videoDeviceIdRequest,
+          audioDeviceIdRequest
         );
         console.log("MediaStreamConstraints:", constraints);
 
@@ -171,10 +172,27 @@ export const useWebRtc = (
             throw new Error("getUserMedia is not implemented in this browser");
           }
 
+          const openedDeviceIds: {
+            video?: MediaDeviceInfo["deviceId"];
+            audio?: MediaDeviceInfo["deviceId"];
+          } = {};
           const stream = await navigator.mediaDevices.getUserMedia(constraints);
           stream.getTracks().forEach((track) => {
             pc.addTrack(track, stream);
+
+            const kind = track.kind;
+            if (kind !== "video" && kind !== "audio") {
+              return;
+            }
+            const deviceId = track.getSettings().deviceId;
+            if (deviceId == null) {
+              return;
+            }
+            openedDeviceIds[kind] = deviceId;
           });
+          if (Object.keys(openedDeviceIds).length > 0) {
+            onDevicesOpened(openedDeviceIds);
+          }
         }
 
         if (mode === "SENDONLY") {
@@ -217,12 +235,13 @@ export const useWebRtc = (
       })
     );
   }, [
-    audioInput?.deviceId,
+    audioDeviceIdRequest,
+    videoDeviceIdRequest,
     props.mediaStreamConstraints,
     props.mode,
     props.rtcConfiguration,
     state.webRtcState,
-    videoInput?.deviceId,
+    onDevicesOpened,
   ]);
 
   // processAnswer

@@ -1,9 +1,7 @@
 import React, { useState, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Alert from "@mui/material/Alert";
-import DeviceSelectForm, {
-  DeviceSelectFormProps,
-} from "./DeviceSelect/DeviceSelectForm";
+import DeviceSelectForm from "./DeviceSelect/DeviceSelectForm";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
 import { useRenderData } from "streamlit-component-lib-react-hooks";
@@ -31,15 +29,16 @@ interface WebRtcStreamerInnerProps {
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
 const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
-  const [devices, setDevices] = useState<{
-    video: MediaDeviceInfo | null;
-    audio: MediaDeviceInfo | null;
-  }>({ video: null, audio: null });
+  const [deviceIds, setDeviceIds] = useState<{
+    video?: MediaDeviceInfo["deviceId"] | undefined;
+    audio?: MediaDeviceInfo["deviceId"] | undefined;
+  }>({ video: undefined, audio: undefined });
   const { state, start, stop } = useWebRtc(
     props,
-    devices.video,
-    devices.audio,
-    props.onComponentValueChange
+    deviceIds.video,
+    deviceIds.audio,
+    props.onComponentValueChange,
+    setDeviceIds
   );
 
   const mode = props.mode;
@@ -54,13 +53,6 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
     props.mediaStreamConstraints
   );
 
-  const handleDeviceSelect = useCallback<DeviceSelectFormProps["onSelect"]>(
-    ({ video, audio }) => {
-      setDevices({ video, audio });
-    },
-    []
-  );
-
   const [deviceSelectOpen, setDeviceSelectOpen] = useState(false);
   const openDeviceSelect = useCallback(() => {
     setDeviceSelectOpen(true);
@@ -73,9 +65,9 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
       <DeviceSelectForm
         video={videoEnabled}
         audio={audioEnabled}
-        defaultVideoDeviceId={devices.video ? devices.video.deviceId : null}
-        defaultAudioDeviceId={devices.audio ? devices.audio.deviceId : null}
-        onSelect={handleDeviceSelect}
+        defaultVideoDeviceId={deviceIds.video}
+        defaultAudioDeviceId={deviceIds.audio}
+        onSelect={setDeviceIds}
         onClose={closeDeviceSelect}
       />
     );
