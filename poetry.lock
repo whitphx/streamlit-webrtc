@@ -2204,6 +2204,7 @@ files = [
     {file = "pyzmq-23.2.1-cp37-cp37m-musllinux_1_1_x86_64.whl", hash = "sha256:48400b96788cdaca647021bf19a9cd668384f46e4d9c55cf045bdd17f65299c8"},
     {file = "pyzmq-23.2.1-cp37-cp37m-win32.whl", hash = "sha256:8a68f57b7a3f7b6b52ada79876be1efb97c8c0952423436e84d70cc139f16f0d"},
     {file = "pyzmq-23.2.1-cp37-cp37m-win_amd64.whl", hash = "sha256:9e5bf6e7239fc9687239de7a283aa8b801ab85371116045b33ae20132a1325d6"},
+    {file = "pyzmq-23.2.1-cp38-cp38-macosx_10_15_universal2.whl", hash = "sha256:0ff6294e001129a9f22dcbfba186165c7e6f573c46de2704d76f873c94c65416"},
     {file = "pyzmq-23.2.1-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:ffc6b1623d0f9affb351db4ca61f432dca3628a5ee015f9bf2bfbe9c6836881c"},
     {file = "pyzmq-23.2.1-cp38-cp38-manylinux_2_12_i686.manylinux2010_i686.whl", hash = "sha256:4d6f110c56f7d5b4d64dde3a382ae61b6d48174e30742859d8e971b18b6c9e5c"},
     {file = "pyzmq-23.2.1-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:9269fbfe3a4eb2009199120861c4571ef1655fdf6951c3e7f233567c94e8c602"},
@@ -2342,14 +2343,14 @@ files = [
 
 [[package]]
 name = "streamlit"
-version = "1.18.0"
+version = "1.18.1"
 description = "The fastest way to build data apps in Python"
 category = "main"
 optional = false
 python-versions = ">=3.7, !=3.9.7"
 files = [
-    {file = "streamlit-1.18.0-py2.py3-none-any.whl", hash = "sha256:53b16a9039d1bcd161f73fdcb1e1c442816aea5f778948d40329b9cd3314fa4a"},
-    {file = "streamlit-1.18.0.tar.gz", hash = "sha256:57551539e5a4279d22c75f18e7d2e3bb994829cf89e6d770e8fa02bb31167317"},
+    {file = "streamlit-1.18.1-py2.py3-none-any.whl", hash = "sha256:94ed907ccfc6fb8339e5ff09099070935d1290ca788176faf0a9dc1e6f7493b8"},
+    {file = "streamlit-1.18.1.tar.gz", hash = "sha256:22d5fb09dea0b93c988763866203bdecfbc7690471fa9db71533d879877bca6d"},
 ]
 
 [package.dependencies]
@@ -2662,5 +2663,5 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.7,<3.11,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
-content-hash = "77419a8fb221a15e446afe47c3da70afc029c8ae074abca948cd78c885011318"
+python-versions = ">=3.7,<3.11,!=3.9.7"
+content-hash = "2d1bf855612109732074f533464dd0d33d9de96748091548b7a91dbb68936ccc"
