@@ -8,7 +8,7 @@ except ImportError:
 import streamlit as st
 from aiortc import MediaStreamTrack
 
-from .eventloop import get_server_event_loop, loop_context
+from .eventloop import get_global_event_loop, loop_context
 from .mix import MediaStreamMixTrack, MixerCallback
 from .models import (
     AudioProcessorFactory,
@@ -161,7 +161,7 @@ def create_process_track(
                 ended_callback=on_ended,
             )
         Track = _get_track_class(input_track.kind, async_processing)
-        loop = get_server_event_loop()
+        loop = get_global_event_loop()
         relay = get_global_relay()
         with loop_context(loop):
             processor_track = Track(relay.subscribe(input_track), processor)

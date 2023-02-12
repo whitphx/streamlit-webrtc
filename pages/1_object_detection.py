@@ -52,7 +52,14 @@ CLASSES = [
 ]
 
 
-@st.experimental_singleton  # type: ignore # See https://github.com/python/mypy/issues/7781, https://github.com/python/mypy/issues/12566  # noqa: E501
+class Detection(NamedTuple):
+    class_id: int
+    label: str
+    score: float
+    box: np.ndarray
+
+
+@st.cache_resource  # type: ignore
 def generate_label_colors():
     return np.random.uniform(0, 255, size=(len(CLASSES), 3))
 
@@ -61,13 +68,6 @@ COLORS = generate_label_colors()
 
 download_file(MODEL_URL, MODEL_LOCAL_PATH, expected_size=23147564)
 download_file(PROTOTXT_URL, PROTOTXT_LOCAL_PATH, expected_size=29353)
-
-DEFAULT_CONFIDENCE_THRESHOLD = 0.5
-
-
-class Detection(NamedTuple):
-    name: str
-    prob: float
 
 
 # Session-specific caching
@@ -78,77 +78,70 @@ else:
     net = cv2.dnn.readNetFromCaffe(str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH))
     st.session_state[cache_key] = net
 
-streaming_placeholder = st.empty()
+score_threshold = st.slider("Score threshold", 0.0, 1.0, 0.5, 0.05)
 
-confidence_threshold = st.slider(
-    "Confidence threshold", 0.0, 1.0, DEFAULT_CONFIDENCE_THRESHOLD, 0.05
-)
-
-
-def _annotate_image(image, detections):
-    # loop over the detections
-    (h, w) = image.shape[:2]
-    result: List[Detection] = []
-    for i in np.arange(0, detections.shape[2]):
-        confidence = detections[0, 0, i, 2]
-
-        if confidence > confidence_threshold:
-            # extract the index of the class label from the `detections`,
-            # then compute the (x, y)-coordinates of the bounding box for
-            # the object
-            idx = int(detections[0, 0, i, 1])
-            box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-            (startX, startY, endX, endY) = box.astype("int")
-
-            name = CLASSES[idx]
-            result.append(Detection(name=name, prob=float(confidence)))
-
-            # display the prediction
-            label = f"{name}: {round(confidence * 100, 2)}%"
-            cv2.rectangle(image, (startX, startY), (endX, endY), COLORS[idx], 2)
-            y = startY - 15 if startY - 15 > 15 else startY + 15
-            cv2.putText(
-                image,
-                label,
-                (startX, y),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                COLORS[idx],
-                2,
-            )
-    return image, result
+# NOTE: The callback will be called in another thread,
+#       so use a queue here for thread-safety to pass the data
+#       from inside to outside the callback.
+# TODO: A general-purpose shared state object may be more useful.
+result_queue: "queue.Queue[List[Detection]]" = queue.Queue()
 
 
-result_queue: queue.Queue = (
-    queue.Queue()
-)  # TODO: A general-purpose shared state object may be more useful.
-
-
-def callback(frame: av.VideoFrame) -> av.VideoFrame:
+def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
     image = frame.to_ndarray(format="bgr24")
+
+    # Run inference
     blob = cv2.dnn.blobFromImage(
         cv2.resize(image, (300, 300)), 0.007843, (300, 300), 127.5
     )
     net.setInput(blob)
-    detections = net.forward()
-    annotated_image, result = _annotate_image(image, detections)
+    output = net.forward()
 
-    # NOTE: This `recv` method is called in another thread,
-    # so it must be thread-safe.
-    result_queue.put(result)  # TODO:
+    h, w = image.shape[:2]
 
-    return av.VideoFrame.from_ndarray(annotated_image, format="bgr24")
+    # Convert the output array into a structured form.
+    output = output.squeeze()  # (1, 1, N, 7) -> (N, 7)
+    output = output[output[:, 2] >= score_threshold]
+    detections = [
+        Detection(
+            class_id=int(detection[1]),
+            label=CLASSES[int(detection[1])],
+            score=float(detection[2]),
+            box=(detection[3:7] * np.array([w, h, w, h])),
+        )
+        for detection in output
+    ]
+
+    # Render bounding boxes and captions
+    for detection in detections:
+        caption = f"{detection.label}: {round(detection.score * 100, 2)}%"
+        color = COLORS[detection.class_id]
+        xmin, ymin, xmax, ymax = detection.box.astype("int")
+
+        cv2.rectangle(image, (xmin, ymin), (xmax, ymax), color, 2)
+        cv2.putText(
+            image,
+            caption,
+            (xmin, ymin - 15 if ymin - 15 > 15 else ymin + 15),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            color,
+            2,
+        )
+
+    result_queue.put(detections)
+
+    return av.VideoFrame.from_ndarray(image, format="bgr24")
 
 
-with streaming_placeholder.container():
-    webrtc_ctx = webrtc_streamer(
-        key="object-detection",
-        mode=WebRtcMode.SENDRECV,
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-        video_frame_callback=callback,
-        media_stream_constraints={"video": True, "audio": False},
-        async_processing=True,
-    )
+webrtc_ctx = webrtc_streamer(
+    key="object-detection",
+    mode=WebRtcMode.SENDRECV,
+    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+    video_frame_callback=video_frame_callback,
+    media_stream_constraints={"video": True, "audio": False},
+    async_processing=True,
+)
 
 if st.checkbox("Show the detected labels", value=True):
     if webrtc_ctx.state.playing:
@@ -159,10 +152,7 @@ if st.checkbox("Show the detected labels", value=True):
         # Then the rendered video frames and the labels displayed here
         # are not strictly synchronized.
         while True:
-            try:
-                result = result_queue.get(timeout=1.0)
-            except queue.Empty:
-                result = None
+            result = result_queue.get()
             labels_placeholder.table(result)
 
 st.markdown(
