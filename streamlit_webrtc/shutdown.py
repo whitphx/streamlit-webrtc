@@ -3,19 +3,7 @@ import threading
 import weakref
 from typing import Callable, Union
 
-try:
-    from streamlit.runtime.app_session import AppSession, AppSessionState
-except ModuleNotFoundError:
-    # streamlit < 1.12.0
-    try:
-        from streamlit.app_session import AppSession, AppSessionState  # type: ignore
-    except ModuleNotFoundError:
-        # streamlit < 1.4
-        from streamlit.report_session import (  # type: ignore
-            ReportSession as AppSession,
-            ReportSessionState as AppSessionState,
-        )
-
+from ._compat import AppSession, AppSessionState
 from .session_info import get_this_session_info
 
 logger = logging.getLogger(__name__)

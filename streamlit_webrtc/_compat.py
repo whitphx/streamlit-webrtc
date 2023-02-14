@@ -40,9 +40,60 @@ to abstract and improve the session behavior.
 Ref: https://github.com/streamlit/streamlit/pull/5856
 """
 
+try:
+    from streamlit.runtime.app_session import AppSession, AppSessionState
+except ModuleNotFoundError:
+    # streamlit < 1.12.0
+    try:
+        from streamlit.app_session import AppSession, AppSessionState  # type: ignore
+    except ModuleNotFoundError:
+        # streamlit < 1.4
+        from streamlit.report_session import (  # type: ignore # isort:skip
+            ReportSession as AppSession,
+            ReportSessionState as AppSessionState,
+        )
+
+try:
+    # `SessionManager.get_active_session_info()`, which plays the same role
+    # as the old `get_session_info()` returns an instance of `ActiveSessionInfo`,
+    # not `SessionInfo` since 1.18.0.
+    from streamlit.runtime.session_manager import ActiveSessionInfo as SessionInfo
+except ModuleNotFoundError:
+    # streamlit < 1.18.0
+    try:
+        from streamlit.runtime.runtime import SessionInfo  # type: ignore
+    except ModuleNotFoundError:
+        # streamlit < 1.12.1
+        try:
+            from streamlit.web.server.server import SessionInfo  # type: ignore
+        except ModuleNotFoundError:
+            # streamlit < 1.12.0
+            from streamlit.server.server import SessionInfo  # type: ignore
+
+try:
+    from streamlit.runtime.scriptrunner import get_script_run_ctx
+except ModuleNotFoundError:
+    # streamlit < 1.12.0
+    try:
+        from streamlit.scriptrunner import get_script_run_ctx  # type: ignore
+    except ModuleNotFoundError:
+        # streamlit < 1.8
+        try:
+            from streamlit.script_run_context import get_script_run_ctx  # type: ignore
+        except ModuleNotFoundError:
+            # streamlit < 1.4
+            from streamlit.report_thread import (  # type: ignore # isort:skip
+                get_report_ctx as get_script_run_ctx,
+            )
+
+
 __all__ = [
     "VER_GTE_1_12_0",
     "VER_GTE_1_12_1",
     "VER_GTE_1_14_0",
     "VER_GTE_1_18_0",
+    "AppSession",
+    "AppSessionState",
+    "SessionInfo",
+    "get_script_run_ctx",
 ]

@@ -1,39 +1,12 @@
 from typing import Optional
 
-try:
-    # `SessionManager.get_active_session_info()`, which plays the same role
-    # as the old `get_session_info()` returns an instance of `ActiveSessionInfo`,
-    # not `SessionInfo` since 1.18.0.
-    from streamlit.runtime.session_manager import ActiveSessionInfo as SessionInfo
-except ModuleNotFoundError:
-    # streamlit < 1.18.0
-    try:
-        from streamlit.runtime.runtime import SessionInfo  # type: ignore
-    except ModuleNotFoundError:
-        # streamlit < 1.12.1
-        try:
-            from streamlit.web.server.server import SessionInfo  # type: ignore
-        except ModuleNotFoundError:
-            # streamlit < 1.12.0
-            from streamlit.server.server import SessionInfo  # type: ignore
-
-try:
-    from streamlit.runtime.scriptrunner import get_script_run_ctx
-except ModuleNotFoundError:
-    # streamlit < 1.12.0
-    try:
-        from streamlit.scriptrunner import get_script_run_ctx  # type: ignore
-    except ModuleNotFoundError:
-        # streamlit < 1.8
-        try:
-            from streamlit.script_run_context import get_script_run_ctx  # type: ignore
-        except ModuleNotFoundError:
-            # streamlit < 1.4
-            from streamlit.report_thread import (  # type: ignore
-                get_report_ctx as get_script_run_ctx,
-            )
-
-from ._compat import VER_GTE_1_12_1, VER_GTE_1_14_0, VER_GTE_1_18_0
+from ._compat import (
+    VER_GTE_1_12_1,
+    VER_GTE_1_14_0,
+    VER_GTE_1_18_0,
+    SessionInfo,
+    get_script_run_ctx,
+)
 from .server import get_current_server
 
 # Ref: https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92
