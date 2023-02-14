@@ -33,7 +33,8 @@ except ModuleNotFoundError:
                 get_report_ctx as get_script_run_ctx,
             )
 
-from .server import VER_GTE_1_12_1, VER_GTE_1_14_0, VER_GTE_1_18_0, get_current_server
+from ._compat import VER_GTE_1_12_1, VER_GTE_1_14_0, VER_GTE_1_18_0
+from .server import get_current_server
 
 # Ref: https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92
 
