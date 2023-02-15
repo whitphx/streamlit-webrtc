@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.44.6] - 2023-02-15
+
+### Fix
+
+- Internal refactoring, #1194.
+
 ## [0.44.5] - 2023-02-12
 
 ### Fix
