@@ -4,7 +4,8 @@ from typing import Union
 
 from tornado.platform.asyncio import BaseAsyncIOLoop
 
-from .server import VER_GTE_1_12_0, VER_GTE_1_12_1, VER_GTE_1_14_0, get_current_server
+from ._compat import VER_GTE_1_12_0, VER_GTE_1_12_1, VER_GTE_1_14_0
+from .server import get_current_server
 
 
 def get_global_event_loop() -> asyncio.AbstractEventLoop:

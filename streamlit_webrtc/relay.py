@@ -1,7 +1,8 @@
 from aiortc.contrib.media import MediaRelay
 
+from ._compat import VER_GTE_1_12_1, VER_GTE_1_14_0
 from .eventloop import get_global_event_loop, loop_context
-from .server import VER_GTE_1_12_1, VER_GTE_1_14_0, get_current_server
+from .server import get_current_server
 
 _SERVER_GLOBAL_RELAY_ATTR_NAME_ = "streamlit-webrtc-global-relay"
 
