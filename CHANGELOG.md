@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.44.7] - 2023-03-01
+
+### Fix
+
+- Introduce custom error classes, #1198.
+
 ## [0.44.6] - 2023-02-15
 
 ### Fix
