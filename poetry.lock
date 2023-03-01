@@ -2386,14 +2386,14 @@ snowflake = ["snowflake-snowpark-python"]
 
 [[package]]
 name = "streamlit-server-state"
-version = "0.14.2"
+version = "0.15.2"
 description = ""
 category = "dev"
 optional = false
-python-versions = ">=3.7, !=2.7.*, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, !=3.6.*"
+python-versions = ">=3.7, !=2.7.*, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, !=3.6.*, !=3.11.*"
 files = [
-    {file = "streamlit-server-state-0.14.2.tar.gz", hash = "sha256:2fa04af459ff3d20a7b034b24dbc059f5b98888d8e35e5840852d9aaabfbf85d"},
-    {file = "streamlit_server_state-0.14.2-py3-none-any.whl", hash = "sha256:da8c5715372310b001caa4ef1dcd55a5f1f9b6ba04501243f82fb2de40c2006a"},
+    {file = "streamlit_server_state-0.15.2-py3-none-any.whl", hash = "sha256:3745078f5ef86937ec9890e8feb4eb1346f79e673840c58eced06a4fbdbce552"},
+    {file = "streamlit_server_state-0.15.2.tar.gz", hash = "sha256:4efcb60d469db9fa7ac6e02bfea7baf0fb6d9801350576cbbdb4a689024a69f6"},
 ]
 
 [package.dependencies]
@@ -2666,4 +2666,4 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.7,<3.11,!=3.9.7"
-content-hash = "2d1bf855612109732074f533464dd0d33d9de96748091548b7a91dbb68936ccc"
+content-hash = "4cf54908a3be3b23f42d5299a62b2b2f7d3dd02c8560a4f57d0ef29e621ff96a"
