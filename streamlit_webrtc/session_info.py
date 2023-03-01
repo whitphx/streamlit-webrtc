@@ -12,10 +12,14 @@ from .server import get_current_server
 # Ref: https://gist.github.com/tvst/036da038ab3e999a64497f42de966a92
 
 
+class NoSessionError(Exception):
+    pass
+
+
 def get_session_id() -> str:
     ctx = get_script_run_ctx()
     if ctx is None:
-        raise Exception("Failed to get the thread context")
+        raise NoSessionError("Failed to get the thread context")
 
     return ctx.session_id
 
