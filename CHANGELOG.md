@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.45.0] - 2023-03-02
+
+### Change
+
+- Add support for Python 3.11 and drop 3.7, #1195.
+
 ## [0.44.7] - 2023-03-01
 
 ### Fix
