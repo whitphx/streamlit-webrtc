@@ -209,7 +209,15 @@ So, when hosting your app on a remote server, it must be served via HTTPS if you
 If not, you will encounter an error when starting using the device. For example, it's something like below on Chrome.
 > Error: navigator.mediaDevices is undefined. It seems the current document is not loaded securely.
 
-[Streamlit Cloud](https://streamlit.io/cloud) is a recommended way for HTTPS serving. You can easily deploy Streamlit apps with it, and most importantly for this topic, it serves the apps via HTTPS automatically by defualt.
+[Streamlit Cloud](https://streamlit.io/cloud) is a recommended way for HTTPS serving. You can easily deploy Streamlit apps with it, and most importantly for this topic, it serves the apps via HTTPS automatically by default.
+
+For the development purpose, sometimes [`suyashkumar/ssl-proxy`](https://github.com/suyashkumar/ssl-proxy) is a convenient tool to serve your app via HTTPS.
+```shell
+$ streamlit run your_app.py  # Assume your app is running on http://localhost:8501
+# Then, after downloading the binary from the GitHub page above to ./ssl-proxy,
+$ ./ssl-proxy -from 0.0.0.0:8000 -to 127.0.0.1:8501  # Proxy the HTTP page from port 8501 to port 8000 via HTTPS
+# Then access https://localhost:8000
+```
 
 ### Configure the STUN server
 To deploy the app to the cloud, we have to configure the *STUN* server via the `rtc_configuration` argument on `webrtc_streamer()` like below.
