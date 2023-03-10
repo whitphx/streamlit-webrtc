@@ -1383,12 +1383,12 @@ files = [
 [package.dependencies]
 numpy = [
     {version = ">=1.21.0", markers = "python_version <= \"3.9\" and platform_system == \"Darwin\" and platform_machine == \"arm64\""},
-    {version = ">=1.19.3", markers = "python_version >= \"3.6\" and platform_system == \"Linux\" and platform_machine == \"aarch64\" or python_version >= \"3.9\""},
-    {version = ">=1.17.0", markers = "python_version >= \"3.7\""},
-    {version = ">=1.17.3", markers = "python_version >= \"3.8\""},
     {version = ">=1.21.2", markers = "python_version >= \"3.10\""},
     {version = ">=1.21.4", markers = "python_version >= \"3.10\" and platform_system == \"Darwin\""},
     {version = ">=1.22.0", markers = "python_version >= \"3.11\""},
+    {version = ">=1.19.3", markers = "python_version >= \"3.6\" and platform_system == \"Linux\" and platform_machine == \"aarch64\" or python_version >= \"3.9\""},
+    {version = ">=1.17.0", markers = "python_version >= \"3.7\""},
+    {version = ">=1.17.3", markers = "python_version >= \"3.8\""},
 ]
 
 [[package]]
@@ -2059,18 +2059,18 @@ files = [
 
 [[package]]
 name = "streamlit"
-version = "1.19.0"
+version = "1.20.0"
 description = "The fastest way to build data apps in Python"
 category = "main"
 optional = false
 python-versions = ">=3.7, !=3.9.7"
 files = [
-    {file = "streamlit-1.19.0-py2.py3-none-any.whl", hash = "sha256:5387c89a9e930b97d46446516cf43f9156e1863713867050c7021cf97f10c0b3"},
-    {file = "streamlit-1.19.0.tar.gz", hash = "sha256:e9793d351af5d4f7821c2ea81babf1c78cdbba69f057cf80d602dec56c4408f1"},
+    {file = "streamlit-1.20.0-py2.py3-none-any.whl", hash = "sha256:41a544b8dc618ee65726da3ac76149c5b2bf3da7bde6d50625c4f7ec95e6c9e8"},
+    {file = "streamlit-1.20.0.tar.gz", hash = "sha256:f6e257e033a2532ce9b37c425717a4e885fa4d0e339fa5dcdbbda8d75ec191e9"},
 ]
 
 [package.dependencies]
-altair = ">=3.2.0"
+altair = ">=3.2.0,<5"
 blinker = ">=1.0.0"
 cachetools = ">=4.0"
 click = ">=7.0"
@@ -2078,7 +2078,7 @@ gitpython = "!=3.1.19"
 importlib-metadata = ">=1.4"
 numpy = "*"
 packaging = ">=14.1"
-pandas = ">=0.25"
+pandas = ">=0.25,<2"
 pillow = ">=6.2.0"
 protobuf = ">=3.12,<4"
 pyarrow = ">=4.0"
@@ -2309,5 +2309,5 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.8,<=3.11,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
-content-hash = "ff87a4ccb6719776d68b8c69ec4639a104470d41e0c643467e0f4b8dc8a4d016"
+python-versions = ">=3.8,<3.12,!=3.9.7"
+content-hash = "4d8ce9e8c585376df82900dd780c78d8f17873593fac10dbbafd5957ed5782b0"
