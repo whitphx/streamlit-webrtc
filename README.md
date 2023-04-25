@@ -248,7 +248,13 @@ For those who know about the browser WebRTC API: The value of the rtc_configurat
 Even if the STUN server is properly configured, media streaming may not work in some network environments.
 For example, in some office or public networks, there are firewalls which drop the WebRTC packets.
 
-In such environments, setting up a [TURN server](https://webrtc.org/getting-started/turn-server) is a solution. See https://github.com/whitphx/streamlit-webrtc/issues/335#issuecomment-897326755.
+In such environments, setting up a [TURN server](https://webrtc.org/getting-started/turn-server) is a solution.
+
+There are some options:
+* [Twilio Network Traversal Service](https://www.twilio.com/docs/stun-turn) (_recommended_) is a stable and easy-to-use solution. It's a paid service, but you can start with a free trial with some amount of balance.
+  The [WebRTC sample app hosted on Community Cloud](https://webrtc.streamlit.app/) uses this option. See [how it retrieves the ICE servers information from Twilio API](https://github.com/whitphx/streamlit-webrtc-example/blob/79ac65994a8c7f91475647d65e63b5040ea35863/sample_utils/turn.py) and [use it in the app](https://github.com/whitphx/streamlit-webrtc-example/blob/79ac65994a8c7f91475647d65e63b5040ea35863/pages/1_object_detection.py#L141).
+* The [Open Relay Project](https://www.metered.ca/tools/openrelay/) provides a free TURN server. However, it does not seem to be stable enough and is often down.
+* Self-hosted TURN server is also an option. See https://github.com/whitphx/streamlit-webrtc/issues/335#issuecomment-897326755.
 
 ## Logging
 For logging, this library uses the standard `logging` module and follows the practice described in [the official logging tutorial](https://docs.python.org/3/howto/logging.html#advanced-logging-tutorial). Then the logger names are the same as the module names - `streamlit_webrtc` or `streamlit_webrtc.*`.
