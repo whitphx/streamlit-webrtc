@@ -198,6 +198,11 @@ See the [old version of the README](https://github.com/whitphx/streamlit-webrtc/
 
 ## Serving from remote host
 When deploying apps to remote servers, there are some things you need to be aware of.
+In short,
+* HTTPS is required to access local media devices.
+* STUN/TURN servers are required to establish the media stream connection.
+
+See the following sections.
 
 ### HTTPS
 `streamlit-webrtc` uses [`getUserMedia()`](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia) API to access local media devices, and this method does not work in an insecure context.
@@ -209,7 +214,7 @@ So, when hosting your app on a remote server, it must be served via HTTPS if you
 If not, you will encounter an error when starting using the device. For example, it's something like below on Chrome.
 > Error: navigator.mediaDevices is undefined. It seems the current document is not loaded securely.
 
-[Streamlit Cloud](https://streamlit.io/cloud) is a recommended way for HTTPS serving. You can easily deploy Streamlit apps with it, and most importantly for this topic, it serves the apps via HTTPS automatically by default.
+[Streamlit Community Cloud](https://streamlit.io/cloud) is a recommended way for HTTPS serving. You can easily deploy Streamlit apps with it, and most importantly for this topic, it serves the apps via HTTPS automatically by default.
 
 For the development purpose, sometimes [`suyashkumar/ssl-proxy`](https://github.com/suyashkumar/ssl-proxy) is a convenient tool to serve your app via HTTPS.
 ```shell
@@ -247,16 +252,16 @@ For example, [one user reported](https://github.com/whitphx/streamlit-webrtc/iss
 For those who know about the browser WebRTC API: The value of the rtc_configuration argument will be passed to the [`RTCPeerConnection`](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/RTCPeerConnection) constructor on the frontend.
 
 ### Configure the TURN server if necessary
-Even if the STUN server is properly configured, media streaming may not work in some network environments.
-For example, in some office or public networks, there are firewalls which drop the WebRTC packets.
+Even if the STUN server is properly configured, media streaming may not work in some network environments, either from the server or from the client.
+For example, if the server is hosted behind a proxy, or if the client is on an office network, the WebRTC packets may be blocked (**Streamlit Community Cloud is the case**). [This article](https://blog.addpipe.com/troubleshooting-webrtc-connection-issues/#steptwodiscoverystunandturn) summarizes the possible situations.
 
-In such environments, setting up a [TURN server](https://webrtc.org/getting-started/turn-server) is a solution.
+In such environments, [TURN server](https://webrtc.org/getting-started/turn-server) is required.
 
-There are some options:
-* [Twilio Network Traversal Service](https://www.twilio.com/docs/stun-turn) (_recommended_) is a stable and easy-to-use solution. It's a paid service, but you can start with a free trial with some amount of balance.
-  The [WebRTC sample app hosted on Community Cloud](https://webrtc.streamlit.app/) uses this option. See [how it retrieves the ICE servers information from Twilio API](https://github.com/whitphx/streamlit-webrtc-example/blob/79ac65994a8c7f91475647d65e63b5040ea35863/sample_utils/turn.py) and [use it in the app](https://github.com/whitphx/streamlit-webrtc-example/blob/79ac65994a8c7f91475647d65e63b5040ea35863/pages/1_object_detection.py#L141).
+There are several options for setting up a TURN server:
+* [Twilio Network Traversal Service](https://www.twilio.com/docs/stun-turn) (_recommended_) is a stable and easy-to-use solution. It's a paid service, but you can start with a free trial with a certain amount of credit.
+  The [WebRTC sample app hosted on the Community Cloud](https://webrtc.streamlit.app/) uses this option. See [how it retrieves the ICE server information from the Twilio API](https://github.com/whitphx/streamlit-webrtc-example/blob/79ac65994a8c7f91475647d65e63b5040ea35863/sample_utils/turn.py) and [how to use it in the app](https://github.com/whitphx/streamlit-webrtc-example/blob/79ac65994a8c7f91475647d65e63b5040ea35863/pages/1_object_detection.py#L141).
 * The [Open Relay Project](https://www.metered.ca/tools/openrelay/) provides a free TURN server. However, it does not seem to be stable enough and is often down.
-* Self-hosted TURN server is also an option. See https://github.com/whitphx/streamlit-webrtc/issues/335#issuecomment-897326755.
+* A self-hosted TURN server is also an option. See https://github.com/whitphx/streamlit-webrtc/issues/335#issuecomment-897326755.
 
 ## Logging
 For logging, this library uses the standard `logging` module and follows the practice described in [the official logging tutorial](https://docs.python.org/3/howto/logging.html#advanced-logging-tutorial). Then the logger names are the same as the module names - `streamlit_webrtc` or `streamlit_webrtc.*`.
