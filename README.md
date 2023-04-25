@@ -234,6 +234,8 @@ webrtc_streamer(
 
 This configuration is necessary to establish the media streaming connection when the server is on a remote host.
 
+:warning: You may need to set up a TURN server as well in some environments, **including Streamlit Community Cloud**. See also the next section.
+
 `streamlit_webrtc` uses WebRTC for its video and audio streaming. It has to access a "STUN server" in the global network for the remote peers (precisely, peers over the NATs) to establish WebRTC connections.
 As we don't see the details about STUN servers here, please google it if interested with keywords such as STUN, TURN, or NAT traversal, or read these articles ([1](https://towardsdatascience.com/developing-web-based-real-time-video-audio-processing-apps-quickly-with-streamlit-7c7bcd0bc5a8#1cec), [2](https://dev.to/whitphx/python-webrtc-basics-with-aiortc-48id), [3](https://www.3cx.com/pbx/what-is-a-stun-server/)).
 
