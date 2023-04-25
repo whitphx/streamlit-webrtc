@@ -253,7 +253,7 @@ For those who know about the browser WebRTC API: The value of the rtc_configurat
 
 ### Configure the TURN server if necessary
 Even if the STUN server is properly configured, media streaming may not work in some network environments, either from the server or from the client.
-For example, if the server is hosted behind a proxy, or if the client is on an office network, the WebRTC packets may be blocked (**Streamlit Community Cloud is the case**). [This article](https://blog.addpipe.com/troubleshooting-webrtc-connection-issues/#steptwodiscoverystunandturn) summarizes the possible situations.
+For example, if the server is hosted behind a proxy, or if the client is on an office network behind a firewall, the WebRTC packets may be blocked (**Streamlit Community Cloud is the case**). [This article](https://blog.addpipe.com/troubleshooting-webrtc-connection-issues/#steptwodiscoverystunandturn) summarizes the possible situations.
 
 In such environments, [TURN server](https://webrtc.org/getting-started/turn-server) is required.
 
