@@ -259,6 +259,30 @@ In such environments, [TURN server](https://webrtc.org/getting-started/turn-serv
 
 There are several options for setting up a TURN server:
 * [Twilio Network Traversal Service](https://www.twilio.com/docs/stun-turn) (_recommended_) is a stable and easy-to-use solution. It's a paid service, but you can start with a free trial with a certain amount of credit.
+  You can simply pass the `ice_servers` field of the [Network Traversal Service Tokens API](https://www.twilio.com/docs/api/2010-04-01/rest/token) response to the `iceServers` field of the `rtc_configuration` argument of `webrtc_streamer()`.
+  ```python
+  ## This sample code is from https://www.twilio.com/docs/stun-turn/api
+  # Download the helper library from https://www.twilio.com/docs/python/install
+  import os
+  from twilio.rest import Client
+
+  # Find your Account SID and Auth Token at twilio.com/console
+  # and set the environment variables. See http://twil.io/secure
+  account_sid = os.environ['TWILIO_ACCOUNT_SID']
+  auth_token = os.environ['TWILIO_AUTH_TOKEN']
+  client = Client(account_sid, auth_token)
+
+  token = client.tokens.create()
+
+  # Then, pass the ICE server information to webrtc_streamer().
+  webrtc_streamer(
+    # ...
+    rtc_configuration={
+        "iceServers": token.ice_servers
+    }
+    # ...
+  )
+  ```
   The [WebRTC sample app hosted on the Community Cloud](https://webrtc.streamlit.app/) uses this option. See [how it retrieves the ICE server information from the Twilio API](https://github.com/whitphx/streamlit-webrtc-example/blob/79ac65994a8c7f91475647d65e63b5040ea35863/sample_utils/turn.py) and [how to use it in the app](https://github.com/whitphx/streamlit-webrtc-example/blob/79ac65994a8c7f91475647d65e63b5040ea35863/pages/1_object_detection.py#L141).
 * The [Open Relay Project](https://www.metered.ca/tools/openrelay/) provides a free TURN server. However, it does not seem to be stable enough and is often down.
 * A self-hosted TURN server is also an option. See https://github.com/whitphx/streamlit-webrtc/issues/335#issuecomment-897326755.
