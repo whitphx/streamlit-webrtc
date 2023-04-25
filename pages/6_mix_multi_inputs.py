@@ -17,6 +17,8 @@ from streamlit_webrtc import (
     webrtc_streamer,
 )
 
+from sample_utils.turn import get_ice_servers
+
 st.markdown(
     """
 Mix multiple inputs with different video filters into one stream.
@@ -112,7 +114,7 @@ def mixer_callback(frames: List[av.VideoFrame]) -> av.VideoFrame:
     return new_frame
 
 
-COMMON_RTC_CONFIG = {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+COMMON_RTC_CONFIG = {"iceServers": get_ice_servers()}
 
 st.header("Input 1")
 input1_ctx = webrtc_streamer(

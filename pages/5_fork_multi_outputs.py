@@ -10,6 +10,8 @@ import cv2
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
+from sample_utils.turn import get_ice_servers
+
 st.markdown(
     """
 Fork one input to multiple outputs with different video filters.
@@ -60,7 +62,7 @@ def make_video_frame_callback(_type: VideoFilterType):
     return callback
 
 
-COMMON_RTC_CONFIG = {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+COMMON_RTC_CONFIG = {"iceServers": get_ice_servers()}
 
 st.header("Input")
 ctx = webrtc_streamer(

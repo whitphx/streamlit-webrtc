@@ -1,8 +1,10 @@
 from streamlit_webrtc import webrtc_streamer
 
+from sample_utils.turn import get_ice_servers
+
 webrtc_streamer(
     key="custom_ui_texts",
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+    rtc_configuration={"iceServers": get_ice_servers()},
     translations={
         "start": "開始",
         "stop": "停止",

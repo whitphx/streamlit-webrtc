@@ -7,6 +7,8 @@ import streamlit as st
 from aiortc.contrib.media import MediaRecorder
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
+from sample_utils.turn import get_ice_servers
+
 
 def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
     img = frame.to_ndarray(format="bgr24")
@@ -39,7 +41,7 @@ def app():
     webrtc_streamer(
         key="record",
         mode=WebRtcMode.SENDRECV,
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+        rtc_configuration={"iceServers": get_ice_servers()},
         media_stream_constraints={
             "video": True,
             "audio": True,

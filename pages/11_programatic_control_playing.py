@@ -3,11 +3,13 @@
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
+from sample_utils.turn import get_ice_servers
+
 playing = st.checkbox("Playing", value=True)
 
 webrtc_streamer(
     key="programatic_control",
     desired_playing_state=playing,
     mode=WebRtcMode.SENDRECV,
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+    rtc_configuration={"iceServers": get_ice_servers()},
 )
