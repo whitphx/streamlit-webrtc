@@ -83,7 +83,7 @@ jobs:
 
     - name: Install a specific version of Streamlit
       if: ${{ matrix.streamlit-version }}
-      run: poetry add -D streamlit=="${STREAMLIT_VERSION}"
+      run: poetry add -D streamlit=="${STREAMLIT_VERSION}" setuptools
       env:
         STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
     - name: Install dependencies

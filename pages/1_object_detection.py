@@ -15,6 +15,7 @@ import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
 from sample_utils.download import download_file
+from sample_utils.turn import get_ice_servers
 
 HERE = Path(__file__).parent
 ROOT = HERE.parent
@@ -137,7 +138,7 @@ def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
 webrtc_ctx = webrtc_streamer(
     key="object-detection",
     mode=WebRtcMode.SENDRECV,
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+    rtc_configuration={"iceServers": get_ice_servers()},
     video_frame_callback=video_frame_callback,
     media_stream_constraints={"video": True, "audio": False},
     async_processing=True,

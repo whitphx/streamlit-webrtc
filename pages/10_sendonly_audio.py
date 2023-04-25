@@ -11,6 +11,8 @@ import pydub
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
+from sample_utils.turn import get_ice_servers
+
 logger = logging.getLogger(__name__)
 
 
@@ -18,7 +20,7 @@ webrtc_ctx = webrtc_streamer(
     key="sendonly-audio",
     mode=WebRtcMode.SENDONLY,
     audio_receiver_size=256,
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+    rtc_configuration={"iceServers": get_ice_servers()},
     media_stream_constraints={"audio": True},
 )
 
