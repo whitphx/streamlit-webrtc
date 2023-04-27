@@ -38,6 +38,7 @@ pandas = [
 ]
 streamlit = "^1.13.0"
 twilio = "^8.1.0"
+streamlit-session-memo = "^0.3.1"
 
 [tool.black]
 line-length = 88
