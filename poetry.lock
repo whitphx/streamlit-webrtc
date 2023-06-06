@@ -2351,39 +2351,40 @@ files = [
 
 [[package]]
 name = "streamlit"
-version = "1.21.0"
-description = "The fastest way to build data apps in Python"
+version = "1.23.1"
+description = "A faster way to build and share data apps"
 category = "main"
 optional = false
 python-versions = ">=3.7, !=3.9.7"
 files = [
-    {file = "streamlit-1.21.0-py2.py3-none-any.whl", hash = "sha256:05862598952a9126e16652caa5bc88eeeea7b2773af252e2daccf1c84ceaaef4"},
-    {file = "streamlit-1.21.0.tar.gz", hash = "sha256:c72d9639508679c5e411d1f886d213777759501d01975285c049dc30db463c1a"},
+    {file = "streamlit-1.23.1-py2.py3-none-any.whl", hash = "sha256:02cd55a95acd20d73ff03866956ba6e98d71041ee4728dbfef05cf17069d1bb9"},
+    {file = "streamlit-1.23.1.tar.gz", hash = "sha256:af95a78f9d291f12f779cf66a2bdadfafd8a46fe4fcc6ed281492640ed37bf1e"},
 ]
 
 [package.dependencies]
-altair = ">=3.2.0,<5"
-blinker = ">=1.0.0"
-cachetools = ">=4.0"
-click = ">=7.0"
-gitpython = "!=3.1.19"
-importlib-metadata = ">=1.4"
-numpy = "*"
-packaging = ">=14.1"
-pandas = ">=0.25,<2"
-pillow = ">=6.2.0"
-protobuf = ">=3.12,<4"
+altair = ">=4.0,<6"
+blinker = ">=1.0.0,<2"
+cachetools = ">=4.0,<6"
+click = ">=7.0,<9"
+gitpython = ">=3,<3.1.19 || >3.1.19,<4"
+importlib-metadata = ">=1.4,<7"
+numpy = ">=1,<2"
+packaging = ">=14.1,<24"
+pandas = ">=0.25,<3"
+pillow = ">=6.2.0,<10"
+protobuf = ">=3.20,<5"
 pyarrow = ">=4.0"
-pydeck = ">=0.1.dev5"
-pympler = ">=0.9"
-python-dateutil = "*"
-requests = ">=2.4"
-rich = ">=10.11.0"
-toml = "*"
-tornado = ">=6.0.3"
-typing-extensions = ">=3.10.0.0"
-tzlocal = ">=1.1"
-validators = ">=0.2"
+pydeck = ">=0.1.dev5,<1"
+pympler = ">=0.9,<2"
+python-dateutil = ">=2,<3"
+requests = ">=2.4,<3"
+rich = ">=10.11.0,<14"
+tenacity = ">=8.0.0,<9"
+toml = "<2"
+tornado = ">=6.0.3,<7"
+typing-extensions = ">=4.0.1,<5"
+tzlocal = ">=1.1,<5"
+validators = ">=0.2,<1"
 watchdog = {version = "*", markers = "platform_system != \"Darwin\""}
 
 [package.extras]
@@ -2404,6 +2405,21 @@ files = [
 [package.dependencies]
 packaging = ">=20.0"
 streamlit = ">=0.65.0"
+
+[[package]]
+name = "tenacity"
+version = "8.2.2"
+description = "Retry code until it succeeds"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "tenacity-8.2.2-py3-none-any.whl", hash = "sha256:2f277afb21b851637e8f52e6a613ff08734c347dc19ade928e519d7d2d8569b0"},
+    {file = "tenacity-8.2.2.tar.gz", hash = "sha256:43af037822bd0029025877f3b2d97cc4d7bb0c2991000a3d59d71517c5c969e0"},
+]
+
+[package.extras]
+doc = ["reno", "sphinx", "tornado (>=4.5)"]
 
 [[package]]
 name = "toml"
