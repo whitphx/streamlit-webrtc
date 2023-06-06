@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.45.1] - 2023-06-06
+
+### Fix
+
+- Internal package updates.
+
 ## [0.45.0] - 2023-03-02
 
 ### Change
