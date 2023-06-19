@@ -10,7 +10,7 @@ include = ["./streamlit_webrtc/frontend/build/**/*"]
 exclude = ["./streamlit_webrtc/frontend/[!build]*"]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.12,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
+python = ">=3.8,<4,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
 # For allow-same-origin, >=0.73.0 is required. See https://blog.streamlit.io/streamlit-components-security-and-a-five-month-quest-to-ship-a-single-line-of-code/
 # 0.84.0 has an error at marshalling component values.
 streamlit = ">=0.84.1"
