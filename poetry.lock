@@ -1602,18 +1602,16 @@ files = [
 
 [[package]]
 name = "opencv-python-headless"
-version = "4.8.0.74"
+version = "4.8.0.76"
 description = "Wrapper package for OpenCV python bindings."
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "opencv-python-headless-4.8.0.74.tar.gz", hash = "sha256:a72770b8f2e08358b1faa41c8372b17d040aa9bb3e446ab7090e358f6f4e91ba"},
-    {file = "opencv_python_headless-4.8.0.74-cp37-abi3-macosx_10_16_x86_64.whl", hash = "sha256:f645b17667fc9bffec8c3b3a72a217430c8d7090ed3ebb80fd8efc657f372d6c"},
-    {file = "opencv_python_headless-4.8.0.74-cp37-abi3-macosx_11_0_arm64.whl", hash = "sha256:7c88744ce922b81747c86f2b7f1b3ec84ff2f53477ee9219a5e75ae2012b443f"},
-    {file = "opencv_python_headless-4.8.0.74-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:34e92fef90e8f768d92dca875aefaff8b11556427f82484378a3848eb690d4c0"},
-    {file = "opencv_python_headless-4.8.0.74-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f8a88620c43a5d17f7df8317767da93b935656ab9236df92e1e2e0dd23195756"},
-    {file = "opencv_python_headless-4.8.0.74-cp37-abi3-win32.whl", hash = "sha256:b52a6eb2d92fff0f660e6aade958cb4373fbfcbafa0488f7ae88c4e6ce3f47f6"},
-    {file = "opencv_python_headless-4.8.0.74-cp37-abi3-win_amd64.whl", hash = "sha256:19d30269ae710f67e0ae549361a68b755e28599a572d5f72d0bbb177ab438a28"},
+    {file = "opencv-python-headless-4.8.0.76.tar.gz", hash = "sha256:bc15726187dae26d8a08777faf6bc71d38f20c785c102677f58ba0e935003afb"},
+    {file = "opencv_python_headless-4.8.0.76-cp37-abi3-macosx_10_16_x86_64.whl", hash = "sha256:f85d2e3b9d952db35d31f9db8882d073c903921b72b8db1cfed8bbc75e8d3e63"},
+    {file = "opencv_python_headless-4.8.0.76-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:220d2e292fa45ef0582aab730460bbc15cfe61f2089208167a372ccf76f01e21"},
+    {file = "opencv_python_headless-4.8.0.76-cp37-abi3-win32.whl", hash = "sha256:df0608de207ae9b094ad9eaf1a475cf6e9a069fb12cd289d4a18cefdab2f8aa8"},
+    {file = "opencv_python_headless-4.8.0.76-cp37-abi3-win_amd64.whl", hash = "sha256:9c094faf6ec7bd360244647b26ebdf8f54edec1d9292cb9179fff9badcca7be8"},
 ]
 
 [package.dependencies]
