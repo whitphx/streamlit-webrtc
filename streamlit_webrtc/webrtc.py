@@ -197,12 +197,42 @@ async def _process_offer_coro(
 
             if input_track.kind == "audio":
                 if audio_receiver:
+                    if audio_processor:
+                        AudioTrack = (
+                            AsyncAudioProcessTrack
+                            if async_processing
+                            else AudioProcessTrack
+                        )
+                        logger.info(
+                            "Set %s as an input audio track with audio_processor %s",
+                            input_track,
+                            AudioTrack,
+                        )
+                        input_track = AudioTrack(
+                            track=relay.subscribe(input_track),
+                            processor=audio_processor,
+                        )
                     logger.info(
                         "Add a track %s to receiver %s", input_track, audio_receiver
                     )
                     audio_receiver.addTrack(relay.subscribe(input_track))
             elif input_track.kind == "video":
                 if video_receiver:
+                    if video_processor:
+                        VideoTrack = (
+                            AsyncVideoProcessTrack
+                            if async_processing
+                            else VideoProcessTrack
+                        )
+                        logger.info(
+                            "Set %s as an input video track with video_processor %s",
+                            input_track,
+                            VideoTrack,
+                        )
+                        input_track = VideoTrack(
+                            track=relay.subscribe(input_track),
+                            processor=video_processor,
+                        )
                     logger.info(
                         "Add a track %s to receiver %s", input_track, video_receiver
                     )
