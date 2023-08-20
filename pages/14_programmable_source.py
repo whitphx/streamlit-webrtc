@@ -21,9 +21,9 @@ ctx = webrtc_streamer(
 )
 
 while ctx.state.playing:
-    frame = np.zeros((480, 640, 3), dtype=np.uint8)
-    frame = cv2.putText(
-        frame,
+    buffer = np.zeros((480, 640, 3), dtype=np.uint8)
+    buffer = cv2.putText(
+        buffer,
         text=str(time.time()),
         org=(0, 32),
         fontFace=cv2.FONT_HERSHEY_SIMPLEX,
@@ -32,5 +32,5 @@ while ctx.state.playing:
         thickness=2,
         lineType=cv2.LINE_4,
     )
-    video_source_track._queue.put(frame)
+    video_source_track.set_buffer(buffer)
     time.sleep(0.03)

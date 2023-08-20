@@ -1,7 +1,6 @@
 import asyncio
 import fractions
 import logging
-import queue
 import time
 from typing import Optional
 
@@ -26,7 +25,6 @@ VIDEO_TIME_BASE = fractions.Fraction(1, VIDEO_CLOCK_RATE)
 
 class VideoSourceTrack(MediaStreamTrack):
     _buffer: np.ndarray
-    _queue: "queue.Queue[np.ndarray]"
 
     _started_at: Optional[float]
     _pts: Optional[int]
@@ -35,9 +33,11 @@ class VideoSourceTrack(MediaStreamTrack):
         super().__init__()
         self.kind = "video"
         self._buffer = init_buffer
-        self._queue = queue.Queue()
         self._started_at = None
         self._pts = None
+
+    def set_buffer(self, buffer: np.ndarray) -> None:
+        self._buffer = buffer
 
     async def recv(self) -> av.frame.Frame:
         if self.readyState != "live":
@@ -51,14 +51,8 @@ class VideoSourceTrack(MediaStreamTrack):
             wait = self._started_at + (self._pts / VIDEO_CLOCK_RATE) - time.monotonic()
             await asyncio.sleep(wait)
 
-        try:
-            buffer = self._queue.get_nowait()
-            self._buffer = buffer
-        except queue.Empty:
-            buffer = self._buffer
-
         frame = av.VideoFrame.from_ndarray(
-            buffer, format="bgr24"
+            self._buffer, format="bgr24"
         )  # TODO: Provide a way for developers to configure the arguments like `format`
         frame.pts = self._pts
         frame.time_base = VIDEO_TIME_BASE
