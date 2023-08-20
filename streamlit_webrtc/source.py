@@ -38,7 +38,7 @@ class VideoSourceTrack(MediaStreamTrack):
         self._started_at = None
         self._pts = None
 
-    def set_callback(self, callback: VideoSourceCallback) -> None:
+    def _set_callback(self, callback: VideoSourceCallback) -> None:
         self._callback = callback
 
     async def recv(self) -> av.frame.Frame:

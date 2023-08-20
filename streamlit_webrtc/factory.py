@@ -207,8 +207,8 @@ def create_video_source_track(
         and st.session_state[cache_key].kind == "video"
         and st.session_state[cache_key].readyState == "live"
     ):
-        video_source_track = st.session_state[cache_key]
-        video_source_track.set_callback(video_source)
+        video_source_track: VideoSourceTrack = st.session_state[cache_key]
+        video_source_track._set_callback(video_source)
     else:
         video_source_track = VideoSourceTrack(video_source)
         st.session_state[cache_key] = video_source_track
