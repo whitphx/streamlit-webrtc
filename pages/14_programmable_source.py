@@ -4,7 +4,7 @@ import av
 import cv2
 import numpy as np
 import streamlit as st
-from streamlit_webrtc import WebRtcMode, create_source_video_track, webrtc_streamer
+from streamlit_webrtc import WebRtcMode, create_video_source_track, webrtc_streamer
 
 thickness = st.slider("thickness", 1, 10, 3, 1)
 
@@ -24,7 +24,7 @@ def callback():
     return av.VideoFrame.from_ndarray(buffer, format="bgr24")
 
 
-video_source_track = create_source_video_track(callback, key="video_source_track")
+video_source_track = create_video_source_track(callback, key="video_source_track")
 
 
 def on_change():

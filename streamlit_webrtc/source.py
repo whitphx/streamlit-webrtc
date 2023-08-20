@@ -5,7 +5,6 @@ import time
 from typing import Callable, Optional
 
 import av
-import streamlit as st
 from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
@@ -64,24 +63,3 @@ class VideoSourceTrack(MediaStreamTrack):
         frame.pts = self._pts
         frame.time_base = VIDEO_TIME_BASE
         return frame
-
-
-_VIDEO_SOURCE_TRACK_CACHE_KEY_PREFIX = "__VIDEO_SOURCE_TRACK_CACHE__"
-
-
-def create_source_video_track(
-    video_source: VideoSourceCallback, key: str
-) -> VideoSourceTrack:
-    cache_key = _VIDEO_SOURCE_TRACK_CACHE_KEY_PREFIX + key
-    if (
-        cache_key in st.session_state
-        and isinstance(st.session_state[cache_key], VideoSourceTrack)
-        and st.session_state[cache_key].kind == "video"
-        and st.session_state[cache_key].readyState == "live"
-    ):
-        video_source_track = st.session_state[cache_key]
-        video_source_track.set_callback(video_source)
-    else:
-        video_source_track = VideoSourceTrack(video_source)
-        st.session_state[cache_key] = video_source_track
-    return video_source_track

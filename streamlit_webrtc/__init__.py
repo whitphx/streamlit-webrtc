@@ -23,9 +23,9 @@ from .config import (
     Translations,
     VideoHTMLAttributes,
 )
-from .factory import create_mix_track, create_process_track
+from .factory import create_mix_track, create_process_track, create_video_source_track
 from .mix import MixerCallback
-from .source import VideoSourceTrack, create_source_video_track
+from .source import VideoSourceTrack
 from .webrtc import (
     AudioProcessorBase,
     AudioProcessorFactory,
@@ -66,7 +66,7 @@ __all__ = [
     "VideoTransformerBase",  # XXX: Deprecated
     "VideoReceiver",
     "VideoSourceTrack",
-    "create_source_video_track",
+    "create_video_source_track",
     "WebRtcMode",
     "WebRtcWorker",
     "MediaStreamConstraints",
