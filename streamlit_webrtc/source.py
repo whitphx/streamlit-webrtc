@@ -2,9 +2,10 @@ import asyncio
 import fractions
 import logging
 import time
-from typing import Optional
+from typing import Callable, Optional
 
 import av
+import streamlit as st
 from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
@@ -22,25 +23,30 @@ VIDEO_TIME_BASE = fractions.Fraction(1, VIDEO_CLOCK_RATE)
 # https://github.com/aiortc/aiortc/blob/main/src/aiortc/mediastreams.py
 
 
+VideoSourceCallback = Callable[[], av.VideoFrame]
+
+
 class VideoSourceTrack(MediaStreamTrack):
-    _frame: av.VideoFrame
+    _callback: VideoSourceCallback
 
     _started_at: Optional[float]
     _pts: Optional[int]
 
-    def __init__(self, init_frame: av.VideoFrame) -> None:
+    def __init__(self, callback: VideoSourceCallback) -> None:
         super().__init__()
         self.kind = "video"
-        self._frame = init_frame
+        self._callback = callback
         self._started_at = None
         self._pts = None
 
-    def set_frame(self, frame: av.VideoFrame) -> None:
-        self._frame = frame
+    def set_callback(self, callback: VideoSourceCallback) -> None:
+        self._callback = callback
 
     async def recv(self) -> av.frame.Frame:
         if self.readyState != "live":
             raise MediaStreamError
+
+        frame = self._callback()
 
         if self._started_at is None or self._pts is None:
             self._started_at = time.monotonic()
@@ -48,11 +54,34 @@ class VideoSourceTrack(MediaStreamTrack):
         else:
             self._pts += int(VIDEO_PTIME * VIDEO_CLOCK_RATE)
             wait = self._started_at + (self._pts / VIDEO_CLOCK_RATE) - time.monotonic()
+            if wait < 0:
+                logger.warning(
+                    "VideoSourceCallbackTrack: Video frame callback is too slow."
+                )
+                wait = 0
             await asyncio.sleep(wait)
-
-        # XXX: Is it OK to return the same frame object multiple times?
-        frame = self._frame
 
         frame.pts = self._pts
         frame.time_base = VIDEO_TIME_BASE
         return frame
+
+
+_VIDEO_SOURCE_TRACK_CACHE_KEY_PREFIX = "__VIDEO_SOURCE_TRACK_CACHE__"
+
+
+def create_source_video_track(
+    video_source: VideoSourceCallback, key: str
+) -> VideoSourceTrack:
+    cache_key = _VIDEO_SOURCE_TRACK_CACHE_KEY_PREFIX + key
+    if (
+        cache_key in st.session_state
+        and isinstance(st.session_state[cache_key], VideoSourceTrack)
+        and st.session_state[cache_key].kind == "video"
+        and st.session_state[cache_key].readyState == "live"
+    ):
+        video_source_track = st.session_state[cache_key]
+        video_source_track.set_callback(video_source)
+    else:
+        video_source_track = VideoSourceTrack(video_source)
+        st.session_state[cache_key] = video_source_track
+    return video_source_track
