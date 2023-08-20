@@ -1,5 +1,6 @@
 import time
 
+import av
 import cv2
 import numpy as np
 import streamlit as st
@@ -9,7 +10,7 @@ init_buffer = np.zeros((480, 640, 3), dtype=np.uint8)
 
 
 if "video_source_track" not in st.session_state:
-    st.session_state.video_source_track = VideoSourceTrack(init_buffer=init_buffer)
+    st.session_state.video_source_track = VideoSourceTrack(init_frame=init_buffer)
 video_source_track = st.session_state.video_source_track
 
 
@@ -32,5 +33,6 @@ while ctx.state.playing:
         thickness=2,
         lineType=cv2.LINE_4,
     )
-    video_source_track.set_buffer(buffer)
-    time.sleep(0.03)
+    frame = av.VideoFrame.from_ndarray(buffer, format="bgr24")
+    video_source_track.set_frame(frame)
+    time.sleep(0.01)

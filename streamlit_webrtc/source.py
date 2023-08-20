@@ -5,7 +5,6 @@ import time
 from typing import Optional
 
 import av
-import numpy as np
 from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
@@ -24,20 +23,20 @@ VIDEO_TIME_BASE = fractions.Fraction(1, VIDEO_CLOCK_RATE)
 
 
 class VideoSourceTrack(MediaStreamTrack):
-    _buffer: np.ndarray
+    _frame: av.VideoFrame
 
     _started_at: Optional[float]
     _pts: Optional[int]
 
-    def __init__(self, init_buffer: np.ndarray) -> None:
+    def __init__(self, init_frame: av.VideoFrame) -> None:
         super().__init__()
         self.kind = "video"
-        self._buffer = init_buffer
+        self._frame = init_frame
         self._started_at = None
         self._pts = None
 
-    def set_buffer(self, buffer: np.ndarray) -> None:
-        self._buffer = buffer
+    def set_frame(self, frame: av.VideoFrame) -> None:
+        self._frame = frame
 
     async def recv(self) -> av.frame.Frame:
         if self.readyState != "live":
@@ -51,9 +50,9 @@ class VideoSourceTrack(MediaStreamTrack):
             wait = self._started_at + (self._pts / VIDEO_CLOCK_RATE) - time.monotonic()
             await asyncio.sleep(wait)
 
-        frame = av.VideoFrame.from_ndarray(
-            self._buffer, format="bgr24"
-        )  # TODO: Provide a way for developers to configure the arguments like `format`
+        # XXX: Is it OK to return the same frame object multiple times?
+        frame = self._frame
+
         frame.pts = self._pts
         frame.time_base = VIDEO_TIME_BASE
         return frame
