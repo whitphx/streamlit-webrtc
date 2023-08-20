@@ -26,21 +26,9 @@ def callback():
 
 video_source_track = create_video_source_track(callback, key="video_source_track")
 
-
-def on_change():
-    ctx = st.session_state.sample
-    if (
-        not ctx.state.playing
-        and not ctx.state.signalling
-        and video_source_track.readyState == "live"
-    ):
-        video_source_track.stop()
-
-
 webrtc_streamer(
     key="sample",
     mode=WebRtcMode.RECVONLY,
     source_video_track=video_source_track,
     media_stream_constraints={"video": True, "audio": False},
-    on_change=on_change,  # XXX: The track needs to be stopped manually.
 )

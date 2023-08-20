@@ -370,6 +370,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         audio_receiver_size: int = 4,
         sendback_video: bool = True,
         sendback_audio: bool = True,
+        auto_stop_source_video: bool = True,
+        auto_stop_source_audio: bool = True,
     ) -> None:
         self._process_offer_thread = None
         self.pc = RTCPeerConnection()
@@ -394,6 +396,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self.audio_receiver_size = audio_receiver_size
         self.sendback_video = sendback_video
         self.sendback_audio = sendback_audio
+        self.auto_stop_source_video = auto_stop_source_video
+        self.auto_stop_source_audio = auto_stop_source_audio
 
         self._video_processor = None
         self._audio_processor = None
@@ -654,6 +658,17 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             if self._player.audio:
                 self._player.audio.stop()
         self._player = None
+
+        # Same as above,
+        # the source tracks are not automatically stopped when the WebRTC.
+        if self.source_video_track and self.auto_stop_source_video:
+            logger.debug("Stopping source video track")
+            self.source_video_track.stop()
+        self.source_video_track = None
+        if self.source_audio_track and self.auto_stop_source_audio:
+            logger.debug("Stopping source audio track")
+            self.source_audio_track.stop()
+        self.source_audio_track = None
 
     def stop(self, timeout: Union[float, None] = 1.0):
         self._unset_processors()
