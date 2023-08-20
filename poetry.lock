@@ -1609,6 +1609,8 @@ python-versions = ">=3.6"
 files = [
     {file = "opencv-python-headless-4.8.0.76.tar.gz", hash = "sha256:bc15726187dae26d8a08777faf6bc71d38f20c785c102677f58ba0e935003afb"},
     {file = "opencv_python_headless-4.8.0.76-cp37-abi3-macosx_10_16_x86_64.whl", hash = "sha256:f85d2e3b9d952db35d31f9db8882d073c903921b72b8db1cfed8bbc75e8d3e63"},
+    {file = "opencv_python_headless-4.8.0.76-cp37-abi3-macosx_11_0_arm64.whl", hash = "sha256:8ee3bf1c9086493c340c6a87899f1c7778d729de92bce8560b8c31ab8a9cdf79"},
+    {file = "opencv_python_headless-4.8.0.76-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c675b8dec6298ba6a1eec2ce24077a393b4236a043f68dfacb06bf594354ce06"},
     {file = "opencv_python_headless-4.8.0.76-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:220d2e292fa45ef0582aab730460bbc15cfe61f2089208167a372ccf76f01e21"},
     {file = "opencv_python_headless-4.8.0.76-cp37-abi3-win32.whl", hash = "sha256:df0608de207ae9b094ad9eaf1a475cf6e9a069fb12cd289d4a18cefdab2f8aa8"},
     {file = "opencv_python_headless-4.8.0.76-cp37-abi3-win_amd64.whl", hash = "sha256:9c094faf6ec7bd360244647b26ebdf8f54edec1d9292cb9179fff9badcca7be8"},
@@ -2308,13 +2310,13 @@ snowflake = ["snowflake-snowpark-python"]
 
 [[package]]
 name = "streamlit-server-state"
-version = "0.14.2"
+version = "0.17.0"
 description = ""
 optional = false
-python-versions = ">=3.7, !=2.7.*, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, !=3.6.*"
+python-versions = ">=3.8, !=2.7.*, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, !=3.6.*, !=3.7.*"
 files = [
-    {file = "streamlit-server-state-0.14.2.tar.gz", hash = "sha256:2fa04af459ff3d20a7b034b24dbc059f5b98888d8e35e5840852d9aaabfbf85d"},
-    {file = "streamlit_server_state-0.14.2-py3-none-any.whl", hash = "sha256:da8c5715372310b001caa4ef1dcd55a5f1f9b6ba04501243f82fb2de40c2006a"},
+    {file = "streamlit_server_state-0.17.0-py3-none-any.whl", hash = "sha256:e2bdf2249ff0560137189aef0104c025d93887a9d90244de886217bfceb2cf0e"},
+    {file = "streamlit_server_state-0.17.0.tar.gz", hash = "sha256:03031ebce0e2f6308821fbd38607800983afdb635334d62e2a6f6f95e7f066c0"},
 ]
 
 [package.dependencies]
@@ -2625,4 +2627,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<4,!=3.9.7"
-content-hash = "7e3c4bdbcef064c463c0355fadb317b1987ebf4b1d3301d7272e898d76ae5a6e"
+content-hash = "58ac0106ede65483f8cdf2a19ac7a678fb642c7e9cc3acc300ef9e3b17e44aa1"
