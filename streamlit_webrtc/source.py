@@ -10,8 +10,7 @@ from aiortc.mediastreams import MediaStreamError
 
 logger = logging.getLogger(__name__)
 
-# TODO: Now these values are just copied from mediastreams.py linked below, but should be made configurable.  # noqa: E501
-# https://github.com/aiortc/aiortc/blob/main/src/aiortc/mediastreams.py
+# Copied from https://github.com/aiortc/aiortc/blob/main/src/aiortc/mediastreams.py
 AUDIO_PTIME = 0.020  # 20ms audio packetization
 VIDEO_CLOCK_RATE = 90000
 VIDEO_TIME_BASE = fractions.Fraction(1, VIDEO_CLOCK_RATE)
