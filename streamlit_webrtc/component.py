@@ -409,6 +409,7 @@ def webrtc_streamer(
             "Use video_processor_factory instead.\n"
             "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020",  # noqa: E501
             DeprecationWarning,
+            stacklevel=2,
         )
         video_processor_factory = video_transformer_factory
     if async_transform is not None:
@@ -417,6 +418,7 @@ def webrtc_streamer(
             "Use async_processing instead.\n"
             "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020",  # noqa: E501
             DeprecationWarning,
+            stacklevel=2,
         )
         async_processing = async_transform
     if client_settings is not None:
@@ -424,6 +426,7 @@ def webrtc_streamer(
             "The argument client_settings is deprecated. "
             "Use rtc_configuration and media_stream_constraints instead.",
             DeprecationWarning,
+            stacklevel=2,
         )
         rtc_configuration = (
             client_settings.get("rtc_configuration") if client_settings else None
