@@ -10,7 +10,7 @@ from streamlit_webrtc import WebRtcMode, create_video_source_track, webrtc_strea
 thickness = st.slider("thickness", 1, 10, 3, 1)
 
 
-def callback(pts: int, time_base: fractions.Fraction) -> av.VideoFrame:
+def video_source_callback(pts: int, time_base: fractions.Fraction) -> av.VideoFrame:
     pts_sec = pts * time_base
 
     buffer = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -41,7 +41,7 @@ fps = st.slider("fps", 1, 30, 30, 1)
 
 
 video_source_track = create_video_source_track(
-    callback, key="video_source_track", fps=fps
+    video_source_callback, key="video_source_track", fps=fps
 )
 
 
@@ -49,7 +49,7 @@ def on_change():
     ctx = st.session_state["player"]
     stopped = not ctx.state.playing and not ctx.state.signalling
     if stopped:
-        video_source_track.stop()
+        video_source_track.stop()  # Manually stop the track.
 
 
 webrtc_streamer(
