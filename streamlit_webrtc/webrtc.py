@@ -296,21 +296,6 @@ process_offer_thread_id_generator = itertools.count()
 
 
 class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
-    _process_offer_thread: Union[threading.Thread, None]
-    _answer_queue: queue.Queue
-    _session_shutdown_observer: SessionShutdownObserver
-    _video_processor: Optional[Union[VideoProcessorT, CallbackAttachableProcessor]]
-    _audio_processor: Optional[Union[AudioProcessorT, CallbackAttachableProcessor]]
-    _video_receiver: Optional[VideoReceiver]
-    _audio_receiver: Optional[AudioReceiver]
-    _input_video_track: Optional[MediaStreamTrack]
-    _input_audio_track: Optional[MediaStreamTrack]
-    _output_video_track: Optional[MediaStreamTrack]
-    _output_audio_track: Optional[MediaStreamTrack]
-    _player: Optional[MediaPlayer]
-    _relayed_source_video_track: Optional[MediaRelay]
-    _relayed_source_audio_track: Optional[MediaRelay]
-
     @property
     def video_processor(
         self,
@@ -350,32 +335,28 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     def __init__(
         self,
         mode: WebRtcMode,
-        source_video_track: Optional[MediaStreamTrack] = None,
-        source_audio_track: Optional[MediaStreamTrack] = None,
-        player_factory: Optional[MediaPlayerFactory] = None,
-        in_recorder_factory: Optional[MediaRecorderFactory] = None,
-        out_recorder_factory: Optional[MediaRecorderFactory] = None,
-        video_frame_callback: Optional[VideoFrameCallback] = None,
-        audio_frame_callback: Optional[AudioFrameCallback] = None,
-        queued_video_frames_callback: Optional[QueuedVideoFramesCallback] = None,
-        queued_audio_frames_callback: Optional[QueuedAudioFramesCallback] = None,
-        on_video_ended: Optional[MediaEndedCallback] = None,
-        on_audio_ended: Optional[MediaEndedCallback] = None,
-        video_processor_factory: Optional[
-            VideoProcessorFactory[VideoProcessorT]
-        ] = None,
-        audio_processor_factory: Optional[
-            AudioProcessorFactory[AudioProcessorT]
-        ] = None,
-        async_processing: bool = True,
-        video_receiver_size: int = 4,
-        audio_receiver_size: int = 4,
-        sendback_video: bool = True,
-        sendback_audio: bool = True,
+        source_video_track: Optional[MediaStreamTrack],
+        source_audio_track: Optional[MediaStreamTrack],
+        player_factory: Optional[MediaPlayerFactory],
+        in_recorder_factory: Optional[MediaRecorderFactory],
+        out_recorder_factory: Optional[MediaRecorderFactory],
+        video_frame_callback: Optional[VideoFrameCallback],
+        audio_frame_callback: Optional[AudioFrameCallback],
+        queued_video_frames_callback: Optional[QueuedVideoFramesCallback],
+        queued_audio_frames_callback: Optional[QueuedAudioFramesCallback],
+        on_video_ended: Optional[MediaEndedCallback],
+        on_audio_ended: Optional[MediaEndedCallback],
+        video_processor_factory: Optional[VideoProcessorFactory[VideoProcessorT]],
+        audio_processor_factory: Optional[AudioProcessorFactory[AudioProcessorT]],
+        async_processing: bool,
+        video_receiver_size: int,
+        audio_receiver_size: int,
+        sendback_video: bool,
+        sendback_audio: bool,
     ) -> None:
-        self._process_offer_thread = None
+        self._process_offer_thread: Union[threading.Thread, None] = None
         self.pc = RTCPeerConnection()
-        self._answer_queue = queue.Queue()
+        self._answer_queue: queue.Queue = queue.Queue()
 
         self.mode = mode
         self.source_video_track = source_video_track
@@ -397,17 +378,21 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self.sendback_video = sendback_video
         self.sendback_audio = sendback_audio
 
-        self._video_processor = None
-        self._audio_processor = None
-        self._video_receiver = None
-        self._audio_receiver = None
-        self._input_video_track = None
-        self._input_audio_track = None
-        self._output_video_track = None
-        self._output_audio_track = None
-        self._player = None
-        self._relayed_source_video_track = None
-        self._relayed_source_audio_track = None
+        self._video_processor: Optional[
+            Union[VideoProcessorT, CallbackAttachableProcessor]
+        ] = None
+        self._audio_processor: Optional[
+            Union[AudioProcessorT, CallbackAttachableProcessor]
+        ] = None
+        self._video_receiver: Optional[VideoReceiver] = None
+        self._audio_receiver: Optional[AudioReceiver] = None
+        self._input_video_track: Optional[MediaStreamTrack] = None
+        self._input_audio_track: Optional[MediaStreamTrack] = None
+        self._output_video_track: Optional[MediaStreamTrack] = None
+        self._output_audio_track: Optional[MediaStreamTrack] = None
+        self._player: Optional[MediaPlayer] = None
+        self._relayed_source_video_track: Optional[MediaRelay] = None
+        self._relayed_source_audio_track: Optional[MediaRelay] = None
 
         self._session_shutdown_observer = SessionShutdownObserver(self.stop)
 
