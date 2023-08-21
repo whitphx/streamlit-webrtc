@@ -667,6 +667,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         # Same as above,
         # the source tracks are not automatically stopped when the WebRTC.
+        # Only the relayed tracks are stopped here because
+        # the upstream tracks may still be used by other consumers.
         if self._relayed_source_audio_track:
             logger.debug("Stopping the relayed source audio track")
             self._relayed_source_audio_track.stop()
