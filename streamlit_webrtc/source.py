@@ -2,7 +2,7 @@ import asyncio
 import fractions
 import logging
 import time
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 import av
 from aiortc import MediaStreamTrack
@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 # https://github.com/aiortc/aiortc/blob/main/src/aiortc/mediastreams.py
 AUDIO_PTIME = 0.020  # 20ms audio packetization
 VIDEO_CLOCK_RATE = 90000
-VIDEO_PTIME = 1 / 30  # 30fps
 VIDEO_TIME_BASE = fractions.Fraction(1, VIDEO_CLOCK_RATE)
 
 
@@ -32,16 +31,15 @@ class VideoSourceTrack(MediaStreamTrack):
 
     _started_at: Optional[float]
     _pts: Optional[int]
+    _fps: Union[int, float]
 
-    def __init__(self, callback: VideoSourceCallback) -> None:
+    def __init__(self, callback: VideoSourceCallback, fps) -> None:
         super().__init__()
         self.kind = "video"
         self._callback = callback
         self._started_at = None
         self._pts = None
-
-    def _set_callback(self, callback: VideoSourceCallback) -> None:
-        self._callback = callback
+        self._fps = fps
 
     async def recv(self) -> av.frame.Frame:
         if self.readyState != "live":
@@ -53,7 +51,7 @@ class VideoSourceTrack(MediaStreamTrack):
 
             frame = self._call_callback(self._pts, VIDEO_TIME_BASE)
         else:
-            self._pts += int(VIDEO_PTIME * VIDEO_CLOCK_RATE)
+            self._pts += int(VIDEO_CLOCK_RATE / self._fps)
 
             frame = self._call_callback(self._pts, VIDEO_TIME_BASE)
 

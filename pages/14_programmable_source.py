@@ -37,7 +37,12 @@ def callback(pts: int, time_base: fractions.Fraction) -> av.VideoFrame:
     return av.VideoFrame.from_ndarray(buffer, format="bgr24")
 
 
-video_source_track = create_video_source_track(callback, key="video_source_track")
+fps = st.slider("fps", 1, 30, 30, 1)
+
+
+video_source_track = create_video_source_track(
+    callback, key="video_source_track", fps=fps
+)
 
 
 def on_change():

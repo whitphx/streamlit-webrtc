@@ -198,7 +198,9 @@ _VIDEO_SOURCE_TRACK_CACHE_KEY_PREFIX = "__VIDEO_SOURCE_TRACK_CACHE__"
 
 
 def create_video_source_track(
-    video_source: VideoSourceCallback, key: str
+    callback: VideoSourceCallback,
+    key: str,
+    fps=30,
 ) -> VideoSourceTrack:
     cache_key = _VIDEO_SOURCE_TRACK_CACHE_KEY_PREFIX + key
     if (
@@ -208,8 +210,9 @@ def create_video_source_track(
         and st.session_state[cache_key].readyState == "live"
     ):
         video_source_track: VideoSourceTrack = st.session_state[cache_key]
-        video_source_track._set_callback(video_source)
+        video_source_track._callback = callback
+        video_source_track._fps = fps
     else:
-        video_source_track = VideoSourceTrack(video_source)
+        video_source_track = VideoSourceTrack(callback=callback, fps=fps)
         st.session_state[cache_key] = video_source_track
     return video_source_track
