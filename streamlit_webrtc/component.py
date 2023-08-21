@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import warnings
 import weakref
 from typing import (
     Any,
@@ -403,23 +404,29 @@ def webrtc_streamer(
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     # Backward compatibility
     if video_transformer_factory is not None:
-        LOGGER.warning(
+        warnings.warn(
             "The argument video_transformer_factory is deprecated. "
             "Use video_processor_factory instead.\n"
-            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020"  # noqa: E501
+            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020",  # noqa: E501
+            DeprecationWarning,
+            stacklevel=2,
         )
         video_processor_factory = video_transformer_factory
     if async_transform is not None:
-        LOGGER.warning(
+        warnings.warn(
             "The argument async_transform is deprecated. "
             "Use async_processing instead.\n"
-            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020"  # noqa: E501
+            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020",  # noqa: E501
+            DeprecationWarning,
+            stacklevel=2,
         )
         async_processing = async_transform
     if client_settings is not None:
-        LOGGER.warning(
+        warnings.warn(
             "The argument client_settings is deprecated. "
-            "Use rtc_configuration and media_stream_constraints instead."
+            "Use rtc_configuration and media_stream_constraints instead.",
+            DeprecationWarning,
+            stacklevel=2,
         )
         rtc_configuration = (
             client_settings.get("rtc_configuration") if client_settings else None
