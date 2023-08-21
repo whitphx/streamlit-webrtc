@@ -3,8 +3,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.46.0] - 2023-08-21
+
+### Add
+
+- Programmable video source, #1349.
+
 ## [0.45.2] - 2023-08-21
+
 ### Fix
+
 - Fix `get_session_info` to use `SessionManager.get_session_info()` instead of `.get_active_session_info()` because the session info sometimes can be inactive when accessed from this library, #1355.
 - Warning messages, #1348.
 - Internal package updates.
