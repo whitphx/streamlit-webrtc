@@ -15,12 +15,12 @@
   <a href="https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py">
     <img src="https://global.discourse-cdn.com/business7/uploads/streamlit/original/2X/a/af111a7393c77cb69d7712ac8e71ca862feaeb24.gif" />
   </a>
-</id>
+</td>
 <td width="48%">
   <a href="https://share.streamlit.io/whitphx/style-transfer-web-app/main/app.py">
     <img src="https://global.discourse-cdn.com/business7/uploads/streamlit/original/2X/b/b3cb8aa60eb746366e06726a9137720583c02c3a.gif" />
   </a>
-</id>
+</td>
 </tr>
 </table>
 
