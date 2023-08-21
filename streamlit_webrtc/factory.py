@@ -31,6 +31,7 @@ from .process import (
     VideoProcessTrack,
 )
 from .relay import get_global_relay
+from .source import VideoSourceCallback, VideoSourceTrack
 
 _PROCESSOR_TRACK_CACHE_KEY_PREFIX = "__PROCESSOR_TRACK_CACHE__"
 
@@ -191,3 +192,27 @@ def create_mix_track(
         )
         st.session_state[cache_key] = mixer_track
     return mixer_track
+
+
+_VIDEO_SOURCE_TRACK_CACHE_KEY_PREFIX = "__VIDEO_SOURCE_TRACK_CACHE__"
+
+
+def create_video_source_track(
+    callback: VideoSourceCallback,
+    key: str,
+    fps=30,
+) -> VideoSourceTrack:
+    cache_key = _VIDEO_SOURCE_TRACK_CACHE_KEY_PREFIX + key
+    if (
+        cache_key in st.session_state
+        and isinstance(st.session_state[cache_key], VideoSourceTrack)
+        and st.session_state[cache_key].kind == "video"
+        and st.session_state[cache_key].readyState == "live"
+    ):
+        video_source_track: VideoSourceTrack = st.session_state[cache_key]
+        video_source_track._callback = callback
+        video_source_track._fps = fps
+    else:
+        video_source_track = VideoSourceTrack(callback=callback, fps=fps)
+        st.session_state[cache_key] = video_source_track
+    return video_source_track

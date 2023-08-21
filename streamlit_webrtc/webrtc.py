@@ -308,6 +308,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     _output_video_track: Optional[MediaStreamTrack]
     _output_audio_track: Optional[MediaStreamTrack]
     _player: Optional[MediaPlayer]
+    _relayed_source_video_track: Optional[MediaRelay]
+    _relayed_source_audio_track: Optional[MediaRelay]
 
     @property
     def video_processor(
@@ -404,6 +406,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._output_video_track = None
         self._output_audio_track = None
         self._player = None
+        self._relayed_source_video_track = None
+        self._relayed_source_audio_track = None
 
         self._session_shutdown_observer = SessionShutdownObserver(self.stop)
 
@@ -504,14 +508,20 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             player = self.player_factory()
             self._player = player
             if player.audio:
-                source_audio_track = relay.subscribe(player.audio)
+                source_audio_track = player.audio
             if player.video:
-                source_video_track = relay.subscribe(player.video)
+                source_video_track = player.video
         else:
-            if self.source_video_track:
-                source_video_track = relay.subscribe(self.source_video_track)
             if self.source_audio_track:
-                source_audio_track = relay.subscribe(self.source_audio_track)
+                self._relayed_source_audio_track = relay.subscribe(
+                    self.source_audio_track
+                )
+                source_audio_track = self._relayed_source_audio_track
+            if self.source_video_track:
+                self._relayed_source_video_track = relay.subscribe(
+                    self.source_video_track
+                )
+                source_video_track = self._relayed_source_video_track
 
         @self.pc.on("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
@@ -654,6 +664,21 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             if self._player.audio:
                 self._player.audio.stop()
         self._player = None
+
+        # Same as above,
+        # the source tracks are not automatically stopped when the WebRTC.
+        # Only the relayed tracks are stopped here because
+        # the upstream tracks may still be used by other consumers.
+        if self._relayed_source_audio_track:
+            logger.debug("Stopping the relayed source audio track")
+            self._relayed_source_audio_track.stop()
+        self.source_audio_track = None
+        self._relayed_source_audio_track = None
+        if self._relayed_source_video_track:
+            logger.debug("Stopping the relayed source video track")
+            self._relayed_source_video_track.stop()
+        self.source_video_track = None
+        self._relayed_source_video_track = None
 
     def stop(self, timeout: Union[float, None] = 1.0):
         self._unset_processors()
