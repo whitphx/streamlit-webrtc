@@ -1,3 +1,4 @@
+import fractions
 import time
 
 import av
@@ -9,12 +10,24 @@ from streamlit_webrtc import WebRtcMode, create_video_source_track, webrtc_strea
 thickness = st.slider("thickness", 1, 10, 3, 1)
 
 
-def callback():
+def callback(pts: int, time_base: fractions.Fraction) -> av.VideoFrame:
+    pts_sec = pts * time_base
+
     buffer = np.zeros((480, 640, 3), dtype=np.uint8)
     buffer = cv2.putText(
         buffer,
-        text=str(time.time()),
+        text=f"time: {time.time():.2f}",
         org=(0, 32),
+        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+        fontScale=1.0,
+        color=(255, 255, 0),
+        thickness=thickness,
+        lineType=cv2.LINE_4,
+    )
+    buffer = cv2.putText(
+        buffer,
+        text=f"pts: {pts} ({float(pts_sec):.2f} sec)",
+        org=(0, 64),
         fontFace=cv2.FONT_HERSHEY_SIMPLEX,
         fontScale=1.0,
         color=(255, 255, 0),

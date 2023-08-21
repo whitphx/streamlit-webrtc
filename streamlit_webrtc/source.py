@@ -22,7 +22,9 @@ VIDEO_TIME_BASE = fractions.Fraction(1, VIDEO_CLOCK_RATE)
 # https://github.com/aiortc/aiortc/blob/main/src/aiortc/mediastreams.py
 
 
-VideoSourceCallback = Callable[[], av.VideoFrame]
+VideoSourceCallback = Callable[
+    [int, fractions.Fraction], av.VideoFrame
+]  # (pts, time_base) -> frame
 
 
 class VideoSourceTrack(MediaStreamTrack):
@@ -45,13 +47,16 @@ class VideoSourceTrack(MediaStreamTrack):
         if self.readyState != "live":
             raise MediaStreamError
 
-        frame = self._callback()
-
         if self._started_at is None or self._pts is None:
             self._started_at = time.monotonic()
             self._pts = 0
+
+            frame = self._call_callback(self._pts, VIDEO_TIME_BASE)
         else:
             self._pts += int(VIDEO_PTIME * VIDEO_CLOCK_RATE)
+
+            frame = self._call_callback(self._pts, VIDEO_TIME_BASE)
+
             wait = self._started_at + (self._pts / VIDEO_CLOCK_RATE) - time.monotonic()
             if wait < 0:
                 logger.warning(
@@ -60,6 +65,18 @@ class VideoSourceTrack(MediaStreamTrack):
                 wait = 0
             await asyncio.sleep(wait)
 
-        frame.pts = self._pts
-        frame.time_base = VIDEO_TIME_BASE
+        return frame
+
+    def _call_callback(self, pts: int, time_base: fractions.Fraction) -> av.VideoFrame:
+        try:
+            frame = self._callback(pts, time_base)
+        except Exception as exc:
+            logger.error(
+                "VideoSourceCallbackTrack: Video frame callback raised an exception: %s",  # noqa: E501
+                exc,
+            )
+            raise
+
+        frame.pts = pts
+        frame.time_base = time_base
         return frame
