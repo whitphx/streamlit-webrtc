@@ -502,22 +502,26 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         relay = get_global_relay()
 
+        source_audio_track = None
+        source_video_track = None
         if self.player_factory:
             player = self.player_factory()
             self._player = player
             if player.audio:
-                self._relayed_source_audio_track = relay.subscribe(player.audio)
+                source_audio_track = player.audio
             if player.video:
-                self._relayed_source_video_track = relay.subscribe(player.video)
+                source_video_track = player.video
         else:
             if self.source_audio_track:
                 self._relayed_source_audio_track = relay.subscribe(
                     self.source_audio_track
                 )
+                source_audio_track = self._relayed_source_audio_track
             if self.source_video_track:
                 self._relayed_source_video_track = relay.subscribe(
                     self.source_video_track
                 )
+                source_video_track = self._relayed_source_video_track
 
         @self.pc.on("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
@@ -534,8 +538,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 self.pc,
                 offer,
                 relay=relay,
-                source_video_track=self._relayed_source_video_track,
-                source_audio_track=self._relayed_source_audio_track,
+                source_video_track=source_video_track,
+                source_audio_track=source_audio_track,
                 in_recorder=in_recorder,
                 out_recorder=out_recorder,
                 video_processor=video_processor,
