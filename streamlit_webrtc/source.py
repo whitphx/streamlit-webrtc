@@ -26,19 +26,13 @@ VideoSourceCallback = Callable[
 
 
 class VideoSourceTrack(MediaStreamTrack):
-    _callback: VideoSourceCallback
-
-    _started_at: Optional[float]
-    _pts: Optional[int]
-    _fps: Union[int, float]
-
-    def __init__(self, callback: VideoSourceCallback, fps) -> None:
+    def __init__(self, callback: VideoSourceCallback, fps: Union[int, float]) -> None:
         super().__init__()
         self.kind = "video"
         self._callback = callback
-        self._started_at = None
-        self._pts = None
         self._fps = fps
+        self._started_at: Optional[float] = None
+        self._pts: Optional[int] = None
 
     async def recv(self) -> av.frame.Frame:
         if self.readyState != "live":
