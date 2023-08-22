@@ -93,6 +93,9 @@ async def _process_offer_coro(
     sendback_audio: bool,
     on_track_created: Callable[[TrackType, MediaStreamTrack], None],
 ):
+    AudioTrack = AsyncAudioProcessTrack if async_processing else AudioProcessTrack
+    VideoTrack = AsyncVideoProcessTrack if async_processing else VideoProcessTrack
+
     if mode == WebRtcMode.SENDRECV:
 
         @pc.on("track")
@@ -109,11 +112,6 @@ async def _process_offer_coro(
                     logger.info("Set %s as an input audio track", source_audio_track)
                     output_track = source_audio_track
                 elif audio_processor:
-                    AudioTrack = (
-                        AsyncAudioProcessTrack
-                        if async_processing
-                        else AudioProcessTrack
-                    )
                     logger.info(
                         "Set %s as an input audio track with audio_processor %s",
                         input_track,
@@ -130,11 +128,6 @@ async def _process_offer_coro(
                     logger.info("Set %s as an input video track", source_video_track)
                     output_track = source_video_track
                 elif video_processor:
-                    VideoTrack = (
-                        AsyncVideoProcessTrack
-                        if async_processing
-                        else VideoProcessTrack
-                    )
                     logger.info(
                         "Set %s as an input video track with video_processor %s",
                         input_track,
@@ -198,11 +191,6 @@ async def _process_offer_coro(
             if input_track.kind == "audio":
                 if audio_receiver:
                     if audio_processor:
-                        AudioTrack = (
-                            AsyncAudioProcessTrack
-                            if async_processing
-                            else AudioProcessTrack
-                        )
                         logger.info(
                             "Set %s as an input audio track with audio_processor %s",
                             input_track,
@@ -221,11 +209,6 @@ async def _process_offer_coro(
             elif input_track.kind == "video":
                 if video_receiver:
                     if video_processor:
-                        VideoTrack = (
-                            AsyncVideoProcessTrack
-                            if async_processing
-                            else VideoProcessTrack
-                        )
                         logger.info(
                             "Set %s as an input video track with video_processor %s",
                             input_track,
@@ -263,11 +246,6 @@ async def _process_offer_coro(
             if t.kind == "audio":
                 if source_audio_track:
                     if audio_processor:
-                        AudioTrack = (
-                            AsyncAudioProcessTrack
-                            if async_processing
-                            else AudioProcessTrack
-                        )
                         logger.info(
                             "Set %s as an input audio track with audio_processor %s",
                             source_audio_track,
@@ -281,11 +259,6 @@ async def _process_offer_coro(
             elif t.kind == "video":
                 if source_video_track:
                     if video_processor:
-                        VideoTrack = (
-                            AsyncVideoProcessTrack
-                            if async_processing
-                            else VideoProcessTrack
-                        )
                         logger.info(
                             "Set %s as an input video track with video_processor %s",
                             source_video_track,
