@@ -93,10 +93,13 @@ async def _process_offer_coro(
     sendback_audio: bool,
     on_track_created: Callable[[TrackType, MediaStreamTrack], None],
 ):
+    AudioTrack = AsyncAudioProcessTrack if async_processing else AudioProcessTrack
+    VideoTrack = AsyncVideoProcessTrack if async_processing else VideoProcessTrack
+
     if mode == WebRtcMode.SENDRECV:
 
         @pc.on("track")
-        def on_track(input_track):
+        def on_track(input_track: MediaStreamTrack):
             logger.info("Track %s received", input_track.kind)
 
             if input_track.kind == "video":
@@ -104,18 +107,11 @@ async def _process_offer_coro(
             elif input_track.kind == "audio":
                 on_track_created("input:audio", input_track)
 
-            output_track = None
-
             if input_track.kind == "audio":
                 if source_audio_track:
                     logger.info("Set %s as an input audio track", source_audio_track)
                     output_track = source_audio_track
                 elif audio_processor:
-                    AudioTrack = (
-                        AsyncAudioProcessTrack
-                        if async_processing
-                        else AudioProcessTrack
-                    )
                     logger.info(
                         "Set %s as an input audio track with audio_processor %s",
                         input_track,
@@ -132,11 +128,6 @@ async def _process_offer_coro(
                     logger.info("Set %s as an input video track", source_video_track)
                     output_track = source_video_track
                 elif video_processor:
-                    VideoTrack = (
-                        AsyncVideoProcessTrack
-                        if async_processing
-                        else VideoProcessTrack
-                    )
                     logger.info(
                         "Set %s as an input video track with video_processor %s",
                         input_track,
@@ -148,6 +139,8 @@ async def _process_offer_coro(
                     )
                 else:
                     output_track = input_track
+            else:
+                raise Exception(f"Unknown track kind {input_track.kind}")
 
             if (output_track.kind == "video" and sendback_video) or (
                 output_track.kind == "audio" and sendback_audio
@@ -187,7 +180,7 @@ async def _process_offer_coro(
     elif mode == WebRtcMode.SENDONLY:
 
         @pc.on("track")
-        def on_track(input_track):
+        def on_track(input_track: MediaStreamTrack):
             logger.info("Track %s received", input_track.kind)
 
             if input_track.kind == "video":
@@ -197,16 +190,40 @@ async def _process_offer_coro(
 
             if input_track.kind == "audio":
                 if audio_receiver:
+                    if audio_processor:
+                        logger.info(
+                            "Set %s as an input audio track with audio_processor %s",
+                            input_track,
+                            AudioTrack,
+                        )
+                        output_track = AudioTrack(
+                            track=relay.subscribe(input_track),
+                            processor=audio_processor,
+                        )
+                    else:
+                        output_track = input_track  # passthrough
                     logger.info(
-                        "Add a track %s to receiver %s", input_track, audio_receiver
+                        "Add a track %s to receiver %s", output_track, audio_receiver
                     )
-                    audio_receiver.addTrack(relay.subscribe(input_track))
+                    audio_receiver.addTrack(relay.subscribe(output_track))
             elif input_track.kind == "video":
                 if video_receiver:
+                    if video_processor:
+                        logger.info(
+                            "Set %s as an input video track with video_processor %s",
+                            input_track,
+                            VideoTrack,
+                        )
+                        output_track = VideoTrack(
+                            track=relay.subscribe(input_track),
+                            processor=video_processor,
+                        )
+                    else:
+                        output_track = input_track  # passthrough
                     logger.info(
-                        "Add a track %s to receiver %s", input_track, video_receiver
+                        "Add a track %s to receiver %s", output_track, video_receiver
                     )
-                    video_receiver.addTrack(relay.subscribe(input_track))
+                    video_receiver.addTrack(relay.subscribe(output_track))
 
             if in_recorder:
                 logger.info("Track %s is added to in_recorder", input_track.kind)
@@ -229,11 +246,6 @@ async def _process_offer_coro(
             if t.kind == "audio":
                 if source_audio_track:
                     if audio_processor:
-                        AudioTrack = (
-                            AsyncAudioProcessTrack
-                            if async_processing
-                            else AudioProcessTrack
-                        )
                         logger.info(
                             "Set %s as an input audio track with audio_processor %s",
                             source_audio_track,
@@ -247,11 +259,6 @@ async def _process_offer_coro(
             elif t.kind == "video":
                 if source_video_track:
                     if video_processor:
-                        VideoTrack = (
-                            AsyncVideoProcessTrack
-                            if async_processing
-                            else VideoProcessTrack
-                        )
                         logger.info(
                             "Set %s as an input video track with video_processor %s",
                             source_video_track,
