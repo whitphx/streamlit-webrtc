@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.47.0] - 2023-08-23
+
+### Add
+
+- Frame callbacks for the SENDONLY mode, #1347.
+
 ## [0.46.0] - 2023-08-21
 
 ### Add
