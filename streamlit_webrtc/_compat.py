@@ -88,7 +88,7 @@ except ModuleNotFoundError:
 
 
 try:
-    from streamlit import rerun
+    from streamlit import rerun  # type: ignore
 except ImportError:
     # streamlit < 1.27.0
     from streamlit import experimental_rerun as rerun  # type: ignore
