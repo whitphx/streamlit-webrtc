@@ -34,6 +34,7 @@ except ImportError:
 import streamlit as st
 import streamlit.components.v1 as components
 
+from ._compat import rerun
 from .components_callbacks import register_callback
 from .config import (
     DEFAULT_AUDIO_HTML_ATTRS,
@@ -85,7 +86,7 @@ class WebRtcStreamerState(NamedTuple):
     signalling: bool
 
 
-# To restore component value after `streamlit.experimental_rerun()`.
+# To restore component value after `rerun()`.
 class ComponentValueSnapshot(NamedTuple):
     component_value: Union[Dict, None]
     run_count: int
@@ -512,12 +513,12 @@ def webrtc_streamer(
 
     # HACK: Save the component value in this run to the session state
     # to be restored in the next run because the component values of
-    # component instances behind the one which calls `streamlit.experimental_rerun()`
+    # component instances behind the one which calls `rerun()`
     # will not be held but be reset to the initial value in the next run.
     # For example, when there are two `webrtc_streamer()` component instances
-    # in a script and `streamlit.experimental_rerun()` in the first one is called,
+    # in a script and `rerun()` in the first one is called,
     # the component value of the second instance will be None in the next run
-    # after `streamlit.experimental_rerun()`.
+    # after `rerun()`.
     session_info = get_this_session_info()
     run_count = get_script_run_count(session_info) if session_info else None
     if component_value is None:
@@ -525,8 +526,7 @@ def webrtc_streamer(
         if (
             restored_component_value_snapshot
             # Only the component value saved in the previous run is restored
-            # so that this workaround is only effective in the case of
-            # `streamlit.experimental_rerun()`.
+            # so that this workaround is only effective in the case of `rerun()`.
             and run_count == restored_component_value_snapshot.run_count + 1
         ):
             LOGGER.debug("Restore the component value (key=%s)", key)
@@ -550,7 +550,7 @@ def webrtc_streamer(
         context._set_worker(None)
         webrtc_worker = None
         # Rerun to unset the SDP answer from the frontend args
-        st.experimental_rerun()
+        rerun()
 
     if webrtc_worker:
         if video_frame_callback or queued_video_frames_callback or on_video_ended:
@@ -596,7 +596,7 @@ def webrtc_streamer(
         webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
         context._set_worker(webrtc_worker)
         # Rerun to send the SDP answer to frontend
-        st.experimental_rerun()
+        rerun()
 
     context._set_worker(webrtc_worker)
     return context

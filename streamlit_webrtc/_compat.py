@@ -87,6 +87,13 @@ except ModuleNotFoundError:
             )
 
 
+try:
+    from streamlit import rerun
+except ImportError:
+    # streamlit < 1.27.0
+    from streamlit import experimental_rerun as rerun
+
+
 __all__ = [
     "VER_GTE_1_12_0",
     "VER_GTE_1_12_1",
@@ -96,4 +103,5 @@ __all__ = [
     "AppSessionState",
     "SessionInfo",
     "get_script_run_ctx",
+    "rerun",
 ]
