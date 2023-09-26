@@ -91,7 +91,7 @@ try:
     from streamlit import rerun
 except ImportError:
     # streamlit < 1.27.0
-    from streamlit import experimental_rerun as rerun
+    from streamlit import experimental_rerun as rerun  # type: ignore
 
 
 __all__ = [
