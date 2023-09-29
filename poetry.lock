@@ -2306,13 +2306,13 @@ files = [
 
 [[package]]
 name = "streamlit"
-version = "1.27.0"
+version = "1.27.1"
 description = "A faster way to build and share data apps"
 optional = false
 python-versions = ">=3.8, !=3.9.7"
 files = [
-    {file = "streamlit-1.27.0-py2.py3-none-any.whl", hash = "sha256:7488d4e22689d04f40449a1de521ba252ae95a5fbb5f5c606df16a4e16048b47"},
-    {file = "streamlit-1.27.0.tar.gz", hash = "sha256:59a704195bbc669c794ddfcc3818480d9b9c2a282c02b48aa6e6de4b1c38d0a0"},
+    {file = "streamlit-1.27.1-py2.py3-none-any.whl", hash = "sha256:22e1f7280ba76008f34fded768cf2a5122efeb27a5ebf0e4a4990426662823d5"},
+    {file = "streamlit-1.27.1.tar.gz", hash = "sha256:e987179942d7c518d6cfa3de80737dc1f3857ec4c38ea8a63b62a1ca90cb2506"},
 ]
 
 [package.dependencies]
@@ -2325,12 +2325,12 @@ importlib-metadata = ">=1.4,<7"
 numpy = ">=1.19.3,<2"
 packaging = ">=16.8,<24"
 pandas = ">=1.3.0,<3"
-pillow = ">=7.1.0,<10"
+pillow = ">=7.1.0,<11"
 protobuf = ">=3.20,<5"
 pyarrow = ">=6.0"
 pydeck = ">=0.8.0b4,<1"
 python-dateutil = ">=2.7.3,<3"
-requests = ">=2.18,<3"
+requests = ">=2.27,<3"
 rich = ">=10.14.0,<14"
 tenacity = ">=8.1.0,<9"
 toml = ">=0.10.1,<2"
