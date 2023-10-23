@@ -104,7 +104,7 @@ jobs:
 
     # Frontend build is necessary for the package to be importable, in the tests
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version-file: .nvmrc
         cache: 'npm'
