@@ -2441,13 +2441,13 @@ files = [
 
 [[package]]
 name = "twilio"
-version = "8.13.0"
+version = "9.0.0"
 description = "Twilio API client and TwiML generator"
 optional = false
 python-versions = ">=3.7.0"
 files = [
-    {file = "twilio-8.13.0-py2.py3-none-any.whl", hash = "sha256:f5396e355de11b80c6729bd286fdc0e12c9c0b025c465f16f090034a7ef88d3d"},
-    {file = "twilio-8.13.0.tar.gz", hash = "sha256:89f629fa280b51bc21cd58b35cf640f9bbf88efd3977c0c5ec6ea6821b9880cd"},
+    {file = "twilio-9.0.0-py2.py3-none-any.whl", hash = "sha256:998bbda516e7257f5ab65b65012304b917e700688a39f3c72fb969612acf0879"},
+    {file = "twilio-9.0.0.tar.gz", hash = "sha256:0b09919de65a982a0cd3b81db1b621f5fb8e4507f5cd9c35e5cf91128717e717"},
 ]
 
 [package.dependencies]
@@ -2675,4 +2675,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<4,!=3.9.7"
-content-hash = "dfe11d136781663e9687b99c8c6b8915695368cbb19021a15aa1db8880c675e6"
+content-hash = "804962dd8f05247f6f7398075b091ecc05303a9bacd2ce716f6d34a2fc809357"
