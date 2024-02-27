@@ -188,7 +188,7 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             done_idx = tasks.index(task)
             old_tasks = tasks[:done_idx]
             for old_task in old_tasks:
-                logger.info("Cancel an old task %s", task)
+                logger.info("Cancel an old task %s", old_task)
                 old_task.cancel()
             tasks = [t for t in tasks if not t.done()]
 
