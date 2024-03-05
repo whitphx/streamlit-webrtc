@@ -19,10 +19,8 @@ typing_extensions = { version = ">=3.7.4,<5.0.0", python = "<3.8" }
 packaging = ">=20.0"
 
 [tool.poetry.group.dev.dependencies]
-black = "^21.12b0"
 click = ">=7.0,<8.0"  # We must specify the click version because we install older versions of Streamlit in the CI process and their depending click version is different from the newer releases.
-isort = "^5.10.1"
-flake8 = "^5.0.4"
+ruff = "^0.3.0"
 mypy = "^1.0.0"
 pydub = "^0.25.1"
 matplotlib = "^3.5.1"
@@ -39,31 +37,8 @@ pandas = [
 streamlit = "^1.13.0"
 twilio = ">=8.1,<10.0"
 
-[tool.black]
-line-length = 88
-target-version = ['py38']
-exclude = '''
-
-(
-  /(
-      \.eggs         # exclude a few common directories in the
-    | \.git          # root of the project
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-  )/
-  | streamlit_webrtc/frontend
-)
-'''
-
-[tool.isort]
-# https://pycqa.github.io/isort/docs/configuration/black_compatibility/
-profile = "black"
+[tool.ruff.lint]
+extend-select = ["I"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
