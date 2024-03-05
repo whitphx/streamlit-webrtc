@@ -3,11 +3,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.47.4] - 2024-03-05
+## [0.47.6] - 2024-03-05
 
 ### Fix
 
 - CI/CD pipeline, #1530.
+
+## [0.47.5] - 2024-03-05
+
+Skipped.
 
 ## [0.47.4] - 2024-03-05
 
