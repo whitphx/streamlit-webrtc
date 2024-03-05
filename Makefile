@@ -4,9 +4,8 @@ pkg/build:
 	poetry build
 
 format:
-	poetry run isort . --resolve-all-configs
-	poetry run black .
-	poetry run flake8
+	poetry run ruff format .
+	poetry run ruff check . --fix
 
 docker/build:
 # Set `--platform linux/amd64` because some packages do not work with Docker on M1 mac for now.
