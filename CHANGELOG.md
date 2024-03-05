@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.47.2] - 2024-03-05
+
+### Fix
+
+- Logging information, by @ya0guang, #1507.
+- Internal package updates.
+
 ## [0.47.1] - 2023-09-26
 
 ### Fix
