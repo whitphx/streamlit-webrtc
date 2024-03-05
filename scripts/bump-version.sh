@@ -6,6 +6,21 @@ if [ -z "${VERSION}" ]; then
   exit -1
 fi
 
+# Exit if not in git repository
+if [[ ! -d .git ]]; then
+  echo 'Not in a git repository.'
+  exit -1
+fi
+
+# Exit if not in the base branch
+BASE_BRANCH=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [[ "${CURRENT_BRANCH}" != "${BASE_BRANCH}" ]]; then
+  echo "Not in ${BASE_BRANCH} branch."
+  exit -1
+fi
+
+# Exit if working tree is dirty
 if [[ $(git diff --stat) != '' ]]; then
   echo 'Git working tree is dirty.'
   exit -1
