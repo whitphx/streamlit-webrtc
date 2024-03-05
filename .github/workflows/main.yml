@@ -156,11 +156,33 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version-file: .nvmrc
+
+    # The following steps are based on https://github.com/python-poetry/poetry/blob/def1ee8f3ae00c307ca028da53d2347615c5c32b/.github/workflows/main.yml#L51-L84
+    - name: Get full Python version
+      id: full-python-version
+      run: echo version=$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))") >> $GITHUB_OUTPUT
+
     - name: Bootstrap poetry
       run: |
         curl -sL https://install.python-poetry.org | python - -y
+
     - name: Update PATH
       run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Configure poetry
+      run: poetry config virtualenvs.in-project true
+
+    - name: Set up cache
+      uses: actions/cache@v4
+      id: cache
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
+
+    - name: Ensure cache is healthy
+      if: steps.cache.outputs.cache-hit == 'true'
+      run: timeout 10s pip --version || rm -rf .venv
+
     - name: Install Python dependencies
       run: poetry install
     - name: Install fronend dependencies
