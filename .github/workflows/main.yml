@@ -1,21 +1,17 @@
-name: Tests
+name: Test, Build, and Publish
 
 on:
   push:
     branches:
       - main
       - develop/**
-    paths-ignore:
-      - 'streamlit_webrtc/frontend/**'
   pull_request:
     branches:
       - main
       - develop/**
-    paths-ignore:
-      - 'streamlit_webrtc/frontend/**'
 
 jobs:
-  tests:
+  test-python:
 
     runs-on: ubuntu-latest
     strategy:
@@ -119,3 +115,129 @@ jobs:
     - name: Test with pytest
       run: |
         poetry run pytest
+
+  test-frontend:
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: streamlit_webrtc/frontend
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: 'npm'
+        cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
+    - run: npm ci
+    - name: Lint
+      run: |
+        npm run check:eslint
+        npm run check:prettier
+    - run: npm run build --if-present
+    - run: npm test
+
+  build:
+    if: ${{ ! failure() }}  # This job should run even if the depending jobs are skipped, but not when those jobs failed: https://qiita.com/abetomo/items/d9ede7dbeeb24f723fc5#%E8%A8%AD%E5%AE%9A%E4%BE%8B4
+    needs: [test-python, test-frontend]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+
+    # The following steps are based on https://github.com/python-poetry/poetry/blob/def1ee8f3ae00c307ca028da53d2347615c5c32b/.github/workflows/main.yml#L51-L84
+    - name: Get full Python version
+      id: full-python-version
+      run: echo version=$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))") >> $GITHUB_OUTPUT
+
+    - name: Bootstrap poetry
+      run: |
+        curl -sL https://install.python-poetry.org | python - -y
+
+    - name: Update PATH
+      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Configure poetry
+      run: poetry config virtualenvs.in-project true
+
+    - name: Set up cache
+      uses: actions/cache@v4
+      id: cache
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
+
+    - name: Ensure cache is healthy
+      if: steps.cache.outputs.cache-hit == 'true'
+      run: timeout 10s pip --version || rm -rf .venv
+
+    - name: Install Python dependencies
+      run: poetry install
+    - name: Install fronend dependencies
+      run: npm ci
+      working-directory: streamlit_webrtc/frontend
+    - name: Build
+      run: make pkg/build
+
+    - name: Upload the built artifacts
+      uses: actions/upload-artifact@v4
+      if: ${{ ! startsWith(github.ref, 'refs/tags/v') }}
+      with:
+        path: dist
+        name: streamlit-webrtc-${{ github.sha }}
+
+    - name: Upload the built artifacts (when pushed with a version tag)
+      uses: actions/upload-artifact@v4
+      if: startsWith(github.ref, 'refs/tags/v')
+      with:
+        path: dist
+        name: streamlit-webrtc-${{ github.ref_name }}
+
+  publish:
+    if: ${{ !failure() && startsWith(github.ref, 'refs/tags/v') }}  # `!failure()` is necessary to avoid skipping this job after successful build: https://github.com/actions/runner/issues/491
+    needs: [build]
+
+    permissions:
+      contents: write  # Necessary for creating releases: https://github.com/softprops/action-gh-release#permissions
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - name: Bootstrap poetry
+      run: |
+        curl -sL https://install.python-poetry.org | python - -y
+    - name: Update PATH
+      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: streamlit-webrtc-${{ github.ref_name }}
+        path: dist
+
+    - name: Publish
+      env:
+        PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+      run: poetry publish -u __token__ -p ${PYPI_TOKEN}
+
+    - name: Create a new release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*
+        generate_release_notes: true
