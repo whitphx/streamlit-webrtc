@@ -128,7 +128,7 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
     _input_queue: asyncio.Queue
     _queue: "asyncio.Queue[Optional[Frame]]"
     _latest_frames_map: (
-        "weakref.WeakKeyDictionary[RelayStreamTrack, Union[Frame, None]]"  # noqa: E501
+        "weakref.WeakKeyDictionary[RelayStreamTrack, Union[Frame, None]]"
     )
     _latest_frames_updated_event: asyncio.Event
 
