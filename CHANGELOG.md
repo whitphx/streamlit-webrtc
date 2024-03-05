@@ -7,6 +7,12 @@ All notable changes to this project will be documented in this file.
 
 ### Fix
 
+- CI/CD pipeline, #1530.
+
+## [0.47.4] - 2024-03-05
+
+### Fix
+
 - Internal package updates.
 
 ## [0.47.3] - 2024-03-05
