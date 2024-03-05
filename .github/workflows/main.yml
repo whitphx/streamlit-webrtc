@@ -89,11 +89,10 @@ jobs:
         STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
     - name: Install dependencies
       run: poetry install
-    - name: Lint with black, isort, and flake8
+    - name: Run Ruff
       run: |
-        poetry run black . --check
-        poetry run isort . --check --resolve-all-configs
-        poetry run flake8
+        poetry run ruff check --output-format=github .
+        poetry run ruff format . --check
     - name: Type checking with mypy
       run: |
         poetry run mypy .

@@ -63,8 +63,7 @@ def create_process_track(
     frame_callback: Optional[FrameCallback] = None,
     queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     on_ended: Optional[MediaEndedCallback] = None,
-) -> AudioProcessTrack[AudioProcessorT]:
-    ...
+) -> AudioProcessTrack[AudioProcessorT]: ...
 
 
 @overload
@@ -76,8 +75,7 @@ def create_process_track(
     frame_callback: Optional[FrameCallback] = None,
     queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     on_ended: Optional[MediaEndedCallback] = None,
-) -> AsyncAudioProcessTrack[AudioProcessorT]:
-    ...
+) -> AsyncAudioProcessTrack[AudioProcessorT]: ...
 
 
 @overload
@@ -89,8 +87,7 @@ def create_process_track(
     frame_callback: Optional[FrameCallback] = None,
     queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     on_ended: Optional[MediaEndedCallback] = None,
-) -> VideoProcessTrack[VideoProcessorT]:
-    ...
+) -> VideoProcessTrack[VideoProcessorT]: ...
 
 
 @overload
@@ -102,8 +99,7 @@ def create_process_track(
     frame_callback: Optional[FrameCallback] = None,
     queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     on_ended: Optional[MediaEndedCallback] = None,
-) -> AsyncVideoProcessTrack[VideoProcessorT]:
-    ...
+) -> AsyncVideoProcessTrack[VideoProcessorT]: ...
 
 
 # Overloads for the cases where the processor_factory is NOT specified
@@ -116,8 +112,7 @@ def create_process_track(
     processor_factory: Literal[None] = None,
     queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     on_ended: Optional[MediaEndedCallback] = None,
-) -> MediaProcessTrack[CallbackAttachableProcessor[FrameT], FrameT]:
-    ...
+) -> MediaProcessTrack[CallbackAttachableProcessor[FrameT], FrameT]: ...
 
 
 @overload
@@ -129,8 +124,7 @@ def create_process_track(
     async_processing: Literal[True] = True,
     queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     on_ended: Optional[MediaEndedCallback] = None,
-) -> AsyncMediaProcessTrack[CallbackAttachableProcessor[FrameT], FrameT]:
-    ...
+) -> AsyncMediaProcessTrack[CallbackAttachableProcessor[FrameT], FrameT]: ...
 
 
 def create_process_track(

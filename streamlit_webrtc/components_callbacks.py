@@ -25,6 +25,7 @@ Here's the result when you call Streamlit.setComponentValue():
     Script begins...
 
 """
+
 from streamlit import session_state as _state
 from streamlit.components.v1 import components as _components
 

@@ -1,5 +1,4 @@
-""" A script to check whether a variable `_RELEASE` is set as True.
-"""
+"""A script to check whether a variable `_RELEASE` is set as True."""
 
 import argparse
 import ast

@@ -1,5 +1,4 @@
-"""streamlit-webrtc
-"""
+"""streamlit-webrtc"""
 
 try:
     import importlib.metadata as importlib_metadata
