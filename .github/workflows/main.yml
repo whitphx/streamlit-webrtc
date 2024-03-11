@@ -238,7 +238,7 @@ jobs:
       run: poetry publish -u __token__ -p ${PYPI_TOKEN}
 
     - name: Create a new release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: dist/*
         generate_release_notes: true
