@@ -127,34 +127,34 @@ ifaddr = ">=0.2.0"
 
 [[package]]
 name = "aiortc"
-version = "1.7.0"
+version = "1.8.0"
 description = "An implementation of WebRTC and ORTC"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "aiortc-1.7.0-cp38-abi3-macosx_10_9_x86_64.whl", hash = "sha256:aba47eac61ee7fb7e89876f40e4132aa66a13ed2a730dff003342e57219f34c0"},
-    {file = "aiortc-1.7.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:169abaaa0c11a1695942b3eeea9d9032ea4992c6e84958c1b31c6ba22fcf4b0e"},
-    {file = "aiortc-1.7.0-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c5323a347d02d53989e61944eead19e550d930afbb872dd0fb51b3d065aaa833"},
-    {file = "aiortc-1.7.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:71c18762ebfeb239352705672e598c57f0e56e5c1b7955dba27651c801c56ea2"},
-    {file = "aiortc-1.7.0-cp38-abi3-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:817526c2e429a1ef1226ca9cdb4ff3c5d03857eb31de0f5a00433dc4cb5569f3"},
-    {file = "aiortc-1.7.0-cp38-abi3-win32.whl", hash = "sha256:a63c4da5c4a9d96ef6e3948c1f4675e02b0b908605eff4cea8b5e2fa5a34da4e"},
-    {file = "aiortc-1.7.0-cp38-abi3-win_amd64.whl", hash = "sha256:e60f19f810a552690bf6e969429c624df39af2b5079ee0d95fb75d110b978e20"},
-    {file = "aiortc-1.7.0-pp310-pypy310_pp73-macosx_10_9_x86_64.whl", hash = "sha256:e7407d7065cbc649adf866927c007d84f94eeb3fcaa65f44eb94def8c2c5bbca"},
-    {file = "aiortc-1.7.0-pp310-pypy310_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:35e1dce2697762841dd3cc5a6e23ef8a0d96207e3fd33b834b5a8686748f6143"},
-    {file = "aiortc-1.7.0-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f77cc2d757d7c3c37c6157cce36fe13fc161c5cb5aea62759c8b0d3e6d7f45f9"},
-    {file = "aiortc-1.7.0-pp310-pypy310_pp73-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:80465daa66f89e4fd22b6afd3a6ae71ffd506343cf30025dbc36eb5453f95330"},
-    {file = "aiortc-1.7.0-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:8fcf352df6fabad32fd337dc51b629060de80d06987a8544c3c842ecc04254f8"},
-    {file = "aiortc-1.7.0-pp38-pypy38_pp73-macosx_10_9_x86_64.whl", hash = "sha256:5b1427673e3ef8889dbd1c4f05d3d2aa7895cbfdc985532d54892ad6f96fc08c"},
-    {file = "aiortc-1.7.0-pp38-pypy38_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ec2d018bd01c7532188be5842e11de252a1346156880ff3387d4f879c9f163d2"},
-    {file = "aiortc-1.7.0-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4f21e0024c0c7b07fec87e1ffcc30b6dbd57d1b822324d9c0128731388a82f08"},
-    {file = "aiortc-1.7.0-pp38-pypy38_pp73-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:fd267c338bd6578b46fb8f664418f9a48ad5d1582895eb029b4c5087e105fc89"},
-    {file = "aiortc-1.7.0-pp38-pypy38_pp73-win_amd64.whl", hash = "sha256:919b6edbc1e462cb00e313d44368798066c3ebe81525ec6fb6008e0cad572c97"},
-    {file = "aiortc-1.7.0-pp39-pypy39_pp73-macosx_10_9_x86_64.whl", hash = "sha256:573314501d4aa2ef5e8826abe7e675742c92d25908f5f6b48ea2f5fababdfb4b"},
-    {file = "aiortc-1.7.0-pp39-pypy39_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:791f525577033572ee937853159cff2c63121d1e30d9c93df4ef3a4c94eec5ec"},
-    {file = "aiortc-1.7.0-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:52e945b2ba536e4e78c106e6c923f73b1838bf0c35592d729ea9b3ba6791b108"},
-    {file = "aiortc-1.7.0-pp39-pypy39_pp73-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:89a8aef4067c68ccbc97872d506b9b80d5ed39e0cc41a46d641b66c518e00240"},
-    {file = "aiortc-1.7.0-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:0b7248716706c52e3bc1f21a89a1a9ca205e95a74c0b4aa4b2863d2162fd2552"},
-    {file = "aiortc-1.7.0.tar.gz", hash = "sha256:4fd900797b419a9189443b7c95a2ce4bf5aa0d9542d8d19edfabf30aa5fbc296"},
+    {file = "aiortc-1.8.0-cp38-abi3-macosx_10_9_x86_64.whl", hash = "sha256:ac0bc48c9f98a744f6696be287b0403648deb3e20bd7f8fa91eb841e1c6c4e8d"},
+    {file = "aiortc-1.8.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:639afa23b7d5c6f7d4f3f7af5fadb9cc67c82d56e17840b4433d2e5f73958bb5"},
+    {file = "aiortc-1.8.0-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:173dcfa6f0e989f65eb9d38f151d8834677df0f696f9f4ad925ee9795e914eaf"},
+    {file = "aiortc-1.8.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b453def215c246486747e8ba5c1307a538071d6bfbb2a4e74ebfef583771a429"},
+    {file = "aiortc-1.8.0-cp38-abi3-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:22efeb53dab9eb58a1a6c2dcdeb72ae526de0a2b30334fc40782341df92a657d"},
+    {file = "aiortc-1.8.0-cp38-abi3-win32.whl", hash = "sha256:4ec0c5c284c3345a9d994253ced4ad909acf9e375271a7ff01db165b09890ce8"},
+    {file = "aiortc-1.8.0-cp38-abi3-win_amd64.whl", hash = "sha256:76454c55a59441a76f6ab7cd1218454389520d6a3cc9b0d13d428f6a3f2ebbcc"},
+    {file = "aiortc-1.8.0-pp310-pypy310_pp73-macosx_10_9_x86_64.whl", hash = "sha256:b0eb1342595e386befcad56cd0f91cd5cd16daa7612ffc5c8abf7e5b58e529f5"},
+    {file = "aiortc-1.8.0-pp310-pypy310_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4cbbdf78ac55e05d838fe4de326ed095ca6df1cd10d571958d2ef8f23792203b"},
+    {file = "aiortc-1.8.0-pp310-pypy310_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0bb565acb623474d8052926f2ee768dbf1f87a71d271df78482319c0bec7c817"},
+    {file = "aiortc-1.8.0-pp310-pypy310_pp73-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:bd50def722eb6b999ebc831eca7bea79019d2eda71dc79f4219a9ab19d65c961"},
+    {file = "aiortc-1.8.0-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:4054f42f9ef875c67e38c0e86532e85e7ba528957052bc3d99e7c7caf273c456"},
+    {file = "aiortc-1.8.0-pp38-pypy38_pp73-macosx_10_9_x86_64.whl", hash = "sha256:ef40f132262a670169121b888a448e1973e892f1ed8a5f5980ab05a12ee78a32"},
+    {file = "aiortc-1.8.0-pp38-pypy38_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e53d9f999104a2438c0c23f2cbc991c5e15e46c0fe71476d60c222b62e4c5a70"},
+    {file = "aiortc-1.8.0-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f3a1ef2e0d657aaca42106558c7c8d6e84c7088d0b70bc1fe3f93c555c242e38"},
+    {file = "aiortc-1.8.0-pp38-pypy38_pp73-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:454012e08c9ef5027c2543d4e97b6f1323ce027ec395202478a7e431b2519c5b"},
+    {file = "aiortc-1.8.0-pp38-pypy38_pp73-win_amd64.whl", hash = "sha256:09dd2fad7a52f8fc66c86cdd2dd4d281b9815afd996e41301dd2706ccd57438a"},
+    {file = "aiortc-1.8.0-pp39-pypy39_pp73-macosx_10_9_x86_64.whl", hash = "sha256:d669b635bbd8cf76fce63d3ceb83da5b219cea8bae4b566233f68618e69446cb"},
+    {file = "aiortc-1.8.0-pp39-pypy39_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8ccc4da8821e7ecdd2179bc5eb7fd5f12e50db8fc6affdbc8baa55f3f14dd377"},
+    {file = "aiortc-1.8.0-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:29ba65bcb4c4cd1b25109d1e7ee5cf303654b757a3b7b59a28e162953e5f6c36"},
+    {file = "aiortc-1.8.0-pp39-pypy39_pp73-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1be4571e70e15b443f5b9ae651e24ac9dafb8b9abc1cdeb14e5f4bf028639944"},
+    {file = "aiortc-1.8.0-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:2e20fe3cb4a8b6db4f5e8f625ff1eb9dafc67b7c0c9a0cb9969b646570aebd34"},
+    {file = "aiortc-1.8.0.tar.gz", hash = "sha256:2363c08d1d2cb3aaed563c1fb256f5dae9f3ba75b70ad5e5df6d448504122591"},
 ]
 
 [package.dependencies]
