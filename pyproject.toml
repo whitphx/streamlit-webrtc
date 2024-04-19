@@ -20,7 +20,7 @@ packaging = ">=20.0"
 
 [tool.poetry.group.dev.dependencies]
 click = ">=7.0,<8.0"  # We must specify the click version because we install older versions of Streamlit in the CI process and their depending click version is different from the newer releases.
-ruff = "^0.3.0"
+ruff = ">=0.3,<0.5"
 mypy = "^1.0.0"
 pydub = "^0.25.1"
 matplotlib = "^3.5.1"
