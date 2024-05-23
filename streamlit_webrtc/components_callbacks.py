@@ -30,9 +30,9 @@ from streamlit import session_state as _state
 
 try:
     # Streamlit >= 1.34.0 (Ref: https://github.com/streamlit/streamlit/pull/8457)
-    from streamlit.components.v1 import custom_component as _components
+    from streamlit.components.v1 import custom_component as _components  # type: ignore
 except ImportError:
-    from streamlit.components.v1 import components as _components
+    from streamlit.components.v1 import components as _components  # type: ignore
 
 
 def _patch_register_widget(register_widget):
