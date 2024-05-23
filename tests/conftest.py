@@ -1,8 +1,9 @@
+import streamlit as st
+from packaging import version
+
+
 def setup_runtime():
-    """`streamlit.components.v1.components.declare_component()` requires a Streamlit Runtime instance exists since Streamlit 1.34.0,
-    so we instantiate it here before all tests.
-    This code is based on https://github.com/streamlit/streamlit/blob/1.34.0/lib/streamlit/web/server/server.py#L228-L251
-    """
+    """This code is based on https://github.com/streamlit/streamlit/blob/1.34.0/lib/streamlit/web/server/server.py#L228-L251"""
     from streamlit.runtime import Runtime, RuntimeConfig
     from streamlit.runtime.memory_media_file_storage import MemoryMediaFileStorage
     from streamlit.runtime.memory_uploaded_file_manager import MemoryUploadedFileManager
@@ -34,4 +35,10 @@ def setup_runtime():
     )
 
 
-setup_runtime()
+ST_VERSION = version.parse(st.__version__)
+
+if ST_VERSION >= version.parse("1.34.0"):
+    """ `streamlit.components.v1.components.declare_component()` requires a Streamlit Runtime instance exists since Streamlit 1.34.0,
+    so we instantiate it here before all tests.
+    """
+    setup_runtime()
