@@ -21,7 +21,7 @@
     "react-scripts": "5.0.1",
     "streamlit-component-lib-react-hooks": "^1.2.8",
     "typescript": "^4.8.4",
-    "webrtc-adapter": "^8.2.3"
+    "webrtc-adapter": "^9.0.1"
   },
   "scripts": {
     "start": "react-scripts start",
