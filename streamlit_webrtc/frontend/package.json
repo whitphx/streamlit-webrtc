@@ -63,7 +63,7 @@
   "homepage": ".",
   "devDependencies": {
     "@storybook/addon-actions": "^6.5.12",
-    "@storybook/addon-essentials": "^6.5.12",
+    "@storybook/addon-essentials": "^8.2.9",
     "@storybook/addon-links": "^6.5.12",
     "@storybook/node-logger": "^6.5.12",
     "@storybook/preset-create-react-app": "^7.6.17",
