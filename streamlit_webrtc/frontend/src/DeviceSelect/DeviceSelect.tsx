@@ -26,7 +26,7 @@ import { stopAllTracks } from "./utils";
 
 function ensureValidSelection(
   devices: MediaDeviceInfo[],
-  selectedDeviceId: MediaDeviceInfo["deviceId"] | undefined
+  selectedDeviceId: MediaDeviceInfo["deviceId"] | undefined,
 ): MediaDeviceInfo["deviceId"] | undefined {
   const deviceIds = devices.map((d) => d.deviceId);
   if (selectedDeviceId && deviceIds.includes(selectedDeviceId)) {
@@ -93,11 +93,11 @@ const deviceSelectionReducer: Reducer<
 
       const selectedVideoInputDeviceId = ensureValidSelection(
         videoInputs,
-        state.selectedVideoInputDeviceId
+        state.selectedVideoInputDeviceId,
       );
       const selectedAudioInputDeviceId = ensureValidSelection(
         audioInputs,
-        state.selectedAudioInputDeviceId
+        state.selectedAudioInputDeviceId,
       );
 
       return {

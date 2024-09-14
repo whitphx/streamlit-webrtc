@@ -38,7 +38,7 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
     deviceIds.video,
     deviceIds.audio,
     props.onComponentValueChange,
-    setDeviceIds
+    setDeviceIds,
   );
 
   const mode = props.mode;
@@ -50,7 +50,7 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
   const receivable = isWebRtcMode(mode) && isReceivable(mode);
   const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
   const { videoEnabled, audioEnabled } = getMediaUsage(
-    props.mediaStreamConstraints
+    props.mediaStreamConstraints,
   );
 
   const [deviceSelectOpen, setDeviceSelectOpen] = useState(false);

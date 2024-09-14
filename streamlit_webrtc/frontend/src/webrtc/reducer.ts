@@ -77,7 +77,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
 };
 
 export const connectReducer = (
-  onComponentValueChange: (newComponentValue: ComponentValue) => void
+  onComponentValueChange: (newComponentValue: ComponentValue) => void,
 ): React.Reducer<State, Action> => {
   const connectedReducer: React.Reducer<State, Action> = (state, action) => {
     const nextState = reducer(state, action);
