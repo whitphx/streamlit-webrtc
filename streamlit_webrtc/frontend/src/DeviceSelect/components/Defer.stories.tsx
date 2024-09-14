@@ -1,18 +1,22 @@
 import React from "react";
 import Paper from "@mui/material/Paper";
-import { ComponentStory, ComponentMeta } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react";
 
 import Defer from "./Defer";
 
-export default {
+const meta: Meta<typeof Defer> = {
   title: "DeviceSelect/Defer",
   component: Defer,
-} as ComponentMeta<typeof Defer>;
+};
+
+export default meta;
+type Story = StoryObj<typeof Defer>;
 
 const InnerComponent = () => <Paper>Lorem ipsum</Paper>;
 
-export const Default: ComponentStory<typeof Defer> = () => (
-  <Defer time={1000}>
-    <InnerComponent />
-  </Defer>
-);
+export const Default: Story = {
+  args: {
+    time: 1000,
+    children: <InnerComponent />,
+  },
+};

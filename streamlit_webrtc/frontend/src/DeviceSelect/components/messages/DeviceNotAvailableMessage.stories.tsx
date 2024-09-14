@@ -1,18 +1,17 @@
-import React from "react";
-import { ComponentStory, ComponentMeta } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react";
 
 import DeviceNotAvailableMessage from "./DeviceNotAvailableMessage";
 
-export default {
+const meta: Meta<typeof DeviceNotAvailableMessage> = {
   title: "DeviceSelect/DeviceNotAvailableMessage",
   component: DeviceNotAvailableMessage,
-} as ComponentMeta<typeof DeviceNotAvailableMessage>;
+};
 
-const Template: ComponentStory<typeof DeviceNotAvailableMessage> = (args) => (
-  <DeviceNotAvailableMessage {...args} />
-);
+export default meta;
+type Story = StoryObj<typeof DeviceNotAvailableMessage>;
 
-export const Default = Template.bind({});
-Default.args = {
-  error: new Error("This is an error"),
+export const Default: Story = {
+  args: {
+    error: new Error("This is an error"),
+  },
 };
