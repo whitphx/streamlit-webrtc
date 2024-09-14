@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.47.9] - 2024-09-14
+
+### Fix
+
+- Internal package updates.
+- Remove `typing_extensions`, [#1798](https://github.com/whitphx/streamlit-webrtc/pull/1798).
+- Fix `author` and `description` in `pyproject.toml`, [#1799](https://github.com/whitphx/streamlit-webrtc/pull/1799).
+
 ## [0.47.8] - 2024-09-14
 
 ### Fix
