@@ -1,9 +1,4 @@
-from typing import Dict, List, Optional, Union
-
-try:
-    from typing import TypedDict
-except ImportError:
-    from typing_extensions import TypedDict
+from typing import Dict, List, Optional, TypedDict, Union
 
 RTCIceServer = TypedDict(
     "RTCIceServer",

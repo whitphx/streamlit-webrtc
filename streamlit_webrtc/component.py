@@ -10,11 +10,14 @@ from typing import (
     Generic,
     NamedTuple,
     Optional,
+    TypedDict,
     Union,
     cast,
     overload,
 )
 
+import streamlit as st
+import streamlit.components.v1 as components
 from aiortc.mediastreams import MediaStreamTrack
 
 from streamlit_webrtc.models import (
@@ -24,15 +27,6 @@ from streamlit_webrtc.models import (
     QueuedVideoFramesCallback,
     VideoFrameCallback,
 )
-
-try:
-    from typing import TypedDict
-except ImportError:
-    # Python < 3.8
-    from typing_extensions import TypedDict
-
-import streamlit as st
-import streamlit.components.v1 as components
 
 from ._compat import rerun
 from .components_callbacks import register_callback
