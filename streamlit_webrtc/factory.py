@@ -1,9 +1,4 @@
-from typing import Optional, Union, overload
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal  # type: ignore
+from typing import Literal, Optional, Union, overload
 
 import streamlit as st
 from aiortc import MediaStreamTrack

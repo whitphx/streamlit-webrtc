@@ -4,18 +4,13 @@ import itertools
 import logging
 import queue
 import threading
-from typing import Callable, Generic, Optional, Union, cast
-
-from streamlit_webrtc.shutdown import SessionShutdownObserver
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal  # type: ignore
+from typing import Callable, Generic, Literal, Optional, Union, cast
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
+
+from streamlit_webrtc.shutdown import SessionShutdownObserver
 
 from .eventloop import get_global_event_loop
 from .models import (
