@@ -1,16 +1,15 @@
-import React from "react";
-import { ComponentStory, ComponentMeta } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react";
 
 import AskPermissionMessage from "./AskPermissionMessage";
 
-export default {
+const meta: Meta<typeof AskPermissionMessage> = {
   title: "DeviceSelect/AskPermissionMessage",
   component: AskPermissionMessage,
-} as ComponentMeta<typeof AskPermissionMessage>;
+};
 
-const Template: ComponentStory<typeof AskPermissionMessage> = (args) => (
-  <AskPermissionMessage {...args} />
-);
+export default meta;
+type Story = StoryObj<typeof AskPermissionMessage>;
 
-export const Default = Template.bind({});
-Default.args = {};
+export const Default: Story = {
+  args: {},
+};

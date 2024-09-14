@@ -1,16 +1,15 @@
-import React from "react";
-import { ComponentStory, ComponentMeta } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react";
 
 import MediaApiNotAvailableMessage from "./MediaApiNotAvailableMessage";
 
-export default {
+const meta: Meta<typeof MediaApiNotAvailableMessage> = {
   title: "DeviceSelect/MediaApiNotAvailableMessage",
   component: MediaApiNotAvailableMessage,
-} as ComponentMeta<typeof MediaApiNotAvailableMessage>;
+};
 
-const Template: ComponentStory<typeof MediaApiNotAvailableMessage> = (args) => (
-  <MediaApiNotAvailableMessage {...args} />
-);
+export default meta;
+type Story = StoryObj<typeof MediaApiNotAvailableMessage>;
 
-export const Default = Template.bind({});
-Default.args = {};
+export const Default: Story = {
+  args: {},
+};

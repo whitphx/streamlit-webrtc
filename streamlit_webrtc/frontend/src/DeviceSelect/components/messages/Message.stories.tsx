@@ -1,18 +1,17 @@
-import React from "react";
-import { ComponentStory, ComponentMeta } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react";
 
 import Message from "./Message";
 
-export default {
+const meta: Meta<typeof Message> = {
   title: "DeviceSelect/Message",
   component: Message,
-} as ComponentMeta<typeof Message>;
+};
 
-const Template: ComponentStory<typeof Message> = (args) => (
-  <Message {...args} />
-);
+export default meta;
+type Story = StoryObj<typeof Message>;
 
-export const Default = Template.bind({});
-Default.args = {
-  children: "Lorem ipsum",
+export const Default: Story = {
+  args: {
+    children: "Lorem ipsum",
+  },
 };
