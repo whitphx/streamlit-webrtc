@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.0",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.10.4",
     "@mui/icons-material": "^5.10.9",
