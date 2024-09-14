@@ -17,5 +17,5 @@ ReactDOM.render(
       </TranslationProvider>
     </StreamlitProvider>
   </React.StrictMode>,
-  document.getElementById("root")
+  document.getElementById("root"),
 );

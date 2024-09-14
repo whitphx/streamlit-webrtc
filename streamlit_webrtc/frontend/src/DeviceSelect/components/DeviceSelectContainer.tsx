@@ -8,7 +8,7 @@ interface DeviceSelectContainerProps {
   children: React.ReactNode;
 }
 const DeviceSelectContainer: React.VFC<DeviceSelectContainerProps> = (
-  props
+  props,
 ) => {
   const theme = useTheme();
   const isSmallViewport = useMediaQuery(theme.breakpoints.down("sm"));

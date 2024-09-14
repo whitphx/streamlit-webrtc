@@ -1,7 +1,7 @@
 export function compileMediaConstraints(
   src: MediaStreamConstraints | undefined,
   videoDeviceId: string | undefined,
-  audioDeviceId: string | undefined
+  audioDeviceId: string | undefined,
 ): MediaStreamConstraints {
   const constraints = src || {};
 

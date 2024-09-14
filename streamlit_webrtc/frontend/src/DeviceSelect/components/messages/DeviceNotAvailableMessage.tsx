@@ -6,7 +6,7 @@ interface DeviceNotAvailableMessageProps {
   error: Error;
 }
 const DeviceNotAvailableMessage: React.VFC<DeviceNotAvailableMessageProps> = (
-  props
+  props,
 ) => {
   return (
     <Message>

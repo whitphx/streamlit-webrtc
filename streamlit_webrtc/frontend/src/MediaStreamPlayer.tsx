@@ -38,7 +38,7 @@ const MediaStreamPlayer: React.VFC<MediaStreamPlayerProps> = (props) => {
         node.srcObject = props.stream;
       }
     },
-    [props.stream]
+    [props.stream],
   );
 
   const refreshFrameHeight = useCallback(() => Streamlit.setFrameHeight(), []);
