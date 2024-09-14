@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "streamlit-webrtc"
 version = "0.47.8"
-description = ""
-authors = ["Yuichiro Tsuchiya <t.yic.yt@gmail.com>"]
+description = "Real-time video and audio processing on Streamlit"
+authors = ["Yuichiro Tachibana (Tsuchiya) <t.yic.yt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/whitphx/streamlit-webrtc"
