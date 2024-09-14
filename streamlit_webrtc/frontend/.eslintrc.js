@@ -9,6 +9,7 @@ module.exports = {
     "plugin:react/recommended",
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:storybook/recommended",
+    "prettier",
   ],
   globals: {
     Atomics: "readonly",
