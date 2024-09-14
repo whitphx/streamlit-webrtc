@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.47.8] - 2024-09-14
+
+### Fix
+
+- Internal package updates.
+
 ## [0.47.7] - 2024-05-24
 
 ### Fix
