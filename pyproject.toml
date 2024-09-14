@@ -21,7 +21,7 @@ packaging = ">=20.0"
 [tool.poetry.group.dev.dependencies]
 click = ">=7.0,<8.0"  # We must specify the click version because we install older versions of Streamlit in the CI process and their depending click version is different from the newer releases.
 ruff = ">=0.3,<0.7"
-mypy = "^1.10.1"
+mypy = "^1.11.2"
 pydub = "^0.25.1"
 matplotlib = "^3.5.1"
 deepspeech = { version = "^0.9.3", python = ">=3.5,<=3.9" }  # DeepSpeech 0.9.3 supports Python version 3.5, 3.6, 3.7, 3.8 and 3.9; https://github.com/mozilla/DeepSpeech/releases/tag/v0.9.3
