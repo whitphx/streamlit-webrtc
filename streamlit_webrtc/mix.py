@@ -99,10 +99,10 @@ async def mix_coro(mix_track: "MediaStreamMixTrack"):
             if output_frame.pts is None and output_frame.time_base is None:
                 timestamp = time.monotonic() - started_at
                 if isinstance(output_frame, av.VideoFrame):
-                    output_frame.pts = timestamp * VIDEO_CLOCK_RATE
+                    output_frame.pts = int(timestamp * VIDEO_CLOCK_RATE)
                     output_frame.time_base = VIDEO_TIME_BASE
                 elif isinstance(output_frame, av.AudioFrame):
-                    output_frame.pts = timestamp * AUDIO_SAMPLE_RATE
+                    output_frame.pts = int(timestamp * AUDIO_SAMPLE_RATE)
                     output_frame.time_base = AUDIO_TIME_BASE
 
         except Exception:
@@ -146,7 +146,7 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
         mixer_output_interval: float = 1 / 30,
     ) -> None:
         self.kind = kind
-        self._mixer_callback = mixer_callback
+        self._mixer_callback: MixerCallback[FrameT] = mixer_callback
         self._mixer_callback_lock = threading.Lock()
 
         self.mixer_output_interval = mixer_output_interval
@@ -257,8 +257,7 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
                 self._latest_frames_map.get(proxy)
                 for proxy in self._input_proxies.values()
             ]
-        latest_frames = [f for f in latest_frames if f is not None]
-        return latest_frames
+        return [f for f in latest_frames if f is not None]
 
     async def recv(self):
         if self.readyState != "live":

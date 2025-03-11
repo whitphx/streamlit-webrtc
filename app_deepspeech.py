@@ -178,7 +178,7 @@ def app_sst_with_video(
 
     async def queued_audio_frames_callback(
         frames: List[av.AudioFrame],
-    ) -> av.AudioFrame:
+    ) -> List[av.AudioFrame]:
         with frames_deque_lock:
             frames_deque.extend(frames)
 
