@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.48.0] - 2025-03-11
+
+### Change
+
+- Use the `on_change` handler instead of `components_callbacks.register_callback` for Streamlit 1.36.0 and later, [#1901](https://github.com/whitphx/streamlit-webrtc/pull/1901).
+
 ## [0.47.9] - 2024-09-14
 
 ### Fix
