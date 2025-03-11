@@ -28,7 +28,7 @@ from streamlit_webrtc.models import (
     VideoFrameCallback,
 )
 
-from ._compat import rerun
+from ._compat import VER_GTE_1_36_0, rerun
 from .components_callbacks import register_callback
 from .config import (
     DEFAULT_AUDIO_HTML_ATTRS,
@@ -481,8 +481,13 @@ def webrtc_streamer(
         if on_change and old_state != new_state:
             on_change()
 
-    register_callback(element_key=frontend_key, callback=callback)
-
+    if not VER_GTE_1_36_0:
+        register_callback(element_key=frontend_key, callback=callback)
+        kwargs = {}
+    else:
+        kwargs = {
+            "on_change": callback,
+        }
     component_value_raw: Union[Dict, str, None] = _component_func(
         key=frontend_key,
         sdp_answer_json=sdp_answer_json,
@@ -494,6 +499,7 @@ def webrtc_streamer(
         audio_html_attrs=audio_html_attrs,
         translations=translations,
         desired_playing_state=desired_playing_state,
+        **kwargs,
     )
     # HOTFIX: The return value from _component_func()
     #         is of type str with streamlit==0.84.0.
