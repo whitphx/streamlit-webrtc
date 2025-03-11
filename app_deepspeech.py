@@ -187,7 +187,7 @@ def app_sst_with_video(
         for frame in frames:
             input_array = frame.to_ndarray()
             new_frame = av.AudioFrame.from_ndarray(
-                np.zeros(input_array.shape, dtype=input_array.dtype),
+                np.zeros(input_array.shape, dtype=input_array.dtype),  # type: ignore
                 layout=frame.layout.name,
             )
             new_frame.sample_rate = frame.sample_rate
