@@ -176,7 +176,7 @@ jobs:
 
     - name: Bootstrap poetry
       run: |
-        curl -sL https://install.python-poetry.org | python - -y
+        curl -sL https://install.python-poetry.org | python - -y --version 2.1.1
 
     - name: Update PATH
       run: echo "$HOME/.local/bin" >> $GITHUB_PATH
