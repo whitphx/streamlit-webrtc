@@ -10,7 +10,7 @@ include = [
     { path = "./streamlit_webrtc/frontend/build/**/*", format = ["sdist", "wheel"] }
 ]
 exclude = [
-    { path = "./streamlit_webrtc/frontend/[!build]*", format = ["sdist", "wheel"] }
+    "./streamlit_webrtc/frontend/*",
 ]
 
 [tool.poetry.dependencies]
