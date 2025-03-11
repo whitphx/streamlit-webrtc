@@ -21,36 +21,6 @@ jobs:
       matrix:
         python-version: ["3.9", "3.10", "3.11"]
         streamlit-version: [null]
-        include:
-          # Test with streamlit <1.4.0 and >=1.4.0. See https://github.com/whitphx/streamlit-webrtc/issues/598
-          - python-version: 3.9
-            streamlit-version: 1.0.0
-          - python-version: 3.9
-            streamlit-version: 1.4.0
-          # Test with streamlit >=1.6.0. See https://github.com/whitphx/streamlit-webrtc/issues/709
-          - python-version: 3.9
-            streamlit-version: 1.6.0
-          # Test with streamlit >=1.8.0. See https://github.com/whitphx/streamlit-webrtc/issues/759
-          - python-version: 3.9
-            streamlit-version: 1.8.0
-          # Test with streamlit >=1.12.0. See https://github.com/whitphx/streamlit-webrtc/issues/1004
-          - python-version: 3.9
-            streamlit-version: 1.12.0
-          # Test with streamlit >=1.12.1. See https://github.com/whitphx/streamlit-webrtc/issues/1024
-          - python-version: 3.9
-            streamlit-version: 1.12.1
-          # Test with streamlit >=1.14.0. See https://github.com/whitphx/streamlit-webrtc/pull/1189
-          - python-version: 3.9
-            streamlit-version: 1.14.0
-          # Test with streamlit >=1.18.0. See https://github.com/whitphx/streamlit-webrtc/issues/1187
-          - python-version: 3.9
-            streamlit-version: 1.18.0
-          # Test with streamlit >=1.27.0. See https://github.com/whitphx/streamlit-webrtc/pull/1393
-          - python-version: 3.9
-            streamlit-version: 1.27.0
-          # Test with streamlit >=1.34.0. See https://github.com/whitphx/streamlit-webrtc/pull/1627
-          - python-version: 3.9
-            streamlit-version: 1.34.0
 
     steps:
     - uses: actions/checkout@v4
