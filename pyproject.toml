@@ -6,8 +6,12 @@ authors = ["Yuichiro Tachibana (Tsuchiya) <t.yic.yt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/whitphx/streamlit-webrtc"
-include = ["./streamlit_webrtc/frontend/build/**/*"]
-exclude = ["./streamlit_webrtc/frontend/[!build]*"]
+include = [
+    { path = "./streamlit_webrtc/frontend/build/**/*", format = ["sdist", "wheel"] }
+]
+exclude = [
+    { path = "./streamlit_webrtc/frontend/[!build]*", format = ["sdist", "wheel"] }
+]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
