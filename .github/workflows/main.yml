@@ -87,7 +87,9 @@ jobs:
 
     - name: Install a specific version of Streamlit
       if: ${{ matrix.streamlit-version }}
-      run: poetry add -D streamlit=="${STREAMLIT_VERSION}" setuptools
+      # Specify setuptools==75.3.0 for Python 3.8 support.
+      # TODO: Drop this once we drop Python 3.8 support.
+      run: poetry add -D streamlit=="${STREAMLIT_VERSION}" setuptools==75.3.0
       env:
         STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
     - name: Install dependencies
