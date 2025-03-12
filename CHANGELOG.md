@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.48.2] - 2025-03-12
+
+### Fix
+
+- Internal updates of frontend build setup from Webpack to Vite, [#1909](https://github.com/whitphx/streamlit-webrtc/pull/1909).
+- Dependencies updates.
+
 ## [0.48.1] - 2025-03-12
 
 ### Fix
