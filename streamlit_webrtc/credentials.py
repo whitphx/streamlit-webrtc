@@ -23,10 +23,10 @@ SOFTWARE.
 """
 # Original: https://github.com/freddyaboulton/fastrtc/blob/66f0a81b76684c5d58761464fb67642891066f93/LICENSE
 
-import os
 import json
-import urllib.request
+import os
 import urllib.error
+import urllib.request
 from typing import Literal, Optional
 
 
