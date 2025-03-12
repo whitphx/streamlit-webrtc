@@ -3,7 +3,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.48.0] - 2025-03-11
+## [0.48.1] - 2025-03-12
+
+### Fix
+
+- Bundle frontend files correctly, [#1904](https://github.com/whitphx/streamlit-webrtc/pull/1904).
+- Internal package updates.
+
+## [0.48.0] - 2025-03-12 (Yanked)
 
 ### Change
 
