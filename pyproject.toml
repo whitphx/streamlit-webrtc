@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 repository = "https://github.com/whitphx/streamlit-webrtc"
 include = [
-    { path = "./streamlit_webrtc/frontend/build/**/*", format = ["sdist", "wheel"] }
+    { path = "./streamlit_webrtc/frontend/dist/**/*", format = ["sdist", "wheel"] }
 ]
 exclude = [
     "./streamlit_webrtc/frontend/*",
