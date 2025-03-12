@@ -62,11 +62,11 @@ _RELEASE = True  # TODO: How to dynamically manage this variable?
 if not _RELEASE:
     _component_func = components.declare_component(
         "webrtc_streamer",
-        url="http://localhost:3001",
+        url="http://localhost:5173",
     )
 else:
     parent_dir = os.path.dirname(os.path.abspath(__file__))
-    build_dir = os.path.join(parent_dir, "frontend/build")
+    build_dir = os.path.join(parent_dir, "frontend/dist")
     _component_func = components.declare_component("webrtc_streamer", path=build_dir)
 
 

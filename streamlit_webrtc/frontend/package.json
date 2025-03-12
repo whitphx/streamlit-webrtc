@@ -3,30 +3,26 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.0",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.13.0",
     "@mui/icons-material": "^5.10.9",
     "@mui/material": "^5.16.7",
-    "@testing-library/jest-dom": "^6.4.6",
     "@testing-library/react": "^12.1.5",
     "@testing-library/user-event": "^14.4.3",
     "@types/chroma-js": "^2.1.4",
-    "@types/jest": "^29.5.13",
     "@types/node": "^22.5.5",
     "@types/react": "^17.0.43",
     "@types/react-dom": "^17.0.13",
     "chroma-js": "^3.1.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "react-scripts": "5.0.1",
     "streamlit-component-lib-react-hooks": "^1.2.8",
     "webrtc-adapter": "^9.0.1"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "test": "vitest",
     "fix:eslint": "eslint --fix 'src/**/*.{ts,tsx}'",
     "fix:prettier": "prettier --write .",
     "check:eslint": "eslint 'src/**/*.{ts,tsx}'",
@@ -60,7 +56,6 @@
       "last 1 safari version"
     ]
   },
-  "homepage": ".",
   "devDependencies": {
     "@chromatic-com/storybook": "^1.9.0",
     "@storybook/addon-essentials": "^8.3.0",
@@ -68,20 +63,15 @@
     "@storybook/addon-links": "^8.3.0",
     "@storybook/addon-onboarding": "^8.3.0",
     "@storybook/blocks": "^8.3.0",
-    "@storybook/preset-create-react-app": "^8.3.0",
     "@storybook/react": "^8.3.0",
-    "@storybook/react-webpack5": "^8.3.0",
     "@storybook/test": "^8.3.0",
+    "@vitejs/plugin-react": "^4.3.4",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-storybook": "^0.8.0",
     "prettier": "^3.5.3",
     "storybook": "^8.3.0",
-    "typescript": "^4.9.5"
-  },
-  "jest": {
-    "transformIgnorePatterns": [
-      "/node_modules/(?!streamlit-component-lib)",
-      "\\.pnp\\.[^\\/]+$"
-    ]
+    "typescript": "^5.8.2",
+    "vite": "^6.2.1",
+    "vitest": "^3.0.8"
   }
 }

@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { compileMediaConstraints, getMediaUsage } from "./media-constraint";
 
 describe("compileMediaConstraints()", () => {
