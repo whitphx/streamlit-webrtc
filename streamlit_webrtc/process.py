@@ -81,9 +81,9 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
 
         self.stop_timeout = stop_timeout
 
-        self._thread = None
+        self._thread: Optional[threading.Thread] = None
 
-    def _start(self):
+    def _start(self) -> None:
         if self._thread:
             return
 
@@ -128,7 +128,7 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
 
         return frames[-1]
 
-    def _worker_thread(self):
+    def _worker_thread(self) -> None:
         loop = asyncio.new_event_loop()
 
         tasks: List[asyncio.Task] = []
