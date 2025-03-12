@@ -1,5 +1,5 @@
 import Message from "./Message";
-import { useTranslation } from "../../../translation/TranslationProvider";
+import { useTranslation } from "../../../translation/useTranslation";
 
 export interface AccessDeniedMessageProps {
   error: Error;

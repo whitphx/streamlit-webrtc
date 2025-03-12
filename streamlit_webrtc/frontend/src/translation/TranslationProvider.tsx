@@ -1,20 +1,7 @@
-import React, { useMemo, useContext } from "react";
+import React, { useMemo } from "react";
 import { useRenderData } from "streamlit-component-lib-react-hooks";
 import { Translations } from "./types";
-
-const translationContext = React.createContext<Translations | undefined>(
-  undefined,
-);
-
-export const useTranslation = (key: keyof Translations) => {
-  const contextValue = useContext(translationContext);
-  if (contextValue == null) {
-    return null;
-  }
-
-  return contextValue[key];
-};
-
+import { translationContext } from "./context";
 interface TranslationProviderProps {
   children: React.ReactNode;
 }

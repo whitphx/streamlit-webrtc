@@ -1,6 +1,6 @@
 import React from "react";
 import Message from "./Message";
-import { useTranslation } from "../../../translation/TranslationProvider";
+import { useTranslation } from "../../../translation/useTranslation";
 
 export interface DeviceNotAvailableMessageProps {
   error: Error;
