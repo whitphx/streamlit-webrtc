@@ -114,7 +114,7 @@ def mixer_callback(frames: List[av.VideoFrame]) -> av.VideoFrame:
     return new_frame
 
 
-def main():
+def main() -> None:
     with server_state_lock["webrtc_contexts"]:
         if "webrtc_contexts" not in server_state:
             server_state["webrtc_contexts"] = []
@@ -144,10 +144,13 @@ def main():
         )
         mix_track.add_input_track(self_process_track)
 
-        self_process_track.processor.type = st.radio(
-            "Select transform type",
-            ("noop", "cartoon", "edges", "rotate"),
-            key="filter1-type",
+        self_process_track.processor.type = (
+            st.radio(
+                "Select transform type",
+                ("noop", "cartoon", "edges", "rotate"),
+                key="filter1-type",
+            )
+            or "noop"
         )
 
     with server_state_lock["webrtc_contexts"]:
