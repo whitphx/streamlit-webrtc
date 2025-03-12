@@ -144,10 +144,13 @@ def main() -> None:
         )
         mix_track.add_input_track(self_process_track)
 
-        self_process_track.processor.type = st.radio(
-            "Select transform type",
-            ("noop", "cartoon", "edges", "rotate"),
-            key="filter1-type",
+        self_process_track.processor.type = (
+            st.radio(
+                "Select transform type",
+                ("noop", "cartoon", "edges", "rotate"),
+                key="filter1-type",
+            )
+            or "noop"
         )
 
     with server_state_lock["webrtc_contexts"]:
