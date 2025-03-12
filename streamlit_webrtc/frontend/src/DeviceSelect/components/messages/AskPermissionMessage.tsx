@@ -1,8 +1,7 @@
-import React from "react";
 import Message from "./Message";
 import { useTranslation } from "../../../translation/TranslationProvider";
 
-const AskPermissionMessage: React.VFC = () => {
+function AskPermissionMessage() {
   return (
     <Message>
       {useTranslation("device_ask_permission") ||

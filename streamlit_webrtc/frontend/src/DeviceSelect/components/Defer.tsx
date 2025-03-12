@@ -22,11 +22,11 @@ const OverlayBox = styled(Box, {
   },
 }));
 
-interface DeferProps {
+export interface DeferProps {
   time: number;
   children: React.ReactElement;
 }
-const Defer: React.VFC<DeferProps> = (props) => {
+function Defer(props: DeferProps) {
   const [elapsed, setElapsed] = useState(false);
 
   useEffect(() => {

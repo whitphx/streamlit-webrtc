@@ -7,9 +7,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 interface DeviceSelectContainerProps {
   children: React.ReactNode;
 }
-const DeviceSelectContainer: React.VFC<DeviceSelectContainerProps> = (
-  props,
-) => {
+function DeviceSelectContainer(props: DeviceSelectContainerProps) {
   const theme = useTheme();
   const isSmallViewport = useMediaQuery(theme.breakpoints.down("sm"));
 

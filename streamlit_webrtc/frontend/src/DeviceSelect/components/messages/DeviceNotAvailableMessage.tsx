@@ -2,7 +2,7 @@ import React from "react";
 import Message from "./Message";
 import { useTranslation } from "../../../translation/TranslationProvider";
 
-interface DeviceNotAvailableMessageProps {
+export interface DeviceNotAvailableMessageProps {
   error: Error;
 }
 const DeviceNotAvailableMessage: React.VFC<DeviceNotAvailableMessageProps> = (

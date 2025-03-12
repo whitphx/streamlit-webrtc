@@ -1,17 +1,8 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Story } from "@ladle/react";
 
-import DeviceNotAvailableMessage from "./DeviceNotAvailableMessage";
+import DeviceNotAvailableMessage, { DeviceNotAvailableMessageProps } from "./DeviceNotAvailableMessage";
 
-const meta: Meta<typeof DeviceNotAvailableMessage> = {
-  title: "DeviceSelect/DeviceNotAvailableMessage",
-  component: DeviceNotAvailableMessage,
-};
-
-export default meta;
-type Story = StoryObj<typeof DeviceNotAvailableMessage>;
-
-export const Default: Story = {
-  args: {
-    error: new Error("This is an error"),
-  },
+export const Default: Story<DeviceNotAvailableMessageProps> = (props: DeviceNotAvailableMessageProps) => <DeviceNotAvailableMessage {...props} />
+Default.args = {
+  error: new Error("This is an error"),
 };
