@@ -11,6 +11,6 @@ function DeviceNotAvailableMessage(props: DeviceNotAvailableMessageProps) {
       {props.error.message})
     </Message>
   );
-};
+}
 
 export default DeviceNotAvailableMessage;

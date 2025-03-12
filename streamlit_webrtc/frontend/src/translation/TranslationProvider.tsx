@@ -41,6 +41,6 @@ function TranslationProvider(props: TranslationProviderProps) {
       {props.children}
     </translationContext.Provider>
   );
-};
+}
 
 export default React.memo(TranslationProvider);

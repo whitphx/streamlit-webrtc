@@ -30,6 +30,6 @@ function Placeholder(props: PlaceholderProps) {
       )}
     </StyledPaper>
   );
-};
+}
 
 export default React.memo(Placeholder);

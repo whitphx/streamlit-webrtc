@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Alert from "@mui/material/Alert";
 import DeviceSelectForm from "./DeviceSelect/DeviceSelectForm";
@@ -124,9 +124,9 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
       </Box>
     </Box>
   );
-};
+}
 
-function WebRtcStreamer () {
+function WebRtcStreamer() {
   const renderData = useRenderData();
 
   const mode = renderData.args["mode"];
@@ -155,6 +155,6 @@ function WebRtcStreamer () {
       onComponentValueChange={setComponentValue}
     />
   );
-};
+}
 
 export default WebRtcStreamer;

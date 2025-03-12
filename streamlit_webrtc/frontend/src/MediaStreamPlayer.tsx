@@ -86,6 +86,6 @@ function MediaStreamPlayer(props: MediaStreamPlayerProps) {
     };
     return <audio ref={refCallback} {...audioProps} />;
   }
-};
+}
 
 export default React.memo(MediaStreamPlayer);
