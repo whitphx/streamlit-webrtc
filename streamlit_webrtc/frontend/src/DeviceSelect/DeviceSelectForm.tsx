@@ -20,6 +20,6 @@ function DeviceSelectForm({
       </Box>
     </Stack>
   );
-};
+}
 
 export default DeviceSelectForm;

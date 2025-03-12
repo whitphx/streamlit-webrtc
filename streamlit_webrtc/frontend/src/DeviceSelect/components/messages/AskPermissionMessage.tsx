@@ -8,6 +8,6 @@ function AskPermissionMessage() {
         "Please allow the app to use your media devices"}
     </Message>
   );
-};
+}
 
 export default AskPermissionMessage;

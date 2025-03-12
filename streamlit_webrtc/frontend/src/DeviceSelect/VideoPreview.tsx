@@ -39,6 +39,6 @@ function VideoPreview(props: VideoPreviewProps) {
   }, [props.deviceId]);
 
   return <VideoPreviewComponent ref={videoRef} autoPlay muted />;
-};
+}
 
 export default React.memo(VideoPreview);

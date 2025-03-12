@@ -1,8 +1,12 @@
 import type { Story } from "@ladle/react";
 
-import DeviceNotAvailableMessage, { DeviceNotAvailableMessageProps } from "./DeviceNotAvailableMessage";
+import DeviceNotAvailableMessage, {
+  DeviceNotAvailableMessageProps,
+} from "./DeviceNotAvailableMessage";
 
-export const Default: Story<DeviceNotAvailableMessageProps> = (props: DeviceNotAvailableMessageProps) => <DeviceNotAvailableMessage {...props} />
+export const Default: Story<DeviceNotAvailableMessageProps> = (
+  props: DeviceNotAvailableMessageProps,
+) => <DeviceNotAvailableMessage {...props} />;
 Default.args = {
   error: new Error("This is an error"),
 };

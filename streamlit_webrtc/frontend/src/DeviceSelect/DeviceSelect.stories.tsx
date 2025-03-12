@@ -2,10 +2,12 @@ import type { Story } from "@ladle/react";
 
 import DeviceSelect, { DeviceSelectProps } from "./DeviceSelect";
 
-const Base: Story<DeviceSelectProps> = (props: DeviceSelectProps) => <DeviceSelect {...props} />
+const Base: Story<DeviceSelectProps> = (props: DeviceSelectProps) => (
+  <DeviceSelect {...props} />
+);
 Base.argTypes = {
   onSelect: { action: "selected" },
-}
+};
 
 export const Both = Base.bind({});
 Both.args = {
@@ -14,7 +16,7 @@ Both.args = {
   defaultVideoDeviceId: undefined,
   defaultAudioDeviceId: undefined,
   onSelect: () => {},
-}
+};
 
 export const VideoOnly = Base.bind({});
 VideoOnly.args = {
@@ -23,7 +25,7 @@ VideoOnly.args = {
   defaultVideoDeviceId: undefined,
   defaultAudioDeviceId: undefined,
   onSelect: () => {},
-}
+};
 
 export const AudioOnly = Base.bind({});
 AudioOnly.args = {
@@ -32,4 +34,4 @@ AudioOnly.args = {
   defaultVideoDeviceId: undefined,
   defaultAudioDeviceId: undefined,
   onSelect: () => {},
-}
+};

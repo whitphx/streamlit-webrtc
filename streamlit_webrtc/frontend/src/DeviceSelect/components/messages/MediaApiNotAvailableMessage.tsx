@@ -7,6 +7,6 @@ function MediaApiNotAvailableMessage() {
       {useTranslation("media_api_not_available") || "Media API not available"}
     </Message>
   );
-};
+}
 
 export default MediaApiNotAvailableMessage;

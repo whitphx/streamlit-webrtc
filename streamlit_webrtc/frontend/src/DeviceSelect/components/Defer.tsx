@@ -38,6 +38,6 @@ function Defer(props: DeferProps) {
   }, [props.time]);
 
   return <OverlayBox $transparent={elapsed}>{props.children}</OverlayBox>;
-};
+}
 
 export default Defer;

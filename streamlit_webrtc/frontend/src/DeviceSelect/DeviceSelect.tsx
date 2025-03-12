@@ -367,6 +367,6 @@ function DeviceSelect(props: DeviceSelectProps) {
       </Stack>
     </DeviceSelectContainer>
   );
-};
+}
 
 export default DeviceSelect;

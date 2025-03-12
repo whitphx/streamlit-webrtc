@@ -20,6 +20,6 @@ function DeviceSelectContainer(props: DeviceSelectContainerProps) {
       {props.children}
     </Stack>
   );
-};
+}
 
 export default DeviceSelectContainer;

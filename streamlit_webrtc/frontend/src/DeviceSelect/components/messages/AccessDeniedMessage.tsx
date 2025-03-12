@@ -11,6 +11,6 @@ function AccessDeniedMessage(props: AccessDeniedMessageProps) {
       {props.error.message})
     </Message>
   );
-};
+}
 
 export default AccessDeniedMessage;
