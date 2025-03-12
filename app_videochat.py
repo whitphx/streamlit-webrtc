@@ -114,7 +114,7 @@ def mixer_callback(frames: List[av.VideoFrame]) -> av.VideoFrame:
     return new_frame
 
 
-def main():
+def main() -> None:
     with server_state_lock["webrtc_contexts"]:
         if "webrtc_contexts" not in server_state:
             server_state["webrtc_contexts"] = []
