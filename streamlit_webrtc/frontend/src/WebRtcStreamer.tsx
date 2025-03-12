@@ -24,8 +24,8 @@ interface WebRtcStreamerInnerProps {
   sdpAnswerJson: string | undefined;
   rtcConfiguration: RTCConfiguration | undefined;
   mediaStreamConstraints: MediaStreamConstraints | undefined;
-  videoHtmlAttrs: any;
-  audioHtmlAttrs: any;
+  videoHtmlAttrs: Record<string, string>;
+  audioHtmlAttrs: Record<string, string>;
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
 const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {

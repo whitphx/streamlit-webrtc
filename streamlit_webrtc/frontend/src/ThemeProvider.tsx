@@ -7,9 +7,8 @@ import {
 } from "@mui/material/styles";
 import chroma from "chroma-js";
 
-interface StreamlitThemeProviderProps {}
 export const ThemeProvider: React.VFC<
-  React.PropsWithChildren<StreamlitThemeProviderProps>
+  React.PropsWithChildren<unknown>
 > = (props) => {
   const { theme: stTheme } = useRenderData();
 
