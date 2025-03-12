@@ -3,6 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "test": "vitest",
+    "fix:eslint": "eslint --fix 'src/**/*.{ts,tsx}'",
+    "fix:prettier": "prettier --write .",
+    "check:eslint": "eslint .",
+    "check:prettier": "prettier --check .",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
   "dependencies": {
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.13.0",
@@ -19,18 +30,6 @@
     "react-dom": "^17.0.2",
     "streamlit-component-lib-react-hooks": "^1.2.8",
     "webrtc-adapter": "^9.0.1"
-  },
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "test": "vitest",
-    "fix:eslint": "eslint --fix 'src/**/*.{ts,tsx}'",
-    "fix:prettier": "prettier --write .",
-    "check:eslint": "eslint .",
-    "check:prettier": "prettier --check .",
-    "eject": "react-scripts eject",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^1.9.0",
