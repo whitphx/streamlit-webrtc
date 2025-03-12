@@ -15,3 +15,8 @@ ADD poetry.lock /srv/poetry.lock
 WORKDIR /srv
 
 RUN poetry install
+
+ENV STREAMLIT_SERVER_FILE_WATCHER_TYPE=poll
+ENV SHELL=/bin/bash
+
+EXPOSE 8501
