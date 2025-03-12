@@ -21,10 +21,10 @@
     "@types/chroma-js": "^2.1.4",
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.0",
+    "@types/react-dom": "^19.0.4",
     "chroma-js": "^3.1.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react-dom": "^19.0.0",
     "streamlit-component-lib-react-hooks": "^1.2.8",
     "webrtc-adapter": "^9.0.1"
   },
