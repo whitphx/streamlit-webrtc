@@ -5,7 +5,7 @@ import { translationContext } from "./context";
 interface TranslationProviderProps {
   children: React.ReactNode;
 }
-const TranslationProvider: React.VFC<TranslationProviderProps> = (props) => {
+function TranslationProvider(props: TranslationProviderProps) {
   const renderData = useRenderData();
   const {
     start,
@@ -41,6 +41,6 @@ const TranslationProvider: React.VFC<TranslationProviderProps> = (props) => {
       {props.children}
     </translationContext.Provider>
   );
-};
+}
 
 export default React.memo(TranslationProvider);

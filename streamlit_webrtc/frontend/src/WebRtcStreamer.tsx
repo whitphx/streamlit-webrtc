@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Alert from "@mui/material/Alert";
 import DeviceSelectForm from "./DeviceSelect/DeviceSelectForm";
@@ -28,7 +28,7 @@ interface WebRtcStreamerInnerProps {
   audioHtmlAttrs: Record<string, string>;
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
-const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
+function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const [deviceIds, setDeviceIds] = useState<{
     video?: MediaDeviceInfo["deviceId"] | undefined;
     audio?: MediaDeviceInfo["deviceId"] | undefined;
@@ -124,9 +124,9 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
       </Box>
     </Box>
   );
-};
+}
 
-const WebRtcStreamer: React.VFC = () => {
+function WebRtcStreamer() {
   const renderData = useRenderData();
 
   const mode = renderData.args["mode"];
@@ -155,6 +155,6 @@ const WebRtcStreamer: React.VFC = () => {
       onComponentValueChange={setComponentValue}
     />
   );
-};
+}
 
 export default WebRtcStreamer;

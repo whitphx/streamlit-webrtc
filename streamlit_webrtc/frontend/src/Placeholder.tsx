@@ -16,7 +16,7 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 interface PlaceholderProps {
   loading: boolean;
 }
-const Placeholder: React.VFC<PlaceholderProps> = (props) => {
+function Placeholder(props: PlaceholderProps) {
   useEffect(() => {
     Streamlit.setFrameHeight();
   });
@@ -30,6 +30,6 @@ const Placeholder: React.VFC<PlaceholderProps> = (props) => {
       )}
     </StyledPaper>
   );
-};
+}
 
 export default React.memo(Placeholder);
