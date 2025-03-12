@@ -48,7 +48,9 @@ def get_hf_turn_credentials(token: Optional[str] = None):
     }
 
 
-def get_twilio_turn_credentials(twilio_sid: Optional[str] = None, twilio_token: Optional[str] = None):
+def get_twilio_turn_credentials(
+    twilio_sid: Optional[str] = None, twilio_token: Optional[str] = None
+):
     try:
         from twilio.rest import Client
     except ImportError:
@@ -66,6 +68,7 @@ def get_twilio_turn_credentials(twilio_sid: Optional[str] = None, twilio_token: 
         "iceServers": token.ice_servers,
         "iceTransportPolicy": "relay",
     }
+
 
 def get_turn_credentials(method: Literal["hf", "twilio"] = "hf", **kwargs):
     if method == "hf":
