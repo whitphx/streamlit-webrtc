@@ -11,12 +11,12 @@ const StyledPaper = styled(Paper)({
   height: "100%",
 });
 
-const VoidVideoPreview: React.VFC = () => {
+function VoidVideoPreview() {
   return (
     <StyledPaper>
       <VideocamOffIcon fontSize="large" />
     </StyledPaper>
   );
-};
+}
 
 export default React.memo(VoidVideoPreview);

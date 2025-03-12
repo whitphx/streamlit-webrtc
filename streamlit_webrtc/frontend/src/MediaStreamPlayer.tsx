@@ -25,7 +25,7 @@ interface MediaStreamPlayerProps {
   userDefinedVideoAttrs: UserDefinedHTMLVideoAttributes | undefined;
   userDefinedAudioAttrs: UserDefinedHTMLAudioAttributes | undefined;
 }
-const MediaStreamPlayer: React.VFC<MediaStreamPlayerProps> = (props) => {
+function MediaStreamPlayer(props: MediaStreamPlayerProps) {
   useEffect(() => {
     Streamlit.setFrameHeight();
   });

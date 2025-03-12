@@ -28,7 +28,7 @@ interface WebRtcStreamerInnerProps {
   audioHtmlAttrs: Record<string, string>;
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
-const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
+function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const [deviceIds, setDeviceIds] = useState<{
     video?: MediaDeviceInfo["deviceId"] | undefined;
     audio?: MediaDeviceInfo["deviceId"] | undefined;
@@ -126,7 +126,7 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
   );
 };
 
-const WebRtcStreamer: React.VFC = () => {
+function WebRtcStreamer () {
   const renderData = useRenderData();
 
   const mode = renderData.args["mode"];

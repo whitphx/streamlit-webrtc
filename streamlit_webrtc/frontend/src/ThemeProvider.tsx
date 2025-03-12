@@ -7,9 +7,9 @@ import {
 } from "@mui/material/styles";
 import chroma from "chroma-js";
 
-export const ThemeProvider: React.VFC<React.PropsWithChildren<unknown>> = (
-  props,
-) => {
+export function ThemeProvider(
+  props: React.PropsWithChildren<unknown>,
+) {
   const { theme: stTheme } = useRenderData();
 
   const stThemeJson = JSON.stringify(stTheme);
