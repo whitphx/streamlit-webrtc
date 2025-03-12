@@ -1,7 +1,8 @@
 import React, { useMemo } from "react";
 import { useRenderData } from "streamlit-component-lib-react-hooks";
 import { Translations } from "./types";
-import { translationContext } from "./context";
+import { translationContext } from "./useTranslation";
+
 interface TranslationProviderProps {
   children: React.ReactNode;
 }

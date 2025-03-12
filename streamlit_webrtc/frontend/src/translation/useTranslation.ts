@@ -1,6 +1,9 @@
-import { useContext } from "react";
+import React, { useContext } from "react";
 import { Translations } from "./types";
-import { translationContext } from "./context";
+
+export const translationContext = React.createContext<Translations | undefined>(
+  undefined,
+);
 
 export const useTranslation = (key: keyof Translations) => {
   const contextValue = useContext(translationContext);
