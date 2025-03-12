@@ -10,7 +10,8 @@
     "fix:eslint": "eslint --fix 'src/**/*.{ts,tsx}'",
     "fix:prettier": "prettier --write .",
     "check:eslint": "eslint .",
-    "check:prettier": "prettier --check ."
+    "check:prettier": "prettier --check .",
+    "ladle": "ladle serve"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
