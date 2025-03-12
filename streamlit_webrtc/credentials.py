@@ -24,28 +24,38 @@ SOFTWARE.
 # Original: https://github.com/freddyaboulton/fastrtc/blob/66f0a81b76684c5d58761464fb67642891066f93/LICENSE
 
 import os
+import json
+import urllib.request
+import urllib.error
 from typing import Literal, Optional
-
-import requests
 
 
 def get_hf_turn_credentials(token: Optional[str] = None):
     if token is None:
         token = os.getenv("HF_TOKEN")
-    credentials = requests.get(
+
+    if token is None:
+        raise ValueError("HF_TOKEN is not set")
+
+    req = urllib.request.Request(
         "https://fastrtc-turn-server-login.hf.space/credentials",
         headers={"X-HF-Access-Token": token},
     )
-    if not credentials.status_code == 200:
+    try:
+        with urllib.request.urlopen(req) as response:
+            if response.status != 200:
+                raise ValueError("Failed to get credentials from HF turn server")
+            credentials = json.loads(response.read())
+            return {
+                "iceServers": [
+                    {
+                        "urls": "turn:gradio-turn.com:80",
+                        **credentials,
+                    },
+                ]
+            }
+    except urllib.error.URLError:
         raise ValueError("Failed to get credentials from HF turn server")
-    return {
-        "iceServers": [
-            {
-                "urls": "turn:gradio-turn.com:80",
-                **credentials.json(),
-            },
-        ]
-    }
 
 
 def get_twilio_turn_credentials(
