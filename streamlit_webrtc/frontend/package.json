@@ -16,8 +16,8 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@mui/icons-material": "^5.16.14",
-    "@mui/material": "^5.16.14",
+    "@mui/icons-material": "^6.4.7",
+    "@mui/material": "^6.4.7",
     "@types/chroma-js": "^2.1.4",
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.12",
