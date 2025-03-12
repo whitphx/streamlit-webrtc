@@ -1,13 +1,5 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Story } from "@ladle/react";
 
 import VoidVideoPreview from "./VoidVideoPreview";
 
-const meta: Meta<typeof VoidVideoPreview> = {
-  title: "DeviceSelect/VoidVideoPreview",
-  component: VoidVideoPreview,
-};
-
-export default meta;
-type Story = StoryObj<typeof VoidVideoPreview>;
-
-export const Default: Story = {};
+export const Default: Story = () => <VoidVideoPreview />;

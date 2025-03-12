@@ -5,7 +5,7 @@ import { stopAllTracks } from "./utils";
 export interface VideoPreviewProps {
   deviceId: MediaDeviceInfo["deviceId"];
 }
-const VideoPreview: React.VFC<VideoPreviewProps> = (props) => {
+function VideoPreview(props: VideoPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -39,6 +39,6 @@ const VideoPreview: React.VFC<VideoPreviewProps> = (props) => {
   }, [props.deviceId]);
 
   return <VideoPreviewComponent ref={videoRef} autoPlay muted />;
-};
+}
 
 export default React.memo(VideoPreview);

@@ -1,14 +1,13 @@
-import React from "react";
 import Message from "./Message";
-import { useTranslation } from "../../../translation/TranslationProvider";
+import { useTranslation } from "../../../translation/useTranslation";
 
-const AskPermissionMessage: React.VFC = () => {
+function AskPermissionMessage() {
   return (
     <Message>
       {useTranslation("device_ask_permission") ||
         "Please allow the app to use your media devices"}
     </Message>
   );
-};
+}
 
 export default AskPermissionMessage;

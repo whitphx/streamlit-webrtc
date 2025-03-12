@@ -1,6 +1,6 @@
 import React from "react";
 import Button, { ButtonProps } from "@mui/material/Button";
-import { useTranslation } from "../TranslationProvider";
+import { useTranslation } from "../useTranslation";
 import { TranslationKey } from "../types";
 
 interface TranslatedButtonProps extends ButtonProps {

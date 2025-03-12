@@ -1,17 +1,16 @@
-import React from "react";
 import Message from "./Message";
-import { useTranslation } from "../../../translation/TranslationProvider";
+import { useTranslation } from "../../../translation/useTranslation";
 
-interface AccessDeniedMessageProps {
+export interface AccessDeniedMessageProps {
   error: Error;
 }
-const AccessDeniedMessage: React.VFC<AccessDeniedMessageProps> = (props) => {
+function AccessDeniedMessage(props: AccessDeniedMessageProps) {
   return (
     <Message>
       {useTranslation("device_access_denied") || "Access denied"} (
       {props.error.message})
     </Message>
   );
-};
+}
 
 export default AccessDeniedMessage;

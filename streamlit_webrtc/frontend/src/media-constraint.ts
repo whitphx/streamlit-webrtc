@@ -44,7 +44,9 @@ interface MediaUsage {
   videoEnabled: boolean;
   audioEnabled: boolean;
 }
-export function getMediaUsage(constraintsFromPython: any): MediaUsage {
+export function getMediaUsage(
+  constraintsFromPython?: MediaStreamConstraints,
+): MediaUsage {
   const videoEnabled = constraintsFromPython
     ? !!constraintsFromPython.video
     : true;

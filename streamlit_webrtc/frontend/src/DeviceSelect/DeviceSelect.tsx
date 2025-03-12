@@ -1,5 +1,5 @@
 import { Streamlit } from "streamlit-component-lib";
-import React, {
+import {
   useReducer,
   Reducer,
   useCallback,
@@ -130,7 +130,7 @@ export interface DeviceSelectProps {
     audio: MediaDeviceInfo["deviceId"] | undefined;
   }) => void;
 }
-const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
+function DeviceSelect(props: DeviceSelectProps) {
   const {
     video: useVideo,
     audio: useAudio,
@@ -367,6 +367,6 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
       </Stack>
     </DeviceSelectContainer>
   );
-};
+}
 
 export default DeviceSelect;

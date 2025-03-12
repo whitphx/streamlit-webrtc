@@ -1,35 +1,37 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Story } from "@ladle/react";
 
-import DeviceSelect from "./DeviceSelect";
+import DeviceSelect, { DeviceSelectProps } from "./DeviceSelect";
 
-const meta: Meta<typeof DeviceSelect> = {
-  title: "DeviceSelect/DeviceSelect",
-  component: DeviceSelect,
-  argTypes: {
-    onSelect: { action: "selected" },
-  },
+const Base: Story<DeviceSelectProps> = (props: DeviceSelectProps) => (
+  <DeviceSelect {...props} />
+);
+Base.argTypes = {
+  onSelect: { action: "selected" },
 };
 
-export default meta;
-type Story = StoryObj<typeof DeviceSelect>;
-
-export const Both: Story = {
-  args: {
-    video: true,
-    audio: true,
-  },
+export const Both = Base.bind({});
+Both.args = {
+  video: true,
+  audio: true,
+  defaultVideoDeviceId: undefined,
+  defaultAudioDeviceId: undefined,
+  onSelect: () => {},
 };
 
-export const VideoOnly: Story = {
-  args: {
-    video: true,
-    audio: false,
-  },
+export const VideoOnly = Base.bind({});
+VideoOnly.args = {
+  video: true,
+  audio: false,
+  defaultVideoDeviceId: undefined,
+  defaultAudioDeviceId: undefined,
+  onSelect: () => {},
 };
 
-export const AudioOnly: Story = {
-  args: {
-    video: false,
-    audio: true,
-  },
+export const AudioOnly = Base.bind({});
+AudioOnly.args = {
+  video: false,
+  audio: true,
+  defaultVideoDeviceId: undefined,
+  defaultAudioDeviceId: undefined,
+  onSelect: () => {},
 };
