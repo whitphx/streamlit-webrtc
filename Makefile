@@ -1,11 +1,11 @@
 pkg/build:
 	python scripts/release_check.py streamlit_webrtc/component.py
 	cd streamlit_webrtc/frontend && pnpm run build
-	uv pip build
+	uv build
 
 format:
-	uv pip run ruff format .
-	uv pip run ruff check . --fix
+	uv run ruff format .
+	uv run ruff check . --fix
 
 docker/build:
 # Set `--platform linux/amd64` because some packages do not work with Docker on M1 mac for now.
@@ -22,7 +22,7 @@ docker/run:
 		-v `pwd`:/srv \
 		-e STREAMLIT_SERVER_FILE_WATCHER_TYPE=poll \
 		streamlit-webrtc \
-		uv pip run streamlit run home.py
+		uv run streamlit run home.py
 
 docker/shell:
 	docker run \
@@ -33,4 +33,4 @@ docker/shell:
 		-e SHELL=/bin/bash \
 		-e STREAMLIT_SERVER_FILE_WATCHER_TYPE=poll \
 		streamlit-webrtc \
-		uv pip shell
+		bash

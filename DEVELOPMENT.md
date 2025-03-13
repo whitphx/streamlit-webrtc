@@ -11,7 +11,7 @@
   ```
 * In another shell, run `app.py`
   ```shell
-  $ uv pip run streamlit run home.py
+  $ uv run streamlit run home.py
   ```
 
 ### If you want to use Docker

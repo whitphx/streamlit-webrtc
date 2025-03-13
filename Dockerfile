@@ -8,8 +8,7 @@ RUN apt-get update && apt-get install -y \
 RUN pip install -U uv
 
 ADD pyproject.toml /srv/pyproject.toml
-ADD requirements.txt /srv/requirements.txt
 
 WORKDIR /srv
 
-RUN uv pip install -r requirements.txt
+RUN uv sync
