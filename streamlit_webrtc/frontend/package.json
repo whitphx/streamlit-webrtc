@@ -19,7 +19,7 @@
     "@mui/icons-material": "^6.4.7",
     "@mui/material": "^6.4.7",
     "chroma-js": "^3.1.2",
-    "react": "^18.3.1",
+    "react": "^19.0.0",
     "react-dom": "^18.3.1",
     "streamlit-component-lib-react-hooks": "^2.1.0",
     "webrtc-adapter": "^9.0.1"
@@ -31,7 +31,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/chroma-js": "^3.1.1",
     "@types/node": "^22.13.10",
-    "@types/react": "^18.3.12",
+    "@types/react": "^19.0.10",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.4",
     "eslint": "^9.22.0",
