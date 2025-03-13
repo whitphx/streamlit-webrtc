@@ -56,62 +56,54 @@ jobs:
     - uses: actions/checkout@v4
       with:
         persist-credentials: false
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-
-    # The following steps are based on https://github.com/python-poetry/poetry/blob/def1ee8f3ae00c307ca028da53d2347615c5c32b/.github/workflows/main.yml#L51-L84
-    - name: Get full Python version
-      id: full-python-version
-      run: echo version=$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))") >> $GITHUB_OUTPUT
-
-    - name: Set up uv
-      uses: astral-sh/setup-uv@v1
-
-    - name: Set up cache
-      uses: actions/cache@v4
-      id: cache
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
-
-    - name: Ensure cache is healthy
-      if: steps.cache.outputs.cache-hit == 'true'
-      run: timeout 10s pip --version || rm -rf .venv
 
     - name: Install a specific version of Streamlit
       if: ${{ matrix.streamlit-version }}
       run: uv add streamlit=="${STREAMLIT_VERSION}" setuptools
       env:
         STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
-    - name: Install dependencies
-      run: uv sync
+
+    - name: Install the project
+      run: uv sync --all-extras --dev
+
     - name: Run Ruff
       run: |
         uv run ruff check --output-format=github .
         uv run ruff format . --check
+
     - name: Type checking with mypy
       run: |
         uv run mypy .
+
     - name: Release check
       run: python scripts/release_check.py streamlit_webrtc/component.py
 
-    # Frontend build is necessary for the package to be importable, in the tests
+    # Frontend build is necessary for the package to be importable even in Python tests
+    - uses: pnpm/action-setup@v4
+      name: Install pnpm
+      with:
+        version: 10
+        run_install: false
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version-file: .nvmrc
         cache: 'pnpm'
         cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: latest
-        run_install: false
+
     - name: Install the frontend dependencies
       run: pnpm install
       working-directory: streamlit_webrtc/frontend
+
     - name: Build the frontend
       run: pnpm run build
       working-directory: streamlit_webrtc/frontend
@@ -132,23 +124,29 @@ jobs:
     - uses: actions/checkout@v4
       with:
         persist-credentials: false
-    - name: Use Node.js
+
+    - uses: pnpm/action-setup@v4
+      name: Install pnpm
+      with:
+        version: 10
+        run_install: false
+
+    - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version-file: .nvmrc
         cache: 'pnpm'
         cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: latest
-        run_install: false
+
     - run: pnpm install
+
     - name: Lint
       run: |
         pnpm run check:eslint
         pnpm run check:prettier
+
     - run: pnpm run build
+
     - run: pnpm test
 
   build:
@@ -161,39 +159,35 @@ jobs:
     - uses: actions/checkout@v4
       with:
         persist-credentials: false
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
+
+    - name: Install the project
+      run: uv sync --all-extras --dev
+
+    - uses: pnpm/action-setup@v4
+      name: Install pnpm
+      with:
+        version: 10
+        run_install: false
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version-file: .nvmrc
+        cache: 'pnpm'
+        cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
 
-    # The following steps are based on https://github.com/python-poetry/poetry/blob/def1ee8f3ae00c307ca028da53d2347615c5c32b/.github/workflows/main.yml#L51-L84
-    - name: Get full Python version
-      id: full-python-version
-      run: echo version=$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))") >> $GITHUB_OUTPUT
-
-    - name: Set up uv
-      uses: astral-sh/setup-uv@v1
-
-    - name: Set up cache
-      uses: actions/cache@v4
-      id: cache
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
-
-    - name: Ensure cache is healthy
-      if: steps.cache.outputs.cache-hit == 'true'
-      run: timeout 10s pip --version || rm -rf .venv
-
-    - name: Install Python dependencies
-      run: uv sync
-    - name: Install fronend dependencies
+    - name: Install the frontend dependencies
       run: pnpm install
       working-directory: streamlit_webrtc/frontend
+
     - name: Build
       run: make pkg/build
 
@@ -224,12 +218,14 @@ jobs:
     - uses: actions/checkout@v4
       with:
         persist-credentials: false
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-    - name: Set up uv
-      uses: astral-sh/setup-uv@v1
 
     - uses: actions/download-artifact@v4
       with:
