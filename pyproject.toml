@@ -1,41 +1,45 @@
-[tool.poetry]
+[project]
 name = "streamlit-webrtc"
 version = "0.49.2"
 description = "Real-time video and audio processing on Streamlit"
-authors = ["Yuichiro Tachibana (Tsuchiya) <t.yic.yt@gmail.com>"]
-license = "MIT"
+authors = [
+    {name = "Yuichiro Tachibana (Tsuchiya)", email = "t.yic.yt@gmail.com"}
+]
+license = {text = "MIT"}
 readme = "README.md"
+requires-python = ">=3.9,<4,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
+dependencies = [
+    # For allow-same-origin, >=0.73.0 is required. See https://blog.streamlit.io/streamlit-components-security-and-a-five-month-quest-to-ship-a-single-line-of-code/
+    # 0.84.0 has an error at marshalling component values.
+    "streamlit>=0.84.1",
+    # aiortc<1.4.0 causes an error with cryptography>=39.0.0. See https://github.com/whitphx/streamlit-webrtc/issues/1164. 
+    # The fix was introduced into aiortc in https://github.com/aiortc/aiortc/commit/08b0a7e9f5030a9f7e5617382e92560d4ae763a2 that 1.4.0 included.
+    "aiortc>=1.9.0",
+    "packaging>=20.0",
+]
+
+[project.urls]
 repository = "https://github.com/whitphx/streamlit-webrtc"
-include = [
-    { path = "./streamlit_webrtc/frontend/dist/**/*", format = ["sdist", "wheel"] }
-]
-exclude = [
-    "./streamlit_webrtc/frontend/*",
-]
 
-[tool.poetry.dependencies]
-python = ">=3.9,<4,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
-# For allow-same-origin, >=0.73.0 is required. See https://blog.streamlit.io/streamlit-components-security-and-a-five-month-quest-to-ship-a-single-line-of-code/
-# 0.84.0 has an error at marshalling component values.
-streamlit = ">=0.84.1"
-aiortc = "^1.9.0"  # aiortc<1.4.0 causes an error with cryptography>=39.0.0. See https://github.com/whitphx/streamlit-webrtc/issues/1164. The fix was introduced into aiortc in https://github.com/aiortc/aiortc/commit/08b0a7e9f5030a9f7e5617382e92560d4ae763a2 that 1.4.0 included.
-packaging = ">=20.0"
-
-[tool.poetry.group.dev.dependencies]
-click = ">=7.0,<9.0"  # We must specify the click version because we install older versions of Streamlit in the CI process and their depending click version is different from the newer releases.
-ruff = "^0.9.10"
-mypy = {extras = ["faster-cache"], version = "^1.15.0"}
-pydub = "^0.25.1"
-matplotlib = "^3.5.1"
-deepspeech = { version = "^0.9.3", python = ">=3.5,<=3.9" }  # DeepSpeech 0.9.3 supports Python version 3.5, 3.6, 3.7, 3.8 and 3.9; https://github.com/mozilla/DeepSpeech/releases/tag/v0.9.3
-streamlit-server-state = ">=0.17.1,<0.19.0"
-pytest = ">=7.1.2,<9.0.0"
-opencv-python-headless = "^4.5.4.58"
-# It is necessary to specify numpy and pandas versions for Poetry to resolve the package versions correctly and avoid errors.
-numpy = "^1.21.0"
-pandas = "^2.0.3"
-streamlit = "^1.13.0"
-twilio = ">=8.1,<10.0"
+[project.optional-dependencies]
+dev = [
+    # We must specify the click version because we install older versions of Streamlit in the CI process and their depending click version is different from the newer releases.
+    "click>=7.0,<9.0",
+    "ruff>=0.9.10",
+    "mypy[faster-cache]>=1.15.0",
+    "pydub>=0.25.1",
+    "matplotlib>=3.5.1",
+    # DeepSpeech 0.9.3 supports Python version 3.5, 3.6, 3.7, 3.8 and 3.9; https://github.com/mozilla/DeepSpeech/releases/tag/v0.9.3
+    "deepspeech>=0.9.3; python_version >= '3.5' and python_version <= '3.9'",
+    "streamlit-server-state>=0.17.1,<0.19.0",
+    "pytest>=7.1.2,<9.0.0",
+    "opencv-python-headless>=4.5.4.58",
+    # It is necessary to specify numpy and pandas versions to resolve the package versions correctly and avoid errors.
+    "numpy>=1.21.0",
+    "pandas>=2.0.3",
+    "streamlit>=1.13.0",
+    "twilio>=8.1,<10.0",
+]
 
 [tool.ruff.lint]
 extend-select = ["I"]
