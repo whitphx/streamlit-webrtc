@@ -7,11 +7,11 @@
 * Run the frontend dev server
   ```shell
   $ cd streamlit_webrtc/frontend
-  $ npm start
+  $ pnpm start
   ```
 * In another shell, run `app.py`
   ```shell
-  $ streamlit run home.py
+  $ uv pip run streamlit run home.py
   ```
 
 ### If you want to use Docker

@@ -66,15 +66,8 @@ jobs:
       id: full-python-version
       run: echo version=$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))") >> $GITHUB_OUTPUT
 
-    - name: Bootstrap poetry
-      run: |
-        curl -sL https://install.python-poetry.org | python - -y --version 2.1.1
-
-    - name: Update PATH
-      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-    - name: Configure poetry
-      run: poetry config virtualenvs.in-project true
+    - name: Install uv
+      run: pip install uv
 
     - name: Set up cache
       uses: actions/cache@v4
@@ -89,18 +82,18 @@ jobs:
 
     - name: Install a specific version of Streamlit
       if: ${{ matrix.streamlit-version }}
-      run: poetry add -D streamlit=="${STREAMLIT_VERSION}" setuptools
+      run: uv pip install streamlit=="${STREAMLIT_VERSION}" setuptools
       env:
         STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
     - name: Install dependencies
-      run: poetry install
+      run: uv pip install -r requirements.txt
     - name: Run Ruff
       run: |
-        poetry run ruff check --output-format=github .
-        poetry run ruff format . --check
+        uv pip run ruff check --output-format=github .
+        uv pip run ruff format . --check
     - name: Type checking with mypy
       run: |
-        poetry run mypy .
+        uv pip run mypy .
     - name: Release check
       run: python scripts/release_check.py streamlit_webrtc/component.py
 
@@ -109,18 +102,22 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version-file: .nvmrc
-        cache: 'npm'
-        cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
+        cache: 'pnpm'
+        cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: latest
     - name: Install the frontend dependencies
-      run: npm ci
+      run: pnpm install
       working-directory: streamlit_webrtc/frontend
     - name: Build the frontend
-      run: npm run build --if-present
+      run: pnpm run build
       working-directory: streamlit_webrtc/frontend
 
     - name: Test with pytest
       run: |
-        poetry run pytest
+        uv pip run pytest
 
   test-frontend:
 
@@ -138,15 +135,19 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version-file: .nvmrc
-        cache: 'npm'
-        cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
-    - run: npm ci
+        cache: 'pnpm'
+        cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: latest
+    - run: pnpm install
     - name: Lint
       run: |
-        npm run check:eslint
-        npm run check:prettier
-    - run: npm run build --if-present
-    - run: npm test
+        pnpm run check:eslint
+        pnpm run check:prettier
+    - run: pnpm run build
+    - run: pnpm test
 
   build:
     if: ${{ ! failure() }}  # This job should run even if the depending jobs are skipped, but not when those jobs failed: https://qiita.com/abetomo/items/d9ede7dbeeb24f723fc5#%E8%A8%AD%E5%AE%9A%E4%BE%8B4
@@ -172,15 +173,8 @@ jobs:
       id: full-python-version
       run: echo version=$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))") >> $GITHUB_OUTPUT
 
-    - name: Bootstrap poetry
-      run: |
-        curl -sL https://install.python-poetry.org | python - -y --version 2.1.1
-
-    - name: Update PATH
-      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-    - name: Configure poetry
-      run: poetry config virtualenvs.in-project true
+    - name: Install uv
+      run: pip install uv
 
     - name: Set up cache
       uses: actions/cache@v4
@@ -194,9 +188,9 @@ jobs:
       run: timeout 10s pip --version || rm -rf .venv
 
     - name: Install Python dependencies
-      run: poetry install
+      run: uv pip install -r requirements.txt
     - name: Install fronend dependencies
-      run: npm ci
+      run: pnpm install
       working-directory: streamlit_webrtc/frontend
     - name: Build
       run: make pkg/build
@@ -232,11 +226,8 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-    - name: Bootstrap poetry
-      run: |
-        curl -sL https://install.python-poetry.org | python - -y --version 2.1.1
-    - name: Update PATH
-      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+    - name: Install uv
+      run: pip install uv
 
     - uses: actions/download-artifact@v4
       with:
@@ -246,7 +237,7 @@ jobs:
     - name: Publish
       env:
         PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-      run: poetry publish -u __token__ -p ${PYPI_TOKEN}
+      run: uv pip publish --repository pypi --username __token__ --password ${PYPI_TOKEN}
 
     - name: Create a new release
       uses: softprops/action-gh-release@v2
