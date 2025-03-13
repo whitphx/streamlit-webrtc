@@ -22,6 +22,11 @@ from .config import (
     Translations,
     VideoHTMLAttributes,
 )
+from .credentials import (
+    get_hf_turn_credentials,
+    get_turn_credentials,
+    get_twilio_turn_credentials,
+)
 from .factory import create_mix_track, create_process_track, create_video_source_track
 from .mix import MixerCallback
 from .source import VideoSourceCallback, VideoSourceTrack
@@ -82,4 +87,7 @@ __all__ = [
     "DEFAULT_AUDIO_HTML_ATTRS",
     "DEFAULT_MEDIA_STREAM_CONSTRAINTS",
     "DEFAULT_VIDEO_HTML_ATTRS",
+    "get_hf_turn_credentials",
+    "get_twilio_turn_credentials",
+    "get_turn_credentials",
 ]
