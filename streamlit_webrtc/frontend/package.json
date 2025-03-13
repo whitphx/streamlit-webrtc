@@ -21,6 +21,7 @@
     "chroma-js": "^3.1.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "streamlit-component-lib": "^2.0.0",
     "streamlit-component-lib-react-hooks": "^2.1.0",
     "webrtc-adapter": "^9.0.1"
   },
