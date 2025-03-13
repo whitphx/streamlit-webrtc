@@ -23,6 +23,7 @@ export function ThemeProvider(props: React.PropsWithChildren<unknown>) {
 
     return createTheme({
       palette: {
+        mode: stTheme.base === "dark" ? "dark" : "light",
         primary: {
           main: stTheme.primaryColor,
         },
