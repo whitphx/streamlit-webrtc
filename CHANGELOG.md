@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.49.3] - 2025-03-13
+
+### Fix
+
+- Set the base theme type correctly, [#1931](https://github.com/whitphx/streamlit-webrtc/pull/1931).
+
 ## [0.49.2] - 2025-03-13
 
 ### Fix
