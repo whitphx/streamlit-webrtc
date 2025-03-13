@@ -227,6 +227,7 @@ jobs:
 
     - name: Install dependencies
       run: pnpm install
+      working-directory: streamlit_webrtc/frontend
 
     - name: Build
       run: make pkg/build
