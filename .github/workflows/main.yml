@@ -116,7 +116,7 @@ jobs:
       with:
         cache: 'pnpm'
         node-version-file: .nvmrc
-        cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
+        cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
     - name: Install dependencies
       run: pnpm install
       working-directory: streamlit_webrtc/frontend
@@ -152,7 +152,7 @@ jobs:
       with:
         cache: 'pnpm'
         node-version-file: .nvmrc
-        cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
+        cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
 
     - name: Install dependencies
       run: pnpm install
@@ -223,7 +223,7 @@ jobs:
       with:
         cache: 'pnpm'
         node-version-file: .nvmrc
-        cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
+        cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
 
     - name: Install dependencies
       run: pnpm install
