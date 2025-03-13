@@ -56,6 +56,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         persist-credentials: false
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
@@ -105,17 +106,22 @@ jobs:
       run: python scripts/release_check.py streamlit_webrtc/component.py
 
     # Frontend build is necessary for the package to be importable, in the tests
-    - name: Set up Node.js
+    - uses: pnpm/action-setup@v4
+      name: Install pnpm
+      with:
+        version: 10
+        run_install: false
+    - name: Install Node.js
       uses: actions/setup-node@v4
       with:
+        cache: 'pnpm'
         node-version-file: .nvmrc
-        cache: 'npm'
-        cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
-    - name: Install the frontend dependencies
-      run: npm ci
+        cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
+    - name: Install dependencies
+      run: pnpm install
       working-directory: streamlit_webrtc/frontend
     - name: Build the frontend
-      run: npm run build --if-present
+      run: pnpm run build
       working-directory: streamlit_webrtc/frontend
 
     - name: Test with pytest
@@ -134,19 +140,31 @@ jobs:
     - uses: actions/checkout@v4
       with:
         persist-credentials: false
-    - name: Use Node.js
+
+    - uses: pnpm/action-setup@v4
+      name: Install pnpm
+      with:
+        version: 10
+        run_install: false
+
+    - name: Install Node.js
       uses: actions/setup-node@v4
       with:
+        cache: 'pnpm'
         node-version-file: .nvmrc
-        cache: 'npm'
-        cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
-    - run: npm ci
+        cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
+
+    - name: Install dependencies
+      run: pnpm install
+
     - name: Lint
       run: |
-        npm run check:eslint
-        npm run check:prettier
-    - run: npm run build --if-present
-    - run: npm test
+        pnpm run check:eslint
+        pnpm run check:prettier
+
+    - run: pnpm run build
+
+    - run: pnpm test
 
   build:
     if: ${{ ! failure() }}  # This job should run even if the depending jobs are skipped, but not when those jobs failed: https://qiita.com/abetomo/items/d9ede7dbeeb24f723fc5#%E8%A8%AD%E5%AE%9A%E4%BE%8B4
@@ -158,14 +176,11 @@ jobs:
     - uses: actions/checkout@v4
       with:
         persist-credentials: false
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version-file: .nvmrc
 
     # The following steps are based on https://github.com/python-poetry/poetry/blob/def1ee8f3ae00c307ca028da53d2347615c5c32b/.github/workflows/main.yml#L51-L84
     - name: Get full Python version
@@ -195,9 +210,25 @@ jobs:
 
     - name: Install Python dependencies
       run: poetry install
-    - name: Install fronend dependencies
-      run: npm ci
+
+    # Set up frontend dependencies
+    - uses: pnpm/action-setup@v4
+      name: Install pnpm
+      with:
+        version: 10
+        run_install: false
+
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        cache: 'pnpm'
+        node-version-file: .nvmrc
+        cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
+
+    - name: Install dependencies
+      run: pnpm install
       working-directory: streamlit_webrtc/frontend
+
     - name: Build
       run: make pkg/build
 
