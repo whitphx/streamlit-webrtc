@@ -5,13 +5,10 @@ RUN apt-get update && apt-get install -y \
     libgl1 \
  && rm -rf /var/lib/apt/lists/*
 
-ENV POETRY_VIRTUALENVS_IN_PROJECT=false
-
-RUN pip install -U poetry
+RUN pip install -U uv
 
 ADD pyproject.toml /srv/pyproject.toml
-ADD poetry.lock /srv/poetry.lock
 
 WORKDIR /srv
 
-RUN poetry install
+RUN uv sync

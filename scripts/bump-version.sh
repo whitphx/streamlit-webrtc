@@ -27,8 +27,9 @@ if [[ $(git diff --stat) != '' ]]; then
 fi
 
 echo "Set version to pyproject.toml"
-poetry version ${VERSION}
-CURRENT_VERSION=`poetry version -s`
+# Update version in pyproject.toml manually since uv doesn't have a version command
+sed -i "s/^version = \".*\"/version = \"${VERSION}\"/" pyproject.toml
+CURRENT_VERSION=${VERSION}
 
 echo "Add and commit pyproject.toml"
 git add pyproject.toml
