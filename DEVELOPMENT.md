@@ -7,7 +7,7 @@
 * Run the frontend dev server
   ```shell
   $ cd streamlit_webrtc/frontend
-  $ npm start
+  $ pnpm dev
   ```
 * In another shell, run `app.py`
   ```shell
