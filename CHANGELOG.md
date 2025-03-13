@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.49.4] - 2025-03-14
+
+### Fix
+
+- Internally switch the frontend package manager from npm to pnpm, [#1932](https://github.com/whitphx/streamlit-webrtc/pull/1932).
+
 ## [0.49.3] - 2025-03-13
 
 ### Fix
