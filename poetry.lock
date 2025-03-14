@@ -1237,32 +1237,6 @@ files = [
 ]
 
 [[package]]
-name = "markdown-it-py"
-version = "2.2.0"
-description = "Python port of markdown-it. Markdown parsing, done right!"
-optional = false
-python-versions = ">=3.7"
-groups = ["main", "dev"]
-markers = "platform_system == \"Linux\" and platform_machine == \"aarch64\""
-files = [
-    {file = "markdown-it-py-2.2.0.tar.gz", hash = "sha256:7c9a5e412688bc771c67432cbfebcdd686c93ce6484913dccf06cb5a0bea35a1"},
-    {file = "markdown_it_py-2.2.0-py3-none-any.whl", hash = "sha256:5a35f8d1870171d9acc47b99612dc146129b631baf04970128b568f190d0cc30"},
-]
-
-[package.dependencies]
-mdurl = ">=0.1,<1.0"
-
-[package.extras]
-benchmarking = ["psutil", "pytest", "pytest-benchmark"]
-code-style = ["pre-commit (>=3.0,<4.0)"]
-compare = ["commonmark (>=0.9,<1.0)", "markdown (>=3.4,<4.0)", "mistletoe (>=1.0,<2.0)", "mistune (>=2.0,<3.0)", "panflute (>=2.3,<3.0)"]
-linkify = ["linkify-it-py (>=1,<3)"]
-plugins = ["mdit-py-plugins"]
-profiling = ["gprof2dot"]
-rtd = ["attrs", "myst-parser", "pyyaml", "sphinx", "sphinx-copybutton", "sphinx-design", "sphinx_book_theme"]
-testing = ["coverage", "pytest", "pytest-cov", "pytest-regressions"]
-
-[[package]]
 name = "markupsafe"
 version = "2.1.2"
 description = "Safely add untrusted strings to HTML/XML markup."
@@ -1448,19 +1422,6 @@ python-dateutil = ">=2.7"
 
 [package.extras]
 dev = ["meson-python (>=0.13.1,<0.17.0)", "pybind11 (>=2.13.2,!=2.13.3)", "setuptools (>=64)", "setuptools_scm (>=7)"]
-
-[[package]]
-name = "mdurl"
-version = "0.1.2"
-description = "Markdown URL utilities"
-optional = false
-python-versions = ">=3.7"
-groups = ["main", "dev"]
-markers = "platform_system == \"Linux\" and platform_machine == \"aarch64\""
-files = [
-    {file = "mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"},
-    {file = "mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"},
-]
 
 [[package]]
 name = "multidict"
@@ -2106,22 +2067,6 @@ files = [
 typing-extensions = "*"
 
 [[package]]
-name = "pygments"
-version = "2.15.0"
-description = "Pygments is a syntax highlighting package written in Python."
-optional = false
-python-versions = ">=3.7"
-groups = ["main", "dev"]
-markers = "platform_system == \"Linux\" and platform_machine == \"aarch64\""
-files = [
-    {file = "Pygments-2.15.0-py3-none-any.whl", hash = "sha256:77a3299119af881904cd5ecd1ac6a66214b6e9bed1f2db16993b54adede64094"},
-    {file = "Pygments-2.15.0.tar.gz", hash = "sha256:f7e36cffc4c517fbc252861b9a6e4644ca0e5abadf9a113c72d1358ad09b9500"},
-]
-
-[package.extras]
-plugins = ["importlib-metadata ; python_version < \"3.8\""]
-
-[[package]]
 name = "pyjwt"
 version = "2.6.0"
 description = "JSON Web Token implementation in Python"
@@ -2331,26 +2276,6 @@ socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
-name = "rich"
-version = "13.3.1"
-description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
-optional = false
-python-versions = ">=3.7.0"
-groups = ["main", "dev"]
-markers = "platform_system == \"Linux\" and platform_machine == \"aarch64\""
-files = [
-    {file = "rich-13.3.1-py3-none-any.whl", hash = "sha256:8aa57747f3fc3e977684f0176a88e789be314a99f99b43b75d1e9cb5dc6db9e9"},
-    {file = "rich-13.3.1.tar.gz", hash = "sha256:125d96d20c92b946b983d0d392b84ff945461e5a06d3867e9f9e575f8697b67f"},
-]
-
-[package.dependencies]
-markdown-it-py = ">=2.1.0,<3.0.0"
-pygments = ">=2.14.0,<3.0.0"
-
-[package.extras]
-jupyter = ["ipywidgets (>=7.5.1,<9)"]
-
-[[package]]
 name = "ruff"
 version = "0.11.0"
 description = "An extremely fast Python linter and code formatter, written in Rust."
@@ -2407,15 +2332,15 @@ files = [
 
 [[package]]
 name = "streamlit"
-version = "1.38.0"
+version = "1.43.2"
 description = "A faster way to build and share data apps"
 optional = false
-python-versions = "!=3.9.7,>=3.8"
+python-versions = "!=3.9.7,>=3.9"
 groups = ["main", "dev"]
 markers = "platform_system == \"Linux\" and platform_machine == \"aarch64\""
 files = [
-    {file = "streamlit-1.38.0-py2.py3-none-any.whl", hash = "sha256:0653ecfe86fef0f1608e3e082aef7eb335d8713f6f31e9c3b19486d1c67d7c41"},
-    {file = "streamlit-1.38.0.tar.gz", hash = "sha256:c4bf36b3ef871499ed4594574834583113f93f077dd3035d516d295786f2ad63"},
+    {file = "streamlit-1.43.2-py2.py3-none-any.whl", hash = "sha256:c773ff70e8dd14066e49ba4b36740e4d36b0c534624f49abcc73b75389bf9420"},
+    {file = "streamlit-1.43.2.tar.gz", hash = "sha256:f3afa2af637d00154c6a4c560d2fde256d7dc8cc1f32a53cf20570c0967841bc"},
 ]
 
 [package.dependencies]
@@ -2424,23 +2349,22 @@ blinker = ">=1.0.0,<2"
 cachetools = ">=4.0,<6"
 click = ">=7.0,<9"
 gitpython = ">=3.0.7,<3.1.19 || >3.1.19,<4"
-numpy = ">=1.20,<3"
+numpy = ">=1.23,<3"
 packaging = ">=20,<25"
-pandas = ">=1.3.0,<3"
-pillow = ">=7.1.0,<11"
+pandas = ">=1.4.0,<3"
+pillow = ">=7.1.0,<12"
 protobuf = ">=3.20,<6"
 pyarrow = ">=7.0"
 pydeck = ">=0.8.0b4,<1"
 requests = ">=2.27,<3"
-rich = ">=10.14.0,<14"
-tenacity = ">=8.1.0,<9"
+tenacity = ">=8.1.0,<10"
 toml = ">=0.10.1,<2"
 tornado = ">=6.0.3,<7"
-typing-extensions = ">=4.3.0,<5"
-watchdog = {version = ">=2.1.5,<5", markers = "platform_system != \"Darwin\""}
+typing-extensions = ">=4.4.0,<5"
+watchdog = {version = ">=2.1.5,<7", markers = "platform_system != \"Darwin\""}
 
 [package.extras]
-snowflake = ["snowflake-connector-python (>=2.8.0) ; python_version < \"3.12\"", "snowflake-snowpark-python[modin] (>=1.17.0) ; python_version < \"3.12\""]
+snowflake = ["snowflake-connector-python (>=3.3.0) ; python_version < \"3.12\"", "snowflake-snowpark-python[modin] (>=1.17.0) ; python_version < \"3.12\""]
 
 [[package]]
 name = "streamlit-server-state"
