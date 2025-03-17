@@ -18,7 +18,7 @@
 1. Edit `CHANGELOG.md` and commit it.
 2. Set the next version with the following command, which updates the package version defined in `pyproject.toml` and creates a new Git tag representing this release.
    ```
-   $ ./scripts/bump-version.sh <version>
+   $ bump-my-version bump <version>
    ```
    NOTE: `patch`, `minor`, or `major` can be used as `<version>`.
 3. Push the commit with the tag to GitHub. After pushing the tag, CI/CD automatically deploys the release.
