@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.51.2] - 2025-03-18
+
+### Fix
+
+- Fix a bug on `streamlit_webrtc.credentials.get_hf_ice_servers()` that it always returns `None`, [#1939](https://github.com/whitphx/streamlit-webrtc/pull/1939).
+- Add type hints on `streamlit_webrtc.credentials.get_hf_ice_servers()` and `streamlit_webrtc.credentials.get_twilio_ice_servers()`, [#1940](https://github.com/whitphx/streamlit-webrtc/pull/1940).
+
 ## [0.51.1] - 2025-03-18
 
 ### Fix
