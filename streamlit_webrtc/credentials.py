@@ -46,7 +46,7 @@ def get_hf_ice_servers(token: Optional[str] = None):
             if response.status != 200:
                 raise ValueError("Failed to get credentials from HF turn server")
             credentials = json.loads(response.read())
-            [
+            return [
                 {
                     "urls": "turn:gradio-turn.com:80",
                     **credentials,
