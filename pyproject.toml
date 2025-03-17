@@ -3,12 +3,14 @@ name = "streamlit-webrtc"
 version = "0.49.4"
 description = "Real-time video and audio processing on Streamlit"
 authors = [{ name = "Yuichiro Tachibana (Tsuchiya)", email = "t.yic.yt@gmail.com" }]
-requires-python = ">=3.9,!=3.9.7"
+requires-python = ">=3.9,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
 readme = "README.md"
 license = "MIT"
 dependencies = [
+    # For allow-same-origin, >=0.73.0 is required. See https://blog.streamlit.io/streamlit-components-security-and-a-five-month-quest-to-ship-a-single-line-of-code/
+    # 0.84.0 has an error at marshalling component values.
     "streamlit>=0.84.1",
-    "aiortc>=1.9.0,<2",
+    "aiortc>=1.9.0",  # aiortc<1.4.0 causes an error with cryptography>=39.0.0. See https://github.com/whitphx/streamlit-webrtc/issues/1164. The fix was introduced into aiortc in https://github.com/aiortc/aiortc/commit/08b0a7e9f5030a9f7e5617382e92560d4ae763a2 that 1.4.0 included.
     "packaging>=20.0",
 ]
 
