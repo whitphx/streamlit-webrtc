@@ -475,6 +475,7 @@ def webrtc_streamer(
                 ice_servers = get_hf_ice_servers(hf_token)
                 if context._rtc_configuration is None:
                     context._rtc_configuration = {}
+                LOGGER.info("Successfully got TURN credentials from Hugging Face.")
                 context._rtc_configuration["iceServers"] = ice_servers
             except Exception as e:
                 LOGGER.error("Failed to get TURN credentials from Hugging Face: %s", e)
@@ -486,16 +487,21 @@ def webrtc_streamer(
                 ice_servers = get_twilio_ice_servers(twilio_sid, twilio_token)
                 if context._rtc_configuration is None:
                     context._rtc_configuration = {}
+                LOGGER.info("Successfully got TURN credentials from Twilio.")
                 context._rtc_configuration["iceServers"] = ice_servers
             except Exception as e:
                 LOGGER.error("Failed to get TURN credentials from Twilio: %s", e)
         else:
             LOGGER.info("Use STUN server from Google.")
-            if context._rtc_configuration is None:
-                context._rtc_configuration = {}
-            context._rtc_configuration["iceServers"] = [
-                {"urls": "stun:stun.l.google.com:19302"}
-            ]
+            # TODO: Check network reachability and unset ice_servers if failed
+            ice_servers = [{"urls": "stun:stun.l.google.com:19302"}]
+            if ice_servers:
+                if context._rtc_configuration is None:
+                    context._rtc_configuration = {}
+                LOGGER.info("Successfully got STUN server from Google.")
+                context._rtc_configuration["iceServers"] = [
+                    {"urls": "stun:stun.l.google.com:19302"}
+                ]
 
     webrtc_worker = context._get_worker()
 
