@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.51.0] - 2025-03-17
+
+### Added
+
+- `streamlit_webrtc.credentials` module for getting TURN/STUN server credentials from Hugging Face and Twilio, [#1927](https://github.com/whitphx/streamlit-webrtc/pull/1927).
+
+### Changed
+
+- Set the STUN/TURN server configs automatically if the credentials are available, [#1927](https://github.com/whitphx/streamlit-webrtc/pull/1927).
+
 ## [0.50.1] - 2025-03-17
 
 ### Changed
