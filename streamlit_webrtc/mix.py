@@ -8,12 +8,14 @@ import time
 import traceback
 import weakref
 from collections import OrderedDict
-from typing import Callable, Generic, List, NamedTuple, Optional, Union
+from typing import Callable, Generic, List, NamedTuple, Optional, Union, cast
 
 import av
 from aiortc import MediaStreamTrack
 from aiortc.contrib.media import RelayStreamTrack
 from aiortc.mediastreams import MediaStreamError
+from av.frame import Frame
+from av.packet import Packet
 
 from .eventloop import get_global_event_loop, loop_context
 from .models import FrameT
@@ -37,12 +39,11 @@ VIDEO_TIME_BASE = fractions.Fraction(1, VIDEO_CLOCK_RATE)
 
 
 MixerCallback = Callable[[List[FrameT]], FrameT]
-Frame = Union[av.VideoFrame, av.AudioFrame]
 
 
 class InputQueueItem(NamedTuple):
-    source_track_id: int
-    frame: Optional[Frame]
+    source_track_id: str
+    frame: Optional[Union[Frame, Packet]]
 
 
 async def input_track_coro(
@@ -99,10 +100,10 @@ async def mix_coro(mix_track: "MediaStreamMixTrack"):
             if output_frame.pts is None and output_frame.time_base is None:
                 timestamp = time.monotonic() - started_at
                 if isinstance(output_frame, av.VideoFrame):
-                    output_frame.pts = timestamp * VIDEO_CLOCK_RATE
+                    output_frame.pts = int(timestamp * VIDEO_CLOCK_RATE)
                     output_frame.time_base = VIDEO_TIME_BASE
                 elif isinstance(output_frame, av.AudioFrame):
-                    output_frame.pts = timestamp * AUDIO_SAMPLE_RATE
+                    output_frame.pts = int(timestamp * AUDIO_SAMPLE_RATE)
                     output_frame.time_base = AUDIO_TIME_BASE
 
         except Exception:
@@ -128,7 +129,7 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
     _input_queue: asyncio.Queue
     _queue: "asyncio.Queue[Optional[Frame]]"
     _latest_frames_map: (
-        "weakref.WeakKeyDictionary[RelayStreamTrack, Union[Frame, None]]"
+        "weakref.WeakKeyDictionary[RelayStreamTrack, Union[Frame, Packet, None]]"
     )
     _latest_frames_updated_event: asyncio.Event
 
@@ -146,7 +147,7 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
         mixer_output_interval: float = 1 / 30,
     ) -> None:
         self.kind = kind
-        self._mixer_callback = mixer_callback
+        self._mixer_callback: MixerCallback[FrameT] = mixer_callback
         self._mixer_callback_lock = threading.Lock()
 
         self.mixer_output_interval = mixer_output_interval
@@ -210,7 +211,7 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
 
             relay = get_global_relay()
             with loop_context(self._loop):
-                input_proxy = relay.subscribe(input_track)
+                input_proxy = cast(RelayStreamTrack, relay.subscribe(input_track))
 
             self._input_proxies[input_track] = input_proxy
 
@@ -223,7 +224,7 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
         )
         self._input_tasks[input_proxy] = task
 
-        input_proxy.on("ended")(functools.partial(self.remove_input_proxy, input_proxy))
+        input_proxy.on("ended", functools.partial(self.remove_input_proxy, input_proxy))
 
     def remove_input_proxy(self, input_proxy: RelayStreamTrack) -> None:
         LOGGER.debug("Remove a relay track %s from %s", input_proxy, self)
@@ -241,13 +242,13 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
         task.cancel()
 
     def _set_latest_frame(
-        self, input_proxy: RelayStreamTrack, frame: Union[Frame, None]
+        self, input_proxy: RelayStreamTrack, frame: Union[Frame, Packet, None]
     ):
         # TODO: Lock here to make these 2 lines atomic
         self._latest_frames_map[input_proxy] = frame
         self._latest_frames_updated_event.set()
 
-    async def _get_latest_frames(self) -> List[Frame]:
+    async def _get_latest_frames(self) -> List[Union[Frame, Packet]]:
         # TODO: Lock here to make these 2 lines atomic
         await self._latest_frames_updated_event.wait()
         self._latest_frames_updated_event.clear()
@@ -257,8 +258,7 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
                 self._latest_frames_map.get(proxy)
                 for proxy in self._input_proxies.values()
             ]
-        latest_frames = [f for f in latest_frames if f is not None]
-        return latest_frames
+        return [f for f in latest_frames if f is not None]
 
     async def recv(self):
         if self.readyState != "live":

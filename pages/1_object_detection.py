@@ -93,7 +93,10 @@ def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
 
     # Run inference
     blob = cv2.dnn.blobFromImage(
-        cv2.resize(image, (300, 300)), 0.007843, (300, 300), 127.5
+        cv2.resize(image, (300, 300)),
+        0.007843,
+        (300, 300),
+        127.5,  # type: ignore
     )
     net.setInput(blob)
     output = net.forward()

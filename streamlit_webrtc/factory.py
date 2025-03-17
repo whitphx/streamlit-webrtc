@@ -1,7 +1,6 @@
-from typing import Literal, Optional, Union, overload
+from typing import Literal, Optional, Type, Union, overload
 
 import streamlit as st
-from aiortc import MediaStreamTrack
 
 from .eventloop import get_global_event_loop, loop_context
 from .mix import MediaStreamMixTrack, MixerCallback
@@ -33,7 +32,7 @@ _PROCESSOR_TRACK_CACHE_KEY_PREFIX = "__PROCESSOR_TRACK_CACHE__"
 
 def _get_track_class(
     kind: Literal["video", "audio"], async_processing: bool
-) -> MediaStreamTrack:
+) -> Union[Type[MediaProcessTrack], Type[AsyncMediaProcessTrack]]:
     if kind == "video":
         if async_processing:
             return AsyncVideoProcessTrack

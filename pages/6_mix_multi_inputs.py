@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 import streamlit as st
 from streamlit_webrtc import (
+    MediaStreamMixTrack,
     WebRtcMode,
     create_mix_track,
     create_process_track,
@@ -176,9 +177,15 @@ mix_ctx = webrtc_streamer(
 )
 
 if mix_ctx.source_video_track and input1_video_process_track:
-    mix_ctx.source_video_track.add_input_track(input1_video_process_track)
+    cast(MediaStreamMixTrack, mix_ctx.source_video_track).add_input_track(
+        input1_video_process_track
+    )
 if mix_ctx.source_video_track and input2_video_process_track:
-    mix_ctx.source_video_track.add_input_track(input2_video_process_track)
+    cast(MediaStreamMixTrack, mix_ctx.source_video_track).add_input_track(
+        input2_video_process_track
+    )
 if mix_ctx.source_video_track and input3_ctx.output_video_track:
     # Input3 is sourced without any filter.
-    mix_ctx.source_video_track.add_input_track(input3_ctx.output_video_track)
+    cast(MediaStreamMixTrack, mix_ctx.source_video_track).add_input_track(
+        input3_ctx.output_video_track
+    )
