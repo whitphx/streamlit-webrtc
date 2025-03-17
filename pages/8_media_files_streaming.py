@@ -11,7 +11,6 @@ from aiortc.contrib.media import MediaPlayer
 from streamlit_webrtc import WebRtcMode, WebRtcStreamerContext, webrtc_streamer
 
 from sample_utils.download import download_file
-from sample_utils.turn import get_ice_servers
 
 HERE = Path(__file__).parent
 ROOT = HERE.parent
@@ -114,7 +113,6 @@ def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
 webrtc_streamer(
     key=key,
     mode=WebRtcMode.RECVONLY,
-    rtc_configuration={"iceServers": get_ice_servers()},
     media_stream_constraints={
         "video": media_file_info["type"] == "video",
         "audio": media_file_info["type"] == "audio",

@@ -7,15 +7,12 @@ import queue
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
-from sample_utils.turn import get_ice_servers
-
 logger = logging.getLogger(__name__)
 
 
 webrtc_ctx = webrtc_streamer(
     key="video-sendonly",
     mode=WebRtcMode.SENDONLY,
-    rtc_configuration={"iceServers": get_ice_servers()},
     media_stream_constraints={"video": True},
 )
 

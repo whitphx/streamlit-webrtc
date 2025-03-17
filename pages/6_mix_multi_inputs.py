@@ -18,8 +18,6 @@ from streamlit_webrtc import (
     webrtc_streamer,
 )
 
-from sample_utils.turn import get_ice_servers
-
 st.markdown(
     """
 Mix multiple inputs with different video filters into one stream.
@@ -115,13 +113,10 @@ def mixer_callback(frames: List[av.VideoFrame]) -> av.VideoFrame:
     return new_frame
 
 
-COMMON_RTC_CONFIG = {"iceServers": get_ice_servers()}
-
 st.header("Input 1")
 input1_ctx = webrtc_streamer(
     key="input1_ctx",
     mode=WebRtcMode.SENDRECV,
-    rtc_configuration=COMMON_RTC_CONFIG,
     media_stream_constraints={"video": True, "audio": False},
 )
 filter1_type = st.radio(
@@ -141,7 +136,6 @@ st.header("Input 2")
 input2_ctx = webrtc_streamer(
     key="input2_ctx",
     mode=WebRtcMode.SENDRECV,
-    rtc_configuration=COMMON_RTC_CONFIG,
     media_stream_constraints={"video": True, "audio": False},
 )
 filter2_type = st.radio(
@@ -160,7 +154,6 @@ st.header("Input 3 (no filter)")
 input3_ctx = webrtc_streamer(
     key="input3_ctx",
     mode=WebRtcMode.SENDRECV,
-    rtc_configuration=COMMON_RTC_CONFIG,
     media_stream_constraints={"video": True, "audio": False},
 )
 
@@ -169,7 +162,6 @@ mix_track = create_mix_track(kind="video", mixer_callback=mixer_callback, key="m
 mix_ctx = webrtc_streamer(
     key="mix",
     mode=WebRtcMode.RECVONLY,
-    rtc_configuration=COMMON_RTC_CONFIG,
     source_video_track=mix_track,
     desired_playing_state=input1_ctx.state.playing
     or input2_ctx.state.playing

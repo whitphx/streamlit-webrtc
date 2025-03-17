@@ -4,8 +4,6 @@ import pydub
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
-from sample_utils.turn import get_ice_servers
-
 gain = st.slider("Gain", -10.0, +20.0, 1.0, 0.05)
 
 
@@ -34,7 +32,6 @@ def process_audio(frame: av.AudioFrame) -> av.AudioFrame:
 webrtc_streamer(
     key="audio-filter",
     mode=WebRtcMode.SENDRECV,
-    rtc_configuration={"iceServers": get_ice_servers()},
     audio_frame_callback=process_audio,
     async_processing=True,
 )
