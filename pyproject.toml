@@ -35,12 +35,12 @@ dev = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["./streamlit_webrtc/frontend/dist/**/*"]
-exclude = ["./streamlit_webrtc/frontend/*"]
+include = ["/streamlit_webrtc"]
+exclude = ["/streamlit_webrtc/frontend", "!/streamlit_webrtc/frontend/dist"]
 
 [tool.hatch.build.targets.wheel]
-include = ["./streamlit_webrtc/frontend/dist/**/*"]
-exclude = ["./streamlit_webrtc/frontend/*"]
+include = ["/streamlit_webrtc"]
+exclude = ["/streamlit_webrtc/frontend", "!/streamlit_webrtc/frontend/dist"]
 
 [build-system]
 requires = ["hatchling"]
