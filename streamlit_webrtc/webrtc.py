@@ -93,7 +93,7 @@ async def _process_offer_coro(
 
     if mode == WebRtcMode.SENDRECV:
 
-        @pc.on("track")  # type: ignore
+        @pc.listens_to("track")
         def on_track(input_track: MediaStreamTrack):
             logger.info("Track %s received", input_track.kind)
 
@@ -164,7 +164,7 @@ async def _process_offer_coro(
             elif output_track.kind == "audio":
                 on_track_created("output:audio", output_track)
 
-            @input_track.on("ended")  # type: ignore
+            @input_track.listens_to("ended")
             async def on_ended():
                 logger.info("Track %s ended", input_track.kind)
                 if in_recorder:
@@ -174,7 +174,7 @@ async def _process_offer_coro(
 
     elif mode == WebRtcMode.SENDONLY:
 
-        @pc.on("track")  # type: ignore
+        @pc.listens_to("track")
         def on_track(input_track: MediaStreamTrack):
             logger.info("Track %s received", input_track.kind)
 
@@ -226,7 +226,7 @@ async def _process_offer_coro(
                 logger.info("Track %s is added to in_recorder", input_track.kind)
                 in_recorder.addTrack(relay.subscribe(input_track))
 
-            @input_track.on("ended")  # type: ignore
+            @input_track.listens_to("ended")
             async def on_ended():
                 logger.info("Track %s ended", input_track.kind)
                 if video_receiver:
@@ -512,7 +512,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 )
                 source_video_track = self._relayed_source_video_track
 
-        @self.pc.on("iceconnectionstatechange")  # type: ignore
+        @self.pc.listens_to("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
             logger.info("ICE connection state is %s", self.pc.iceConnectionState)
             iceConnectionState = self.pc.iceConnectionState
