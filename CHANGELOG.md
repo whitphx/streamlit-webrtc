@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.51.1] - 2025-03-18
+
+### Fix
+
+- Fix internal type annotations, [#1938](https://github.com/whitphx/streamlit-webrtc/pull/1938).
+
 ## [0.51.0] - 2025-03-17
 
 ### Added
