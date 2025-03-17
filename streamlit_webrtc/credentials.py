@@ -27,10 +27,12 @@ import json
 import os
 import urllib.error
 import urllib.request
-from typing import Optional
+from typing import List, Optional
+
+from .config import RTCIceServer
 
 
-def get_hf_ice_servers(token: Optional[str] = None):
+def get_hf_ice_servers(token: Optional[str] = None) -> List[RTCIceServer]:
     if token is None:
         token = os.getenv("HF_TOKEN")
 
@@ -58,7 +60,7 @@ def get_hf_ice_servers(token: Optional[str] = None):
 
 def get_twilio_ice_servers(
     twilio_sid: Optional[str] = None, twilio_token: Optional[str] = None
-):
+) -> List[RTCIceServer]:
     try:
         from twilio.rest import Client
     except ImportError:

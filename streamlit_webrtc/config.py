@@ -11,8 +11,8 @@ RTCIceServer = TypedDict(
 )
 
 
-class RTCConfiguration(TypedDict):
-    iceServers: List[RTCIceServer]
+class RTCConfiguration(TypedDict, total=False):
+    iceServers: Optional[List[RTCIceServer]]
 
 
 Number = Union[int, float]
