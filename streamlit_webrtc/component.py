@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import os
@@ -40,6 +41,7 @@ from .config import (
     Translations,
     VideoHTMLAttributes,
 )
+from .credentials import get_hf_ice_servers, get_twilio_ice_servers
 from .session_info import get_script_run_count, get_this_session_info
 from .webrtc import (
     AudioProcessorFactory,
@@ -91,6 +93,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker[VideoProcessorT, AudioProcessorT]]]"  # noqa
 
     _component_value_snapshot: Union[ComponentValueSnapshot, None]
+    _rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]]
 
     def __init__(
         self,
@@ -100,6 +103,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._set_worker(worker)
         self._set_state(state)
         self._component_value_snapshot = None
+        self._rtc_configuration = None
 
     def _set_worker(
         self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
@@ -216,7 +220,7 @@ def compile_state(component_value) -> WebRtcStreamerState:
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -257,7 +261,7 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -294,7 +298,7 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -331,7 +335,7 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -367,7 +371,7 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -456,6 +460,43 @@ def webrtc_streamer(
         )
         st.session_state[key] = context
 
+    if context._rtc_configuration is None:
+        context._rtc_configuration = copy.deepcopy(rtc_configuration)
+    if context._rtc_configuration is None or (
+        isinstance(context._rtc_configuration, dict)
+        and context._rtc_configuration.get("iceServers") is None
+    ):
+        LOGGER.info(
+            "rtc_configuration.iceServers is not set. Try to set it automatically."
+        )
+        if hf_token := os.getenv("HF_TOKEN"):
+            LOGGER.info("Try to use TURN server from Hugging Face.")
+            try:
+                ice_servers = get_hf_ice_servers(hf_token)
+                if context._rtc_configuration is None:
+                    context._rtc_configuration = {}
+                context._rtc_configuration["iceServers"] = ice_servers
+            except Exception as e:
+                LOGGER.error("Failed to get TURN credentials from Hugging Face: %s", e)
+        elif os.getenv("TWILIO_ACCOUNT_SID") and os.getenv("TWILIO_AUTH_TOKEN"):
+            LOGGER.info("Try to use TURN server from Twilio.")
+            twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
+            twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
+            try:
+                ice_servers = get_twilio_ice_servers(twilio_sid, twilio_token)
+                if context._rtc_configuration is None:
+                    context._rtc_configuration = {}
+                context._rtc_configuration["iceServers"] = ice_servers
+            except Exception as e:
+                LOGGER.error("Failed to get TURN credentials from Twilio: %s", e)
+        else:
+            LOGGER.info("Use STUN server from Google.")
+            if context._rtc_configuration is None:
+                context._rtc_configuration = {}
+            context._rtc_configuration["iceServers"] = [
+                {"urls": "stun:stun.l.google.com:19302"}
+            ]
+
     webrtc_worker = context._get_worker()
 
     sdp_answer_json = None
@@ -493,7 +534,7 @@ def webrtc_streamer(
         sdp_answer_json=sdp_answer_json,
         mode=mode.name,
         settings=client_settings,
-        rtc_configuration=rtc_configuration,
+        rtc_configuration=context._rtc_configuration,
         media_stream_constraints=media_stream_constraints,
         video_html_attrs=video_html_attrs,
         audio_html_attrs=audio_html_attrs,
@@ -549,6 +590,9 @@ def webrtc_streamer(
         webrtc_worker.stop()
         context._set_worker(None)
         webrtc_worker = None
+
+        context._rtc_configuration = None
+
         # Rerun to unset the SDP answer from the frontend args
         rerun()
 

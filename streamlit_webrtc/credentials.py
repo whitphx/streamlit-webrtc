@@ -27,10 +27,10 @@ import json
 import os
 import urllib.error
 import urllib.request
-from typing import Literal, Optional
+from typing import Optional
 
 
-def get_hf_turn_credentials(token: Optional[str] = None):
+def get_hf_ice_servers(token: Optional[str] = None):
     if token is None:
         token = os.getenv("HF_TOKEN")
 
@@ -46,19 +46,17 @@ def get_hf_turn_credentials(token: Optional[str] = None):
             if response.status != 200:
                 raise ValueError("Failed to get credentials from HF turn server")
             credentials = json.loads(response.read())
-            return {
-                "iceServers": [
-                    {
-                        "urls": "turn:gradio-turn.com:80",
-                        **credentials,
-                    },
-                ]
-            }
+            [
+                {
+                    "urls": "turn:gradio-turn.com:80",
+                    **credentials,
+                },
+            ]
     except urllib.error.URLError:
         raise ValueError("Failed to get credentials from HF turn server")
 
 
-def get_twilio_turn_credentials(
+def get_twilio_ice_servers(
     twilio_sid: Optional[str] = None, twilio_token: Optional[str] = None
 ):
     try:
@@ -74,16 +72,4 @@ def get_twilio_turn_credentials(
 
     token = client.tokens.create()
 
-    return {
-        "iceServers": token.ice_servers,
-        "iceTransportPolicy": "relay",
-    }
-
-
-def get_turn_credentials(method: Literal["hf", "twilio"] = "hf", **kwargs):
-    if method == "hf":
-        return get_hf_turn_credentials(**kwargs)
-    elif method == "twilio":
-        return get_twilio_turn_credentials(**kwargs)
-    else:
-        raise ValueError("Invalid method. Must be 'hf' or 'twilio'")
+    return token.ice_servers
