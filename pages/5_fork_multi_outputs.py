@@ -10,8 +10,6 @@ import cv2
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
-from sample_utils.turn import get_ice_servers
-
 st.markdown(
     """
 Fork one input to multiple outputs with different video filters.
@@ -62,13 +60,10 @@ def make_video_frame_callback(_type: VideoFilterType):
     return callback
 
 
-COMMON_RTC_CONFIG = {"iceServers": get_ice_servers()}
-
 st.header("Input")
 ctx = webrtc_streamer(
     key="loopback",
     mode=WebRtcMode.SENDRECV,
-    rtc_configuration=COMMON_RTC_CONFIG,
     media_stream_constraints={"video": True, "audio": False},
 )
 
@@ -85,7 +80,6 @@ webrtc_streamer(
     video_frame_callback=callback,
     source_video_track=ctx.output_video_track,
     desired_playing_state=ctx.state.playing,
-    rtc_configuration=COMMON_RTC_CONFIG,
     media_stream_constraints={"video": True, "audio": False},
 )
 
@@ -102,6 +96,5 @@ webrtc_streamer(
     video_frame_callback=callback,
     source_video_track=ctx.output_video_track,
     desired_playing_state=ctx.state.playing,
-    rtc_configuration=COMMON_RTC_CONFIG,
     media_stream_constraints={"video": True, "audio": False},
 )

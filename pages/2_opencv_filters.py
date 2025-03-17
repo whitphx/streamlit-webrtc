@@ -5,8 +5,6 @@ import cv2
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
-from sample_utils.turn import get_ice_servers
-
 _type = st.radio("Select transform type", ("noop", "cartoon", "edges", "rotate"))
 
 
@@ -51,7 +49,6 @@ def callback(frame: av.VideoFrame) -> av.VideoFrame:
 webrtc_streamer(
     key="opencv-filter",
     mode=WebRtcMode.SENDRECV,
-    rtc_configuration={"iceServers": get_ice_servers()},
     video_frame_callback=callback,
     media_stream_constraints={"video": True, "audio": False},
     async_processing=True,
