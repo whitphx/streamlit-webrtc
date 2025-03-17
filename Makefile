@@ -20,7 +20,6 @@ docker/run:
 		-it \
 		-p 8501:8501 \
 		-v `pwd`:/srv \
-		-e STREAMLIT_SERVER_FILE_WATCHER_TYPE=poll \
 		streamlit-webrtc \
 		poetry run streamlit run home.py
 
@@ -30,7 +29,5 @@ docker/shell:
 		-it \
 		-p 8501:8501 \
 		-v `pwd`:/srv \
-		-e SHELL=/bin/bash \
-		-e STREAMLIT_SERVER_FILE_WATCHER_TYPE=poll \
 		streamlit-webrtc \
 		poetry shell
