@@ -3,12 +3,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.50.0] - 2025-03-17
+## [0.50.1] - 2025-03-17
 
-### Fix
+### Changed
 
 - Update type annotations, [#1936](https://github.com/whitphx/streamlit-webrtc/pull/1936).
 - Switch to uv, [#1936](https://github.com/whitphx/streamlit-webrtc/pull/1936).
+- Update the release workflow, [#1937](https://github.com/whitphx/streamlit-webrtc/pull/1937).
 
 ## [0.49.4] - 2025-03-14
 
