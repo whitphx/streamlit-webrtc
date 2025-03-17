@@ -14,23 +14,6 @@
   $ streamlit run home.py
   ```
 
-### If you want to use Docker
-Build the image:
-```shell
-make docker/build
-```
-
-Run the sample app:
-```shell
-make docker/run
-```
-
-Log in to the shell:
-```shell
-make docker/shell
-```
-
-
 ## Release
 1. Edit `CHANGELOG.md` and commit it.
 2. Set the next version with the following command, which updates the package version defined in `pyproject.toml` and creates a new Git tag representing this release.

@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         streamlit-version: [null]
         include:
           # Test with streamlit <1.4.0 and >=1.4.0. See https://github.com/whitphx/streamlit-webrtc/issues/598
@@ -61,53 +61,36 @@ jobs:
       with:
         persist-credentials: false
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: "0.6.6"
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
-    # The following steps are based on https://github.com/python-poetry/poetry/blob/def1ee8f3ae00c307ca028da53d2347615c5c32b/.github/workflows/main.yml#L51-L84
-    - name: Get full Python version
-      id: full-python-version
-      run: echo version=$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))") >> $GITHUB_OUTPUT
-
-    - name: Bootstrap poetry
-      run: |
-        curl -sL https://install.python-poetry.org | python - -y --version 2.1.1
-
-    - name: Update PATH
-      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-    - name: Configure poetry
-      run: poetry config virtualenvs.in-project true
-
-    - name: Set up cache
-      uses: actions/cache@v4
-      id: cache
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
-
-    - name: Ensure cache is healthy
-      if: steps.cache.outputs.cache-hit == 'true'
-      run: timeout 10s pip --version || rm -rf .venv
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
 
     - name: Install a specific version of Streamlit
       if: ${{ matrix.streamlit-version }}
-      run: poetry add -D streamlit=="${STREAMLIT_VERSION}" setuptools
+      run: uv pip install streamlit=="${STREAMLIT_VERSION}" setuptools
       env:
         STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
-    - name: Install dependencies
-      run: poetry install
+
     - name: Run Ruff
       run: |
-        poetry run ruff check --output-format=github .
-        poetry run ruff format . --check
+        uv run ruff check --output-format=github .
+        uv run ruff format . --check
+
     - name: Type checking with mypy
       run: |
-        poetry run mypy .
+        uv run mypy .
+
     - name: Release check
-      run: python scripts/release_check.py streamlit_webrtc/component.py
+      run: uv run scripts/release_check.py streamlit_webrtc/component.py
 
     # Frontend build is necessary for the package to be importable, in the tests
     - uses: pnpm/action-setup@v4
@@ -130,7 +113,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        poetry run pytest
+        uv run pytest
 
   test-frontend:
     permissions:
@@ -185,39 +168,18 @@ jobs:
       with:
         persist-credentials: false
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: "0.6.6"
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
-
-    # The following steps are based on https://github.com/python-poetry/poetry/blob/def1ee8f3ae00c307ca028da53d2347615c5c32b/.github/workflows/main.yml#L51-L84
-    - name: Get full Python version
-      id: full-python-version
-      run: echo version=$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))") >> $GITHUB_OUTPUT
-
-    - name: Bootstrap poetry
-      run: |
-        curl -sL https://install.python-poetry.org | python - -y --version 2.1.1
-
-    - name: Update PATH
-      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-    - name: Configure poetry
-      run: poetry config virtualenvs.in-project true
-
-    - name: Set up cache
-      uses: actions/cache@v4
-      id: cache
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
-
-    - name: Ensure cache is healthy
-      if: steps.cache.outputs.cache-hit == 'true'
-      run: timeout 10s pip --version || rm -rf .venv
+        python-version-file: "pyproject.toml"
 
     - name: Install Python dependencies
-      run: poetry install
+      run: uv sync --all-extras --dev
 
     # Set up frontend dependencies
     - uses: pnpm/action-setup@v4
@@ -270,12 +232,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
-    - name: Bootstrap poetry
-      run: |
-        curl -sL https://install.python-poetry.org | python - -y --version 2.1.1
-    - name: Update PATH
-      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+        python-version-file: "pyproject.toml"
 
     - uses: actions/download-artifact@v4
       with:
@@ -283,9 +240,7 @@ jobs:
         path: dist
 
     - name: Publish
-      env:
-        PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-      run: poetry publish -u __token__ -p ${PYPI_TOKEN}
+      run: uv publish
 
     - name: Create a new release
       uses: softprops/action-gh-release@v2

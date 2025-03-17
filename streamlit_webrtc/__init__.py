@@ -23,7 +23,7 @@ from .config import (
     VideoHTMLAttributes,
 )
 from .factory import create_mix_track, create_process_track, create_video_source_track
-from .mix import MixerCallback
+from .mix import MediaStreamMixTrack, MixerCallback
 from .source import VideoSourceCallback, VideoSourceTrack
 from .webrtc import (
     AudioProcessorBase,
@@ -77,6 +77,7 @@ __all__ = [
     "create_process_track",
     "create_mix_track",
     "MixerCallback",
+    "MediaStreamMixTrack",
     "WebRtcStreamerContext",
     "WebRtcStreamerState",
     "DEFAULT_AUDIO_HTML_ATTRS",

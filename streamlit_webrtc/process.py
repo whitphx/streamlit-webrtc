@@ -25,10 +25,11 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self.track = track
         self.processor: ProcessorT = processor
 
-        @self.track.on("ended")
         def on_input_track_ended():
             logger.debug("Input track %s ended. Stop self %s", self.track, self)
             self.stop()
+
+        self.track.on("ended", on_input_track_ended)
 
     async def recv(self):
         if self.readyState != "live":
@@ -98,10 +99,11 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         )
         self._thread.start()
 
-        @self.track.on("ended")
         def on_input_track_ended():
             logger.debug("Input track %s ended. Stop self %s", self.track, self)
             self.stop()
+
+        self.track.on("ended", on_input_track_ended)
 
     def _run_worker_thread(self):
         try:
@@ -114,7 +116,7 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                 for tbline in tb.rstrip().splitlines():
                     logger.error(tbline.rstrip())
 
-    async def _fallback_recv_queued(self, frames: List[FrameT]) -> FrameT:
+    async def _fallback_recv_queued(self, frames: List[FrameT]) -> List[FrameT]:
         """
         Used as a fallback when the processor does not have its own `recv_queued`.
         """
@@ -126,7 +128,7 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         if self.processor.recv:
             return [self.processor.recv(frames[-1])]
 
-        return frames[-1]
+        return [frames[-1]]
 
     def _worker_thread(self) -> None:
         loop = asyncio.new_event_loop()
