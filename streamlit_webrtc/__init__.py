@@ -7,7 +7,6 @@ except ModuleNotFoundError:
     import importlib_metadata  # type: ignore
 
 from .component import (
-    ClientSettings,
     WebRtcStreamerContext,
     WebRtcStreamerState,
     webrtc_streamer,
@@ -58,7 +57,6 @@ VideoTransformerFactory = VideoProcessorFactory
 
 __all__ = [
     "webrtc_streamer",
-    "ClientSettings",
     "AudioProcessorBase",
     "AudioProcessorFactory",
     "AudioReceiver",

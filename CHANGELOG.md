@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- [BREAKING] The `client_settings` option of `webrtc_streamer()` has been removed. Use `rtc_configuration` and `media_stream_constraints` instead, [#1943](https://github.com/whitphx/streamlit-webrtc/pull/1943).
+- [BREAKING] The `rtc_configuration` option of `webrtc_streamer()` is used to configure the connection from the server side peer, [#1943](https://github.com/whitphx/streamlit-webrtc/pull/1943).
+
 ## [0.51.3] - 2025-03-18
 
 ### Fix
