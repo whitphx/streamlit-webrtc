@@ -40,7 +40,6 @@ from .config import (
     RTCConfiguration,
     Translations,
     VideoHTMLAttributes,
-    compile_ice_servers,
     compile_rtc_configuration,
 )
 from .credentials import (
