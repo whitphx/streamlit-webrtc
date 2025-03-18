@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, TypedDict, TypeVar, Union
+from typing import Any, Dict, List, Optional, TypedDict, Union
 
 from aiortc import (
     RTCConfiguration as AiortcRTCConfiguration,
@@ -22,52 +22,29 @@ class RTCConfiguration(TypedDict, total=False):
     iceServers: Optional[List[RTCIceServer]]
 
 
-T = TypeVar("T")
-
-
-def flatten(arr: List[List[T]]) -> List[T]:
-    return sum(arr, [])
-
-
 def compile_rtc_ice_server(
-    ice_server: Any,
-) -> List[AiortcRTCIceServer]:
+    ice_server: Union[RTCIceServer, dict[str, Any]],
+) -> AiortcRTCIceServer:
     if not isinstance(ice_server, dict):
         raise ValueError("ice_server must be a dict")
     if "urls" not in ice_server:
         raise ValueError("ice_server must have a urls key")
 
-    ice_servers = []
-    if isinstance(ice_server["urls"], str):
-        ice_servers.append(
-            AiortcRTCIceServer(
-                urls=ice_server["urls"],
-                username=ice_server.get("username"),
-                credential=ice_server.get("credential"),
-            )
-        )
-    else:
-        for url in ice_server["urls"]:
-            ice_servers.append(
-                AiortcRTCIceServer(
-                    urls=url,
-                    username=ice_server.get("username"),
-                    credential=ice_server.get("credential"),
-                )
-            )
-    return ice_servers
+    return AiortcRTCIceServer(
+        urls=ice_server["urls"],  # type: ignore  # aiortc's type def is incorrect
+        username=ice_server.get("username"),
+        credential=ice_server.get("credential"),
+    )
 
 
 def compile_ice_servers(
-    ice_servers: List[Any],
+    ice_servers: Union[List[RTCIceServer], List[dict[str, Any]]],
 ) -> List[AiortcRTCIceServer]:
-    return flatten(
-        [
-            compile_rtc_ice_server(server)
-            for server in ice_servers
-            if isinstance(server, dict) and "urls" in server
-        ]
-    )
+    return [
+        compile_rtc_ice_server(server)
+        for server in ice_servers
+        if isinstance(server, dict) and "urls" in server
+    ]
 
 
 def compile_rtc_configuration(
