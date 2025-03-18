@@ -265,14 +265,17 @@ jobs:
             const files = fs.readdirSync(artifactsDir);
 
             // Create message with links to each file
-            let fileLinks = files.map(file => `- [${file}](${deploymentUrl}/${file})`).join('\n');
+            let fileLinks = files.map(file => {
+              const installCommand = `pip install ${deploymentUrl}/${file}`;
+              return `- [${file}](${deploymentUrl}/${file})\n  \`\`\`bash\n  ${installCommand}\n  \`\`\``;
+            }).join('\n');
 
             const message = `📦 Wheel files have been deployed to Cloudflare Pages:
 
-            Base URL: ${deploymentUrl}
+            Files (with installation commands):
+            ${fileLinks}
 
-            Files:
-            ${fileLinks}`;
+            You can install directly from these URLs using pip.`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
