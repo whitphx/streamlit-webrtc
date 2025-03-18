@@ -248,7 +248,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: >-
-            pages deploy ${{ runner.temp }}/artifacts/streamlit-webrtc --project-name=streamlit-webrtc-hosting
+            pages deploy ${{ runner.temp }}/artifacts/streamlit-webrtc --project-name=streamlit-webrtc-hosting  --branch=${{ github.head_ref || github.ref_name }} --commit-hash=${{ github.sha }}
 
   publish-to-pypi:
     name: Publish Python 🐍 distribution 📦 to PyPI
