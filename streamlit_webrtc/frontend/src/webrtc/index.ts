@@ -54,6 +54,7 @@ export const useWebRtc = (
     mode: WebRtcMode;
     desiredPlayingState: boolean | undefined;
     sdpAnswerJson: string | undefined;
+    rtcConfiguration: RTCConfiguration | undefined;
     mediaStreamConstraints: MediaStreamConstraints | undefined;
   },
   videoDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
@@ -141,7 +142,9 @@ export const useWebRtc = (
 
       const mode = props.mode;
 
-      const pc = new RTCPeerConnection();
+      const config: RTCConfiguration = props.rtcConfiguration || {};
+      console.log("RTCConfiguration:", config);
+      const pc = new RTCPeerConnection(config);
 
       // Connect received audio / video to DOM elements
       if (mode === "SENDRECV" || mode === "RECVONLY") {
@@ -239,6 +242,7 @@ export const useWebRtc = (
     videoDeviceIdRequest,
     props.mediaStreamConstraints,
     props.mode,
+    props.rtcConfiguration,
     state.webRtcState,
     onDevicesOpened,
   ]);

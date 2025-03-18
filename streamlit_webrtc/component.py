@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import os
@@ -90,6 +91,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker[VideoProcessorT, AudioProcessorT]]]"  # noqa
 
     _component_value_snapshot: Union[ComponentValueSnapshot, None]
+    _frontend_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]]
 
     def __init__(
         self,
@@ -99,7 +101,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._set_worker(worker)
         self._set_state(state)
         self._component_value_snapshot = None
-
+        self._frontend_rtc_configuration = None
     def _set_worker(
         self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
     ):
@@ -363,6 +365,7 @@ def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    frontend_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -437,6 +440,14 @@ def webrtc_streamer(
         )
         st.session_state[key] = context
 
+    if context._frontend_rtc_configuration is None:
+        context._frontend_rtc_configuration = copy.deepcopy(frontend_rtc_configuration)
+    if context._frontend_rtc_configuration is None:
+        context._frontend_rtc_configuration = {}
+    if context._frontend_rtc_configuration.get("iceServers") is None:
+        LOGGER.info("No iceServers found in the rtc_configuration for the frontend. Set the default value to use Google STUN server.")
+        context._frontend_rtc_configuration["iceServers"] = [{"urls": "stun:stun.l.google.com:19302"}]
+
     webrtc_worker = context._get_worker()
 
     sdp_answer_json = None
@@ -473,6 +484,7 @@ def webrtc_streamer(
         key=frontend_key,
         sdp_answer_json=sdp_answer_json,
         mode=mode.name,
+        rtc_configuration=context._frontend_rtc_configuration,
         media_stream_constraints=media_stream_constraints,
         video_html_attrs=video_html_attrs,
         audio_html_attrs=audio_html_attrs,
