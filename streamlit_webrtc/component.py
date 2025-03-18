@@ -1,4 +1,3 @@
-import copy
 import json
 import logging
 import os
@@ -11,7 +10,6 @@ from typing import (
     Generic,
     NamedTuple,
     Optional,
-    TypedDict,
     Union,
     cast,
     overload,
@@ -19,6 +17,7 @@ from typing import (
 
 import streamlit as st
 import streamlit.components.v1 as components
+from aiortc import RTCConfiguration, RTCIceServer
 from aiortc.mediastreams import MediaStreamTrack
 
 from streamlit_webrtc.models import (
@@ -37,7 +36,6 @@ from .config import (
     DEFAULT_VIDEO_HTML_ATTRS,
     AudioHTMLAttributes,
     MediaStreamConstraints,
-    RTCConfiguration,
     Translations,
     VideoHTMLAttributes,
 )
@@ -75,11 +73,6 @@ else:
     _component_func = components.declare_component("webrtc_streamer", path=build_dir)
 
 
-class ClientSettings(TypedDict, total=False):
-    rtc_configuration: RTCConfiguration
-    media_stream_constraints: MediaStreamConstraints
-
-
 class WebRtcStreamerState(NamedTuple):
     playing: bool
     signalling: bool
@@ -96,7 +89,6 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker[VideoProcessorT, AudioProcessorT]]]"  # noqa
 
     _component_value_snapshot: Union[ComponentValueSnapshot, None]
-    _rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]]
 
     def __init__(
         self,
@@ -106,7 +98,6 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._set_worker(worker)
         self._set_state(state)
         self._component_value_snapshot = None
-        self._rtc_configuration = None
 
     def _set_worker(
         self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
@@ -249,7 +240,6 @@ def webrtc_streamer(
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext:
@@ -290,7 +280,6 @@ def webrtc_streamer(
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, Any]:
@@ -327,7 +316,6 @@ def webrtc_streamer(
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext[Any, AudioProcessorT]:
@@ -364,7 +352,6 @@ def webrtc_streamer(
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
@@ -400,7 +387,6 @@ def webrtc_streamer(
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory=None,
     async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
@@ -423,19 +409,6 @@ def webrtc_streamer(
             stacklevel=2,
         )
         async_processing = async_transform
-    if client_settings is not None:
-        warnings.warn(
-            "The argument client_settings is deprecated. "
-            "Use rtc_configuration and media_stream_constraints instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        rtc_configuration = (
-            client_settings.get("rtc_configuration") if client_settings else None
-        )
-        media_stream_constraints = (
-            client_settings.get("media_stream_constraints") if client_settings else None
-        )
 
     if media_stream_constraints is None:
         media_stream_constraints = DEFAULT_MEDIA_STREAM_CONSTRAINTS
@@ -462,46 +435,6 @@ def webrtc_streamer(
             worker=None, state=WebRtcStreamerState(playing=False, signalling=False)
         )
         st.session_state[key] = context
-
-    if context._rtc_configuration is None:
-        context._rtc_configuration = copy.deepcopy(rtc_configuration)
-    if context._rtc_configuration is None or (
-        isinstance(context._rtc_configuration, dict)
-        and context._rtc_configuration.get("iceServers") is None
-    ):
-        LOGGER.info(
-            "rtc_configuration.iceServers is not set. Try to set it automatically."
-        )
-        if hf_token := os.getenv("HF_TOKEN"):
-            LOGGER.info("Try to use TURN server from Hugging Face.")
-            try:
-                ice_servers = get_hf_ice_servers(hf_token)
-                if context._rtc_configuration is None:
-                    context._rtc_configuration = {}
-                LOGGER.info("Successfully got TURN credentials from Hugging Face.")
-                context._rtc_configuration["iceServers"] = ice_servers
-            except Exception as e:
-                LOGGER.error("Failed to get TURN credentials from Hugging Face: %s", e)
-        elif os.getenv("TWILIO_ACCOUNT_SID") and os.getenv("TWILIO_AUTH_TOKEN"):
-            LOGGER.info("Try to use TURN server from Twilio.")
-            twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
-            twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
-            try:
-                ice_servers = get_twilio_ice_servers(twilio_sid, twilio_token)
-                if context._rtc_configuration is None:
-                    context._rtc_configuration = {}
-                LOGGER.info("Successfully got TURN credentials from Twilio.")
-                context._rtc_configuration["iceServers"] = ice_servers
-            except Exception as e:
-                LOGGER.error("Failed to get TURN credentials from Twilio: %s", e)
-        else:
-            LOGGER.info("Use STUN server from Google.")
-            if context._rtc_configuration is None:
-                context._rtc_configuration = {}
-            LOGGER.info("Successfully got STUN server from Google.")
-            context._rtc_configuration["iceServers"] = [
-                {"urls": "stun:stun.l.google.com:19302"}
-            ]
 
     webrtc_worker = context._get_worker()
 
@@ -539,8 +472,6 @@ def webrtc_streamer(
         key=frontend_key,
         sdp_answer_json=sdp_answer_json,
         mode=mode.name,
-        settings=client_settings,
-        rtc_configuration=context._rtc_configuration,
         media_stream_constraints=media_stream_constraints,
         video_html_attrs=video_html_attrs,
         audio_html_attrs=audio_html_attrs,
@@ -597,8 +528,6 @@ def webrtc_streamer(
         context._set_worker(None)
         webrtc_worker = None
 
-        context._rtc_configuration = None
-
         # Rerun to unset the SDP answer from the frontend args
         rerun()
 
@@ -622,8 +551,63 @@ def webrtc_streamer(
             'Create a new worker (key="%s").',
             key,
         )
+
+        aiortc_rtc_configuration: Optional[RTCConfiguration] = None
+
+        if rtc_configuration and isinstance(rtc_configuration, dict):
+            ice_servers = rtc_configuration.get("iceServers")
+            if ice_servers and isinstance(ice_servers, list):
+                aiortc_rtc_configuration = RTCConfiguration(
+                    iceServers=[
+                        RTCIceServer(  # TODO: Runtime type check
+                            **server
+                        )
+                        for server in ice_servers
+                    ]
+                )
+
+        if aiortc_rtc_configuration is None or (
+            aiortc_rtc_configuration.iceServers is None
+        ):
+            LOGGER.info(
+                "rtc_configuration.iceServers is not set. Try to set it automatically."
+            )
+            if hf_token := os.getenv("HF_TOKEN"):
+                LOGGER.info("Try to use TURN server from Hugging Face.")
+                try:
+                    ice_servers = get_hf_ice_servers(hf_token)
+                    if aiortc_rtc_configuration is None:
+                        aiortc_rtc_configuration = RTCConfiguration()
+                    LOGGER.info("Successfully got TURN credentials from Hugging Face.")
+                    aiortc_rtc_configuration.iceServers = ice_servers
+                except Exception as e:
+                    LOGGER.error(
+                        "Failed to get TURN credentials from Hugging Face: %s", e
+                    )
+            elif os.getenv("TWILIO_ACCOUNT_SID") and os.getenv("TWILIO_AUTH_TOKEN"):
+                LOGGER.info("Try to use TURN server from Twilio.")
+                twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
+                twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
+                try:
+                    ice_servers = get_twilio_ice_servers(twilio_sid, twilio_token)
+                    if aiortc_rtc_configuration is None:
+                        aiortc_rtc_configuration = RTCConfiguration()
+                    LOGGER.info("Successfully got TURN credentials from Twilio.")
+                    aiortc_rtc_configuration.iceServers = ice_servers
+                except Exception as e:
+                    LOGGER.error("Failed to get TURN credentials from Twilio: %s", e)
+            else:
+                LOGGER.info("Use STUN server from Google.")
+                if aiortc_rtc_configuration is None:
+                    aiortc_rtc_configuration = RTCConfiguration()
+                LOGGER.info("Successfully got STUN server from Google.")
+                aiortc_rtc_configuration.iceServers = [
+                    RTCIceServer(urls="stun:stun.l.google.com:19302")
+                ]
+
         webrtc_worker = WebRtcWorker(
             mode=mode,
+            rtc_configuration=aiortc_rtc_configuration,
             player_factory=player_factory,
             in_recorder_factory=in_recorder_factory,
             out_recorder_factory=out_recorder_factory,

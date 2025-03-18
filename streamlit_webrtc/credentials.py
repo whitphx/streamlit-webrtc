@@ -29,7 +29,7 @@ import urllib.error
 import urllib.request
 from typing import List, Optional
 
-from .config import RTCIceServer
+from aiortc import RTCIceServer
 
 
 def get_hf_ice_servers(token: Optional[str] = None) -> List[RTCIceServer]:

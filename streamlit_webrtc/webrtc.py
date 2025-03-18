@@ -6,7 +6,7 @@ import queue
 import threading
 from typing import Callable, Generic, Literal, Optional, Union, cast
 
-from aiortc import RTCPeerConnection, RTCSessionDescription
+from aiortc import RTCConfiguration, RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
 
@@ -339,6 +339,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     def __init__(
         self,
         mode: WebRtcMode,
+        rtc_configuration: Optional[RTCConfiguration],
         source_video_track: Optional[MediaStreamTrack],
         source_audio_track: Optional[MediaStreamTrack],
         player_factory: Optional[MediaPlayerFactory],
@@ -359,7 +360,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         sendback_audio: bool,
     ) -> None:
         self._process_offer_thread: Union[threading.Thread, None] = None
-        self.pc = RTCPeerConnection()
+        self.pc = RTCPeerConnection(rtc_configuration)
         self._answer_queue: queue.Queue = queue.Queue()
 
         self.mode = mode
