@@ -256,8 +256,23 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const fs = require('fs');
+            const path = require('path');
             const deploymentUrl = '${{ steps.deploy.outputs.pages-deployment-alias-url }}';
-            const message = `📦 Wheel files have been deployed to Cloudflare Pages:\n${deploymentUrl}`;
+
+            // Get all files in the artifacts directory
+            const artifactsDir = '${{ runner.temp }}/artifacts/streamlit-webrtc';
+            const files = fs.readdirSync(artifactsDir);
+
+            // Create message with links to each file
+            let fileLinks = files.map(file => `- [${file}](${deploymentUrl}/${file})`).join('\n');
+
+            const message = `📦 Wheel files have been deployed to Cloudflare Pages:
+
+            Base URL: ${deploymentUrl}
+
+            Files:
+            ${fileLinks}`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
