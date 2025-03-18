@@ -41,7 +41,10 @@ from .config import (
     Translations,
     VideoHTMLAttributes,
 )
-from .credentials import get_hf_ice_servers, get_twilio_ice_servers
+from .credentials import (
+    get_hf_ice_servers,
+    get_twilio_ice_servers,
+)
 from .session_info import get_script_run_count, get_this_session_info
 from .webrtc import (
     AudioProcessorFactory,
@@ -493,15 +496,12 @@ def webrtc_streamer(
                 LOGGER.error("Failed to get TURN credentials from Twilio: %s", e)
         else:
             LOGGER.info("Use STUN server from Google.")
-            # TODO: Check network reachability and unset ice_servers if failed
-            ice_servers = [{"urls": "stun:stun.l.google.com:19302"}]
-            if ice_servers:
-                if context._rtc_configuration is None:
-                    context._rtc_configuration = {}
-                LOGGER.info("Successfully got STUN server from Google.")
-                context._rtc_configuration["iceServers"] = [
-                    {"urls": "stun:stun.l.google.com:19302"}
-                ]
+            if context._rtc_configuration is None:
+                context._rtc_configuration = {}
+            LOGGER.info("Successfully got STUN server from Google.")
+            context._rtc_configuration["iceServers"] = [
+                {"urls": "stun:stun.l.google.com:19302"}
+            ]
 
     webrtc_worker = context._get_worker()
 
