@@ -97,9 +97,9 @@ def get_available_ice_servers() -> List[RTCIceServer]:
         LOGGER.info("Failed to get TURN credentials from Hugging Face: %s", e)
 
     try:
-        LOGGER.info("Try to use TURN server from Twilio.")
+        LOGGER.info("Try to use STUN/TURN server from Twilio.")
         ice_servers = get_twilio_ice_servers()
-        LOGGER.info("Successfully got TURN credentials from Twilio.")
+        LOGGER.info("Successfully got STUN/TURN credentials from Twilio.")
         return ice_servers
     except Exception as e:
         LOGGER.info("Failed to get TURN credentials from Twilio: %s", e)
