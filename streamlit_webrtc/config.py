@@ -1,5 +1,12 @@
 from typing import Dict, List, Optional, TypedDict, Union
 
+from aiortc import (
+    RTCConfiguration as AiortcRTCConfiguration,
+)
+from aiortc import (
+    RTCIceServer as AiortcRTCIceServer,
+)
+
 RTCIceServer = TypedDict(
     "RTCIceServer",
     {
@@ -13,6 +20,31 @@ RTCIceServer = TypedDict(
 
 class RTCConfiguration(TypedDict, total=False):
     iceServers: Optional[List[RTCIceServer]]
+
+
+def compile_rtc_ice_server(ice_server: RTCIceServer) -> AiortcRTCIceServer:
+    return AiortcRTCIceServer(
+        urls=ice_server["urls"],
+        username=ice_server.get("username"),
+        credential=ice_server.get("credential"),
+    )
+
+
+def compile_rtc_configuration(
+    rtc_configuration: RTCConfiguration,
+) -> AiortcRTCConfiguration:
+    if not isinstance(rtc_configuration, dict):
+        raise ValueError("rtc_configuration must be a dict")
+    ice_servers = rtc_configuration.get("iceServers", [])
+    if not isinstance(ice_servers, list):
+        raise ValueError("iceServers must be a list")
+    return AiortcRTCConfiguration(
+        iceServers=[
+            compile_rtc_ice_server(server)
+            for server in ice_servers
+            if isinstance(server, dict) and "urls" in server
+        ],
+    )
 
 
 Number = Union[int, float]

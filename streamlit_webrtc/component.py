@@ -38,6 +38,8 @@ from .config import (
     MediaStreamConstraints,
     Translations,
     VideoHTMLAttributes,
+    compile_rtc_configuration,
+    compile_rtc_ice_server,
 )
 from .credentials import (
     get_hf_ice_servers,
@@ -552,23 +554,13 @@ def webrtc_streamer(
             key,
         )
 
-        aiortc_rtc_configuration: Optional[RTCConfiguration] = None
+        aiortc_rtc_configuration = (
+            compile_rtc_configuration(rtc_configuration)
+            if rtc_configuration and isinstance(rtc_configuration, dict)
+            else RTCConfiguration()
+        )
 
-        if rtc_configuration and isinstance(rtc_configuration, dict):
-            ice_servers = rtc_configuration.get("iceServers")
-            if ice_servers and isinstance(ice_servers, list):
-                aiortc_rtc_configuration = RTCConfiguration(
-                    iceServers=[
-                        RTCIceServer(  # TODO: Runtime type check
-                            **server
-                        )
-                        for server in ice_servers
-                    ]
-                )
-
-        if aiortc_rtc_configuration is None or (
-            aiortc_rtc_configuration.iceServers is None
-        ):
+        if aiortc_rtc_configuration.iceServers is None:
             LOGGER.info(
                 "rtc_configuration.iceServers is not set. Try to set it automatically."
             )
@@ -576,10 +568,10 @@ def webrtc_streamer(
                 LOGGER.info("Try to use TURN server from Hugging Face.")
                 try:
                     ice_servers = get_hf_ice_servers(hf_token)
-                    if aiortc_rtc_configuration is None:
-                        aiortc_rtc_configuration = RTCConfiguration()
                     LOGGER.info("Successfully got TURN credentials from Hugging Face.")
-                    aiortc_rtc_configuration.iceServers = ice_servers
+                    aiortc_rtc_configuration.iceServers = [
+                        compile_rtc_ice_server(server) for server in ice_servers
+                    ]
                 except Exception as e:
                     LOGGER.error(
                         "Failed to get TURN credentials from Hugging Face: %s", e
@@ -590,17 +582,14 @@ def webrtc_streamer(
                 twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
                 try:
                     ice_servers = get_twilio_ice_servers(twilio_sid, twilio_token)
-                    if aiortc_rtc_configuration is None:
-                        aiortc_rtc_configuration = RTCConfiguration()
                     LOGGER.info("Successfully got TURN credentials from Twilio.")
-                    aiortc_rtc_configuration.iceServers = ice_servers
+                    aiortc_rtc_configuration.iceServers = [
+                        compile_rtc_ice_server(server) for server in ice_servers
+                    ]
                 except Exception as e:
                     LOGGER.error("Failed to get TURN credentials from Twilio: %s", e)
             else:
                 LOGGER.info("Use STUN server from Google.")
-                if aiortc_rtc_configuration is None:
-                    aiortc_rtc_configuration = RTCConfiguration()
-                LOGGER.info("Successfully got STUN server from Google.")
                 aiortc_rtc_configuration.iceServers = [
                     RTCIceServer(urls="stun:stun.l.google.com:19302")
                 ]
