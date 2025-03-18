@@ -130,7 +130,6 @@ def main() -> None:
     self_ctx = webrtc_streamer(
         key="self",
         mode=WebRtcMode.SENDRECV,
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
         media_stream_constraints={"video": True, "audio": True},
         source_video_track=mix_track,
         sendback_audio=False,
@@ -172,9 +171,6 @@ def main() -> None:
             webrtc_streamer(
                 key=f"sound-{id(ctx)}",
                 mode=WebRtcMode.RECVONLY,
-                rtc_configuration={
-                    "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-                },
                 media_stream_constraints={"video": False, "audio": True},
                 source_audio_track=ctx.input_audio_track,
                 desired_playing_state=ctx.state.playing,

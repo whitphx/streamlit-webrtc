@@ -18,7 +18,7 @@ from typing import (
 
 import streamlit as st
 import streamlit.components.v1 as components
-from aiortc import RTCConfiguration
+from aiortc import RTCConfiguration as AiortcRTCConfiguration
 from aiortc.mediastreams import MediaStreamTrack
 
 from streamlit_webrtc.models import (
@@ -37,6 +37,7 @@ from .config import (
     DEFAULT_VIDEO_HTML_ATTRS,
     AudioHTMLAttributes,
     MediaStreamConstraints,
+    RTCConfiguration,
     Translations,
     VideoHTMLAttributes,
     compile_ice_servers,
@@ -102,6 +103,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._set_state(state)
         self._component_value_snapshot = None
         self._frontend_rtc_configuration = None
+
     def _set_worker(
         self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
     ):
@@ -217,7 +219,10 @@ def compile_state(component_value) -> WebRtcStreamerState:
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    frontend_rtc_configuration: Optional[
+        Union[Dict[str, Any], RTCConfiguration]
+    ] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -245,6 +250,7 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext:
     # XXX: We wanted something like `WebRtcStreamerContext[None, None]`
     # as the return value, but could not find a good solution
@@ -257,7 +263,10 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    frontend_rtc_configuration: Optional[
+        Union[Dict[str, Any], RTCConfiguration]
+    ] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -285,6 +294,7 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, Any]:
     pass
 
@@ -293,7 +303,10 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    frontend_rtc_configuration: Optional[
+        Union[Dict[str, Any], RTCConfiguration]
+    ] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -321,6 +334,7 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext[Any, AudioProcessorT]:
     pass
 
@@ -329,7 +343,10 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    frontend_rtc_configuration: Optional[
+        Union[Dict[str, Any], RTCConfiguration]
+    ] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -357,6 +374,7 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     pass
 
@@ -364,8 +382,10 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
-    frontend_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    frontend_rtc_configuration: Optional[
+        Union[Dict[str, Any], RTCConfiguration]
+    ] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -393,13 +413,14 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory=None,
     async_transform: Optional[bool] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     # Backward compatibility
     if video_transformer_factory is not None:
         warnings.warn(
             "The argument video_transformer_factory is deprecated. "
             "Use video_processor_factory instead.\n"
-            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020",  # noqa: E501
+            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -408,11 +429,19 @@ def webrtc_streamer(
         warnings.warn(
             "The argument async_transform is deprecated. "
             "Use async_processing instead.\n"
-            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020",  # noqa: E501
+            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020",
             DeprecationWarning,
             stacklevel=2,
         )
         async_processing = async_transform
+    if rtc_configuration is not None:
+        warnings.warn(
+            "The argument rtc_configuration is deprecated. "
+            "Use frontend_rtc_configuration and server_rtc_configuration instead.\n",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        frontend_rtc_configuration = rtc_configuration
 
     if media_stream_constraints is None:
         media_stream_constraints = DEFAULT_MEDIA_STREAM_CONSTRAINTS
@@ -445,8 +474,12 @@ def webrtc_streamer(
     if context._frontend_rtc_configuration is None:
         context._frontend_rtc_configuration = {}
     if context._frontend_rtc_configuration.get("iceServers") is None:
-        LOGGER.info("No iceServers found in the rtc_configuration for the frontend. Set the default value to use Google STUN server.")
-        context._frontend_rtc_configuration["iceServers"] = [{"urls": "stun:stun.l.google.com:19302"}]
+        LOGGER.info(
+            "No iceServers found in the rtc_configuration for the frontend. Set the default value to use Google STUN server."
+        )
+        context._frontend_rtc_configuration["iceServers"] = [
+            {"urls": "stun:stun.l.google.com:19302"}
+        ]
 
     webrtc_worker = context._get_worker()
 
@@ -566,9 +599,9 @@ def webrtc_streamer(
         )
 
         aiortc_rtc_configuration = (
-            compile_rtc_configuration(rtc_configuration)
-            if rtc_configuration and isinstance(rtc_configuration, dict)
-            else RTCConfiguration()
+            compile_rtc_configuration(server_rtc_configuration)
+            if server_rtc_configuration and isinstance(server_rtc_configuration, dict)
+            else AiortcRTCConfiguration()
         )
 
         if aiortc_rtc_configuration.iceServers is None:
