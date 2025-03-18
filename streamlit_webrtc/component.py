@@ -38,8 +38,8 @@ from .config import (
     MediaStreamConstraints,
     Translations,
     VideoHTMLAttributes,
+    compile_ice_servers,
     compile_rtc_configuration,
-    compile_rtc_ice_server,
 )
 from .credentials import (
     get_available_ice_servers,
@@ -564,9 +564,7 @@ def webrtc_streamer(
                 "rtc_configuration.iceServers is not set. Try to set it automatically."
             )
             ice_servers = get_available_ice_servers()
-            aiortc_rtc_configuration.iceServers = [
-                compile_rtc_ice_server(server) for server in ice_servers
-            ]
+            aiortc_rtc_configuration.iceServers = compile_ice_servers(ice_servers)
 
         webrtc_worker = WebRtcWorker(
             mode=mode,
