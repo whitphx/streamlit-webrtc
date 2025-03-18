@@ -17,7 +17,7 @@ from typing import (
 
 import streamlit as st
 import streamlit.components.v1 as components
-from aiortc import RTCConfiguration, RTCIceServer
+from aiortc import RTCConfiguration
 from aiortc.mediastreams import MediaStreamTrack
 
 from streamlit_webrtc.models import (
@@ -42,8 +42,7 @@ from .config import (
     compile_rtc_ice_server,
 )
 from .credentials import (
-    get_hf_ice_servers,
-    get_twilio_ice_servers,
+    get_available_ice_servers,
 )
 from .session_info import get_script_run_count, get_this_session_info
 from .webrtc import (
@@ -564,35 +563,10 @@ def webrtc_streamer(
             LOGGER.info(
                 "rtc_configuration.iceServers is not set. Try to set it automatically."
             )
-            if hf_token := os.getenv("HF_TOKEN"):
-                LOGGER.info("Try to use TURN server from Hugging Face.")
-                try:
-                    ice_servers = get_hf_ice_servers(hf_token)
-                    LOGGER.info("Successfully got TURN credentials from Hugging Face.")
-                    aiortc_rtc_configuration.iceServers = [
-                        compile_rtc_ice_server(server) for server in ice_servers
-                    ]
-                except Exception as e:
-                    LOGGER.error(
-                        "Failed to get TURN credentials from Hugging Face: %s", e
-                    )
-            elif os.getenv("TWILIO_ACCOUNT_SID") and os.getenv("TWILIO_AUTH_TOKEN"):
-                LOGGER.info("Try to use TURN server from Twilio.")
-                twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
-                twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
-                try:
-                    ice_servers = get_twilio_ice_servers(twilio_sid, twilio_token)
-                    LOGGER.info("Successfully got TURN credentials from Twilio.")
-                    aiortc_rtc_configuration.iceServers = [
-                        compile_rtc_ice_server(server) for server in ice_servers
-                    ]
-                except Exception as e:
-                    LOGGER.error("Failed to get TURN credentials from Twilio: %s", e)
-            else:
-                LOGGER.info("Use STUN server from Google.")
-                aiortc_rtc_configuration.iceServers = [
-                    RTCIceServer(urls="stun:stun.l.google.com:19302")
-                ]
+            ice_servers = get_available_ice_servers()
+            aiortc_rtc_configuration.iceServers = [
+                compile_rtc_ice_server(server) for server in ice_servers
+            ]
 
         webrtc_worker = WebRtcWorker(
             mode=mode,

@@ -24,12 +24,15 @@ SOFTWARE.
 # Original: https://github.com/freddyaboulton/fastrtc/blob/66f0a81b76684c5d58761464fb67642891066f93/LICENSE
 
 import json
+import logging
 import os
 import urllib.error
 import urllib.request
 from typing import List, Optional
 
 from .config import RTCIceServer
+
+LOGGER = logging.getLogger(__name__)
 
 
 def get_hf_ice_servers(token: Optional[str] = None) -> List[RTCIceServer]:
@@ -67,11 +70,35 @@ def get_twilio_ice_servers(
         raise ImportError("Please install twilio with `pip install twilio`")
 
     if not twilio_sid and not twilio_token:
-        twilio_sid = os.environ.get("TWILIO_ACCOUNT_SID")
-        twilio_token = os.environ.get("TWILIO_AUTH_TOKEN")
+        twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
+
+    if twilio_sid is None or twilio_token is None:
+        raise ValueError("TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set")
 
     client = Client(twilio_sid, twilio_token)
 
     token = client.tokens.create()
 
     return token.ice_servers
+
+
+def get_available_ice_servers() -> List[RTCIceServer]:
+    try:
+        LOGGER.info("Try to use TURN server from Hugging Face.")
+        ice_servers = get_hf_ice_servers()
+        LOGGER.info("Successfully got TURN credentials from Hugging Face.")
+        return ice_servers
+    except Exception as e:
+        LOGGER.info("Failed to get TURN credentials from Hugging Face: %s", e)
+
+    try:
+        LOGGER.info("Try to use TURN server from Twilio.")
+        ice_servers = get_twilio_ice_servers()
+        LOGGER.info("Successfully got TURN credentials from Twilio.")
+        return ice_servers
+    except Exception as e:
+        LOGGER.info("Failed to get TURN credentials from Twilio: %s", e)
+
+    LOGGER.info("Use STUN server from Google.")
+    return [RTCIceServer(urls="stun:stun.l.google.com:19302")]
