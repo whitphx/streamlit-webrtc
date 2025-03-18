@@ -32,6 +32,7 @@ dev = [
     "pandas>=2.0.3",
     "streamlit>=1.13.0",
     "twilio>=8.1",
+    "bump-my-version>=1.0.2",
 ]
 
 [tool.hatch.version]
