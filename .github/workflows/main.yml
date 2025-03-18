@@ -168,6 +168,7 @@ jobs:
       with:
         persist-credentials: false
         fetch-tags: true  # Fetch tags for `hatch-vcs` to determine the next version correctly.
+    - run: git fetch origin 'refs/tags/*:refs/tags/*'
 
     - name: Install uv
       uses: astral-sh/setup-uv@v5
