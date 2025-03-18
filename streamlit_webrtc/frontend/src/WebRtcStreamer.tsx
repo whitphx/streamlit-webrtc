@@ -22,6 +22,7 @@ interface WebRtcStreamerInnerProps {
   mode: WebRtcMode;
   desiredPlayingState: boolean | undefined;
   sdpAnswerJson: string | undefined;
+  rtcConfiguration: RTCConfiguration | undefined;
   mediaStreamConstraints: MediaStreamConstraints | undefined;
   videoHtmlAttrs: Record<string, string>;
   audioHtmlAttrs: Record<string, string>;
@@ -131,6 +132,7 @@ function WebRtcStreamer() {
   const mode = renderData.args["mode"];
   const desiredPlayingState = renderData.args["desired_playing_state"];
   const sdpAnswerJson = renderData.args["sdp_answer_json"];
+  const rtcConfiguration: RTCConfiguration = renderData.args.rtc_configuration;
   const mediaStreamConstraints: MediaStreamConstraints =
     renderData.args.media_stream_constraints;
   const videoHtmlAttrs = renderData.args.video_html_attrs;
@@ -146,6 +148,7 @@ function WebRtcStreamer() {
       mode={mode}
       desiredPlayingState={desiredPlayingState}
       sdpAnswerJson={sdpAnswerJson}
+      rtcConfiguration={rtcConfiguration}
       mediaStreamConstraints={mediaStreamConstraints}
       videoHtmlAttrs={videoHtmlAttrs}
       audioHtmlAttrs={audioHtmlAttrs}

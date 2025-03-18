@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.53.0] - 2025-03-18
+
+### Changed
+
+- `server_rtc_configuration` option is added to `webrtc_streamer()`, [#1944](https://github.com/whitphx/streamlit-webrtc/pull/1944).
+- The `rtc_configuration` option of `webrtc_streamer()` is renamed to `frontend_rtc_configuration` and `rtc_configuration` is marked as deprecated, [#1944](https://github.com/whitphx/streamlit-webrtc/pull/1944).
+
 ## [0.52.0] - 2025-03-18
 
 ### Changed
