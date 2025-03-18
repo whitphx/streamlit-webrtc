@@ -274,9 +274,7 @@ jobs:
 
             const message = `📦 Wheel files have been deployed to Cloudflare Pages:
 
-            ${fileLinks}
-
-            You can install directly from these URLs using pip.`;
+            ${fileLinks}`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
