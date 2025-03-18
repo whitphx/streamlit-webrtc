@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.51.3] - 2025-03-18
+
+### Fix
+
+- Internal refactoring on the auto-configuring of STUN/TURN servers, [#1942](https://github.com/whitphx/streamlit-webrtc/pull/1942).
+
 ## [0.51.2] - 2025-03-18
 
 ### Fix
