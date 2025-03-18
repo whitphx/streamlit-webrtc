@@ -262,7 +262,9 @@ jobs:
 
             // Get all files in the artifacts directory
             const artifactsDir = '${{ runner.temp }}/artifacts/streamlit-webrtc';
-            const files = fs.readdirSync(artifactsDir);
+            const allFiles = fs.readdirSync(artifactsDir);
+            // Filter to include only wheel (.whl) and source distribution (.tar.gz) files
+            const files = allFiles.filter(file => file.endsWith('.whl') || file.endsWith('.tar.gz'));
 
             // Create message with links to each file
             let fileLinks = files.map(file => {
