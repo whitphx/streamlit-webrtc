@@ -1,11 +1,11 @@
 [project]
 name = "streamlit-webrtc"
-version = "0.53.0"
 description = "Real-time video and audio processing on Streamlit"
 authors = [{ name = "Yuichiro Tachibana (Tsuchiya)", email = "t.yic.yt@gmail.com" }]
 requires-python = ">=3.9,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
 readme = "README.md"
 license = "MIT"
+dynamic = ["version"]
 dependencies = [
     # For allow-same-origin, >=0.73.0 is required. See https://blog.streamlit.io/streamlit-components-security-and-a-five-month-quest-to-ship-a-single-line-of-code/
     # 0.84.0 has an error at marshalling component values.
@@ -35,6 +35,9 @@ dev = [
     "bump-my-version>=1.0.2",
 ]
 
+[tool.hatch.version]
+source = "versioningit"
+
 [tool.hatch.build.targets.sdist]
 include = ["/streamlit_webrtc"]
 exclude = ["/streamlit_webrtc/frontend", "!/streamlit_webrtc/frontend/dist"]
@@ -44,7 +47,7 @@ include = ["/streamlit_webrtc"]
 exclude = ["/streamlit_webrtc/frontend", "!/streamlit_webrtc/frontend/dist"]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "versioningit"]
 build-backend = "hatchling.build"
 
 [tool.ruff.lint]
