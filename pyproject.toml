@@ -1,11 +1,11 @@
 [project]
 name = "streamlit-webrtc"
-version = "0.53.0"
 description = "Real-time video and audio processing on Streamlit"
 authors = [{ name = "Yuichiro Tachibana (Tsuchiya)", email = "t.yic.yt@gmail.com" }]
 requires-python = ">=3.9,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
 readme = "README.md"
 license = "MIT"
+dynamic = ["version"]
 dependencies = [
     # For allow-same-origin, >=0.73.0 is required. See https://blog.streamlit.io/streamlit-components-security-and-a-five-month-quest-to-ship-a-single-line-of-code/
     # 0.84.0 has an error at marshalling component values.
@@ -32,8 +32,10 @@ dev = [
     "pandas>=2.0.3",
     "streamlit>=1.13.0",
     "twilio>=8.1",
-    "bump-my-version>=1.0.2",
 ]
+
+[tool.hatch.version]
+source = "vcs"
 
 [tool.hatch.build.targets.sdist]
 include = ["/streamlit_webrtc"]
@@ -44,34 +46,8 @@ include = ["/streamlit_webrtc"]
 exclude = ["/streamlit_webrtc/frontend", "!/streamlit_webrtc/frontend/dist"]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [tool.ruff.lint]
 extend-select = ["I"]
-
-[tool.bumpversion]
-version = "0.53.0"
-parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
-serialize = ["{major}.{minor}.{patch}"]
-search = "{current_version}"
-replace = "{new_version}"
-regex = false
-ignore_missing_version = false
-ignore_missing_files = false
-tag = true
-sign_tags = false
-tag_name = "v{new_version}"
-tag_message = "Bump version: {current_version} → {new_version}"
-allow_dirty = false
-commit = true
-message = "Bump version: {current_version} → {new_version}"
-commit_args = ""
-setup_hooks = []
-pre_commit_hooks = []
-post_commit_hooks = []
-
-[[tool.bumpversion.files]]
-filename = "pyproject.toml"
-search = 'version = "{current_version}"'
-replace = 'version = "{new_version}"'
