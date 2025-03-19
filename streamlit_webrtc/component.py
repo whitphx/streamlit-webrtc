@@ -40,7 +40,6 @@ from .config import (
     RTCConfiguration,
     Translations,
     VideoHTMLAttributes,
-    compile_ice_servers,
     compile_rtc_configuration,
 )
 from .credentials import (
@@ -601,13 +600,6 @@ def webrtc_streamer(
             if server_rtc_configuration and isinstance(server_rtc_configuration, dict)
             else AiortcRTCConfiguration()
         )
-
-        if aiortc_rtc_configuration.iceServers is None:
-            LOGGER.info(
-                "rtc_configuration.iceServers is not set. Try to set it automatically."
-            )
-            ice_servers = get_available_ice_servers()
-            aiortc_rtc_configuration.iceServers = compile_ice_servers(ice_servers)
 
         webrtc_worker = WebRtcWorker(
             mode=mode,
