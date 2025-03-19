@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.53.1] - 2025-03-19
+
+### Fixed
+
+- Set the package version dynamically, [#1947](https://github.com/whitphx/streamlit-webrtc/pull/1947).
+
 ## [0.53.0] - 2025-03-18
 
 ### Changed
