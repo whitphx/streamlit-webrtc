@@ -564,18 +564,22 @@ def webrtc_streamer(
     if component_value:
         sdp_offer = component_value.get("sdpOffer")
 
-    if webrtc_worker and not context.state.playing and not context.state.signalling:
+    if not context.state.playing and not context.state.signalling:
         LOGGER.debug(
-            "Unset the worker because the frontend state is "
+            "Unset the worker and the internal states because the frontend state is "
             'neither playing nor signalling (key="%s").',
             key,
         )
-        webrtc_worker.stop()
-        context._set_worker(None)
-        webrtc_worker = None
 
-        # Rerun to unset the SDP answer from the frontend args
-        rerun()
+        context._frontend_rtc_configuration = None
+
+        if webrtc_worker:
+            webrtc_worker.stop()
+            context._set_worker(None)
+            webrtc_worker = None
+
+            # Rerun to unset the SDP answer from the frontend args
+            rerun()
 
     if webrtc_worker:
         if video_frame_callback or queued_video_frames_callback or on_video_ended:
