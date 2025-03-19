@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.53.3] - 2025-03-19
+
+### Fixed
+
+- Fix a bug that frontend RTC configuration is not refreshed when the component is stopped, [#1952](https://github.com/whitphx/streamlit-webrtc/pull/1952).
+
 ## [0.53.2] - 2025-03-19
 
 ### Fixed
