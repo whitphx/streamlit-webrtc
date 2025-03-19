@@ -38,7 +38,6 @@ from .config import (
     AudioHTMLAttributes,
     MediaStreamConstraints,
     RTCConfiguration,
-    RTCIceServer,
     Translations,
     VideoHTMLAttributes,
     compile_ice_servers,
@@ -606,9 +605,7 @@ def webrtc_streamer(
             LOGGER.info(
                 "rtc_configuration.iceServers is not set. Try to set it automatically."
             )
-            ice_servers = [
-                RTCIceServer(urls="stun:stun.l.google.com:19302"),
-            ]
+            ice_servers = get_available_ice_servers()
             aiortc_rtc_configuration.iceServers = compile_ice_servers(ice_servers)
 
         webrtc_worker = WebRtcWorker(
