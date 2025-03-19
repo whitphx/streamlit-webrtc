@@ -2732,7 +2732,6 @@ wheels = [
 
 [[package]]
 name = "streamlit-webrtc"
-version = "0.52.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiortc" },
