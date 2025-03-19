@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.53.2] - 2025-03-19
+
+### Fixed
+
+- Remove `import importlib_metadata` that is no longer needed since dropping Python 3.8 support, [#1949](https://github.com/whitphx/streamlit-webrtc/pull/1949).
+
 ## [0.53.1] - 2025-03-19
 
 ### Fixed
