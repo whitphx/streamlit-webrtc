@@ -1,10 +1,6 @@
 """streamlit-webrtc"""
 
-try:
-    import importlib.metadata as importlib_metadata
-except ModuleNotFoundError:
-    # Python < 3.8
-    import importlib_metadata  # type: ignore
+import importlib.metadata
 
 from .component import (
     WebRtcStreamerContext,
@@ -47,8 +43,8 @@ from .webrtc import (
 # https://github.com/python-poetry/poetry/issues/144#issuecomment-623927302
 # https://github.com/python-poetry/poetry/pull/2366#issuecomment-652418094
 try:
-    __version__ = importlib_metadata.version(__name__)
-except importlib_metadata.PackageNotFoundError:
+    __version__ = importlib.metadata.version(__name__)
+except importlib.metadata.PackageNotFoundError:
     pass
 
 # For backward compatibility
