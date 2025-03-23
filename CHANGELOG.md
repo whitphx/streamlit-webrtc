@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.53.4] - 2025-03-23
+
+### Fixed
+
+- Fix CI/CD, [#1957](https://github.com/whitphx/streamlit-webrtc/pull/1957), [#1958](https://github.com/whitphx/streamlit-webrtc/pull/1958), [#1959](https://github.com/whitphx/streamlit-webrtc/pull/1959).
+
 ## [0.53.3] - 2025-03-19
 
 ### Fixed
