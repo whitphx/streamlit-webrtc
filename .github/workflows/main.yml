@@ -250,7 +250,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: >-
-            pages deploy ${{ runner.temp }}/artifacts/streamlit-webrtc --project-name=streamlit-webrtc-preview  --branch=${{ github.head_ref || github.ref_name }} --commit-hash=${{ github.sha }}
+            pages deploy ${{ runner.temp }}/artifacts/streamlit-webrtc --project-name=streamlit-webrtc-preview --branch=${{ github.head_ref || github.ref_name }} --commit-hash=${{ github.sha }}
 
       - name: Comment on the PR to inform the deployment file URLs
         uses: actions/github-script@v7
