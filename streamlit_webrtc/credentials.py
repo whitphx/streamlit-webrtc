@@ -86,16 +86,20 @@ def get_twilio_ice_servers(
 def get_available_ice_servers() -> List[RTCIceServer]:
     try:
         LOGGER.info("Try to use TURN server from Hugging Face.")
-        ice_servers = get_hf_ice_servers()
+        hf_turn_servers = get_hf_ice_servers()
         LOGGER.info("Successfully got TURN credentials from Hugging Face.")
+        LOGGER.info("Using TURN server from Hugging Face and STUN server from Google.")
+        ice_servers = hf_turn_servers + [
+            RTCIceServer(urls="stun:stun.l.google.com:19302"),
+        ]
         return ice_servers
     except Exception as e:
         LOGGER.info("Failed to get TURN credentials from Hugging Face: %s", e)
 
     try:
-        LOGGER.info("Try to use TURN server from Twilio.")
+        LOGGER.info("Try to use STUN/TURN server from Twilio.")
         ice_servers = get_twilio_ice_servers()
-        LOGGER.info("Successfully got TURN credentials from Twilio.")
+        LOGGER.info("Successfully got STUN/TURN credentials from Twilio.")
         return ice_servers
     except Exception as e:
         LOGGER.info("Failed to get TURN credentials from Twilio: %s", e)

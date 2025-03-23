@@ -475,11 +475,9 @@ def webrtc_streamer(
         context._frontend_rtc_configuration = {}
     if context._frontend_rtc_configuration.get("iceServers") is None:
         LOGGER.info(
-            "No iceServers found in the rtc_configuration for the frontend. Set the default value to use Google STUN server."
+            "frontend_rtc_configuration.iceServers is not set. Try to set it automatically."
         )
-        context._frontend_rtc_configuration["iceServers"] = [
-            {"urls": "stun:stun.l.google.com:19302"}
-        ]
+        context._frontend_rtc_configuration["iceServers"] = get_available_ice_servers()
 
     webrtc_worker = context._get_worker()
 
@@ -607,7 +605,6 @@ def webrtc_streamer(
             if server_rtc_configuration and isinstance(server_rtc_configuration, dict)
             else AiortcRTCConfiguration()
         )
-
         if aiortc_rtc_configuration.iceServers is None:
             LOGGER.info(
                 "rtc_configuration.iceServers is not set. Try to set it automatically."
