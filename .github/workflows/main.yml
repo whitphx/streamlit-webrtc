@@ -217,7 +217,7 @@ jobs:
         path: dist
         name: streamlit-webrtc-${{ github.ref_name }}
 
-  deploy-wheel:
+  deploy-preview-wheel:
     runs-on: ubuntu-latest
     needs: [build]
     if: github.event_name == 'pull_request'
