@@ -218,7 +218,7 @@ jobs:
       pull-requests: write
     name: Deploy wheel file to Cloudflare Pages
     outputs:
-      url: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
+      url: ${{ steps.deploy.outputs.deployment-url }}
     steps:
       - run: mkdir -p ${{ runner.temp }}/artifacts/
 
@@ -244,7 +244,7 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const deploymentUrl = '${{ steps.deploy.outputs.pages-deployment-alias-url }}';
+            const deploymentUrl = '${{ steps.deploy.outputs.deployment-url }}';
 
             // Get all files in the artifacts directory
             const artifactsDir = '${{ runner.temp }}/artifacts/streamlit-webrtc';
