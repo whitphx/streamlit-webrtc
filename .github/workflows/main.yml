@@ -205,17 +205,9 @@ jobs:
 
     - name: Upload the built artifacts
       uses: actions/upload-artifact@v4
-      if: ${{ ! startsWith(github.ref, 'refs/tags/v') }}
       with:
+        name: streamlit-webrtc-${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || github.sha  }}.tgz
         path: dist
-        name: streamlit-webrtc-${{ github.sha }}
-
-    - name: Upload the built artifacts (when pushed with a version tag)
-      uses: actions/upload-artifact@v4
-      if: startsWith(github.ref, 'refs/tags/v')
-      with:
-        path: dist
-        name: streamlit-webrtc-${{ github.ref_name }}
 
   deploy-preview-wheel:
     runs-on: ubuntu-latest
@@ -231,16 +223,9 @@ jobs:
       - run: mkdir -p ${{ runner.temp }}/artifacts/
 
       - name: Download all the dists
-        if: ${{ ! startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/download-artifact@v4
         with:
-          name: streamlit-webrtc-${{ github.sha }}
-          path: ${{ runner.temp }}/artifacts/streamlit-webrtc
-      - name: Download all the dists
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/download-artifact@v4
-        with:
-          name: streamlit-webrtc-${{ github.ref_name }}
+          name: streamlit-webrtc-${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || github.sha  }}.tgz
           path: ${{ runner.temp }}/artifacts/streamlit-webrtc
 
       - name: Deploy
