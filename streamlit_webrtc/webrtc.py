@@ -580,6 +580,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             )
 
         if isinstance(result, Exception):
+            self.stop(timeout=1)
             raise result
 
         return result
