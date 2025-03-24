@@ -557,7 +557,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         process_offer_task.add_done_callback(callback)
 
     def process_offer(
-        self, sdp, type_, timeout: Union[float, None] = 10.0
+        self, sdp, type_, timeout: Union[float, None] = None
     ) -> RTCSessionDescription:
         self._process_offer_thread = threading.Thread(
             target=self._run_process_offer_thread,
