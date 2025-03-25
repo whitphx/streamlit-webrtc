@@ -200,7 +200,6 @@ jobs:
     needs: [build]
     if: github.event_name == 'pull_request'
     permissions:
-      contents: read
       pull-requests: write
     name: Deploy wheel file to Cloudflare Pages
     outputs:
