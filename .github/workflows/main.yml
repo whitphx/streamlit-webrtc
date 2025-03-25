@@ -107,8 +107,7 @@ jobs:
       working-directory: streamlit_webrtc/frontend
 
     - name: Test with pytest
-      run: |
-        uv run pytest
+      run: uv run pytest
 
   test-frontend:
     runs-on: ubuntu-latest
@@ -201,7 +200,6 @@ jobs:
     needs: [build]
     if: github.event_name == 'pull_request'
     permissions:
-      contents: read
       pull-requests: write
     name: Deploy wheel file to Cloudflare Pages
     outputs:
