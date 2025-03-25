@@ -1,5 +1,16 @@
 # Development of `streamlit-webrtc`
 
+## Set up
+* Install `uv`
+* Install dependencies
+  ```shell
+  $ uv sync
+  ```
+* Install pre-commit
+  ```shell
+  $ pre-commit install
+  ```
+
 ## Development
 * Edit `streamlit_webrtc/component.py` to set `_RELEASE = False` in order to show the frontend view served from a development server as below instead of the production build.
   * Do not commit this change. This setting is only for development.
