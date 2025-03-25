@@ -16,9 +16,6 @@ permissions: {}
 
 jobs:
   test-python:
-    permissions:
-      contents: read
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -114,9 +111,6 @@ jobs:
         uv run pytest
 
   test-frontend:
-    permissions:
-      contents: read
-
     runs-on: ubuntu-latest
 
     defaults:
@@ -155,9 +149,6 @@ jobs:
 
   build:
     needs: [test-python, test-frontend]
-
-    permissions:
-      contents: read
 
     runs-on: ubuntu-latest
 
