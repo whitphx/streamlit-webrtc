@@ -37,8 +37,8 @@ importers:
         version: 9.0.1
     devDependencies:
       '@eslint/js':
-        specifier: ^9.22.0
-        version: 9.22.0
+        specifier: ^9.23.0
+        version: 9.23.0
       '@ladle/react':
         specifier: ^5.0.2
         version: 5.0.2(@types/node@22.13.11)(@types/react@18.3.18)(acorn@8.14.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.2)
@@ -468,6 +468,10 @@ packages:
 
   '@eslint/js@9.22.0':
     resolution: {integrity: sha512-vLFajx9o8d1/oL2ZkpMYbkLv8nDB6yaIwFNt7nI4+I80U/z03SxmfOMsLbvWr3p7C+Wnoh//aOu2pQW8cS0HCQ==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@eslint/js@9.23.0':
+    resolution: {integrity: sha512-35MJ8vCPU0ZMxo7zfev2pypqTwWTofFZO6m4KAtdoFhRpLJUpHTZZ+KB3C7Hb1d7bULYwO4lJXGCi5Se+8OMbw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@eslint/object-schema@2.1.6':
@@ -3740,6 +3744,8 @@ snapshots:
       - supports-color
 
   '@eslint/js@9.22.0': {}
+
+  '@eslint/js@9.23.0': {}
 
   '@eslint/object-schema@2.1.6': {}
 
