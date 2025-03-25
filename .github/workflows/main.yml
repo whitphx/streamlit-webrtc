@@ -107,8 +107,7 @@ jobs:
       working-directory: streamlit_webrtc/frontend
 
     - name: Test with pytest
-      run: |
-        uv run pytest
+      run: uv run pytest
 
   test-frontend:
     runs-on: ubuntu-latest
