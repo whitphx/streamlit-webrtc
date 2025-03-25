@@ -27,10 +27,6 @@ dev = [
     "streamlit-server-state>=0.17.1",
     "pytest>=7.1.2",
     "opencv-python-headless>=4.5.4.58,<5",
-    "numpy>=1.21.0",
-    "numpy>=2.1.0 ; python_version >= '3.13'",
-    "pandas>=2.0.3",
-    "streamlit>=1.13.0",
     "twilio>=8.1",
     "bump-my-version>=1.0.2",
 ]
