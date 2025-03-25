@@ -71,7 +71,7 @@ jobs:
 
     - name: Install a specific version of Streamlit
       if: ${{ matrix.streamlit-version }}
-      run: uv pip install streamlit=="${STREAMLIT_VERSION}" setuptools
+      run: uv add --dev streamlit=="${STREAMLIT_VERSION}" setuptools
       env:
         STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
 

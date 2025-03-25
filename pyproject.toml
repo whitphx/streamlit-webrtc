@@ -27,12 +27,12 @@ dev = [
     "streamlit-server-state>=0.17.1",
     "pytest>=7.1.2",
     "opencv-python-headless>=4.5.4.58,<5",
-    "numpy>=1.21.0",
-    "numpy>=2.1.0 ; python_version >= '3.13'",
-    "pandas>=2.0.3",
-    "streamlit>=1.13.0",
     "twilio>=8.1",
     "bump-my-version>=1.0.2",
+    # For testing older versions of Streamlit: https://discuss.streamlit.io/t/modulenotfounderror-no-module-named-altair-vegalite-v4/42921
+    "altair<5",
+    # For testing older versions of Streamlit: https://discuss.streamlit.io/t/streamlit-run-with-protobuf-error/25632/3
+    "protobuf<=3.20",
 ]
 
 [tool.hatch.version]
