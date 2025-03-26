@@ -81,8 +81,7 @@ jobs:
         uv run ruff format . --check
 
     - name: Type checking with mypy
-      run: |
-        uv run mypy .
+      run: uv run mypy .
 
     - name: Release check
       run: uv run scripts/release_check.py streamlit_webrtc/component.py
