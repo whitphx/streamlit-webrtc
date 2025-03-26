@@ -2897,7 +2897,7 @@ dev = [
     { name = "bump-my-version", specifier = ">=1.0.2" },
     { name = "matplotlib", specifier = ">=3.5.1" },
     { name = "mypy", extras = ["faster-cache"], specifier = ">=1.15.0" },
-    { name = "opencv-python-headless", specifier = ">=4.5.4.58,<5" },
+    { name = "opencv-python-headless", specifier = ">=4.5.4.58" },
     { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "protobuf", specifier = "<=3.20" },
     { name = "pydub", specifier = ">=0.25.1" },
