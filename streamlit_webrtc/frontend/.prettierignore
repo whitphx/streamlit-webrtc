@@ -1,9 +1,4 @@
-# Ignore artifacts:
-build
+dist
 coverage
 
-# Ignore all HTML files:
-*.html
-
-# Ignore minified files:
-*.min.*
+pnpm-lock.yaml

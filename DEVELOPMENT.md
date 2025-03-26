@@ -1,41 +1,35 @@
 # Development of `streamlit-webrtc`
 
+## Set up
+* Install `uv`
+* Install dependencies
+  ```shell
+  $ uv sync
+  ```
+* Install pre-commit
+  ```shell
+  $ pre-commit install
+  ```
+
 ## Development
-* Edit `streamlit_webrtc/__init__.py` to set `_RELEASE = False` in order to show the frontend view served from a development server as below instead of the production build.
+* Edit `streamlit_webrtc/component.py` to set `_RELEASE = False` in order to show the frontend view served from a development server as below instead of the production build.
   * Do not commit this change. This setting is only for development.
   * If `_RELEASE = False` is set, the build command fails, which is described in the next section. See the `pkg/build` rule in `Makefile` and `release_check.py` for the details.
 * Run the frontend dev server
   ```shell
   $ cd streamlit_webrtc/frontend
-  $ npm start
+  $ pnpm dev
   ```
 * In another shell, run `app.py`
   ```shell
   $ streamlit run home.py
   ```
 
-### If you want to use Docker
-Build the image:
-```shell
-make docker/build
-```
-
-Run the sample app:
-```shell
-make docker/run
-```
-
-Log in to the shell:
-```shell
-make docker/shell
-```
-
-
 ## Release
 1. Edit `CHANGELOG.md` and commit it.
-2. Set the next version with the following command, which updates the package version defined in `pyproject.toml` and creates a new Git tag representing this release.
+2. Set the next version with the following command, which creates a new Git tag representing this release.
    ```
-   $ ./scripts/bump-version.sh <version>
+   $ bump-my-version bump <version> --tag --commit --commit-args='--allow-empty' --verbose
    ```
    NOTE: `patch`, `minor`, or `major` can be used as `<version>`.
 3. Push the commit with the tag to GitHub. After pushing the tag, CI/CD automatically deploys the release.

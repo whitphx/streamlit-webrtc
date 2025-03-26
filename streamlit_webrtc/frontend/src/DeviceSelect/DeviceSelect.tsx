@@ -1,5 +1,5 @@
 import { Streamlit } from "streamlit-component-lib";
-import React, {
+import {
   useReducer,
   Reducer,
   useCallback,
@@ -26,7 +26,7 @@ import { stopAllTracks } from "./utils";
 
 function ensureValidSelection(
   devices: MediaDeviceInfo[],
-  selectedDeviceId: MediaDeviceInfo["deviceId"] | undefined
+  selectedDeviceId: MediaDeviceInfo["deviceId"] | undefined,
 ): MediaDeviceInfo["deviceId"] | undefined {
   const deviceIds = devices.map((d) => d.deviceId);
   if (selectedDeviceId && deviceIds.includes(selectedDeviceId)) {
@@ -93,11 +93,11 @@ const deviceSelectionReducer: Reducer<
 
       const selectedVideoInputDeviceId = ensureValidSelection(
         videoInputs,
-        state.selectedVideoInputDeviceId
+        state.selectedVideoInputDeviceId,
       );
       const selectedAudioInputDeviceId = ensureValidSelection(
         audioInputs,
-        state.selectedAudioInputDeviceId
+        state.selectedAudioInputDeviceId,
       );
 
       return {
@@ -130,7 +130,7 @@ export interface DeviceSelectProps {
     audio: MediaDeviceInfo["deviceId"] | undefined;
   }) => void;
 }
-const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
+function DeviceSelect(props: DeviceSelectProps) {
   const {
     video: useVideo,
     audio: useAudio,
@@ -367,6 +367,6 @@ const DeviceSelect: React.VFC<DeviceSelectProps> = (props) => {
       </Stack>
     </DeviceSelectContainer>
   );
-};
+}
 
 export default DeviceSelect;

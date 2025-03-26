@@ -44,7 +44,7 @@ def download_file(url, download_to: Path, expected_size=None):
             with urllib.request.urlopen(url) as response:
                 length = int(response.info()["Content-Length"])
                 counter = 0.0
-                MEGABYTES = 2.0 ** 20.0
+                MEGABYTES = 2.0**20.0
                 while True:
                     data = response.read(8192)
                     if not data:
@@ -111,7 +111,6 @@ def app_sst(model_path: str, lm_path: str, lm_alpha: float, lm_beta: float, beam
         key="speech-to-text",
         mode=WebRtcMode.SENDONLY,
         audio_receiver_size=1024,
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
         media_stream_constraints={"video": False, "audio": True},
     )
 
@@ -178,7 +177,7 @@ def app_sst_with_video(
 
     async def queued_audio_frames_callback(
         frames: List[av.AudioFrame],
-    ) -> av.AudioFrame:
+    ) -> List[av.AudioFrame]:
         with frames_deque_lock:
             frames_deque.extend(frames)
 
@@ -187,7 +186,7 @@ def app_sst_with_video(
         for frame in frames:
             input_array = frame.to_ndarray()
             new_frame = av.AudioFrame.from_ndarray(
-                np.zeros(input_array.shape, dtype=input_array.dtype),
+                np.zeros(input_array.shape, dtype=input_array.dtype),  # type: ignore
                 layout=frame.layout.name,
             )
             new_frame.sample_rate = frame.sample_rate
@@ -199,7 +198,6 @@ def app_sst_with_video(
         key="speech-to-text-w-video",
         mode=WebRtcMode.SENDRECV,
         queued_audio_frames_callback=queued_audio_frames_callback,
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
         media_stream_constraints={"video": True, "audio": True},
     )
 

@@ -1,34 +1,37 @@
-import React from "react";
-import { ComponentStory, ComponentMeta } from "@storybook/react";
+import type { Story } from "@ladle/react";
 
-import DeviceSelect from "./DeviceSelect";
+import DeviceSelect, { DeviceSelectProps } from "./DeviceSelect";
 
-export default {
-  title: "DeviceSelect/DeviceSelect",
-  component: DeviceSelect,
-  argTypes: {
-    onSelect: { action: "selected" },
-  },
-} as ComponentMeta<typeof DeviceSelect>;
-
-const Template: ComponentStory<typeof DeviceSelect> = (args) => (
-  <DeviceSelect {...args} />
+const Base: Story<DeviceSelectProps> = (props: DeviceSelectProps) => (
+  <DeviceSelect {...props} />
 );
+Base.argTypes = {
+  onSelect: { action: "selected" },
+};
 
-export const Both = Template.bind({});
+export const Both = Base.bind({});
 Both.args = {
   video: true,
   audio: true,
+  defaultVideoDeviceId: undefined,
+  defaultAudioDeviceId: undefined,
+  onSelect: () => {},
 };
 
-export const VideoOnly = Template.bind({});
+export const VideoOnly = Base.bind({});
 VideoOnly.args = {
   video: true,
   audio: false,
+  defaultVideoDeviceId: undefined,
+  defaultAudioDeviceId: undefined,
+  onSelect: () => {},
 };
 
-export const AudioOnly = Template.bind({});
+export const AudioOnly = Base.bind({});
 AudioOnly.args = {
   video: false,
   audio: true,
+  defaultVideoDeviceId: undefined,
+  defaultAudioDeviceId: undefined,
+  onSelect: () => {},
 };

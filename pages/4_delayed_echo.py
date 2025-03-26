@@ -6,8 +6,6 @@ import av
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
-from sample_utils.turn import get_ice_servers
-
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +34,6 @@ async def queued_audio_frames_callback(
 webrtc_streamer(
     key="delay",
     mode=WebRtcMode.SENDRECV,
-    rtc_configuration={"iceServers": get_ice_servers()},
     queued_video_frames_callback=queued_video_frames_callback,
     queued_audio_frames_callback=queued_audio_frames_callback,
     async_processing=True,

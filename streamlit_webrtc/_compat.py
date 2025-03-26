@@ -40,6 +40,14 @@ to abstract and improve the session behavior.
 Ref: https://github.com/streamlit/streamlit/pull/5856
 """
 
+VER_GTE_1_36_0 = ST_VERSION >= version.parse("1.36.0")
+""" Since 1.36.0, the `on_change` handler on a custom component is supported.
+Ref: https://github.com/streamlit/streamlit/issues/3977
+Also, the `.components_callbacks.register_callback` hack no longer works since 1.39.0
+where the registered callback via this hack is not called,
+so we must use the new `on_change` handler.
+"""
+
 try:
     from streamlit.runtime.app_session import AppSession, AppSessionState
 except ModuleNotFoundError:
@@ -87,6 +95,13 @@ except ModuleNotFoundError:
             )
 
 
+try:
+    from streamlit import rerun  # type: ignore
+except ImportError:
+    # streamlit < 1.27.0
+    from streamlit import experimental_rerun as rerun  # type: ignore
+
+
 __all__ = [
     "VER_GTE_1_12_0",
     "VER_GTE_1_12_1",
@@ -96,4 +111,5 @@ __all__ = [
     "AppSessionState",
     "SessionInfo",
     "get_script_run_ctx",
+    "rerun",
 ]

@@ -1,18 +1,12 @@
-import React from "react";
-import { ComponentStory, ComponentMeta } from "@storybook/react";
+import type { Story } from "@ladle/react";
 
-import AccessDeniedMessage from "./AccessDeniedMessage";
+import AccessDeniedMessage, {
+  AccessDeniedMessageProps,
+} from "./AccessDeniedMessage";
 
-export default {
-  title: "DeviceSelect/AccessDeniedMessage",
-  component: AccessDeniedMessage,
-} as ComponentMeta<typeof AccessDeniedMessage>;
-
-const Template: ComponentStory<typeof AccessDeniedMessage> = (args) => (
-  <AccessDeniedMessage {...args} />
-);
-
-export const Default = Template.bind({});
+export const Default: Story<AccessDeniedMessageProps> = (
+  props: AccessDeniedMessageProps,
+) => <AccessDeniedMessage {...props} />;
 Default.args = {
   error: new Error("This is an error"),
 };

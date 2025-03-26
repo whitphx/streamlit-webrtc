@@ -1,9 +1,11 @@
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, TypedDict, Union
 
-try:
-    from typing import TypedDict
-except ImportError:
-    from typing_extensions import TypedDict
+from aiortc import (
+    RTCConfiguration as AiortcRTCConfiguration,
+)
+from aiortc import (
+    RTCIceServer as AiortcRTCIceServer,
+)
 
 RTCIceServer = TypedDict(
     "RTCIceServer",
@@ -16,8 +18,46 @@ RTCIceServer = TypedDict(
 )
 
 
-class RTCConfiguration(TypedDict):
-    iceServers: List[RTCIceServer]
+class RTCConfiguration(TypedDict, total=False):
+    iceServers: Optional[List[RTCIceServer]]
+
+
+def compile_rtc_ice_server(
+    ice_server: Union[RTCIceServer, dict[str, Any]],
+) -> AiortcRTCIceServer:
+    if not isinstance(ice_server, dict):
+        raise ValueError("ice_server must be a dict")
+    if "urls" not in ice_server:
+        raise ValueError("ice_server must have a urls key")
+
+    return AiortcRTCIceServer(
+        urls=ice_server["urls"],  # type: ignore  # aiortc's type def is incorrect
+        username=ice_server.get("username"),
+        credential=ice_server.get("credential"),
+    )
+
+
+def compile_ice_servers(
+    ice_servers: Union[List[RTCIceServer], List[dict[str, Any]]],
+) -> List[AiortcRTCIceServer]:
+    return [
+        compile_rtc_ice_server(server)
+        for server in ice_servers
+        if isinstance(server, dict) and "urls" in server
+    ]
+
+
+def compile_rtc_configuration(
+    rtc_configuration: Union[RTCConfiguration, dict[str, Any]],
+) -> AiortcRTCConfiguration:
+    if not isinstance(rtc_configuration, dict):
+        raise ValueError("rtc_configuration must be a dict")
+    ice_servers = rtc_configuration.get("iceServers", [])
+    if not isinstance(ice_servers, list):
+        raise ValueError("iceServers must be a list")
+    return AiortcRTCConfiguration(
+        iceServers=compile_ice_servers(ice_servers),
+    )
 
 
 Number = Union[int, float]

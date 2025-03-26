@@ -1,27 +1,26 @@
-name: Tests
+name: Test, Build, and Publish
 
 on:
   push:
     branches:
       - main
       - develop/**
-    paths-ignore:
-      - 'streamlit_webrtc/frontend/**'
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - main
       - develop/**
-    paths-ignore:
-      - 'streamlit_webrtc/frontend/**'
+
+permissions: {}
 
 jobs:
-  tests:
-
+  test-python:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         streamlit-version: [null]
         include:
           # Test with streamlit <1.4.0 and >=1.4.0. See https://github.com/whitphx/streamlit-webrtc/issues/598
@@ -47,72 +46,258 @@ jobs:
           # Test with streamlit >=1.18.0. See https://github.com/whitphx/streamlit-webrtc/issues/1187
           - python-version: 3.9
             streamlit-version: 1.18.0
+          # Test with streamlit >=1.27.0. See https://github.com/whitphx/streamlit-webrtc/pull/1393
+          - python-version: 3.9
+            streamlit-version: 1.27.0
+          # Test with streamlit >=1.34.0. See https://github.com/whitphx/streamlit-webrtc/pull/1627
+          - python-version: 3.9
+            streamlit-version: 1.34.0
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
-    # The following steps are based on https://github.com/python-poetry/poetry/blob/def1ee8f3ae00c307ca028da53d2347615c5c32b/.github/workflows/main.yml#L51-L84
-    - name: Get full Python version
-      id: full-python-version
-      run: echo version=$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))") >> $GITHUB_OUTPUT
-
-    - name: Bootstrap poetry
-      run: |
-        curl -sL https://install.python-poetry.org | python - -y
-
-    - name: Update PATH
-      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-    - name: Configure poetry
-      run: poetry config virtualenvs.in-project true
-
-    - name: Set up cache
-      uses: actions/cache@v3
-      id: cache
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
-
-    - name: Ensure cache is healthy
-      if: steps.cache.outputs.cache-hit == 'true'
-      run: timeout 10s pip --version || rm -rf .venv
+    - name: Install dependencies
+      run: uv sync --all-extras --dev
 
     - name: Install a specific version of Streamlit
       if: ${{ matrix.streamlit-version }}
-      run: poetry add -D streamlit=="${STREAMLIT_VERSION}" setuptools
+      run: uv add --dev streamlit=="${STREAMLIT_VERSION}" setuptools
       env:
         STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
-    - name: Install dependencies
-      run: poetry install
-    - name: Lint with black, isort, and flake8
-      run: |
-        poetry run black . --check
-        poetry run isort . --check --resolve-all-configs
-        poetry run flake8
-    - name: Type checking with mypy
-      run: |
-        poetry run mypy .
-    - name: Release check
-      run: python scripts/release_check.py streamlit_webrtc/component.py
 
-    # Frontend build is necessary for the package to be importable, in the tests
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '14.x'
-        cache: 'npm'
-        cache-dependency-path: streamlit_webrtc/frontend/package-lock.json
-    - name: Install the frontend dependencies
-      run: npm ci
-      working-directory: streamlit_webrtc/frontend
-    - name: Build the frontend
-      run: npm run build --if-present
-      working-directory: streamlit_webrtc/frontend
+    - name: Run Ruff
+      run: |
+        uv run ruff check --output-format=github .
+        uv run ruff format . --check
+
+    - name: Type checking with mypy
+      run: uv run mypy .
+
+    - name: Release check
+      run: uv run scripts/release_check.py streamlit_webrtc/component.py
+
+    # The frontend build directory is necessary to import the package
+    # avoiding an error from `components.declare_component`.
+    - name: Create a mock frontend build directory
+      run: mkdir streamlit_webrtc/frontend/dist
 
     - name: Test with pytest
+      run: uv run pytest
+
+  test-frontend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: streamlit_webrtc/frontend
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - uses: pnpm/action-setup@v4
+      name: Install pnpm
+      with:
+        version: 10
+        run_install: false
+
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        cache: 'pnpm'
+        node-version-file: .nvmrc
+        cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Lint
       run: |
-        poetry run pytest
+        pnpm run check:eslint
+        pnpm run check:prettier
+
+    - run: pnpm run build
+
+    - run: pnpm test
+
+  build:
+    needs: [test-python, test-frontend]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-depth: 0  # Fetch all history for hatch-vcs to get the correct version
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version-file: "pyproject.toml"
+
+    - name: Install Python dependencies
+      run: uv sync --all-extras --dev
+
+    # Set up frontend dependencies
+    - uses: pnpm/action-setup@v4
+      name: Install pnpm
+      with:
+        version: 10
+        run_install: false
+
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        cache: 'pnpm'
+        node-version-file: .nvmrc
+        cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
+
+    - name: Install dependencies
+      run: pnpm install
+      working-directory: streamlit_webrtc/frontend
+
+    - name: Build
+      run: make pkg/build
+
+    - name: Upload the built artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: streamlit-webrtc-${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || github.sha  }}
+        path: dist
+
+  deploy-preview-wheel:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+    name: Deploy wheel file to Cloudflare Pages
+    outputs:
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    steps:
+      - run: mkdir -p ${{ runner.temp }}/artifacts/
+
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: streamlit-webrtc-${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || github.sha  }}
+          path: ${{ runner.temp }}/artifacts/streamlit-webrtc
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65
+        id: deploy
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy ${{ runner.temp }}/artifacts/streamlit-webrtc --project-name=streamlit-webrtc-preview --branch=${{ github.head_ref || github.ref_name }} --commit-hash=${{ github.sha }}
+
+      - name: Comment on the PR to inform the deployment file URLs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const deploymentUrl = '${{ steps.deploy.outputs.deployment-url }}';
+
+            // Get all files in the artifacts directory
+            const artifactsDir = '${{ runner.temp }}/artifacts/streamlit-webrtc';
+            const allFiles = fs.readdirSync(artifactsDir);
+            // Filter to include only wheel (.whl) and source distribution (.tar.gz) files
+            const files = allFiles.filter(file => file.endsWith('.whl') || file.endsWith('.tar.gz'));
+
+            // Create message with links to each file
+            let fileLinks = files.map(file => {
+              const installCommand = `pip install ${deploymentUrl}/${file}`;
+              return `- [${file}](${deploymentUrl}/${file})\n  \`\`\`bash\n  ${installCommand}\n  \`\`\``;
+            }).join('\n');
+
+            const message = `📦 Wheel files have been deployed to Cloudflare Pages:
+
+            ${fileLinks}`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
+
+  publish-to-pypi:
+    name: Publish Python 🐍 distribution 📦 to PyPI
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/streamlit-webrtc
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: streamlit-webrtc-${{ github.ref_name }}
+        path: dist/
+    - name: Publish distribution 📦 to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    name: >-
+      Sign the Python 🐍 distribution 📦 with Sigstore
+      and upload them to GitHub Release
+    needs:
+    - publish-to-pypi
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # IMPORTANT: mandatory for making GitHub Releases
+      id-token: write  # IMPORTANT: mandatory for sigstore
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: streamlit-webrtc-${{ github.ref_name }}
+        path: dist/
+    - name: Sign the dists with Sigstore
+      uses: sigstore/gh-action-sigstore-python@v3.0.0
+      with:
+        inputs: >-
+          ./dist/*.tar.gz
+          ./dist/*.whl
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: >-
+        gh release create
+        "$GITHUB_REF_NAME"
+        --repo "$GITHUB_REPOSITORY"
+        --notes ""
+    - name: Upload artifact signatures to GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      # Upload to GitHub Release using the `gh` CLI.
+      # `dist/` contains the built packages, and the
+      # sigstore-produced signatures and certificates.
+      run: >-
+        gh release upload
+        "$GITHUB_REF_NAME" dist/**
+        --repo "$GITHUB_REPOSITORY"

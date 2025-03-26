@@ -1,6 +1,8 @@
+import copy
 import json
 import logging
 import os
+import warnings
 import weakref
 from typing import (
     Any,
@@ -14,6 +16,9 @@ from typing import (
     overload,
 )
 
+import streamlit as st
+import streamlit.components.v1 as components
+from aiortc import RTCConfiguration as AiortcRTCConfiguration
 from aiortc.mediastreams import MediaStreamTrack
 
 from streamlit_webrtc.models import (
@@ -24,15 +29,7 @@ from streamlit_webrtc.models import (
     VideoFrameCallback,
 )
 
-try:
-    from typing import TypedDict
-except ImportError:
-    # Python < 3.8
-    from typing_extensions import TypedDict
-
-import streamlit as st
-import streamlit.components.v1 as components
-
+from ._compat import VER_GTE_1_36_0, rerun
 from .components_callbacks import register_callback
 from .config import (
     DEFAULT_AUDIO_HTML_ATTRS,
@@ -43,6 +40,11 @@ from .config import (
     RTCConfiguration,
     Translations,
     VideoHTMLAttributes,
+    compile_ice_servers,
+    compile_rtc_configuration,
+)
+from .credentials import (
+    get_available_ice_servers,
 )
 from .session_info import get_script_run_count, get_this_session_info
 from .webrtc import (
@@ -66,17 +68,12 @@ _RELEASE = True  # TODO: How to dynamically manage this variable?
 if not _RELEASE:
     _component_func = components.declare_component(
         "webrtc_streamer",
-        url="http://localhost:3001",
+        url="http://localhost:5173",
     )
 else:
     parent_dir = os.path.dirname(os.path.abspath(__file__))
-    build_dir = os.path.join(parent_dir, "frontend/build")
+    build_dir = os.path.join(parent_dir, "frontend/dist")
     _component_func = components.declare_component("webrtc_streamer", path=build_dir)
-
-
-class ClientSettings(TypedDict, total=False):
-    rtc_configuration: RTCConfiguration
-    media_stream_constraints: MediaStreamConstraints
 
 
 class WebRtcStreamerState(NamedTuple):
@@ -84,7 +81,7 @@ class WebRtcStreamerState(NamedTuple):
     signalling: bool
 
 
-# To restore component value after `streamlit.experimental_rerun()`.
+# To restore component value after `rerun()`.
 class ComponentValueSnapshot(NamedTuple):
     component_value: Union[Dict, None]
     run_count: int
@@ -95,6 +92,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker[VideoProcessorT, AudioProcessorT]]]"  # noqa
 
     _component_value_snapshot: Union[ComponentValueSnapshot, None]
+    _frontend_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]]
 
     def __init__(
         self,
@@ -104,6 +102,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._set_worker(worker)
         self._set_state(state)
         self._component_value_snapshot = None
+        self._frontend_rtc_configuration = None
 
     def _set_worker(
         self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
@@ -220,7 +219,10 @@ def compile_state(component_value) -> WebRtcStreamerState:
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    frontend_rtc_configuration: Optional[
+        Union[Dict[str, Any], RTCConfiguration]
+    ] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -246,9 +248,9 @@ def webrtc_streamer(
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext:
     # XXX: We wanted something like `WebRtcStreamerContext[None, None]`
     # as the return value, but could not find a good solution
@@ -261,7 +263,10 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    frontend_rtc_configuration: Optional[
+        Union[Dict[str, Any], RTCConfiguration]
+    ] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -287,9 +292,9 @@ def webrtc_streamer(
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, Any]:
     pass
 
@@ -298,7 +303,10 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    frontend_rtc_configuration: Optional[
+        Union[Dict[str, Any], RTCConfiguration]
+    ] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -324,9 +332,9 @@ def webrtc_streamer(
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext[Any, AudioProcessorT]:
     pass
 
@@ -335,7 +343,10 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    frontend_rtc_configuration: Optional[
+        Union[Dict[str, Any], RTCConfiguration]
+    ] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -361,9 +372,9 @@ def webrtc_streamer(
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     pass
 
@@ -371,7 +382,10 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
-    rtc_configuration: Optional[Union[Dict, RTCConfiguration]] = None,
+    server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    frontend_rtc_configuration: Optional[
+        Union[Dict[str, Any], RTCConfiguration]
+    ] = None,
     media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
     desired_playing_state: Optional[bool] = None,
     player_factory: Optional[MediaPlayerFactory] = None,
@@ -397,36 +411,37 @@ def webrtc_streamer(
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
-    client_settings: Optional[Union[ClientSettings, Dict]] = None,
     video_transformer_factory=None,
     async_transform: Optional[bool] = None,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     # Backward compatibility
     if video_transformer_factory is not None:
-        LOGGER.warning(
+        warnings.warn(
             "The argument video_transformer_factory is deprecated. "
             "Use video_processor_factory instead.\n"
-            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020"  # noqa: E501
+            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020",
+            DeprecationWarning,
+            stacklevel=2,
         )
         video_processor_factory = video_transformer_factory
     if async_transform is not None:
-        LOGGER.warning(
+        warnings.warn(
             "The argument async_transform is deprecated. "
             "Use async_processing instead.\n"
-            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020"  # noqa: E501
+            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020",
+            DeprecationWarning,
+            stacklevel=2,
         )
         async_processing = async_transform
-    if client_settings is not None:
-        LOGGER.warning(
-            "The argument client_settings is deprecated. "
-            "Use rtc_configuration and media_stream_constraints instead."
+    if rtc_configuration is not None:
+        warnings.warn(
+            "The argument rtc_configuration is deprecated. "
+            "Use frontend_rtc_configuration and server_rtc_configuration instead.\n",
+            DeprecationWarning,
+            stacklevel=2,
         )
-        rtc_configuration = (
-            client_settings.get("rtc_configuration") if client_settings else None
-        )
-        media_stream_constraints = (
-            client_settings.get("media_stream_constraints") if client_settings else None
-        )
+        frontend_rtc_configuration = rtc_configuration
 
     if media_stream_constraints is None:
         media_stream_constraints = DEFAULT_MEDIA_STREAM_CONSTRAINTS
@@ -454,6 +469,18 @@ def webrtc_streamer(
         )
         st.session_state[key] = context
 
+    if context._frontend_rtc_configuration is None:
+        context._frontend_rtc_configuration = copy.deepcopy(frontend_rtc_configuration)
+    if context._frontend_rtc_configuration is None:
+        context._frontend_rtc_configuration = {}
+    if context._frontend_rtc_configuration.get("iceServers") is None:
+        LOGGER.info(
+            "No iceServers found in the rtc_configuration for the frontend. Set the default value to use Google STUN server."
+        )
+        context._frontend_rtc_configuration["iceServers"] = [
+            {"urls": "stun:stun.l.google.com:19302"}
+        ]
+
     webrtc_worker = context._get_worker()
 
     sdp_answer_json = None
@@ -479,19 +506,24 @@ def webrtc_streamer(
         if on_change and old_state != new_state:
             on_change()
 
-    register_callback(element_key=frontend_key, callback=callback)
-
+    if not VER_GTE_1_36_0:
+        register_callback(element_key=frontend_key, callback=callback)
+        kwargs = {}
+    else:
+        kwargs = {
+            "on_change": callback,
+        }
     component_value_raw: Union[Dict, str, None] = _component_func(
         key=frontend_key,
         sdp_answer_json=sdp_answer_json,
         mode=mode.name,
-        settings=client_settings,
-        rtc_configuration=rtc_configuration,
+        rtc_configuration=context._frontend_rtc_configuration,
         media_stream_constraints=media_stream_constraints,
         video_html_attrs=video_html_attrs,
         audio_html_attrs=audio_html_attrs,
         translations=translations,
         desired_playing_state=desired_playing_state,
+        **kwargs,
     )
     # HOTFIX: The return value from _component_func()
     #         is of type str with streamlit==0.84.0.
@@ -505,12 +537,12 @@ def webrtc_streamer(
 
     # HACK: Save the component value in this run to the session state
     # to be restored in the next run because the component values of
-    # component instances behind the one which calls `streamlit.experimental_rerun()`
+    # component instances behind the one which calls `rerun()`
     # will not be held but be reset to the initial value in the next run.
     # For example, when there are two `webrtc_streamer()` component instances
-    # in a script and `streamlit.experimental_rerun()` in the first one is called,
+    # in a script and `rerun()` in the first one is called,
     # the component value of the second instance will be None in the next run
-    # after `streamlit.experimental_rerun()`.
+    # after `rerun()`.
     session_info = get_this_session_info()
     run_count = get_script_run_count(session_info) if session_info else None
     if component_value is None:
@@ -518,8 +550,7 @@ def webrtc_streamer(
         if (
             restored_component_value_snapshot
             # Only the component value saved in the previous run is restored
-            # so that this workaround is only effective in the case of
-            # `streamlit.experimental_rerun()`.
+            # so that this workaround is only effective in the case of `rerun()`.
             and run_count == restored_component_value_snapshot.run_count + 1
         ):
             LOGGER.debug("Restore the component value (key=%s)", key)
@@ -533,17 +564,22 @@ def webrtc_streamer(
     if component_value:
         sdp_offer = component_value.get("sdpOffer")
 
-    if webrtc_worker and not context.state.playing and not context.state.signalling:
+    if not context.state.playing and not context.state.signalling:
         LOGGER.debug(
-            "Unset the worker because the frontend state is "
+            "Unset the worker and the internal states because the frontend state is "
             'neither playing nor signalling (key="%s").',
             key,
         )
-        webrtc_worker.stop()
-        context._set_worker(None)
-        webrtc_worker = None
-        # Rerun to unset the SDP answer from the frontend args
-        st.experimental_rerun()
+
+        context._frontend_rtc_configuration = None
+
+        if webrtc_worker:
+            webrtc_worker.stop()
+            context._set_worker(None)
+            webrtc_worker = None
+
+            # Rerun to unset the SDP answer from the frontend args
+            rerun()
 
     if webrtc_worker:
         if video_frame_callback or queued_video_frames_callback or on_video_ended:
@@ -565,8 +601,23 @@ def webrtc_streamer(
             'Create a new worker (key="%s").',
             key,
         )
+
+        aiortc_rtc_configuration = (
+            compile_rtc_configuration(server_rtc_configuration)
+            if server_rtc_configuration and isinstance(server_rtc_configuration, dict)
+            else AiortcRTCConfiguration()
+        )
+
+        if aiortc_rtc_configuration.iceServers is None:
+            LOGGER.info(
+                "rtc_configuration.iceServers is not set. Try to set it automatically."
+            )
+            ice_servers = get_available_ice_servers()
+            aiortc_rtc_configuration.iceServers = compile_ice_servers(ice_servers)
+
         webrtc_worker = WebRtcWorker(
             mode=mode,
+            rtc_configuration=aiortc_rtc_configuration,
             player_factory=player_factory,
             in_recorder_factory=in_recorder_factory,
             out_recorder_factory=out_recorder_factory,
@@ -589,7 +640,7 @@ def webrtc_streamer(
         webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
         context._set_worker(webrtc_worker)
         # Rerun to send the SDP answer to frontend
-        st.experimental_rerun()
+        rerun()
 
     context._set_worker(webrtc_worker)
     return context

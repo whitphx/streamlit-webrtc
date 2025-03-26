@@ -7,10 +7,7 @@ import {
 } from "@mui/material/styles";
 import chroma from "chroma-js";
 
-interface StreamlitThemeProviderProps {}
-export const ThemeProvider: React.VFC<
-  React.PropsWithChildren<StreamlitThemeProviderProps>
-> = (props) => {
+export function ThemeProvider(props: React.PropsWithChildren<unknown>) {
   const { theme: stTheme } = useRenderData();
 
   const stThemeJson = JSON.stringify(stTheme);
@@ -26,6 +23,7 @@ export const ThemeProvider: React.VFC<
 
     return createTheme({
       palette: {
+        mode: stTheme.base === "dark" ? "dark" : "light",
         primary: {
           main: stTheme.primaryColor,
         },
@@ -50,6 +48,6 @@ export const ThemeProvider: React.VFC<
   }
 
   return <MuiThemeProvider theme={muiTheme}>{props.children}</MuiThemeProvider>;
-};
+}
 
 export default ThemeProvider;

@@ -114,7 +114,7 @@ def mixer_callback(frames: List[av.VideoFrame]) -> av.VideoFrame:
     return new_frame
 
 
-def main():
+def main() -> None:
     with server_state_lock["webrtc_contexts"]:
         if "webrtc_contexts" not in server_state:
             server_state["webrtc_contexts"] = []
@@ -130,7 +130,6 @@ def main():
     self_ctx = webrtc_streamer(
         key="self",
         mode=WebRtcMode.SENDRECV,
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
         media_stream_constraints={"video": True, "audio": True},
         source_video_track=mix_track,
         sendback_audio=False,
@@ -144,10 +143,13 @@ def main():
         )
         mix_track.add_input_track(self_process_track)
 
-        self_process_track.processor.type = st.radio(
-            "Select transform type",
-            ("noop", "cartoon", "edges", "rotate"),
-            key="filter1-type",
+        self_process_track.processor.type = (
+            st.radio(
+                "Select transform type",
+                ("noop", "cartoon", "edges", "rotate"),
+                key="filter1-type",
+            )
+            or "noop"
         )
 
     with server_state_lock["webrtc_contexts"]:
@@ -169,9 +171,6 @@ def main():
             webrtc_streamer(
                 key=f"sound-{id(ctx)}",
                 mode=WebRtcMode.RECVONLY,
-                rtc_configuration={
-                    "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-                },
                 media_stream_constraints={"video": False, "audio": True},
                 source_audio_track=ctx.input_audio_track,
                 desired_playing_state=ctx.state.playing,

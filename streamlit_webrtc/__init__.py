@@ -1,14 +1,8 @@
-"""streamlit-webrtc
-"""
+"""streamlit-webrtc"""
 
-try:
-    import importlib.metadata as importlib_metadata
-except ModuleNotFoundError:
-    # Python < 3.8
-    import importlib_metadata  # type: ignore
+import importlib.metadata
 
 from .component import (
-    ClientSettings,
     WebRtcStreamerContext,
     WebRtcStreamerState,
     webrtc_streamer,
@@ -23,8 +17,13 @@ from .config import (
     Translations,
     VideoHTMLAttributes,
 )
-from .factory import create_mix_track, create_process_track
-from .mix import MixerCallback
+from .credentials import (
+    get_hf_ice_servers,
+    get_twilio_ice_servers,
+)
+from .factory import create_mix_track, create_process_track, create_video_source_track
+from .mix import MediaStreamMixTrack, MixerCallback
+from .source import VideoSourceCallback, VideoSourceTrack
 from .webrtc import (
     AudioProcessorBase,
     AudioProcessorFactory,
@@ -44,8 +43,8 @@ from .webrtc import (
 # https://github.com/python-poetry/poetry/issues/144#issuecomment-623927302
 # https://github.com/python-poetry/poetry/pull/2366#issuecomment-652418094
 try:
-    __version__ = importlib_metadata.version(__name__)
-except importlib_metadata.PackageNotFoundError:
+    __version__ = importlib.metadata.version(__name__)
+except importlib.metadata.PackageNotFoundError:
     pass
 
 # For backward compatibility
@@ -54,7 +53,6 @@ VideoTransformerFactory = VideoProcessorFactory
 
 __all__ = [
     "webrtc_streamer",
-    "ClientSettings",
     "AudioProcessorBase",
     "AudioProcessorFactory",
     "AudioReceiver",
@@ -64,6 +62,9 @@ __all__ = [
     "VideoProcessorFactory",
     "VideoTransformerBase",  # XXX: Deprecated
     "VideoReceiver",
+    "VideoSourceTrack",
+    "VideoSourceCallback",
+    "create_video_source_track",
     "WebRtcMode",
     "WebRtcWorker",
     "MediaStreamConstraints",
@@ -74,9 +75,12 @@ __all__ = [
     "create_process_track",
     "create_mix_track",
     "MixerCallback",
+    "MediaStreamMixTrack",
     "WebRtcStreamerContext",
     "WebRtcStreamerState",
     "DEFAULT_AUDIO_HTML_ATTRS",
     "DEFAULT_MEDIA_STREAM_CONSTRAINTS",
     "DEFAULT_VIDEO_HTML_ATTRS",
+    "get_hf_ice_servers",
+    "get_twilio_ice_servers",
 ]

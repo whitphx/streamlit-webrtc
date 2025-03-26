@@ -3,6 +3,7 @@
 
 [![Tests](https://github.com/whitphx/streamlit-webrtc/workflows/Tests/badge.svg?branch=main)](https://github.com/whitphx/streamlit-webrtc/actions?query=workflow%3ATests+branch%3Amain)
 [![Frontend Tests](https://github.com/whitphx/streamlit-webrtc/workflows/Frontend%20tests/badge.svg?branch=main)](https://github.com/whitphx/streamlit-webrtc/actions?query=workflow%3A%22Frontend+tests%22+branch%3Amain)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 [![PyPI](https://img.shields.io/pypi/v/streamlit-webrtc)](https://pypi.org/project/streamlit-webrtc/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/streamlit-webrtc)](https://pypi.org/project/streamlit-webrtc/)
@@ -15,12 +16,12 @@
   <a href="https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py">
     <img src="https://global.discourse-cdn.com/business7/uploads/streamlit/original/2X/a/af111a7393c77cb69d7712ac8e71ca862feaeb24.gif" />
   </a>
-</id>
+</td>
 <td width="48%">
   <a href="https://share.streamlit.io/whitphx/style-transfer-web-app/main/app.py">
     <img src="https://global.discourse-cdn.com/business7/uploads/streamlit/original/2X/b/b3cb8aa60eb746366e06726a9137720583c02c3a.gif" />
   </a>
-</id>
+</td>
 </tr>
 </table>
 

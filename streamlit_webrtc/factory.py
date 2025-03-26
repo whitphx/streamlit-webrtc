@@ -1,12 +1,6 @@
-from typing import Optional, Union, overload
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal  # type: ignore
+from typing import Literal, Optional, Type, Union, overload
 
 import streamlit as st
-from aiortc import MediaStreamTrack
 
 from .eventloop import get_global_event_loop, loop_context
 from .mix import MediaStreamMixTrack, MixerCallback
@@ -31,13 +25,14 @@ from .process import (
     VideoProcessTrack,
 )
 from .relay import get_global_relay
+from .source import VideoSourceCallback, VideoSourceTrack
 
 _PROCESSOR_TRACK_CACHE_KEY_PREFIX = "__PROCESSOR_TRACK_CACHE__"
 
 
 def _get_track_class(
     kind: Literal["video", "audio"], async_processing: bool
-) -> MediaStreamTrack:
+) -> Union[Type[MediaProcessTrack], Type[AsyncMediaProcessTrack]]:
     if kind == "video":
         if async_processing:
             return AsyncVideoProcessTrack
@@ -62,8 +57,7 @@ def create_process_track(
     frame_callback: Optional[FrameCallback] = None,
     queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     on_ended: Optional[MediaEndedCallback] = None,
-) -> AudioProcessTrack[AudioProcessorT]:
-    ...
+) -> AudioProcessTrack[AudioProcessorT]: ...
 
 
 @overload
@@ -75,8 +69,7 @@ def create_process_track(
     frame_callback: Optional[FrameCallback] = None,
     queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     on_ended: Optional[MediaEndedCallback] = None,
-) -> AsyncAudioProcessTrack[AudioProcessorT]:
-    ...
+) -> AsyncAudioProcessTrack[AudioProcessorT]: ...
 
 
 @overload
@@ -88,8 +81,7 @@ def create_process_track(
     frame_callback: Optional[FrameCallback] = None,
     queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     on_ended: Optional[MediaEndedCallback] = None,
-) -> VideoProcessTrack[VideoProcessorT]:
-    ...
+) -> VideoProcessTrack[VideoProcessorT]: ...
 
 
 @overload
@@ -101,8 +93,7 @@ def create_process_track(
     frame_callback: Optional[FrameCallback] = None,
     queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     on_ended: Optional[MediaEndedCallback] = None,
-) -> AsyncVideoProcessTrack[VideoProcessorT]:
-    ...
+) -> AsyncVideoProcessTrack[VideoProcessorT]: ...
 
 
 # Overloads for the cases where the processor_factory is NOT specified
@@ -115,8 +106,7 @@ def create_process_track(
     processor_factory: Literal[None] = None,
     queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     on_ended: Optional[MediaEndedCallback] = None,
-) -> MediaProcessTrack[CallbackAttachableProcessor[FrameT], FrameT]:
-    ...
+) -> MediaProcessTrack[CallbackAttachableProcessor[FrameT], FrameT]: ...
 
 
 @overload
@@ -128,8 +118,7 @@ def create_process_track(
     async_processing: Literal[True] = True,
     queued_frames_callback: Optional[QueuedVideoFramesCallback] = None,
     on_ended: Optional[MediaEndedCallback] = None,
-) -> AsyncMediaProcessTrack[CallbackAttachableProcessor[FrameT], FrameT]:
-    ...
+) -> AsyncMediaProcessTrack[CallbackAttachableProcessor[FrameT], FrameT]: ...
 
 
 def create_process_track(
@@ -191,3 +180,27 @@ def create_mix_track(
         )
         st.session_state[cache_key] = mixer_track
     return mixer_track
+
+
+_VIDEO_SOURCE_TRACK_CACHE_KEY_PREFIX = "__VIDEO_SOURCE_TRACK_CACHE__"
+
+
+def create_video_source_track(
+    callback: VideoSourceCallback,
+    key: str,
+    fps=30,
+) -> VideoSourceTrack:
+    cache_key = _VIDEO_SOURCE_TRACK_CACHE_KEY_PREFIX + key
+    if (
+        cache_key in st.session_state
+        and isinstance(st.session_state[cache_key], VideoSourceTrack)
+        and st.session_state[cache_key].kind == "video"
+        and st.session_state[cache_key].readyState == "live"
+    ):
+        video_source_track: VideoSourceTrack = st.session_state[cache_key]
+        video_source_track._callback = callback
+        video_source_track._fps = fps
+    else:
+        video_source_track = VideoSourceTrack(callback=callback, fps=fps)
+        st.session_state[cache_key] = video_source_track
+    return video_source_track

@@ -16,7 +16,6 @@ from streamlit_session_memo import st_session_memo
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
 from sample_utils.download import download_file
-from sample_utils.turn import get_ice_servers
 
 HERE = Path(__file__).parent
 ROOT = HERE.parent
@@ -93,7 +92,10 @@ def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
 
     # Run inference
     blob = cv2.dnn.blobFromImage(
-        cv2.resize(image, (300, 300)), 0.007843, (300, 300), 127.5
+        image=cv2.resize(image, (300, 300)),
+        scalefactor=0.007843,
+        size=(300, 300),
+        mean=(127.5, 127.5, 127.5),
     )
     net.setInput(blob)
     output = net.forward()
@@ -138,7 +140,6 @@ def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
 webrtc_ctx = webrtc_streamer(
     key="object-detection",
     mode=WebRtcMode.SENDRECV,
-    rtc_configuration={"iceServers": get_ice_servers()},
     video_frame_callback=video_frame_callback,
     media_stream_constraints={"video": True, "audio": False},
     async_processing=True,

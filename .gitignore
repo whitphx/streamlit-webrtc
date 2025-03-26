@@ -139,6 +139,9 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# Streamlit secrets
+.streamlit/secrets.toml
+
 # Demo data
 models/
 data/

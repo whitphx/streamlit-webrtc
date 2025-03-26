@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Alert from "@mui/material/Alert";
 import DeviceSelectForm from "./DeviceSelect/DeviceSelectForm";
@@ -24,11 +24,11 @@ interface WebRtcStreamerInnerProps {
   sdpAnswerJson: string | undefined;
   rtcConfiguration: RTCConfiguration | undefined;
   mediaStreamConstraints: MediaStreamConstraints | undefined;
-  videoHtmlAttrs: any;
-  audioHtmlAttrs: any;
+  videoHtmlAttrs: Record<string, string>;
+  audioHtmlAttrs: Record<string, string>;
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
-const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
+function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const [deviceIds, setDeviceIds] = useState<{
     video?: MediaDeviceInfo["deviceId"] | undefined;
     audio?: MediaDeviceInfo["deviceId"] | undefined;
@@ -38,7 +38,7 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
     deviceIds.video,
     deviceIds.audio,
     props.onComponentValueChange,
-    setDeviceIds
+    setDeviceIds,
   );
 
   const mode = props.mode;
@@ -50,7 +50,7 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
   const receivable = isWebRtcMode(mode) && isReceivable(mode);
   const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
   const { videoEnabled, audioEnabled } = getMediaUsage(
-    props.mediaStreamConstraints
+    props.mediaStreamConstraints,
   );
 
   const [deviceSelectOpen, setDeviceSelectOpen] = useState(false);
@@ -124,9 +124,9 @@ const WebRtcStreamerInner: React.VFC<WebRtcStreamerInnerProps> = (props) => {
       </Box>
     </Box>
   );
-};
+}
 
-const WebRtcStreamer: React.VFC = () => {
+function WebRtcStreamer() {
   const renderData = useRenderData();
 
   const mode = renderData.args["mode"];
@@ -155,6 +155,6 @@ const WebRtcStreamer: React.VFC = () => {
       onComponentValueChange={setComponentValue}
     />
   );
-};
+}
 
 export default WebRtcStreamer;

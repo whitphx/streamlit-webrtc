@@ -3,6 +3,238 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.53.9] - 2025-03-26
+
+### Fixed
+
+- Internal dependencies updates.
+
+## [0.53.8] - 2025-03-25
+
+### Fixed
+
+- Internal dependencies updates.
+
+## [0.53.7] - 2025-03-23
+
+### Fixed
+
+- Fix the CI/CD workflow.
+
+## [0.53.6] - 2025-03-23
+
+### Fixed
+
+- Internal package updates.
+
+## [0.53.5] - 2025-03-23
+
+### Fixed
+
+- Fix CI/CD, [#1957](https://github.com/whitphx/streamlit-webrtc/pull/1957), [#1958](https://github.com/whitphx/streamlit-webrtc/pull/1958), [#1959](https://github.com/whitphx/streamlit-webrtc/pull/1959), [#1960](https://github.com/whitphx/streamlit-webrtc/pull/1960).
+
+## [0.53.4]
+
+Skipped
+
+## [0.53.3] - 2025-03-19
+
+### Fixed
+
+- Fix a bug that frontend RTC configuration is not refreshed when the component is stopped, [#1952](https://github.com/whitphx/streamlit-webrtc/pull/1952).
+
+## [0.53.2] - 2025-03-19
+
+### Fixed
+
+- Remove `import importlib_metadata` that is no longer needed since dropping Python 3.8 support, [#1949](https://github.com/whitphx/streamlit-webrtc/pull/1949).
+
+## [0.53.1] - 2025-03-19
+
+### Fixed
+
+- Set the package version dynamically, [#1947](https://github.com/whitphx/streamlit-webrtc/pull/1947).
+
+## [0.53.0] - 2025-03-18
+
+### Changed
+
+- `server_rtc_configuration` option is added to `webrtc_streamer()`, [#1944](https://github.com/whitphx/streamlit-webrtc/pull/1944).
+- The `rtc_configuration` option of `webrtc_streamer()` is renamed to `frontend_rtc_configuration` and `rtc_configuration` is marked as deprecated, [#1944](https://github.com/whitphx/streamlit-webrtc/pull/1944).
+
+## [0.52.0] - 2025-03-18
+
+### Changed
+
+- [BREAKING] The `client_settings` option of `webrtc_streamer()` has been removed. Use `rtc_configuration` and `media_stream_constraints` instead, [#1943](https://github.com/whitphx/streamlit-webrtc/pull/1943).
+- [BREAKING] The `rtc_configuration` option of `webrtc_streamer()` is used to configure the connection from the server side peer, [#1943](https://github.com/whitphx/streamlit-webrtc/pull/1943).
+
+## [0.51.3] - 2025-03-18
+
+### Fix
+
+- Internal refactoring on the auto-configuring of STUN/TURN servers, [#1942](https://github.com/whitphx/streamlit-webrtc/pull/1942).
+
+## [0.51.2] - 2025-03-18
+
+### Fix
+
+- Fix a bug on `streamlit_webrtc.credentials.get_hf_ice_servers()` that it always returns `None`, [#1939](https://github.com/whitphx/streamlit-webrtc/pull/1939).
+- Add type hints on `streamlit_webrtc.credentials.get_hf_ice_servers()` and `streamlit_webrtc.credentials.get_twilio_ice_servers()`, [#1940](https://github.com/whitphx/streamlit-webrtc/pull/1940).
+
+## [0.51.1] - 2025-03-18
+
+### Fix
+
+- Fix internal type annotations, [#1938](https://github.com/whitphx/streamlit-webrtc/pull/1938).
+
+## [0.51.0] - 2025-03-17
+
+### Added
+
+- `streamlit_webrtc.credentials` module for getting TURN/STUN server credentials from Hugging Face and Twilio, [#1927](https://github.com/whitphx/streamlit-webrtc/pull/1927).
+
+### Changed
+
+- Set the STUN/TURN server configs automatically if the credentials are available, [#1927](https://github.com/whitphx/streamlit-webrtc/pull/1927).
+
+## [0.50.1] - 2025-03-17
+
+### Changed
+
+- Update type annotations, [#1936](https://github.com/whitphx/streamlit-webrtc/pull/1936).
+- Switch to uv, [#1936](https://github.com/whitphx/streamlit-webrtc/pull/1936).
+- Update the release workflow, [#1937](https://github.com/whitphx/streamlit-webrtc/pull/1937).
+
+## [0.49.4] - 2025-03-14
+
+### Fix
+
+- Internally switch the frontend package manager from npm to pnpm, [#1932](https://github.com/whitphx/streamlit-webrtc/pull/1932).
+
+## [0.49.3] - 2025-03-13
+
+### Fix
+
+- Set the base theme type correctly, [#1931](https://github.com/whitphx/streamlit-webrtc/pull/1931).
+
+## [0.49.2] - 2025-03-13
+
+### Fix
+
+- Internal package updates.
+
+## [0.49.1] - 2025-03-13
+
+### Fix
+
+- Internal package updates.
+
+## [0.49.0] - 2025-03-12
+
+### Change
+
+- Drop support for Python 3.8, [#1913](https://github.com/whitphx/streamlit-webrtc/pull/1913).
+
+## [0.48.2] - 2025-03-12
+
+### Fix
+
+- Internal updates of frontend build setup from Webpack to Vite, [#1909](https://github.com/whitphx/streamlit-webrtc/pull/1909).
+- Dependencies updates.
+
+## [0.48.1] - 2025-03-12
+
+### Fix
+
+- Bundle frontend files correctly, [#1904](https://github.com/whitphx/streamlit-webrtc/pull/1904).
+- Internal package updates.
+
+## [0.48.0] - 2025-03-12 (Yanked)
+
+### Change
+
+- Use the `on_change` handler instead of `components_callbacks.register_callback` for Streamlit 1.36.0 and later, [#1901](https://github.com/whitphx/streamlit-webrtc/pull/1901).
+
+## [0.47.9] - 2024-09-14
+
+### Fix
+
+- Internal package updates.
+- Remove `typing_extensions`, [#1798](https://github.com/whitphx/streamlit-webrtc/pull/1798).
+- Fix `author` and `description` in `pyproject.toml`, [#1799](https://github.com/whitphx/streamlit-webrtc/pull/1799).
+
+## [0.47.8] - 2024-09-14
+
+### Fix
+
+- Internal package updates.
+
+## [0.47.7] - 2024-05-24
+
+### Fix
+
+- Support Streamlit 1.34.0, #1627.
+
+## [0.47.6] - 2024-03-05
+
+### Fix
+
+- CI/CD pipeline, #1530.
+
+## [0.47.5] - 2024-03-05
+
+Skipped.
+
+## [0.47.4] - 2024-03-05
+
+### Fix
+
+- Internal package updates.
+
+## [0.47.3] - 2024-03-05
+
+### Fix
+
+- Logging information, by @ya0guang, #1507.
+- Internal package updates.
+
+## [0.47.2]
+
+Skipped.
+
+## [0.47.1] - 2023-09-26
+
+### Fix
+
+- Compatibility with streamlit>=1.27.0, #1393.
+
+## [0.47.0] - 2023-08-23
+
+### Add
+
+- Frame callbacks for the SENDONLY mode, #1347.
+
+## [0.46.0] - 2023-08-21
+
+### Add
+
+- Programmable video source, #1349.
+
+## [0.45.2] - 2023-08-21
+
+### Fix
+
+- Fix `get_session_info` to use `SessionManager.get_session_info()` instead of `.get_active_session_info()` because the session info sometimes can be inactive when accessed from this library, #1355.
+- Warning messages, #1348.
+- Internal package updates.
+
+## [0.45.1] - 2023-06-06
+
+### Fix
+
+- Internal package updates.
+
 ## [0.45.0] - 2023-03-02
 
 ### Change

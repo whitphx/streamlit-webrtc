@@ -12,7 +12,7 @@ export const isTransmittable = (mode: WebRtcMode): boolean =>
   mode === "SENDRECV" || mode === "SENDONLY";
 
 const setupOffer = (
-  pc: RTCPeerConnection
+  pc: RTCPeerConnection,
 ): Promise<RTCSessionDescription | null> => {
   return pc
     .createOffer()
@@ -60,7 +60,10 @@ export const useWebRtc = (
   videoDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
   audioDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
   onComponentValueChange: (newComponentValue: ComponentValue) => void,
-  onDevicesOpened: (openedDeviceIds: { video?: string; audio?: string }) => void
+  onDevicesOpened: (openedDeviceIds: {
+    video?: string;
+    audio?: string;
+  }) => void,
 ) => {
   // Initialize component value
   useEffect(() => {
@@ -74,7 +77,7 @@ export const useWebRtc = (
   const pcRef = useRef<RTCPeerConnection>();
   const reducer = useMemo(
     () => connectReducer(onComponentValueChange),
-    [onComponentValueChange]
+    [onComponentValueChange],
   );
   const [state, dispatch] = useReducer(reducer, initialState);
 
@@ -156,7 +159,7 @@ export const useWebRtc = (
         const constraints = compileMediaConstraints(
           props.mediaStreamConstraints,
           videoDeviceIdRequest,
-          audioDeviceIdRequest
+          audioDeviceIdRequest,
         );
         console.log("MediaStreamConstraints:", constraints);
 
@@ -165,7 +168,7 @@ export const useWebRtc = (
             // Ref: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#privacy_and_security
             // > A secure context is, in short, a page loaded using HTTPS or the file:/// URL scheme, or a page loaded from localhost.
             throw new Error(
-              "navigator.mediaDevices is undefined. It seems the current document is not loaded securely."
+              "navigator.mediaDevices is undefined. It seems the current document is not loaded securely.",
             );
           }
           if (navigator.mediaDevices.getUserMedia == null) {
@@ -232,7 +235,7 @@ export const useWebRtc = (
       dispatch({
         type: "ERROR",
         error,
-      })
+      }),
     );
   }, [
     audioDeviceIdRequest,

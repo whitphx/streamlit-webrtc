@@ -1,7 +1,7 @@
 export function compileMediaConstraints(
   src: MediaStreamConstraints | undefined,
   videoDeviceId: string | undefined,
-  audioDeviceId: string | undefined
+  audioDeviceId: string | undefined,
 ): MediaStreamConstraints {
   const constraints = src || {};
 
@@ -44,7 +44,9 @@ interface MediaUsage {
   videoEnabled: boolean;
   audioEnabled: boolean;
 }
-export function getMediaUsage(constraintsFromPython: any): MediaUsage {
+export function getMediaUsage(
+  constraintsFromPython?: MediaStreamConstraints,
+): MediaUsage {
   const videoEnabled = constraintsFromPython
     ? !!constraintsFromPython.video
     : true;

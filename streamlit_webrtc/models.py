@@ -164,8 +164,14 @@ class AudioProcessorBase(ProcessorBase[av.AudioFrame]):
         """
 
 
-VideoProcessorT = TypeVar("VideoProcessorT", bound=VideoProcessorBase)
-AudioProcessorT = TypeVar("AudioProcessorT", bound=AudioProcessorBase)
+VideoProcessorT = TypeVar(
+    "VideoProcessorT",
+    bound=Union[CallbackAttachableProcessor[av.VideoFrame], VideoProcessorBase],
+)
+AudioProcessorT = TypeVar(
+    "AudioProcessorT",
+    bound=Union[CallbackAttachableProcessor[av.AudioFrame], AudioProcessorBase],
+)
 
 MediaPlayerFactory = Callable[[], MediaPlayer]
 MediaRecorderFactory = Callable[[], MediaRecorder]
