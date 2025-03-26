@@ -2859,6 +2859,18 @@ wheels = [
 ]
 
 [[package]]
+name = "streamlit-session-memo"
+version = "0.3.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "streamlit" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c0/48/f3f98d98ed709d8b25408de3e799d6c6e2d271fc31aae4de479f7cbe7006/streamlit_session_memo-0.3.2.tar.gz", hash = "sha256:a7b020432790755092060cdbb77d89f4ab5c38c4ca537c6c19b07ae265ee371a", size = 95935 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ea/ae/1bad7e9cd7d6f2db97bca3b7183ea8ac25544bd375c18ceb58448278f258/streamlit_session_memo-0.3.2-py3-none-any.whl", hash = "sha256:a9f21d7a8c7724771341bc72693df3506e002a304a5e05a3d18b7eef04a7bece", size = 3561 },
+]
+
+[[package]]
 name = "streamlit-webrtc"
 source = { editable = "." }
 dependencies = [
@@ -2881,6 +2893,7 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
     { name = "streamlit-server-state" },
+    { name = "streamlit-session-memo" },
     { name = "twilio" },
 ]
 
@@ -2904,6 +2917,7 @@ dev = [
     { name = "pytest", specifier = ">=7.1.2" },
     { name = "ruff", specifier = ">=0.9.10" },
     { name = "streamlit-server-state", specifier = ">=0.17.1" },
+    { name = "streamlit-session-memo", specifier = ">=0.3.2" },
     { name = "twilio", specifier = ">=8.1" },
 ]
 
