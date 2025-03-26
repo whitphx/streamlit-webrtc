@@ -19,21 +19,20 @@ Repository = "https://github.com/whitphx/streamlit-webrtc"
 
 [dependency-groups]
 dev = [
-    "click>=7.0",
     "ruff>=0.9.10",
+    "pytest>=7.1.2",
     "mypy[faster-cache]>=1.15.0",
+    "bump-my-version>=1.0.2",
+    "pre-commit>=4.2.0",
     "pydub>=0.25.1",
     "matplotlib>=3.5.1",
     "streamlit-server-state>=0.17.1",
-    "pytest>=7.1.2",
-    "opencv-python-headless>=4.5.4.58,<5",
     "twilio>=8.1",
-    "bump-my-version>=1.0.2",
+    "opencv-python-headless>=4.5.4.58",
     # For testing older versions of Streamlit: https://discuss.streamlit.io/t/modulenotfounderror-no-module-named-altair-vegalite-v4/42921
     "altair<5",
     # For testing older versions of Streamlit: https://discuss.streamlit.io/t/streamlit-run-with-protobuf-error/25632/3
     "protobuf<=3.20",
-    "pre-commit>=4.2.0",
 ]
 
 [tool.hatch.version]
