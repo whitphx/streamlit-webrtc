@@ -2871,7 +2871,6 @@ dependencies = [
 dev = [
     { name = "altair" },
     { name = "bump-my-version" },
-    { name = "click" },
     { name = "matplotlib", version = "3.9.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "matplotlib", version = "3.10.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "mypy", extra = ["faster-cache"] },
@@ -2896,7 +2895,6 @@ requires-dist = [
 dev = [
     { name = "altair", specifier = "<5" },
     { name = "bump-my-version", specifier = ">=1.0.2" },
-    { name = "click", specifier = ">=7.0" },
     { name = "matplotlib", specifier = ">=3.5.1" },
     { name = "mypy", extras = ["faster-cache"], specifier = ">=1.15.0" },
     { name = "opencv-python-headless", specifier = ">=4.5.4.58,<5" },
