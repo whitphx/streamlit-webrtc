@@ -87,24 +87,10 @@ jobs:
     - name: Release check
       run: uv run scripts/release_check.py streamlit_webrtc/component.py
 
-    # Frontend build is necessary for the package to be importable, in the tests
-    - uses: pnpm/action-setup@v4
-      name: Install pnpm
-      with:
-        version: 10
-        run_install: false
-    - name: Install Node.js
-      uses: actions/setup-node@v4
-      with:
-        cache: 'pnpm'
-        node-version-file: .nvmrc
-        cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
-    - name: Install dependencies
-      run: pnpm install
-      working-directory: streamlit_webrtc/frontend
-    - name: Build the frontend
-      run: pnpm run build
-      working-directory: streamlit_webrtc/frontend
+    # The frontend build directory is necessary to import the package
+    # avoiding an error from `components.declare_component`.
+    - name: Create a mock frontend build directory
+      run: mkdir streamlit_webrtc/frontend/dist
 
     - name: Test with pytest
       run: uv run pytest
