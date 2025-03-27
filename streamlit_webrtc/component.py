@@ -637,7 +637,7 @@ def webrtc_streamer(
             sendback_video=sendback_video,
             sendback_audio=sendback_audio,
         )
-        webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"])
+        webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"], timeout=None)
         context._set_worker(webrtc_worker)
         # Rerun to send the SDP answer to frontend
         rerun()
