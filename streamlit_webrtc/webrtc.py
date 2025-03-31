@@ -672,6 +672,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._relayed_source_video_track = None
 
     def stop(self, timeout: Union[float, None] = 1.0):
+        logger.debug("Stopping the WebRTC worker")
+
         self._unset_processors()
         if self._process_offer_thread:
             self._process_offer_thread.join(timeout=timeout)
