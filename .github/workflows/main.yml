@@ -16,9 +16,6 @@ permissions: {}
 
 jobs:
   test-python:
-    permissions:
-      contents: read
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -74,7 +71,7 @@ jobs:
 
     - name: Install a specific version of Streamlit
       if: ${{ matrix.streamlit-version }}
-      run: uv pip install streamlit=="${STREAMLIT_VERSION}" setuptools
+      run: uv add --dev streamlit=="${STREAMLIT_VERSION}" setuptools
       env:
         STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
 
@@ -84,39 +81,20 @@ jobs:
         uv run ruff format . --check
 
     - name: Type checking with mypy
-      run: |
-        uv run mypy .
+      run: uv run mypy .
 
     - name: Release check
       run: uv run scripts/release_check.py streamlit_webrtc/component.py
 
-    # Frontend build is necessary for the package to be importable, in the tests
-    - uses: pnpm/action-setup@v4
-      name: Install pnpm
-      with:
-        version: 10
-        run_install: false
-    - name: Install Node.js
-      uses: actions/setup-node@v4
-      with:
-        cache: 'pnpm'
-        node-version-file: .nvmrc
-        cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
-    - name: Install dependencies
-      run: pnpm install
-      working-directory: streamlit_webrtc/frontend
-    - name: Build the frontend
-      run: pnpm run build
-      working-directory: streamlit_webrtc/frontend
+    # The frontend build directory is necessary to import the package
+    # avoiding an error from `components.declare_component`.
+    - name: Create a mock frontend build directory
+      run: mkdir streamlit_webrtc/frontend/dist
 
     - name: Test with pytest
-      run: |
-        uv run pytest
+      run: uv run pytest
 
   test-frontend:
-    permissions:
-      contents: read
-
     runs-on: ubuntu-latest
 
     defaults:
@@ -155,9 +133,6 @@ jobs:
 
   build:
     needs: [test-python, test-frontend]
-
-    permissions:
-      contents: read
 
     runs-on: ubuntu-latest
 
@@ -210,7 +185,6 @@ jobs:
     needs: [build]
     if: github.event_name == 'pull_request'
     permissions:
-      contents: read
       pull-requests: write
     name: Deploy wheel file to Cloudflare Pages
     outputs:

@@ -3,6 +3,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.53.10] - 2025-03-27
+
+### Fixed
+
+- Call `stop()` on the server when an error occurs during `process_offer(),` [#1977](https://github.com/whitphx/streamlit-webrtc/pull/1977).
+
+## [0.53.9] - 2025-03-26
+
+### Fixed
+
+- Internal dependencies updates.
+
+## [0.53.8] - 2025-03-25
+
+### Fixed
+
+- Internal dependencies updates.
+
 ## [0.53.7] - 2025-03-23
 
 ### Fixed

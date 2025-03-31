@@ -25,16 +25,16 @@
     "webrtc-adapter": "^9.0.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.22.0",
+    "@eslint/js": "^9.23.0",
     "@ladle/react": "^5.0.2",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/chroma-js": "^3.1.1",
-    "@types/node": "^22.13.11",
+    "@types/node": "^22.13.14",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.4",
-    "eslint": "^9.22.0",
+    "eslint": "^9.23.0",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
@@ -42,8 +42,8 @@
     "jsdom": "^26.0.0",
     "prettier": "^3.5.3",
     "typescript": "^5.8.2",
-    "typescript-eslint": "^8.27.0",
-    "vite": "^6.2.2",
+    "typescript-eslint": "^8.28.0",
+    "vite": "^6.2.3",
     "vitest": "^3.0.9"
   }
 }
