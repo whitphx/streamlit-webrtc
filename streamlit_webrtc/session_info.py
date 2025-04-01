@@ -34,11 +34,11 @@ def get_this_session_info() -> Optional[SessionInfo]:
     if VER_GTE_1_18_0:
         from streamlit.runtime.runtime import Runtime
 
-        return Runtime.instance()._session_mgr.get_session_info(session_id)  # type: ignore  # noqa: E501
+        return Runtime.instance()._session_mgr.get_session_info(session_id)  # type: ignore
     elif VER_GTE_1_14_0:
         from streamlit.runtime.runtime import Runtime
 
-        return Runtime.instance()._get_session_info(session_id)  # type: ignore  # noqa: E501
+        return Runtime.instance()._get_session_info(session_id)  # type: ignore
 
     current_server = get_current_server()
 

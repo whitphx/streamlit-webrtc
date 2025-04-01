@@ -56,8 +56,10 @@ except ModuleNotFoundError:
         from streamlit.app_session import AppSession, AppSessionState  # type: ignore
     except ModuleNotFoundError:
         # streamlit < 1.4
-        from streamlit.report_session import (  # type: ignore # isort:skip
+        from streamlit.report_session import (  # type: ignore
             ReportSession as AppSession,
+        )
+        from streamlit.report_session import (  # type: ignore
             ReportSessionState as AppSessionState,
         )
 
