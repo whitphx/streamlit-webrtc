@@ -40,7 +40,7 @@ class SessionShutdownObserver:
     ):
         # Use polling because event-based methods are not available
         # to observe the session lifecycle.
-        while not self._polling_thread_stop_event.wait(1.0):
+        while True:
             app_session = app_session_ref()
             if not app_session:
                 logger.debug("AppSession has removed.")
@@ -51,6 +51,11 @@ class SessionShutdownObserver:
                     app_session.id,
                 )
                 break
+            if self._polling_thread_stop_event.wait(1.0):
+                logger.debug(
+                    "The polling thread should be stopped. Exit the polling loop and return."
+                )
+                return
 
         # Ensure the flag is set
         self._polling_thread_stop_event.set()
