@@ -51,7 +51,7 @@ __all__ = [
     "MediaRecorderFactory",
     "VideoProcessorFactory",
     "WebRtcMode",
-    "TimeoutError",
+    "SignallingTimeoutError",
     "WebRtcWorker",
 ]
 
@@ -66,7 +66,7 @@ class WebRtcMode(enum.Enum):
     SENDRECV = enum.auto()
 
 
-class TimeoutError(Exception):
+class SignallingTimeoutError(Exception):
     pass
 
 
@@ -578,7 +578,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             result = self._answer_queue.get(block=True, timeout=timeout)
         except queue.Empty:
             self.stop(timeout=1)
-            raise TimeoutError(
+            raise SignallingTimeoutError(
                 "Processing offer and initializing the worker "
                 f"has not finished in {timeout} seconds"
             )
