@@ -4,7 +4,7 @@ import itertools
 import logging
 import queue
 import threading
-from typing import Callable, Generic, Literal, Optional, Union, cast
+from typing import TYPE_CHECKING, Callable, Generic, Literal, Optional, Union, cast
 
 from aiortc import RTCConfiguration, RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
@@ -38,6 +38,9 @@ from .process import (
 )
 from .receive import AudioReceiver, VideoReceiver
 from .relay import get_global_relay
+
+if TYPE_CHECKING:
+    import concurrent.futures
 
 __all__ = [
     "AudioProcessorBase",
@@ -522,7 +525,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             if self.pc.iceConnectionState == "failed":
                 await self.pc.close()
 
-        process_offer_task = loop.create_task(
+        process_offer_task = asyncio.run_coroutine_threadsafe(
             _process_offer_coro(
                 self.mode,
                 self.pc,
@@ -540,10 +543,11 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 sendback_video=self.sendback_video,
                 sendback_audio=self.sendback_audio,
                 on_track_created=on_track_created,
-            )
+            ),
+            loop=loop,
         )
 
-        def callback(done_task: asyncio.Task):
+        def callback(done_task: "concurrent.futures.Future"):
             e = done_task.exception()
             if e:
                 logger.debug("Error occurred in process_offer")
@@ -672,6 +676,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._relayed_source_video_track = None
 
     def stop(self, timeout: Union[float, None] = 1.0):
+        logger.debug("Stopping the WebRTC worker")
+
         self._unset_processors()
         if self._process_offer_thread:
             self._process_offer_thread.join(timeout=timeout)
@@ -680,7 +686,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         if self.pc and self.pc.connectionState != "closed":
             loop = get_global_event_loop()
             if loop.is_running():
-                loop.create_task(self.pc.close())
+                asyncio.run_coroutine_threadsafe(self.pc.close(), loop=loop)
             else:
                 loop.run_until_complete(self.pc.close())
 
