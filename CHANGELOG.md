@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.53.11] - 2025-04-01
+
+### Fixed
+
+- Update `aiortc` to 1.11.0, [#1988](https://github.com/whitphx/streamlit-webrtc/pull/1988).
+- Refactoring, [#1987](https://github.com/whitphx/streamlit-webrtc/pull/1987).
+- Internal dependencies updates.
+
 ## [0.53.10] - 2025-03-27
 
 ### Fixed
