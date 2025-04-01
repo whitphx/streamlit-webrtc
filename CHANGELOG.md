@@ -3,6 +3,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.54.0] - 2025-04-01
+
+### Changed
+
+- Rename `TimeoutError` to `SignallingTimeoutErorr`, [#1983](https://github.com/whitphx/streamlit-webrtc/pull/1983).
+
+### Fixed
+
+- Fix the shutdown observer to work correctly and the stop method is called just once, [#1980](https://github.com/whitphx/streamlit-webrtc/pull/1980).
+- Use `asyncio.run_coroutine_threadsafe()` instead of `loop.create_task()`, [#1982](https://github.com/whitphx/streamlit-webrtc/pull/1982).
+
 ## [0.53.11] - 2025-04-01
 
 ### Fixed
