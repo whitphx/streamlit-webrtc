@@ -59,7 +59,7 @@ except ModuleNotFoundError:
         from streamlit.report_session import (  # type: ignore
             ReportSession as AppSession,
         )
-        from streamlit.report_session import (
+        from streamlit.report_session import (  # type: ignore
             ReportSessionState as AppSessionState,
         )
 
