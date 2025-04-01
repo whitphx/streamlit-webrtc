@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.55.0] - 2025-04-01
+
+### Changed
+
+- Unset the timeout waiting for `process_offer()` to be completed, [#1963](https://github.com/whitphx/streamlit-webrtc/pull/1963).
+
 ## [0.54.0] - 2025-04-01
 
 ### Changed
