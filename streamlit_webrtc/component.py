@@ -559,8 +559,10 @@ def webrtc_streamer(
         )
 
     sdp_offer = None
+    ice_candidates = None
     if component_value:
         sdp_offer = component_value.get("sdpOffer")
+        ice_candidates = component_value.get("iceCandidates")
 
     if not context.state.playing and not context.state.signalling:
         LOGGER.debug(
@@ -635,9 +637,16 @@ def webrtc_streamer(
             sendback_audio=sendback_audio,
         )
         webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"], timeout=None)
+
+        if ice_candidates:
+            webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
+
         context._set_worker(webrtc_worker)
         # Rerun to send the SDP answer to frontend
         rerun()
+
+    if ice_candidates:
+        webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
 
     context._set_worker(webrtc_worker)
     return context

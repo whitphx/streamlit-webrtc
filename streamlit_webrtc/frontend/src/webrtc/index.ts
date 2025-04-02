@@ -11,42 +11,6 @@ export const isReceivable = (mode: WebRtcMode): boolean =>
 export const isTransmittable = (mode: WebRtcMode): boolean =>
   mode === "SENDRECV" || mode === "SENDONLY";
 
-const setupOffer = (
-  pc: RTCPeerConnection,
-): Promise<RTCSessionDescription | null> => {
-  return pc
-    .createOffer()
-    .then((offer) => {
-      console.log("Created offer:", offer);
-      return pc.setLocalDescription(offer);
-    })
-    .then(() => {
-      console.log("Wait for ICE gethering...");
-      // Wait for ICE gathering to complete
-      return new Promise<void>((resolve) => {
-        if (pc.iceGatheringState === "complete") {
-          resolve();
-        } else {
-          const checkState = () => {
-            if (pc.iceGatheringState === "complete") {
-              pc.removeEventListener("icegatheringstatechange", checkState);
-              resolve();
-            }
-          };
-          pc.addEventListener("icegatheringstatechange", checkState);
-        }
-      });
-    })
-    .then(() => {
-      const offer = pc.localDescription;
-      return offer;
-    })
-    .catch((err) => {
-      console.error(err);
-      throw err;
-    });
-};
-
 const SIGNALLING_TIMEOUT = 3 * 1000;
 
 export const useWebRtc = (
@@ -222,13 +186,26 @@ export const useWebRtc = (
 
       pcRef.current = pc;
 
-      await setupOffer(pc).then((offer) => {
-        if (offer == null) {
-          throw new Error("Failed to create an offer SDP");
+      pc.addEventListener("icecandidate", (evt) => {
+        if (evt.candidate) {
+          console.debug("icecandidate", evt.candidate);
+          dispatch({ type: "ADD_ICE_CANDIDATE", candidate: evt.candidate });
         }
-
-        dispatch({ type: "SET_OFFER", offer });
       });
+
+      pc.createOffer()
+        .then((offer) =>
+          pc.setLocalDescription(offer).then(() => {
+            const localDescription = pc.localDescription;
+            if (localDescription == null) {
+              throw new Error("Failed to create an offer SDP");
+            }
+            dispatch({ type: "SET_OFFER", offer: localDescription });
+          })
+        )
+        .catch((error) => {
+          dispatch({ type: "SET_OFFER_ERROR", error });
+        })
     };
 
     startInner().catch((error) =>

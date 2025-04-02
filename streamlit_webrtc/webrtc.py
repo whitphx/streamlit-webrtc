@@ -4,9 +4,24 @@ import itertools
 import logging
 import queue
 import threading
-from typing import TYPE_CHECKING, Callable, Generic, Literal, Optional, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    Generic,
+    Literal,
+    Optional,
+    Set,
+    Union,
+    cast,
+)
 
-from aiortc import RTCConfiguration, RTCPeerConnection, RTCSessionDescription
+from aiortc import (
+    RTCConfiguration,
+    RTCIceCandidate,
+    RTCPeerConnection,
+    RTCSessionDescription,
+)
 from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
 
@@ -518,12 +533,17 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         @self.pc.listens_to("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
-            logger.info("ICE connection state is %s", self.pc.iceConnectionState)
+            logger.debug("ICE connection state is %s", self.pc.iceConnectionState)
             iceConnectionState = self.pc.iceConnectionState
             if iceConnectionState == "closed" or iceConnectionState == "failed":
                 self._unset_processors()
             if self.pc.iceConnectionState == "failed":
                 await self.pc.close()
+
+        @self.pc.listens_to("icecandidate")
+        def on_icecandidate(event):
+            logger.debug("New ICE candidate obtained: %s", event.candidate)
+            # TODO: Send the candidate to the frontend for Tricke ICE
 
         process_offer_task = asyncio.run_coroutine_threadsafe(
             _process_offer_coro(
@@ -588,6 +608,19 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             raise result
 
         return result
+
+    _added_ice_candidate_ids: Set[str] = set()
+
+    def set_ice_candidates_from_offerer(self, candidates: Dict[str, RTCIceCandidate]):
+        for candidate_id, candidate in candidates.items():
+            if candidate_id in self._added_ice_candidate_ids:
+                continue
+            self.add_ice_candidate_from_offerer(candidate)
+            self._added_ice_candidate_ids.add(candidate_id)
+
+    def add_ice_candidate_from_offerer(self, candidate: RTCIceCandidate):
+        logger.info("Adding ICE candidate from offerer: %s", candidate)
+        self.pc.addIceCandidate(candidate)
 
     def update_video_callbacks(
         self,
