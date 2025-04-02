@@ -516,14 +516,30 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 )
                 source_video_track = self._relayed_source_video_track
 
-        @self.pc.listens_to("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
-            logger.info("ICE connection state is %s", self.pc.iceConnectionState)
+            logger.debug("ICE connection state is %s", self.pc.iceConnectionState)
             iceConnectionState = self.pc.iceConnectionState
             if iceConnectionState == "closed" or iceConnectionState == "failed":
                 self._unset_processors()
             if self.pc.iceConnectionState == "failed":
+                self.pc.remove_listener(
+                    "iceconnectionstatechange", on_iceconnectionstatechange
+                )
                 await self.pc.close()
+
+        self.pc.add_listener("iceconnectionstatechange", on_iceconnectionstatechange)
+
+        async def on_icegatheringstatechange():
+            logger.debug("ICE gathering state is %s", self.pc.iceGatheringState)
+            if self.pc.iceGatheringState == "complete":
+                logger.debug("ICE gathering completed. Set answer SDP.")
+                self.pc.remove_listener(
+                    "icegatheringstatechange", on_icegatheringstatechange
+                )
+                local_description = self.pc.localDescription
+                self._answer_queue.put(local_description)
+
+        self.pc.add_listener("icegatheringstatechange", on_icegatheringstatechange)
 
         process_offer_task = asyncio.run_coroutine_threadsafe(
             _process_offer_coro(
@@ -554,9 +570,6 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 logger.debug(e)
                 self._answer_queue.put(e)
                 return
-
-            localDescription = done_task.result()
-            self._answer_queue.put(localDescription)
 
         process_offer_task.add_done_callback(callback)
 
