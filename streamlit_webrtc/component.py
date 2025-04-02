@@ -219,6 +219,7 @@ def compile_state(component_value) -> WebRtcStreamerState:
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     frontend_rtc_configuration: Optional[
         Union[Dict[str, Any], RTCConfiguration]
@@ -250,7 +251,6 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
-    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext:
     # XXX: We wanted something like `WebRtcStreamerContext[None, None]`
     # as the return value, but could not find a good solution
@@ -263,6 +263,7 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     frontend_rtc_configuration: Optional[
         Union[Dict[str, Any], RTCConfiguration]
@@ -294,7 +295,6 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
-    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, Any]:
     pass
 
@@ -303,6 +303,7 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     frontend_rtc_configuration: Optional[
         Union[Dict[str, Any], RTCConfiguration]
@@ -334,7 +335,6 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
-    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext[Any, AudioProcessorT]:
     pass
 
@@ -343,6 +343,7 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     frontend_rtc_configuration: Optional[
         Union[Dict[str, Any], RTCConfiguration]
@@ -374,7 +375,6 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
-    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     pass
 
@@ -382,6 +382,7 @@ def webrtc_streamer(
 def webrtc_streamer(
     key: str,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     frontend_rtc_configuration: Optional[
         Union[Dict[str, Any], RTCConfiguration]
@@ -413,7 +414,6 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory=None,
     async_transform: Optional[bool] = None,
-    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     # Backward compatibility
     if video_transformer_factory is not None:
@@ -434,14 +434,13 @@ def webrtc_streamer(
             stacklevel=2,
         )
         async_processing = async_transform
-    if rtc_configuration is not None:
-        warnings.warn(
-            "The argument rtc_configuration is deprecated. "
-            "Use frontend_rtc_configuration and server_rtc_configuration instead.\n",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+
+    # `rtc_configuration` is a shorthand to configure both frontend and server.
+    # `frontend_rtc_configuration` or `server_rtc_configuration` are prioritized.
+    if frontend_rtc_configuration is None:
         frontend_rtc_configuration = rtc_configuration
+    if server_rtc_configuration is None:
+        server_rtc_configuration = rtc_configuration
 
     if media_stream_constraints is None:
         media_stream_constraints = DEFAULT_MEDIA_STREAM_CONSTRAINTS
