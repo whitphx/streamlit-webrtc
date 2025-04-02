@@ -540,11 +540,6 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             if self.pc.iceConnectionState == "failed":
                 await self.pc.close()
 
-        @self.pc.listens_to("icecandidate")
-        def on_icecandidate(event):
-            logger.debug("New ICE candidate obtained: %s", event.candidate)
-            # TODO: Send the candidate to the frontend for Tricke ICE
-
         process_offer_task = asyncio.run_coroutine_threadsafe(
             _process_offer_coro(
                 self.mode,
