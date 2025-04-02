@@ -645,7 +645,7 @@ def webrtc_streamer(
         # Rerun to send the SDP answer to frontend
         rerun()
 
-    if ice_candidates:
+    if webrtc_worker and ice_candidates:
         webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
 
     context._set_worker(webrtc_worker)
