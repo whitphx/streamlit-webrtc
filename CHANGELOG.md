@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Set the default ICE servers automatically on frontend as well, [#1946](https://github.com/whitphx/streamlit-webrtc/pull/1946).
+
 ## [0.55.0] - 2025-04-01
 
 ### Changed
