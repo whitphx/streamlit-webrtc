@@ -13,7 +13,12 @@ import cv2
 import numpy as np
 import streamlit as st
 from streamlit_session_memo import st_session_memo
-from streamlit_webrtc import WebRtcMode, webrtc_streamer
+from streamlit_webrtc import (
+    WebRtcMode,
+    webrtc_streamer,
+    __version__ as st_webrtc_version,
+)
+import aiortc
 
 from sample_utils.download import download_file
 
@@ -161,4 +166,10 @@ st.markdown(
     "This demo uses a model and code from "
     "https://github.com/robmarkcole/object-detection-app. "
     "Many thanks to the project."
+)
+
+st.markdown(
+    f"Streamlit version: {st.__version__}  \n"
+    f"Streamlit-WebRTC version: {st_webrtc_version}  \n"
+    f"aiortc version: {aiortc.__version__}  \n"
 )
