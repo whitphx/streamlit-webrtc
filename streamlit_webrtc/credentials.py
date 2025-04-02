@@ -104,5 +104,8 @@ def get_available_ice_servers() -> List[RTCIceServer]:
     except Exception as e:
         LOGGER.info("Failed to get TURN credentials from Twilio: %s", e)
 
+    # NOTE: aiortc anyway uses this STUN server by default if the ICE server config is not set.
+    # Ref: https://github.com/aiortc/aiortc/blob/3ff9bdd03f22bf511a8d304df30f29392338a070/src/aiortc/rtcicetransport.py#L204-L209a
+    # We set the STUN server here as this will be used on the browser side as well.
     LOGGER.info("Use STUN server from Google.")
     return [RTCIceServer(urls="stun:stun.l.google.com:19302")]
