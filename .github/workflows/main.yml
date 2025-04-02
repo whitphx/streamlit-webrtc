@@ -122,10 +122,7 @@ jobs:
     - name: Install dependencies
       run: pnpm install
 
-    - name: Lint
-      run: |
-        pnpm run check:eslint
-        pnpm run check:prettier
+    - run: pnpm run lint
 
     - run: pnpm run build
 
