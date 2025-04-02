@@ -15,6 +15,10 @@ interface SetOfferAction extends ActionBase {
   type: "SET_OFFER";
   offer: RTCSessionDescription;
 }
+interface AddIceCandidateAction extends ActionBase {
+  type: "ADD_ICE_CANDIDATE";
+  candidate: RTCIceCandidate;
+}
 interface StoppingAction extends ActionBase {
   type: "STOPPING";
 }
@@ -23,6 +27,10 @@ interface StoppedAction extends ActionBase {
 }
 interface StartPlayingAction extends ActionBase {
   type: "START_PLAYING";
+}
+interface SetOfferErrorAction extends ActionBase {
+  type: "SET_OFFER_ERROR";
+  error: Error;
 }
 interface ProcessAnswerErrorAction extends ActionBase {
   type: "PROCESS_ANSWER_ERROR";
@@ -37,8 +45,10 @@ export type Action =
   | SignallingTimeoutAction
   | StreamSetAction
   | SetOfferAction
+  | AddIceCandidateAction
   | StoppingAction
   | StoppedAction
   | StartPlayingAction
+  | SetOfferErrorAction
   | ProcessAnswerErrorAction
   | ErrorAction;
