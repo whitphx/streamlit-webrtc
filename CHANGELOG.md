@@ -3,9 +3,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.56.0] - 2025-04-02
+
 ### Changed
 
 - Set the default ICE servers automatically on frontend as well, [#1946](https://github.com/whitphx/streamlit-webrtc/pull/1946).
+- The frontend app sends the offer SDP to the server immediately after creating it and sends the gathered ICE candidates following it asynchronously (Trickle ICE). It's more efficient than the previous approach (Vanilla ICE) that the server waits for the ICE candidates to be gathered and then sends the SDP answer back to the frontend, [#1993](https://github.com/whitphx/streamlit-webrtc/pull/1993).
+- `rtc_configuration` is restored as a shorthand to configure both frontend and server, [#1996](https://github.com/whitphx/streamlit-webrtc/pull/1996).
 
 ## [0.55.0] - 2025-04-01
 
