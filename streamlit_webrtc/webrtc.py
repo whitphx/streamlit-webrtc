@@ -620,7 +620,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
     def add_ice_candidate_from_offerer(self, candidate: RTCIceCandidate):
         logger.info("Adding ICE candidate from offerer: %s", candidate)
-        self.pc.addIceCandidate(candidate)
+        loop = get_global_event_loop()
+        asyncio.run_coroutine_threadsafe(self.pc.addIceCandidate(candidate), loop=loop)
 
     def update_video_callbacks(
         self,
