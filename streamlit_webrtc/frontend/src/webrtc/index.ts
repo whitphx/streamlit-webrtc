@@ -107,7 +107,7 @@ export const useWebRtc = (
       const mode = props.mode;
 
       const config: RTCConfiguration = props.rtcConfiguration || {};
-      console.log("RTCConfiguration:", config);
+      console.debug("RTCConfiguration:", config);
       const pc = new RTCPeerConnection(config);
 
       // Connect received audio / video to DOM elements
@@ -125,7 +125,7 @@ export const useWebRtc = (
           videoDeviceIdRequest,
           audioDeviceIdRequest,
         );
-        console.log("MediaStreamConstraints:", constraints);
+        console.debug("MediaStreamConstraints:", constraints);
 
         if (constraints.audio || constraints.video) {
           if (navigator.mediaDevices == null) {
@@ -171,10 +171,10 @@ export const useWebRtc = (
         pc.addTransceiver("video", { direction: "recvonly" });
         pc.addTransceiver("audio", { direction: "recvonly" });
       }
-      console.log("transceivers", pc.getTransceivers());
+      console.debug("transceivers", pc.getTransceivers());
 
       pc.addEventListener("iceconnectionstatechange", () => {
-        console.log("iceconnectionstatechange", pc.iceConnectionState);
+        console.debug("iceconnectionstatechange", pc.iceConnectionState);
         if (
           pc.iceConnectionState === "disconnected" ||
           pc.iceConnectionState === "failed" ||
@@ -235,10 +235,10 @@ export const useWebRtc = (
     if (pc.remoteDescription == null) {
       if (sdpAnswerJson && state.webRtcState === "SIGNALLING") {
         const sdpAnswer = JSON.parse(sdpAnswerJson);
-        console.log("Receive answer sdpOffer", sdpAnswer);
+        console.debug("Receive answer sdpOffer", sdpAnswer);
         pc.setRemoteDescription(sdpAnswer)
           .then(() => {
-            console.log("Remote description is set");
+            console.debug("Remote description is set");
 
             if (signallingTimerRef.current) {
               clearTimeout(signallingTimerRef.current);
