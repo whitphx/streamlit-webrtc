@@ -201,11 +201,11 @@ export const useWebRtc = (
               throw new Error("Failed to create an offer SDP");
             }
             dispatch({ type: "SET_OFFER", offer: localDescription });
-          })
+          }),
         )
         .catch((error) => {
           dispatch({ type: "SET_OFFER_ERROR", error });
-        })
+        });
     };
 
     startInner().catch((error) =>

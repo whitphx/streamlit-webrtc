@@ -5,7 +5,7 @@ export type WebRtcState = "STOPPED" | "SIGNALLING" | "PLAYING" | "STOPPING";
 export interface State {
   webRtcState: WebRtcState;
   sdpOffer: RTCSessionDescription | null;
-  iceCandidates: Record<string, RTCIceCandidate>;  // key: candidate id for the server to identify the added candidates
+  iceCandidates: Record<string, RTCIceCandidate>; // key: candidate id for the server to identify the added candidates
   signallingTimedOut: boolean;
   stream: MediaStream | null;
   error: Error | null;
@@ -119,11 +119,16 @@ export const connectReducer = (
 
     const nextIceCandidates = nextState.iceCandidates;
     const prevIceCandidates = state.iceCandidates;
-    const iceCandidatesChanged = Object.keys(nextIceCandidates).length !== Object.keys(prevIceCandidates).length;
+    const iceCandidatesChanged =
+      Object.keys(nextIceCandidates).length !==
+      Object.keys(prevIceCandidates).length;
 
     if (playingChanged || sdpOfferChanged || iceCandidatesChanged) {
       const serializedIceCandidates = Object.fromEntries(
-        Object.entries(nextIceCandidates).map(([key, value]) => [key, value.toJSON()])
+        Object.entries(nextIceCandidates).map(([key, value]) => [
+          key,
+          value.toJSON(),
+        ]),
       );
 
       const componentValue = {
