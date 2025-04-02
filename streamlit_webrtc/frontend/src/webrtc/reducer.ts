@@ -19,6 +19,16 @@ export const initialState: State = {
   error: null,
 };
 
+const uniqueIds = new Set<string>();
+function getUniqueId(): string {
+  let id;
+  do {
+    id = Math.random().toString(36).substring(2, 15);
+  } while (uniqueIds.has(id));
+  uniqueIds.add(id);
+  return id;
+}
+
 export const reducer: React.Reducer<State, Action> = (state, action) => {
   switch (action.type) {
     case "SIGNALLING_START":
@@ -45,7 +55,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         sdpOffer: action.offer,
       };
     case "ADD_ICE_CANDIDATE": {
-      const uniqueId = Math.random().toString(36).substring(2, 15);
+      const uniqueId = getUniqueId(); // This ID doesn't need to be cryptographically secure. Just to be an identifier.
       return {
         ...state,
         iceCandidates: {
