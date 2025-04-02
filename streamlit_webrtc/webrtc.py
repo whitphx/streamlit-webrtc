@@ -24,6 +24,7 @@ from aiortc import (
 )
 from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
+from aiortc.sdp import candidate_from_sdp
 
 from streamlit_webrtc.shutdown import SessionShutdownObserver
 
@@ -606,10 +607,17 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
     _added_ice_candidate_ids: Set[str] = set()
 
-    def set_ice_candidates_from_offerer(self, candidates: Dict[str, RTCIceCandidate]):
-        for candidate_id, candidate in candidates.items():
+    def set_ice_candidates_from_offerer(self, candidates: Dict[str, Dict]):
+        logger.info("Setting ICE candidates from offerer: %s", candidates)
+        for candidate_id, candidate_dict in candidates.items():
             if candidate_id in self._added_ice_candidate_ids:
                 continue
+
+            candidate = candidate_from_sdp(candidate_dict["candidate"])
+            candidate.sdpMid = candidate_dict.get("sdpMid")
+            candidate.sdpMLineIndex = candidate_dict.get("sdpMLineIndex")
+            # candidate.usernameFragment = candidate_dict.get("usernameFragment")
+
             self.add_ice_candidate_from_offerer(candidate)
             self._added_ice_candidate_ids.add(candidate_id)
 
