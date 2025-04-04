@@ -12,6 +12,7 @@ import {
   isReceivable,
   isTransmittable,
 } from "./webrtc";
+import { useTimer } from "./use-timeout";
 import { getMediaUsage } from "./media-constraint";
 import { ComponentValue, setComponentValue } from "./component-value";
 import TranslatedButton from "./translation/components/TranslatedButton";
@@ -45,34 +46,22 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     setDeviceIds,
   );
 
-  const timeoutIdRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const [isTakingTooLong, setIsTakingTooLong] = useState(false);
+  const {
+    start: startTakingTooLongTimeout,
+    clear: clearTakingTooLongTimeout,
+    isTimedOut: isTakingTooLong,
+  } = useTimer();
   const startWithNotification = useCallback(() => {
-    if (timeoutIdRef.current) {
-      clearTimeout(timeoutIdRef.current);
-    }
-    setIsTakingTooLong(false);
+    clearTakingTooLongTimeout();
     start().then(() => {
-      timeoutIdRef.current = setTimeout(() => {
-        setIsTakingTooLong(true);
-      }, BACKEND_VANILLA_ICE_TIMEOUT);
+      startTakingTooLongTimeout(BACKEND_VANILLA_ICE_TIMEOUT);
     });
-  }, [start]);
+  }, [start, startTakingTooLongTimeout, clearTakingTooLongTimeout]);
 
   const stopWithNotification = useCallback(() => {
-    if (timeoutIdRef.current) {
-      clearTimeout(timeoutIdRef.current);
-    }
+    clearTakingTooLongTimeout();
     stop();
-  }, [stop]);
-
-  useEffect(() => {
-    return () => {
-      if (timeoutIdRef.current) {
-        clearTimeout(timeoutIdRef.current);
-      }
-    };
-  }, []);
+  }, [stop, clearTakingTooLongTimeout]);
 
   const mode = props.mode;
   const buttonDisabled =
