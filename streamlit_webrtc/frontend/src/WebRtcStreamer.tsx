@@ -18,8 +18,8 @@ import TranslatedButton from "./translation/components/TranslatedButton";
 import "webrtc-adapter";
 
 const BACKEND_VANILLA_ICE_TIMEOUT =
-  5 * 1000  // `aiortc` runs ICE in the Vanilla manner and its timeout is set to 5 seconds: https://github.com/aiortc/aioice/blob/fc863fde4676e1f67dce981b7f9592ab02c6a09a/src/aioice/ice.py#L881
-  + 300;  // ad-hoc delay to account for network latency and the time it takes to start the stream
+  5 * 1000 + // `aiortc` runs ICE in the Vanilla manner and its timeout is set to 5 seconds: https://github.com/aiortc/aioice/blob/fc863fde4676e1f67dce981b7f9592ab02c6a09a/src/aioice/ice.py#L881
+  300; // ad-hoc delay to account for network latency and the time it takes to start the stream
 
 interface WebRtcStreamerInnerProps {
   disabled: boolean;
@@ -110,7 +110,11 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
         {state.webRtcState === "PLAYING" ||
         state.webRtcState === "SIGNALLING" ? (
           <TranslatedButton
-            variant={state.webRtcState === "SIGNALLING" && !isTakingTooLong ? "outlined" : "contained"}
+            variant={
+              state.webRtcState === "SIGNALLING" && !isTakingTooLong
+                ? "outlined"
+                : "contained"
+            }
             onClick={stop}
             disabled={buttonDisabled}
             translationKey="stop"
