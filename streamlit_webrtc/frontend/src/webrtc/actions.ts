@@ -4,9 +4,6 @@ interface ActionBase {
 interface SignallingStartAction extends ActionBase {
   type: "SIGNALLING_START";
 }
-interface SignallingTimeoutAction extends ActionBase {
-  type: "SIGNALLING_TIMEOUT";
-}
 interface StreamSetAction extends ActionBase {
   type: "SET_STREAM";
   stream: MediaStream;
@@ -42,7 +39,6 @@ interface ErrorAction extends ActionBase {
 }
 export type Action =
   | SignallingStartAction
-  | SignallingTimeoutAction
   | StreamSetAction
   | SetOfferAction
   | AddIceCandidateAction
