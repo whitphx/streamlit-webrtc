@@ -481,7 +481,7 @@ def webrtc_streamer(
     webrtc_worker = context._get_worker()
 
     sdp_answer_json = None
-    if webrtc_worker:
+    if webrtc_worker and webrtc_worker.pc.localDescription:
         sdp_answer_json = json.dumps(
             {
                 "sdp": webrtc_worker.pc.localDescription.sdp,
@@ -635,12 +635,19 @@ def webrtc_streamer(
             sendback_video=sendback_video,
             sendback_audio=sendback_audio,
         )
+
+        # Setting the worker here before calling `webrtc_worker.process_offer()` is important.
+        # `webrtc_worker.process_offer()` waits for processing the offer in another thread and
+        # a new script run can be triggered during it.
+        # so, if the worker is not set here, `context._get_worker()` will return None in the next run
+        # and it leads to creating a worker in the next run again.
+        context._set_worker(webrtc_worker)
+
         webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"], timeout=None)
 
         if ice_candidates:
             webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
 
-        context._set_worker(webrtc_worker)
         # Rerun to send the SDP answer to frontend
         rerun()
 
