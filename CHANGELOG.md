@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.57.0] - 2025-04-04
+
+### Changed
+
+- Manage the frontend playing state based on the `onconnectionstatechange` event, [#1998](https://github.com/whitphx/streamlit-webrtc/pull/1998).
+
 ## [0.56.0] - 2025-04-02
 
 ### Changed
