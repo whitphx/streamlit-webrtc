@@ -17,6 +17,10 @@ import { ComponentValue, setComponentValue } from "./component-value";
 import TranslatedButton from "./translation/components/TranslatedButton";
 import "webrtc-adapter";
 
+const BACKEND_VANILLA_ICE_TIMEOUT =
+  5 * 1000  // `aiortc` runs ICE in the Vanilla manner and its timeout is set to 5 seconds: https://github.com/aiortc/aioice/blob/fc863fde4676e1f67dce981b7f9592ab02c6a09a/src/aioice/ice.py#L881
+  + 300;  // ad-hoc delay to account for network latency and the time it takes to start the stream
+
 interface WebRtcStreamerInnerProps {
   disabled: boolean;
   mode: WebRtcMode;
@@ -41,10 +45,19 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     setDeviceIds,
   );
 
+  const [isTakingTooLong, setIsTakingTooLong] = useState(false);
+  const startWithNotification = useCallback(() => {
+    setIsTakingTooLong(false);
+    start().then(() => {
+      setTimeout(() => {
+        setIsTakingTooLong(true);
+      }, BACKEND_VANILLA_ICE_TIMEOUT);
+    });
+  }, [start]);
+
   const mode = props.mode;
   const buttonDisabled =
     props.disabled ||
-    state.webRtcState === "SIGNALLING" ||
     state.webRtcState === "STOPPING" ||
     props.desiredPlayingState != null;
   const receivable = isWebRtcMode(mode) && isReceivable(mode);
@@ -97,7 +110,7 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
         {state.webRtcState === "PLAYING" ||
         state.webRtcState === "SIGNALLING" ? (
           <TranslatedButton
-            variant="contained"
+            variant={state.webRtcState === "SIGNALLING" && !isTakingTooLong ? "outlined" : "contained"}
             onClick={stop}
             disabled={buttonDisabled}
             translationKey="stop"
@@ -107,7 +120,7 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
           <TranslatedButton
             variant="contained"
             color="primary"
-            onClick={start}
+            onClick={startWithNotification}
             disabled={buttonDisabled}
             translationKey="start"
             defaultText="Start"

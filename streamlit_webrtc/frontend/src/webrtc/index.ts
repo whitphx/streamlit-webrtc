@@ -91,9 +91,9 @@ export const useWebRtc = (
   const stopRef = useRef(stop);
   stopRef.current = stop;
 
-  const start = useCallback(() => {
+  const start = useCallback((): Promise<void> => {
     if (state.webRtcState !== "STOPPED") {
-      return;
+      return Promise.reject(new Error("WebRTC is already started"));
     }
 
     const startInner = async () => {
@@ -217,7 +217,7 @@ export const useWebRtc = (
         });
     };
 
-    startInner().catch((error) =>
+    return startInner().catch((error) =>
       dispatch({
         type: "ERROR",
         error,
