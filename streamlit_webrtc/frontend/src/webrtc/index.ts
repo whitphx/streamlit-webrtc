@@ -11,8 +11,6 @@ export const isReceivable = (mode: WebRtcMode): boolean =>
 export const isTransmittable = (mode: WebRtcMode): boolean =>
   mode === "SENDRECV" || mode === "SENDONLY";
 
-const SIGNALLING_TIMEOUT = 3 * 1000;
-
 export const useWebRtc = (
   props: {
     mode: WebRtcMode;
@@ -38,7 +36,6 @@ export const useWebRtc = (
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const signallingTimerRef = useRef<NodeJS.Timeout>();
   const pcRef = useRef<RTCPeerConnection>();
   const reducer = useMemo(
     () => connectReducer(onComponentValueChange),
@@ -101,9 +98,6 @@ export const useWebRtc = (
 
     const startInner = async () => {
       dispatch({ type: "SIGNALLING_START" });
-      signallingTimerRef.current = setTimeout(() => {
-        dispatch({ type: "SIGNALLING_TIMEOUT" });
-      }, SIGNALLING_TIMEOUT);
 
       const mode = props.mode;
 

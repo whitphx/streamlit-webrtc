@@ -44,7 +44,7 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const mode = props.mode;
   const buttonDisabled =
     props.disabled ||
-    (state.webRtcState === "SIGNALLING" && !state.signallingTimedOut) || // Users can click the stop button after signalling timed out.
+    state.webRtcState === "SIGNALLING" ||
     state.webRtcState === "STOPPING" ||
     props.desiredPlayingState != null;
   const receivable = isWebRtcMode(mode) && isReceivable(mode);
