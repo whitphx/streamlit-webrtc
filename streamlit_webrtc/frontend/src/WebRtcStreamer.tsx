@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Alert from "@mui/material/Alert";
 import DeviceSelectForm from "./DeviceSelect/DeviceSelectForm";
@@ -45,15 +45,34 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     setDeviceIds,
   );
 
+  const timeoutIdRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const [isTakingTooLong, setIsTakingTooLong] = useState(false);
   const startWithNotification = useCallback(() => {
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current);
+    }
     setIsTakingTooLong(false);
     start().then(() => {
-      setTimeout(() => {
+      timeoutIdRef.current = setTimeout(() => {
         setIsTakingTooLong(true);
       }, BACKEND_VANILLA_ICE_TIMEOUT);
     });
   }, [start]);
+
+  const stopWithNotification = useCallback(() => {
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current);
+    }
+    stop();
+  }, [stop]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+      }
+    };
+  }, []);
 
   const mode = props.mode;
   const buttonDisabled =
@@ -115,7 +134,7 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
                 ? "outlined"
                 : "contained"
             }
-            onClick={stop}
+            onClick={stopWithNotification}
             disabled={buttonDisabled}
             translationKey="stop"
             defaultText="Stop"
