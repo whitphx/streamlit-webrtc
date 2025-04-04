@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Alert from "@mui/material/Alert";
 import DeviceSelectForm from "./DeviceSelect/DeviceSelectForm";
