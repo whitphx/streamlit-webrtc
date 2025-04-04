@@ -2889,7 +2889,7 @@ dev = [
 requires-dist = [
     { name = "aiortc", specifier = ">=1.11.0" },
     { name = "packaging", specifier = ">=20.0" },
-    { name = "streamlit", specifier = ">=0.84.1" },
+    { name = "streamlit", specifier = ">=0.89.0" },
 ]
 
 [package.metadata.requires-dev]

@@ -30,8 +30,7 @@ import urllib.error
 import urllib.request
 from typing import List, Optional
 
-import streamlit as st
-
+from ._compat import cache_data
 from .config import RTCIceServer
 
 LOGGER = logging.getLogger(__name__)
@@ -40,7 +39,7 @@ LOGGER = logging.getLogger(__name__)
 HF_ICE_SERVER_TTL = 3600  # 1 hour. Not sure if this is the best value.
 
 
-@st.cache_data(ttl=HF_ICE_SERVER_TTL)
+@cache_data(ttl=HF_ICE_SERVER_TTL)
 def get_hf_ice_servers(token: Optional[str] = None) -> List[RTCIceServer]:
     if token is None:
         token = os.getenv("HF_TOKEN")
@@ -70,7 +69,7 @@ def get_hf_ice_servers(token: Optional[str] = None) -> List[RTCIceServer]:
 TWILIO_CRED_TTL = 3600  # 1 hour. Twilio's default is 1 day. Shorter TTL should be ok for this library's use case.
 
 
-@st.cache_data(ttl=TWILIO_CRED_TTL)
+@cache_data(ttl=TWILIO_CRED_TTL)
 def get_twilio_ice_servers(
     twilio_sid: Optional[str] = None, twilio_token: Optional[str] = None
 ) -> List[RTCIceServer]:
