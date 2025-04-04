@@ -30,11 +30,16 @@ import urllib.error
 import urllib.request
 from typing import List, Optional
 
+from ._compat import cache_data
 from .config import RTCIceServer
 
 LOGGER = logging.getLogger(__name__)
 
 
+HF_ICE_SERVER_TTL = 3600  # 1 hour. Not sure if this is the best value.
+
+
+@cache_data(ttl=HF_ICE_SERVER_TTL)
 def get_hf_ice_servers(token: Optional[str] = None) -> List[RTCIceServer]:
     if token is None:
         token = os.getenv("HF_TOKEN")
@@ -61,6 +66,10 @@ def get_hf_ice_servers(token: Optional[str] = None) -> List[RTCIceServer]:
         raise ValueError("Failed to get credentials from HF turn server")
 
 
+TWILIO_CRED_TTL = 3600  # 1 hour. Twilio's default is 1 day. Shorter TTL should be ok for this library's use case.
+
+
+@cache_data(ttl=TWILIO_CRED_TTL)
 def get_twilio_ice_servers(
     twilio_sid: Optional[str] = None, twilio_token: Optional[str] = None
 ) -> List[RTCIceServer]:
@@ -78,7 +87,7 @@ def get_twilio_ice_servers(
 
     client = Client(twilio_sid, twilio_token)
 
-    token = client.tokens.create()
+    token = client.tokens.create(ttl=TWILIO_CRED_TTL)
 
     return token.ice_servers
 

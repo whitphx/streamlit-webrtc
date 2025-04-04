@@ -103,6 +103,12 @@ except ImportError:
     # streamlit < 1.27.0
     from streamlit import experimental_rerun as rerun  # type: ignore
 
+try:
+    from streamlit import cache_data  # type: ignore
+except ImportError:
+    # streamlit < 1.18.0
+    from streamlit import experimental_memo as cache_data  # type: ignore
+
 
 __all__ = [
     "VER_GTE_1_12_0",
@@ -114,4 +120,5 @@ __all__ = [
     "SessionInfo",
     "get_script_run_ctx",
     "rerun",
+    "cache_data",
 ]
