@@ -31,3 +31,6 @@ if __name__ == "__main__":
 
     aioice_logger = logging.getLogger("aioice")
     aioice_logger.setLevel(logging.INFO)
+
+    if DEBUG:
+        os.environ["PYTHONASYNCIODEBUG"] = "1"
