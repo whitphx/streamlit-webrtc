@@ -11,8 +11,6 @@ export const isReceivable = (mode: WebRtcMode): boolean =>
 export const isTransmittable = (mode: WebRtcMode): boolean =>
   mode === "SENDRECV" || mode === "SENDONLY";
 
-const SIGNALLING_TIMEOUT = 3 * 1000;
-
 export const useWebRtc = (
   props: {
     mode: WebRtcMode;
@@ -38,7 +36,6 @@ export const useWebRtc = (
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const signallingTimerRef = useRef<NodeJS.Timeout>();
   const pcRef = useRef<RTCPeerConnection>();
   const reducer = useMemo(
     () => connectReducer(onComponentValueChange),
@@ -94,16 +91,13 @@ export const useWebRtc = (
   const stopRef = useRef(stop);
   stopRef.current = stop;
 
-  const start = useCallback(() => {
+  const start = useCallback((): Promise<void> => {
     if (state.webRtcState !== "STOPPED") {
-      return;
+      return Promise.reject(new Error("WebRTC is already started"));
     }
 
     const startInner = async () => {
       dispatch({ type: "SIGNALLING_START" });
-      signallingTimerRef.current = setTimeout(() => {
-        dispatch({ type: "SIGNALLING_TIMEOUT" });
-      }, SIGNALLING_TIMEOUT);
 
       const mode = props.mode;
 
@@ -185,8 +179,22 @@ export const useWebRtc = (
         }
       });
 
+      pc.addEventListener("connectionstatechange", () => {
+        console.debug("connectionstatechange", pc.connectionState);
+        if (pc.connectionState === "connected") {
+          dispatch({ type: "START_PLAYING" });
+        } else if (
+          pc.connectionState === "disconnected" ||
+          pc.connectionState === "closed" ||
+          pc.connectionState === "failed"
+        ) {
+          stopRef.current();
+        }
+      });
+
       pcRef.current = pc;
 
+      // Trickle ICE
       pc.addEventListener("icecandidate", (evt) => {
         if (evt.candidate) {
           console.debug("icecandidate", evt.candidate);
@@ -209,7 +217,7 @@ export const useWebRtc = (
         });
     };
 
-    startInner().catch((error) =>
+    return startInner().catch((error) =>
       dispatch({
         type: "ERROR",
         error,
@@ -236,20 +244,11 @@ export const useWebRtc = (
     if (pc.remoteDescription == null) {
       if (sdpAnswerJson && state.webRtcState === "SIGNALLING") {
         const sdpAnswer = JSON.parse(sdpAnswerJson);
-        console.debug("Receive answer sdpOffer", sdpAnswer);
-        pc.setRemoteDescription(sdpAnswer)
-          .then(() => {
-            console.debug("Remote description is set");
-
-            if (signallingTimerRef.current) {
-              clearTimeout(signallingTimerRef.current);
-            }
-            dispatch({ type: "START_PLAYING" });
-          })
-          .catch((error) => {
-            dispatch({ type: "PROCESS_ANSWER_ERROR", error });
-            stop();
-          });
+        console.debug("Receive answer SDP", sdpAnswer);
+        pc.setRemoteDescription(sdpAnswer).catch((error) => {
+          dispatch({ type: "PROCESS_ANSWER_ERROR", error });
+          stop();
+        });
       }
     }
   }, [props.sdpAnswerJson, state.webRtcState, stop]);

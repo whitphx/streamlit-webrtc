@@ -12,10 +12,15 @@ import {
   isReceivable,
   isTransmittable,
 } from "./webrtc";
+import { useTimer } from "./use-timeout";
 import { getMediaUsage } from "./media-constraint";
 import { ComponentValue, setComponentValue } from "./component-value";
 import TranslatedButton from "./translation/components/TranslatedButton";
 import "webrtc-adapter";
+
+const BACKEND_VANILLA_ICE_TIMEOUT =
+  5 * 1000 + // `aiortc` runs ICE in the Vanilla manner and its timeout is set to 5 seconds: https://github.com/aiortc/aioice/blob/fc863fde4676e1f67dce981b7f9592ab02c6a09a/src/aioice/ice.py#L881
+  300; // ad-hoc delay to account for network latency and the time it takes to start the stream
 
 interface WebRtcStreamerInnerProps {
   disabled: boolean;
@@ -41,10 +46,26 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     setDeviceIds,
   );
 
+  const {
+    start: startTakingTooLongTimeout,
+    clear: clearTakingTooLongTimeout,
+    isTimedOut: isTakingTooLong,
+  } = useTimer();
+  const startWithNotification = useCallback(() => {
+    clearTakingTooLongTimeout();
+    start().then(() => {
+      startTakingTooLongTimeout(BACKEND_VANILLA_ICE_TIMEOUT);
+    });
+  }, [start, startTakingTooLongTimeout, clearTakingTooLongTimeout]);
+
+  const stopWithNotification = useCallback(() => {
+    clearTakingTooLongTimeout();
+    stop();
+  }, [stop, clearTakingTooLongTimeout]);
+
   const mode = props.mode;
   const buttonDisabled =
     props.disabled ||
-    (state.webRtcState === "SIGNALLING" && !state.signallingTimedOut) || // Users can click the stop button after signalling timed out.
     state.webRtcState === "STOPPING" ||
     props.desiredPlayingState != null;
   const receivable = isWebRtcMode(mode) && isReceivable(mode);
@@ -97,8 +118,12 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
         {state.webRtcState === "PLAYING" ||
         state.webRtcState === "SIGNALLING" ? (
           <TranslatedButton
-            variant="contained"
-            onClick={stop}
+            variant={
+              state.webRtcState === "SIGNALLING" && !isTakingTooLong
+                ? "outlined"
+                : "contained"
+            }
+            onClick={stopWithNotification}
             disabled={buttonDisabled}
             translationKey="stop"
             defaultText="Stop"
@@ -107,7 +132,7 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
           <TranslatedButton
             variant="contained"
             color="primary"
-            onClick={start}
+            onClick={startWithNotification}
             disabled={buttonDisabled}
             translationKey="start"
             defaultText="Start"

@@ -141,14 +141,10 @@ wheels = [
 [[package]]
 name = "aioice"
 version = "0.9.0"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/whitphx/aioice.git?rev=00f8a8b04b52d79a3e4668810052a2131754e36d#00f8a8b04b52d79a3e4668810052a2131754e36d" }
 dependencies = [
     { name = "dnspython" },
     { name = "ifaddr" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/33/b6/e2b0e48ccb5b04fe29265e93f14a0915f416e359c897ae87d570566c430b/aioice-0.9.0.tar.gz", hash = "sha256:fc2401b1c4b6e19372eaaeaa28fd1bd9cbf6b0e412e48625297c53b495eebd1e", size = 40324 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/35/d21e48d3ba25d32aba5d142d54c4491376c659dd74d052a30dd25198007b/aioice-0.9.0-py3-none-any.whl", hash = "sha256:b609597a3a5a611e0004ff04772e16aceb881d51c25c0afc4ceac05d5e50024e", size = 24177 },
 ]
 
 [[package]]
@@ -2862,6 +2858,7 @@ wheels = [
 name = "streamlit-webrtc"
 source = { editable = "." }
 dependencies = [
+    { name = "aioice" },
     { name = "aiortc" },
     { name = "packaging" },
     { name = "streamlit" },
@@ -2887,6 +2884,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aioice", git = "https://github.com/whitphx/aioice.git?rev=00f8a8b04b52d79a3e4668810052a2131754e36d" },
     { name = "aiortc", specifier = ">=1.11.0" },
     { name = "packaging", specifier = ">=20.0" },
     { name = "streamlit", specifier = ">=0.89.0" },

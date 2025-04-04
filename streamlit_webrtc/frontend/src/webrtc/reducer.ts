@@ -6,7 +6,6 @@ export interface State {
   webRtcState: WebRtcState;
   sdpOffer: RTCSessionDescription | null;
   iceCandidates: Record<string, RTCIceCandidate>; // key: candidate id for the server to identify the added candidates
-  signallingTimedOut: boolean;
   stream: MediaStream | null;
   error: Error | null;
 }
@@ -14,7 +13,6 @@ export const initialState: State = {
   webRtcState: "STOPPED",
   sdpOffer: null,
   iceCandidates: {},
-  signallingTimedOut: false,
   stream: null,
   error: null,
 };
@@ -37,12 +35,6 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         webRtcState: "SIGNALLING",
         stream: null,
         error: null,
-        signallingTimedOut: false,
-      };
-    case "SIGNALLING_TIMEOUT":
-      return {
-        ...state,
-        signallingTimedOut: true,
       };
     case "SET_STREAM":
       return {
