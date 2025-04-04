@@ -10,8 +10,9 @@ dependencies = [
     # For allow-same-origin, >=0.73.0 is required. See https://blog.streamlit.io/streamlit-components-security-and-a-five-month-quest-to-ship-a-single-line-of-code/
     # 0.84.0 has an error at marshalling component values.
     "streamlit>=0.84.1",
-    "aiortc>=1.11.0",  # aiortc<1.4.0 causes an error with cryptography>=39.0.0. See https://github.com/whitphx/streamlit-webrtc/issues/1164. The fix was introduced into aiortc in https://github.com/aiortc/aiortc/commit/08b0a7e9f5030a9f7e5617382e92560d4ae763a2 that 1.4.0 included.
+    "aiortc>=1.11.0", # aiortc<1.4.0 causes an error with cryptography>=39.0.0. See https://github.com/whitphx/streamlit-webrtc/issues/1164. The fix was introduced into aiortc in https://github.com/aiortc/aiortc/commit/08b0a7e9f5030a9f7e5617382e92560d4ae763a2 that 1.4.0 included.
     "packaging>=20.0",
+    "aioice", # See the tool.uv.sources section below. We use a patched version of aioice to address the issue of https://github.com/aiortc/aioice/pull/84
 ]
 
 [project.urls]
@@ -35,6 +36,9 @@ dev = [
     # For testing older versions of Streamlit: https://discuss.streamlit.io/t/streamlit-run-with-protobuf-error/25632/3
     "protobuf<=3.20",
 ]
+
+[tool.uv.sources]
+aioice = { git = "https://github.com/whitphx/aioice.git", rev = "00f8a8b04b52d79a3e4668810052a2131754e36d" }
 
 [tool.hatch.version]
 source = "vcs"
