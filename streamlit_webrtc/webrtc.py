@@ -106,6 +106,7 @@ async def _process_offer_coro(
     sendback_video: bool,
     sendback_audio: bool,
     on_track_created: Callable[[TrackType, MediaStreamTrack], None],
+    remote_description_set_event: asyncio.Event,
 ):
     AudioTrack = AsyncAudioProcessTrack if async_processing else AudioProcessTrack
     VideoTrack = AsyncVideoProcessTrack if async_processing else VideoProcessTrack
@@ -256,6 +257,8 @@ async def _process_offer_coro(
                     await in_recorder.stop()
 
     await pc.setRemoteDescription(offer)
+    remote_description_set_event.set()
+
     if mode == WebRtcMode.RECVONLY:
         for t in pc.getTransceivers():
             output_track: Optional[MediaStreamTrack] = None
@@ -380,6 +383,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     ) -> None:
         self._process_offer_thread: Union[threading.Thread, None] = None
         self.pc = RTCPeerConnection(rtc_configuration)
+        self._remote_description_set: asyncio.Event = asyncio.Event()
         self._answer_queue: queue.Queue = queue.Queue()
 
         self.mode = mode
@@ -559,6 +563,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 sendback_video=self.sendback_video,
                 sendback_audio=self.sendback_audio,
                 on_track_created=on_track_created,
+                remote_description_set_event=self._remote_description_set,
             ),
             loop=loop,
         )
@@ -618,13 +623,19 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             candidate.sdpMLineIndex = candidate_dict.get("sdpMLineIndex")
             # candidate.usernameFragment = candidate_dict.get("usernameFragment")
 
-            self.add_ice_candidate_from_offerer(candidate)
+            self.add_ice_candidate(candidate)
             self._added_ice_candidate_ids.add(candidate_id)
 
-    def add_ice_candidate_from_offerer(self, candidate: RTCIceCandidate):
-        logger.info("Adding ICE candidate from offerer: %s", candidate)
+    def add_ice_candidate(self, candidate: RTCIceCandidate):
+        logger.info("Adding ICE candidate: %s", candidate)
         loop = get_global_event_loop()
-        asyncio.run_coroutine_threadsafe(self.pc.addIceCandidate(candidate), loop=loop)
+        asyncio.run_coroutine_threadsafe(self._add_ice_candidate(candidate), loop=loop)
+
+    async def _add_ice_candidate(self, candidate: RTCIceCandidate):
+        # Wait until `setRemoteDescription` is called which sets up the transceiver
+        # that `addIceCandidate` will add an ICE candidate to.
+        await self._remote_description_set.wait()
+        await self.pc.addIceCandidate(candidate)
 
     def update_video_callbacks(
         self,
