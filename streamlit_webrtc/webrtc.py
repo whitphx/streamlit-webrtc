@@ -634,7 +634,11 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     async def _add_ice_candidate(self, candidate: RTCIceCandidate):
         # Wait until `setRemoteDescription` is called which sets up the transceiver
         # that `addIceCandidate` will add an ICE candidate to.
-        await asyncio.wait_for(self._remote_description_set.wait(), timeout=10)
+        try:
+            await asyncio.wait_for(self._remote_description_set.wait(), timeout=10)
+        except asyncio.TimeoutError:
+            logger.error("Timeout while waiting for the remote description to be set.")
+            raise
         await self.pc.addIceCandidate(candidate)
 
     def update_video_callbacks(
