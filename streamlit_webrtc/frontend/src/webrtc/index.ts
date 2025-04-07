@@ -168,17 +168,6 @@ export const useWebRtc = (
       }
       console.debug("transceivers", pc.getTransceivers());
 
-      pc.addEventListener("iceconnectionstatechange", () => {
-        console.debug("iceconnectionstatechange", pc.iceConnectionState);
-        if (
-          pc.iceConnectionState === "disconnected" ||
-          pc.iceConnectionState === "failed" ||
-          pc.iceConnectionState === "closed"
-        ) {
-          stopRef.current();
-        }
-      });
-
       pc.addEventListener("connectionstatechange", () => {
         console.debug("connectionstatechange", pc.connectionState);
         if (pc.connectionState === "connected") {
