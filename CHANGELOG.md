@@ -3,13 +3,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.59.0] - 2025-04-04
+## [0.60.0] - 2025-04-07
+
+### Changed
+
+- Revert the change to use the patched version of `aioice`, [#2009](https://github.com/whitphx/streamlit-webrtc/pull/2009).
+- Keep the playing state when the iceConnectionState becomes `disconnected` because the connection can be recovered, [#2008](https://github.com/whitphx/streamlit-webrtc/pull/2008).
+
+### Fixed
+
+- Make `add_ice_candidate()` to wait until the remote description is set, [#2010](https://github.com/whitphx/streamlit-webrtc/pull/2010).
+
+## [0.59.0]: Skipped
 
 ### Changed
 
 - Cache the helper functions to retrieve ICE servers info in `credentials` module, [#1999](https://github.com/whitphx/streamlit-webrtc/pull/1999).
 
-## [0.58.0] - 2025-04-04
+## [0.58.0]: Skipped
 
 ### Changed
 
