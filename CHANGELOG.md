@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.60.1] - 2025-04-08
+
+### Fixed
+
+- Avoid duplicated worker creations, [#2011](https://github.com/whitphx/streamlit-webrtc/pull/2011).
+
 ## [0.60.0] - 2025-04-07
 
 ### Changed
