@@ -28,7 +28,7 @@ from aiortc.sdp import candidate_from_sdp
 
 from streamlit_webrtc.shutdown import SessionShutdownObserver
 
-from .eventloop import get_global_event_loop
+from .eventloop import get_global_event_loop, loop_context
 from .models import (
     AudioFrameCallback,
     AudioProcessorBase,
@@ -383,8 +383,10 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     ) -> None:
         self._process_offer_thread: Union[threading.Thread, None] = None
         self.pc = RTCPeerConnection(rtc_configuration)
-        self._remote_description_set: asyncio.Event = asyncio.Event()
         self._answer_queue: queue.Queue = queue.Queue()
+
+        with loop_context(get_global_event_loop()):
+            self._remote_description_set = asyncio.Event()
 
         self.mode = mode
         self.source_video_track = source_video_track
