@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.60.2] - 2025-04-08
+
+### Fixed
+
+- Fix the instantiation of `asyncio.Event` in `WebRtcWorker`, [#2012](https://github.com/whitphx/streamlit-webrtc/pull/2012).
+
 ## [0.60.1] - 2025-04-08
 
 ### Fixed
