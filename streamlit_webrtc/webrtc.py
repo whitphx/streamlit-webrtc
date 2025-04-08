@@ -620,7 +620,15 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             if candidate_id in self._added_ice_candidate_ids:
                 continue
 
-            candidate = candidate_from_sdp(candidate_dict["candidate"])
+            try:
+                candidate = candidate_from_sdp(candidate_dict["candidate"])
+            except Exception as e:
+                logger.error(
+                    "Error occurred while parsing candidate %s: %s",
+                    candidate_dict["candidate"],
+                    e,
+                )
+                continue
             candidate.sdpMid = candidate_dict.get("sdpMid")
             candidate.sdpMLineIndex = candidate_dict.get("sdpMLineIndex")
             # candidate.usernameFragment = candidate_dict.get("usernameFragment")
