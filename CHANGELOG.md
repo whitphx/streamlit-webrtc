@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.60.3] - 2025-04-08
+
+### Fixed
+
+- Handle the error raised from `candidate_from_sdp`, [#2016](https://github.com/whitphx/streamlit-webrtc/pull/2016).
+
 ## [0.60.2] - 2025-04-08
 
 ### Fixed
