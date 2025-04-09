@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.61.0] - 2025-04-09
+
+### Added
+
+- Show a warning message when the connection takes too long, [#2017](https://github.com/whitphx/streamlit-webrtc/pull/2017).
+
 ## [0.60.3] - 2025-04-08
 
 ### Fixed
