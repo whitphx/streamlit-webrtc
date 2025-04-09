@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Alert from "@mui/material/Alert";
+import Fade from "@mui/material/Fade";
 import DeviceSelectForm from "./DeviceSelect/DeviceSelectForm";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
@@ -96,10 +97,19 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
 
   return (
     <Box>
-      {state.error && (
+      {state.error ? (
         <Alert severity="error">
           {state.error.name}: {state.error.message}
         </Alert>
+      ) : (
+        state.webRtcState === "SIGNALLING" &&
+        isTakingTooLong && (
+          <Fade in={true} timeout={1000}>
+            <Alert severity="warning">
+              Taking a while to connect. Are you using a VPN?
+            </Alert>
+          </Fade>
+        )
       )}
       <Box py={1} display="flex">
         {state.stream ? (
