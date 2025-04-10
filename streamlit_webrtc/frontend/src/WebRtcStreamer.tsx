@@ -1,7 +1,5 @@
 import { useState, useCallback } from "react";
 import Box from "@mui/material/Box";
-import Alert from "@mui/material/Alert";
-import Fade from "@mui/material/Fade";
 import DeviceSelectForm from "./DeviceSelect/DeviceSelectForm";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
@@ -17,6 +15,7 @@ import { useTimer } from "./use-timeout";
 import { getMediaUsage } from "./media-constraint";
 import { ComponentValue, setComponentValue } from "./component-value";
 import TranslatedButton from "./translation/components/TranslatedButton";
+import InfoHeader from "./InfoHeader";
 import "webrtc-adapter";
 
 const BACKEND_VANILLA_ICE_TIMEOUT =
@@ -97,20 +96,12 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
 
   return (
     <Box>
-      {state.error ? (
-        <Alert severity="error">
-          {state.error.name}: {state.error.message}
-        </Alert>
-      ) : (
-        state.webRtcState === "SIGNALLING" &&
-        isTakingTooLong && (
-          <Fade in={true} timeout={1000}>
-            <Alert severity="warning">
-              Taking a while to connect. Are you using a VPN?
-            </Alert>
-          </Fade>
-        )
-      )}
+      <InfoHeader
+        error={state.error}
+        shouldShowTakingTooLongWarning={
+          state.webRtcState === "SIGNALLING" && isTakingTooLong
+        }
+      />
       <Box py={1} display="flex">
         {state.stream ? (
           <MediaStreamPlayer
