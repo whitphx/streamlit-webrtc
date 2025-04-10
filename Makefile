@@ -15,7 +15,6 @@ format:
 	$(MAKE) format:frontend
 
 release/patch:
-	version=patch
 	$(MAKE) version=patch release
 
 release/minor:
