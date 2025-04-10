@@ -10,6 +10,7 @@ from typing import (
     Dict,
     Generic,
     Literal,
+    List,
     Optional,
     Set,
     Union,
@@ -612,14 +613,11 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         return result
 
-    _added_ice_candidate_ids: Set[str] = set()
+    _added_ice_candidate_index = 0
 
-    def set_ice_candidates_from_offerer(self, candidates: Dict[str, Dict]):
+    def set_ice_candidates_from_offerer(self, candidates: List[Dict]):
         logger.info("Setting ICE candidates from offerer: %s", candidates)
-        for candidate_id, candidate_dict in candidates.items():
-            if candidate_id in self._added_ice_candidate_ids:
-                continue
-
+        for candidate_dict in candidates[self._added_ice_candidate_index:]:
             try:
                 candidate = candidate_from_sdp(candidate_dict["candidate"])
             except Exception as e:
@@ -634,7 +632,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             # candidate.usernameFragment = candidate_dict.get("usernameFragment")
 
             self.add_ice_candidate(candidate)
-            self._added_ice_candidate_ids.add(candidate_id)
+
+        self._added_ice_candidate_index = len(candidates)
 
     def add_ice_candidate(self, candidate: RTCIceCandidate):
         logger.info("Adding ICE candidate: %s", candidate)

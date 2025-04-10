@@ -5,27 +5,17 @@ export type WebRtcState = "STOPPED" | "SIGNALLING" | "PLAYING" | "STOPPING";
 export interface State {
   webRtcState: WebRtcState;
   sdpOffer: RTCSessionDescription | null;
-  iceCandidates: Record<string, RTCIceCandidate>; // key: candidate id for the server to identify the added candidates
+  iceCandidates: RTCIceCandidate[];
   stream: MediaStream | null;
   error: Error | null;
 }
 export const initialState: State = {
   webRtcState: "STOPPED",
   sdpOffer: null,
-  iceCandidates: {},
+  iceCandidates: [],
   stream: null,
   error: null,
 };
-
-const uniqueIds = new Set<string>();
-function getUniqueId(): string {
-  let id;
-  do {
-    id = Math.random().toString(36).substring(2, 15);
-  } while (uniqueIds.has(id));
-  uniqueIds.add(id);
-  return id;
-}
 
 export const reducer: React.Reducer<State, Action> = (state, action) => {
   switch (action.type) {
@@ -47,13 +37,12 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         sdpOffer: action.offer,
       };
     case "ADD_ICE_CANDIDATE": {
-      const uniqueId = getUniqueId(); // This ID doesn't need to be cryptographically secure. Just to be an identifier.
       return {
         ...state,
-        iceCandidates: {
+        iceCandidates: [
           ...state.iceCandidates,
-          [uniqueId]: action.candidate,
-        },
+          action.candidate,
+        ],
       };
     }
     case "STOPPING":
@@ -61,14 +50,14 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         ...state,
         webRtcState: "STOPPING",
         sdpOffer: null,
-        iceCandidates: {},
+        iceCandidates: [],
       };
     case "STOPPED":
       return {
         ...state,
         webRtcState: "STOPPED",
         sdpOffer: null,
-        iceCandidates: {},
+        iceCandidates: [],
         stream: null,
       };
     case "START_PLAYING":
@@ -76,14 +65,14 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         ...state,
         webRtcState: "PLAYING",
         sdpOffer: null,
-        iceCandidates: {},
+        iceCandidates: [],
       };
     case "SET_OFFER_ERROR":
       return {
         ...state,
         webRtcState: "STOPPED",
         sdpOffer: null,
-        iceCandidates: {},
+        iceCandidates: [],
         error: action.error,
       };
     case "PROCESS_ANSWER_ERROR":
@@ -91,7 +80,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         ...state,
         webRtcState: "STOPPED",
         sdpOffer: null,
-        iceCandidates: {},
+        iceCandidates: [],
         error: action.error,
       };
     case "ERROR":
@@ -99,7 +88,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         ...state,
         webRtcState: "STOPPED",
         sdpOffer: null,
-        iceCandidates: {},
+        iceCandidates: [],
         error: action.error,
       };
   }
@@ -122,15 +111,11 @@ export const connectReducer = (
     const nextIceCandidates = nextState.iceCandidates;
     const prevIceCandidates = state.iceCandidates;
     const iceCandidatesChanged =
-      Object.keys(nextIceCandidates).length !==
-      Object.keys(prevIceCandidates).length;
+      nextIceCandidates.length !== prevIceCandidates.length;
 
     if (playingChanged || sdpOfferChanged || iceCandidatesChanged) {
-      const serializedIceCandidates = Object.fromEntries(
-        Object.entries(nextIceCandidates).map(([key, value]) => [
-          key,
-          value.toJSON(),
-        ]),
+      const serializedIceCandidates = nextIceCandidates.map((candidate) =>
+        candidate.toJSON(),
       );
 
       const componentValue = {

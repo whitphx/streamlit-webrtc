@@ -32,7 +32,7 @@ export const useWebRtc = (
     return onComponentValueChange({
       playing: false,
       sdpOffer: "",
-      iceCandidates: {},
+      iceCandidates: [],
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
