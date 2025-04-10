@@ -169,7 +169,7 @@ jobs:
       working-directory: streamlit_webrtc/frontend
 
     - name: Build
-      run: make pkg/build
+      run: make build
 
     - name: Upload the built artifacts
       uses: actions/upload-artifact@v4
