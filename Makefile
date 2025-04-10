@@ -11,8 +11,8 @@ format/frontend:
 	cd streamlit_webrtc/frontend && pnpm format
 
 format:
-	$(MAKE) format:backend
-	$(MAKE) format:frontend
+	$(MAKE) format/backend
+	$(MAKE) format/frontend
 
 release/patch:
 	$(MAKE) version=patch release
