@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.61.1] - 2025-04-10
+
 ### Fixed
 
 - Fix a bug that the stop button is hidden when the "taking too long" warning is shown, [#2022](https://github.com/whitphx/streamlit-webrtc/pull/2022).
