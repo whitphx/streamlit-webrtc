@@ -9,10 +9,9 @@ from typing import (
     Callable,
     Dict,
     Generic,
-    Literal,
     List,
+    Literal,
     Optional,
-    Set,
     Union,
     cast,
 )
@@ -617,7 +616,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
     def set_ice_candidates_from_offerer(self, candidates: List[Dict]):
         logger.info("Setting ICE candidates from offerer: %s", candidates)
-        for candidate_dict in candidates[self._added_ice_candidate_index:]:
+        for candidate_dict in candidates[self._added_ice_candidate_index :]:
             try:
                 candidate = candidate_from_sdp(candidate_dict["candidate"])
             except Exception as e:

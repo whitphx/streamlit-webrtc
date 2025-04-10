@@ -39,10 +39,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
     case "ADD_ICE_CANDIDATE": {
       return {
         ...state,
-        iceCandidates: [
-          ...state.iceCandidates,
-          action.candidate,
-        ],
+        iceCandidates: [...state.iceCandidates, action.candidate],
       };
     }
     case "STOPPING":
