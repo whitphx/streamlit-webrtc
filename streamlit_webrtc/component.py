@@ -597,11 +597,8 @@ def webrtc_streamer(
                 on_ended=on_audio_ended,
             )
 
-    worker_created_in_this_run = None
     with context._worker_creation_lock:  # This point can be reached in parallel so we need to use a lock to make the worker creation process atomic.
-        should_create_worker_in_this_run = not context._get_worker() and sdp_offer
-
-        if should_create_worker_in_this_run:
+        if not context._get_worker() and sdp_offer:
             LOGGER.debug(
                 "No worker exists though the offer SDP is set. "
                 'Create a new worker (key="%s").',
@@ -621,7 +618,7 @@ def webrtc_streamer(
                 ice_servers = get_available_ice_servers()  # NOTE: This may include a yield point where Streamlit's script runner interrupts the execution and may stop the current run.
                 aiortc_rtc_configuration.iceServers = compile_ice_servers(ice_servers)
 
-            worker_created_in_this_run = WebRtcWorker(
+            worker_created_in_this_run: WebRtcWorker = WebRtcWorker(
                 mode=mode,
                 rtc_configuration=aiortc_rtc_configuration,
                 player_factory=player_factory,
@@ -644,19 +641,23 @@ def webrtc_streamer(
                 sendback_audio=sendback_audio,
             )
 
+            worker_created_in_this_run.process_offer(
+                sdp_offer["sdp"],
+                sdp_offer["type"],
+                timeout=10,  # The timeout of aioice's method that is used in the internal of this method is 5: https://github.com/aiortc/aioice/blob/aaada959aa8de31b880822db36f1c0c0cef75c0e/src/aioice/ice.py#L973. We set a bit longer timeout here.
+            )
+
             # Set the worker here within the lock.
             context._set_worker(worker_created_in_this_run)
+
+            # It's important to lock the entire block including creating the worker, waiting for process_offer(), and calling rerun().
+            # Otherwise, `rerun()` may fail because another script run completes during this run is pending to wait for these operations
+            # and it sets the `ScriptRequests._state` to `ScriptRequestType.STOP` which denies the rerun request.
+            LOGGER.debug("Rerun to send the SDP answer to frontend")
+            rerun()
 
     webrtc_worker = context._get_worker()
     if webrtc_worker and ice_candidates:
         webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
-
-    if worker_created_in_this_run:
-        worker_created_in_this_run.process_offer(
-            sdp_offer["sdp"], sdp_offer["type"], timeout=None
-        )
-
-        # Rerun to send the SDP answer to frontend
-        rerun()
 
     return context
