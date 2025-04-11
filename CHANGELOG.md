@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.61.2] - 2025-04-11
+
+### Fixed
+
+- Fix a bug that the ID of the ICE candidate sent from the frontend to the backend may not be unique, [#2023](https://github.com/whitphx/streamlit-webrtc/pull/2023).
+
 ## [0.61.1] - 2025-04-10
 
 ### Fixed
