@@ -597,7 +597,7 @@ def webrtc_streamer(
                 on_ended=on_audio_ended,
             )
 
-    webrtc_worker_created_in_this_run = None
+    worker_created_in_this_run = None
     with context._worker_creation_lock:  # This point can be reached in parallel so we need to use a lock to make the worker creation process atomic.
         should_create_worker_in_this_run = not context._get_worker() and sdp_offer
 
@@ -621,7 +621,7 @@ def webrtc_streamer(
                 ice_servers = get_available_ice_servers()  # NOTE: This may include a yield point where Streamlit's script runner interrupts the execution and may stop the current run.
                 aiortc_rtc_configuration.iceServers = compile_ice_servers(ice_servers)
 
-            webrtc_worker_created_in_this_run = WebRtcWorker(
+            worker_created_in_this_run = WebRtcWorker(
                 mode=mode,
                 rtc_configuration=aiortc_rtc_configuration,
                 player_factory=player_factory,
@@ -649,14 +649,14 @@ def webrtc_streamer(
             # a new script run can be triggered during it.
             # so, if the worker is not set here, `context._get_worker()` will return None in the next run
             # and it leads to creating a worker in the next run again.
-            context._set_worker(webrtc_worker_created_in_this_run)
+            context._set_worker(worker_created_in_this_run)
 
     webrtc_worker = context._get_worker()
     if webrtc_worker and ice_candidates:
         webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
 
-    if webrtc_worker_created_in_this_run:
-        webrtc_worker_created_in_this_run.process_offer(
+    if worker_created_in_this_run:
+        worker_created_in_this_run.process_offer(
             sdp_offer["sdp"], sdp_offer["type"], timeout=None
         )
 
