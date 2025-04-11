@@ -662,7 +662,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self.on_video_ended = on_ended
 
         if not self.video_processor:
-            raise TypeError("video_processor is None")
+            # `update_video_callbacks` can be called before `process_offer` is called that sets up the video processor.
+            return
         if type(self.video_processor).__name__ != CallbackAttachableProcessor.__name__:
             raise TypeError(
                 f"video_processor has an invalid type: {type(self.video_processor)}"
@@ -686,7 +687,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self.on_audio_ended = on_ended
 
         if not self.audio_processor:
-            raise TypeError("audio_processor is None")
+            # `update_audio_callbacks` can be called before `process_offer` is called that sets up the audio processor.
+            return
         if type(self.audio_processor).__name__ != CallbackAttachableProcessor.__name__:
             raise TypeError(
                 f"audio_processor has an invalid type: {type(self.audio_processor)}"
