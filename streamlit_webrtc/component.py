@@ -642,7 +642,9 @@ def webrtc_streamer(
             )
 
             worker_created_in_this_run.process_offer(
-                sdp_offer["sdp"], sdp_offer["type"], timeout=None
+                sdp_offer["sdp"],
+                sdp_offer["type"],
+                timeout=10,  # The timeout of aioice's method that is used in the internal of this method is 5: https://github.com/aiortc/aioice/blob/aaada959aa8de31b880822db36f1c0c0cef75c0e/src/aioice/ice.py#L973. We set a bit longer timeout here.
             )
 
             # Set the worker here within the lock.
