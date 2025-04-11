@@ -2,6 +2,7 @@ import { useReducer, useCallback, useRef, useEffect, useMemo } from "react";
 import { compileMediaConstraints } from "../media-constraint";
 import { ComponentValue } from "../component-value";
 import { connectReducer, initialState } from "./reducer";
+import { getUniqueId } from "./unique-id";
 
 export type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 export const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -187,7 +188,8 @@ export const useWebRtc = (
       pc.addEventListener("icecandidate", (evt) => {
         if (evt.candidate) {
           console.debug("icecandidate", evt.candidate);
-          dispatch({ type: "ADD_ICE_CANDIDATE", candidate: evt.candidate });
+          const id = getUniqueId(); // NOTE: Generate the ID here to ensure it is uniquely bound to the candidate. It can be violated if it's generated in the reducer.
+          dispatch({ type: "ADD_ICE_CANDIDATE", id, candidate: evt.candidate });
         }
       });
 

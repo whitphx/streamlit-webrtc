@@ -14,6 +14,7 @@ interface SetOfferAction extends ActionBase {
 }
 interface AddIceCandidateAction extends ActionBase {
   type: "ADD_ICE_CANDIDATE";
+  id: string;
   candidate: RTCIceCandidate;
 }
 interface StoppingAction extends ActionBase {
