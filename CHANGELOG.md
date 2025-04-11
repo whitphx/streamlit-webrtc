@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.62.0] - 2025-04-11
+
+### Changed
+
+- Cache `get_available_ice_servers()`, [#2028](https://github.com/whitphx/streamlit-webrtc/pull/2028).
+
 ## [0.61.3] - 2025-04-11
 
 ### Fixed
