@@ -644,11 +644,7 @@ def webrtc_streamer(
                 sendback_audio=sendback_audio,
             )
 
-            # Setting the worker here before calling `webrtc_worker.process_offer()` is important.
-            # `webrtc_worker.process_offer()` waits for processing the offer in another thread and
-            # a new script run can be triggered during it.
-            # so, if the worker is not set here, `context._get_worker()` will return None in the next run
-            # and it leads to creating a worker in the next run again.
+            # Set the worker here within the lock.
             context._set_worker(worker_created_in_this_run)
 
     webrtc_worker = context._get_worker()
