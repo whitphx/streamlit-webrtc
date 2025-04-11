@@ -7,7 +7,7 @@ export function useUniqueId() {
     do {
       id = Math.random().toString(36).substring(2, 15);
     } while (uniqueIds.has(id));
-    uniqueIds.add(id);
+    setUniqueIds(new Set(uniqueIds).add(id));
     return id;
   }, [uniqueIds]);
   const resetUniqueIds = useCallback(() => {
