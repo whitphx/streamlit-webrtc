@@ -92,6 +92,7 @@ def get_twilio_ice_servers(
     return token.ice_servers
 
 
+@cache_data(ttl=min(HF_ICE_SERVER_TTL, TWILIO_CRED_TTL))
 def get_available_ice_servers() -> List[RTCIceServer]:
     try:
         LOGGER.info("Try to use TURN server from Hugging Face.")
