@@ -2,6 +2,7 @@ import copy
 import json
 import logging
 import os
+import threading
 import warnings
 import weakref
 from typing import (
@@ -92,6 +93,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker[VideoProcessorT, AudioProcessorT]]]"  # noqa
 
     _component_value_snapshot: Union[ComponentValueSnapshot, None]
+    _worker_creation_lock: threading.Lock
     _frontend_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]]
 
     def __init__(
@@ -102,6 +104,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._set_worker(worker)
         self._set_state(state)
         self._component_value_snapshot = None
+        self._worker_creation_lock = threading.Lock()
         self._frontend_rtc_configuration = None
 
     def _set_worker(
@@ -594,65 +597,70 @@ def webrtc_streamer(
                 on_ended=on_audio_ended,
             )
 
-    if not webrtc_worker and sdp_offer:
-        LOGGER.debug(
-            "No worker exists though the offer SDP is set. "
-            'Create a new worker (key="%s").',
-            key,
-        )
+    webrtc_worker_created_in_this_run = None
+    with context._worker_creation_lock:  # This point can be reached in parallel so we need to use a lock to make the worker creation process atomic.
+        should_create_worker_in_this_run = not context._get_worker() and sdp_offer
 
-        aiortc_rtc_configuration = (
-            compile_rtc_configuration(server_rtc_configuration)
-            if server_rtc_configuration and isinstance(server_rtc_configuration, dict)
-            else AiortcRTCConfiguration()
-        )
-        if aiortc_rtc_configuration.iceServers is None:
-            LOGGER.info(
-                "rtc_configuration.iceServers is not set. Try to set it automatically."
+        if should_create_worker_in_this_run:
+            LOGGER.debug(
+                "No worker exists though the offer SDP is set. "
+                'Create a new worker (key="%s").',
+                key,
             )
-            ice_servers = get_available_ice_servers()
-            aiortc_rtc_configuration.iceServers = compile_ice_servers(ice_servers)
 
-        webrtc_worker = WebRtcWorker(
-            mode=mode,
-            rtc_configuration=aiortc_rtc_configuration,
-            player_factory=player_factory,
-            in_recorder_factory=in_recorder_factory,
-            out_recorder_factory=out_recorder_factory,
-            video_frame_callback=video_frame_callback,
-            audio_frame_callback=audio_frame_callback,
-            queued_video_frames_callback=queued_video_frames_callback,
-            queued_audio_frames_callback=queued_audio_frames_callback,
-            on_video_ended=on_video_ended,
-            on_audio_ended=on_audio_ended,
-            video_processor_factory=video_processor_factory,
-            audio_processor_factory=audio_processor_factory,
-            async_processing=async_processing,
-            video_receiver_size=video_receiver_size,
-            audio_receiver_size=audio_receiver_size,
-            source_video_track=source_video_track,
-            source_audio_track=source_audio_track,
-            sendback_video=sendback_video,
-            sendback_audio=sendback_audio,
+            aiortc_rtc_configuration = (
+                compile_rtc_configuration(server_rtc_configuration)
+                if server_rtc_configuration
+                and isinstance(server_rtc_configuration, dict)
+                else AiortcRTCConfiguration()
+            )
+            if aiortc_rtc_configuration.iceServers is None:
+                LOGGER.info(
+                    "rtc_configuration.iceServers is not set. Try to set it automatically."
+                )
+                ice_servers = get_available_ice_servers()  # NOTE: This may include a yield point where Streamlit's script runner interrupts the execution and may stop the current run.
+                aiortc_rtc_configuration.iceServers = compile_ice_servers(ice_servers)
+
+            webrtc_worker_created_in_this_run = WebRtcWorker(
+                mode=mode,
+                rtc_configuration=aiortc_rtc_configuration,
+                player_factory=player_factory,
+                in_recorder_factory=in_recorder_factory,
+                out_recorder_factory=out_recorder_factory,
+                video_frame_callback=video_frame_callback,
+                audio_frame_callback=audio_frame_callback,
+                queued_video_frames_callback=queued_video_frames_callback,
+                queued_audio_frames_callback=queued_audio_frames_callback,
+                on_video_ended=on_video_ended,
+                on_audio_ended=on_audio_ended,
+                video_processor_factory=video_processor_factory,
+                audio_processor_factory=audio_processor_factory,
+                async_processing=async_processing,
+                video_receiver_size=video_receiver_size,
+                audio_receiver_size=audio_receiver_size,
+                source_video_track=source_video_track,
+                source_audio_track=source_audio_track,
+                sendback_video=sendback_video,
+                sendback_audio=sendback_audio,
+            )
+
+            # Setting the worker here before calling `webrtc_worker.process_offer()` is important.
+            # `webrtc_worker.process_offer()` waits for processing the offer in another thread and
+            # a new script run can be triggered during it.
+            # so, if the worker is not set here, `context._get_worker()` will return None in the next run
+            # and it leads to creating a worker in the next run again.
+            context._set_worker(webrtc_worker_created_in_this_run)
+
+    webrtc_worker = context._get_worker()
+    if webrtc_worker and ice_candidates:
+        webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
+
+    if webrtc_worker_created_in_this_run:
+        webrtc_worker_created_in_this_run.process_offer(
+            sdp_offer["sdp"], sdp_offer["type"], timeout=None
         )
-
-        # Setting the worker here before calling `webrtc_worker.process_offer()` is important.
-        # `webrtc_worker.process_offer()` waits for processing the offer in another thread and
-        # a new script run can be triggered during it.
-        # so, if the worker is not set here, `context._get_worker()` will return None in the next run
-        # and it leads to creating a worker in the next run again.
-        context._set_worker(webrtc_worker)
-
-        webrtc_worker.process_offer(sdp_offer["sdp"], sdp_offer["type"], timeout=None)
-
-        if ice_candidates:
-            webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
 
         # Rerun to send the SDP answer to frontend
         rerun()
 
-    if webrtc_worker and ice_candidates:
-        webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
-
-    context._set_worker(webrtc_worker)
     return context
