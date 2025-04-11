@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.61.3] - 2025-04-11
+
+### Fixed
+
+- Fix a bug that the worker can be created multiple times, [#2026](https://github.com/whitphx/streamlit-webrtc/pull/2026).
+- Update `aioice` to `>=0.10.0`, which should fix the issue that the entire ICE candidate gathering fails when at least one candidate fails to connect, [#2027](https://github.com/whitphx/streamlit-webrtc/pull/2027).
+
 ## [0.61.2] - 2025-04-11
 
 ### Fixed
