@@ -9,7 +9,7 @@ export function useUniqueId() {
     } while (uniqueIds.current.has(id));
     uniqueIds.current.add(id);
     return id;
-  }, [uniqueIds]);
+  }, []);
   const resetUniqueIds = useCallback(() => {
     uniqueIds.current = new Set<string>();
   }, []);
