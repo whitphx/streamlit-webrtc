@@ -651,7 +651,7 @@ def webrtc_streamer(
             context._set_worker(worker_created_in_this_run)
 
             # It's important to lock the entire block including creating the worker, waiting for process_offer(), and calling rerun().
-            # Otherwise, `rerun()` may fail because another script run reaches to the end during this run is pending to wait for these operations
+            # Otherwise, `rerun()` may fail because another script run completes during this run is pending to wait for these operations
             # and it sets the `ScriptRequests._state` to `ScriptRequestType.STOP` which denies the rerun request.
             LOGGER.debug("Rerun to send the SDP answer to frontend")
             rerun()
