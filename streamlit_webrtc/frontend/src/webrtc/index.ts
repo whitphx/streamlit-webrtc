@@ -2,7 +2,7 @@ import { useReducer, useCallback, useRef, useEffect, useMemo } from "react";
 import { compileMediaConstraints } from "../media-constraint";
 import { ComponentValue } from "../component-value";
 import { connectReducer, initialState } from "./reducer";
-import { getUniqueId } from "./unique-id";
+import { useUniqueId } from "./use-unique-id";
 
 export type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 export const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -43,6 +43,8 @@ export const useWebRtc = (
     [onComponentValueChange],
   );
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  const uniqueIdGenerator = useUniqueId();
 
   const stop = useCallback(() => {
     const stopInner = async () => {
@@ -99,6 +101,8 @@ export const useWebRtc = (
 
     const startInner = async () => {
       dispatch({ type: "SIGNALLING_START" });
+
+      uniqueIdGenerator.reset();
 
       const mode = props.mode;
 
@@ -188,7 +192,7 @@ export const useWebRtc = (
       pc.addEventListener("icecandidate", (evt) => {
         if (evt.candidate) {
           console.debug("icecandidate", evt.candidate);
-          const id = getUniqueId(); // NOTE: Generate the ID here to ensure it is uniquely bound to the candidate. It can be violated if it's generated in the reducer.
+          const id = uniqueIdGenerator.get(); // NOTE: Generate the ID here to ensure it is uniquely bound to the candidate. It can be violated if it's generated in the reducer.
           dispatch({ type: "ADD_ICE_CANDIDATE", id, candidate: evt.candidate });
         }
       });
