@@ -18,9 +18,7 @@ import TranslatedButton from "./translation/components/TranslatedButton";
 import InfoHeader from "./InfoHeader";
 import "webrtc-adapter";
 
-const BACKEND_VANILLA_ICE_TIMEOUT =
-  5 * 1000 + // `aiortc` runs ICE in the Vanilla manner and its timeout is set to 5 seconds: https://github.com/aiortc/aioice/blob/fc863fde4676e1f67dce981b7f9592ab02c6a09a/src/aioice/ice.py#L881
-  300; // ad-hoc delay to account for network latency and the time it takes to start the stream
+const BACKEND_VANILLA_ICE_TIMEOUT = 10 * 1000; // `aiortc` runs ICE in the Vanilla manner and its timeout is set to 5 seconds: https://github.com/aiortc/aioice/blob/fc863fde4676e1f67dce981b7f9592ab02c6a09a/src/aioice/ice.py#L881. We set the timeout here to account for network latency and some additional delay.
 
 interface WebRtcStreamerInnerProps {
   disabled: boolean;
