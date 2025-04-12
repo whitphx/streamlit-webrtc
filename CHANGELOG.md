@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.62.4] - 2025-04-12
+
+### Fixed
+
+- Refine the message of the "taking too long" warning and set the timeout to 10 seconds display it, [#2034](https://github.com/whitphx/streamlit-webrtc/pull/2034).
+
 ## [0.62.3] - 2025-04-12
 
 ### Fixed
