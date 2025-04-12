@@ -96,7 +96,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _worker_creation_lock: threading.Lock
     _frontend_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]]
     _sdp_answer_json: Optional[str]
-    _sdp_answer_sent: bool
+    _is_sdp_answer_sent: bool
 
     def __init__(
         self,
@@ -109,7 +109,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._worker_creation_lock = threading.Lock()
         self._frontend_rtc_configuration = None
         self._sdp_answer_json = None
-        self._sdp_answer_sent = False
+        self._is_sdp_answer_sent = False
 
     def _set_worker(
         self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
@@ -489,7 +489,7 @@ def webrtc_streamer(
 
     if context._sdp_answer_json:
         # Set the flag not to trigger rerun() any more as `context._sdp_answer_json` is already set and will have been sent to the frontend in this run.
-        context._sdp_answer_sent = True
+        context._is_sdp_answer_sent = True
 
     frontend_key = generate_frontend_component_key(key)
 
@@ -577,9 +577,9 @@ def webrtc_streamer(
         if webrtc_worker:
             webrtc_worker.stop()
             context._set_worker(None)
-            webrtc_worker = None
-            context._sdp_answer_sent = False
+            context._is_sdp_answer_sent = False
             context._sdp_answer_json = None
+            webrtc_worker = None
             # Rerun to unset the SDP answer from the frontend args
             rerun()
 
@@ -655,7 +655,7 @@ def webrtc_streamer(
     if (
         webrtc_worker
         and webrtc_worker.pc.localDescription
-        and not context._sdp_answer_sent
+        and not context._is_sdp_answer_sent
     ):
         context._sdp_answer_json = json.dumps(
             {
