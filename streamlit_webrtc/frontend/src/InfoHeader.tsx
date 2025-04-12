@@ -22,7 +22,7 @@ function InfoHeader(props: InfoHeaderProps) {
         props.shouldShowTakingTooLongWarning && (
           <Fade in={true} timeout={1000}>
             <Alert severity="warning">
-              Taking a while to connect. Are you using a VPN?
+              Taking a while to connect. Network issues or missing STUN/TURN server settings?
             </Alert>
           </Fade>
         )
