@@ -636,30 +636,25 @@ def webrtc_streamer(
             context._set_worker(worker_created_in_this_run)
 
     webrtc_worker = context._get_worker()
-
-    if (
-        webrtc_worker
-        and webrtc_worker.pc.localDescription
-        and not context._is_sdp_answer_sent
-    ):
-        context._sdp_answer_json = json.dumps(
-            {
-                "sdp": webrtc_worker.pc.localDescription.sdp,
-                "type": webrtc_worker.pc.localDescription.type,
-            }
-        )
-
-        LOGGER.debug("Rerun to send the SDP answer to frontend")
-        # NOTE: rerun() may not work if it's called in the lock when the `runner.fastReruns` config is enabled
-        # because the `ScriptRequests._state` is set to `ScriptRequestType.STOP` by the rerun request from the frontend sent during awaiting the lock,
-        # which makes the rerun request refused.
-        # So we call rerun() here. It can be called even in a different thread(run) from the one where the worker is created as long as the condition is met.
-        rerun()
-
-    if webrtc_worker and ice_candidates:
-        webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
-
     if webrtc_worker:
+        if webrtc_worker.pc.localDescription and not context._is_sdp_answer_sent:
+            context._sdp_answer_json = json.dumps(
+                {
+                    "sdp": webrtc_worker.pc.localDescription.sdp,
+                    "type": webrtc_worker.pc.localDescription.type,
+                }
+            )
+
+            LOGGER.debug("Rerun to send the SDP answer to frontend")
+            # NOTE: rerun() may not work if it's called in the lock when the `runner.fastReruns` config is enabled
+            # because the `ScriptRequests._state` is set to `ScriptRequestType.STOP` by the rerun request from the frontend sent during awaiting the lock,
+            # which makes the rerun request refused.
+            # So we call rerun() here. It can be called even in a different thread(run) from the one where the worker is created as long as the condition is met.
+            rerun()
+
+        if ice_candidates:
+            webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
+
         if video_frame_callback or queued_video_frames_callback or on_video_ended:
             webrtc_worker.update_video_callbacks(
                 frame_callback=video_frame_callback,
