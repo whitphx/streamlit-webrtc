@@ -563,39 +563,24 @@ def webrtc_streamer(
         sdp_offer = component_value.get("sdpOffer")
         ice_candidates = component_value.get("iceCandidates")
 
-    webrtc_worker = context._get_worker()
-
     if not context.state.playing and not context.state.signalling:
         LOGGER.debug(
-            "Unset the worker and the internal states because the frontend state is "
-            'neither playing nor signalling (key="%s").',
+            "The frontend state is neither playing nor signalling (key=%s).",
             key,
         )
 
         context._frontend_rtc_configuration = None
 
-        if webrtc_worker:
-            webrtc_worker.stop()
+        webrtc_worker_to_stop = context._get_worker()
+        if webrtc_worker_to_stop:
+            LOGGER.debug("Stop the worker (key=%s).", key)
+            webrtc_worker_to_stop.stop()
             context._set_worker(None)
             context._is_sdp_answer_sent = False
             context._sdp_answer_json = None
-            webrtc_worker = None
+            webrtc_worker_to_stop = None
             # Rerun to unset the SDP answer from the frontend args
             rerun()
-
-    if webrtc_worker:
-        if video_frame_callback or queued_video_frames_callback or on_video_ended:
-            webrtc_worker.update_video_callbacks(
-                frame_callback=video_frame_callback,
-                queued_frames_callback=queued_video_frames_callback,
-                on_ended=on_video_ended,
-            )
-        if audio_frame_callback or queued_audio_frames_callback or on_audio_ended:
-            webrtc_worker.update_audio_callbacks(
-                frame_callback=audio_frame_callback,
-                queued_frames_callback=queued_audio_frames_callback,
-                on_ended=on_audio_ended,
-            )
 
     with context._worker_creation_lock:  # This point can be reached in parallel so we need to use a lock to make the worker creation process atomic.
         if not context._get_worker() and sdp_offer:
@@ -673,5 +658,19 @@ def webrtc_streamer(
 
     if webrtc_worker and ice_candidates:
         webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
+
+    if webrtc_worker:
+        if video_frame_callback or queued_video_frames_callback or on_video_ended:
+            webrtc_worker.update_video_callbacks(
+                frame_callback=video_frame_callback,
+                queued_frames_callback=queued_video_frames_callback,
+                on_ended=on_video_ended,
+            )
+        if audio_frame_callback or queued_audio_frames_callback or on_audio_ended:
+            webrtc_worker.update_audio_callbacks(
+                frame_callback=audio_frame_callback,
+                queued_frames_callback=queued_audio_frames_callback,
+                on_ended=on_audio_ended,
+            )
 
     return context
