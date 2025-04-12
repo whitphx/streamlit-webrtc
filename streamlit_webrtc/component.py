@@ -95,6 +95,8 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _component_value_snapshot: Union[ComponentValueSnapshot, None]
     _worker_creation_lock: threading.Lock
     _frontend_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]]
+    _sdp_answer_json: Optional[str]
+    _is_sdp_answer_sent: bool
 
     def __init__(
         self,
@@ -106,6 +108,8 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._component_value_snapshot = None
         self._worker_creation_lock = threading.Lock()
         self._frontend_rtc_configuration = None
+        self._sdp_answer_json = None
+        self._is_sdp_answer_sent = False
 
     def _set_worker(
         self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
@@ -481,16 +485,9 @@ def webrtc_streamer(
         )
         context._frontend_rtc_configuration["iceServers"] = get_available_ice_servers()
 
-    webrtc_worker = context._get_worker()
-
-    sdp_answer_json = None
-    if webrtc_worker and webrtc_worker.pc.localDescription:
-        sdp_answer_json = json.dumps(
-            {
-                "sdp": webrtc_worker.pc.localDescription.sdp,
-                "type": webrtc_worker.pc.localDescription.type,
-            }
-        )
+    if context._sdp_answer_json:
+        # Set the flag not to trigger rerun() any more as `context._sdp_answer_json` is already set and will have been sent to the frontend in this run.
+        context._is_sdp_answer_sent = True
 
     frontend_key = generate_frontend_component_key(key)
 
@@ -515,7 +512,7 @@ def webrtc_streamer(
         }
     component_value_raw: Union[Dict, str, None] = _component_func(
         key=frontend_key,
-        sdp_answer_json=sdp_answer_json,
+        sdp_answer_json=context._sdp_answer_json,
         mode=mode.name,
         rtc_configuration=context._frontend_rtc_configuration,
         media_stream_constraints=media_stream_constraints,
@@ -566,6 +563,8 @@ def webrtc_streamer(
         sdp_offer = component_value.get("sdpOffer")
         ice_candidates = component_value.get("iceCandidates")
 
+    webrtc_worker = context._get_worker()
+
     if not context.state.playing and not context.state.signalling:
         LOGGER.debug(
             "Unset the worker and the internal states because the frontend state is "
@@ -578,8 +577,9 @@ def webrtc_streamer(
         if webrtc_worker:
             webrtc_worker.stop()
             context._set_worker(None)
+            context._is_sdp_answer_sent = False
+            context._sdp_answer_json = None
             webrtc_worker = None
-
             # Rerun to unset the SDP answer from the frontend args
             rerun()
 
@@ -650,13 +650,27 @@ def webrtc_streamer(
             # Set the worker here within the lock.
             context._set_worker(worker_created_in_this_run)
 
-            # It's important to lock the entire block including creating the worker, waiting for process_offer(), and calling rerun().
-            # Otherwise, `rerun()` may fail because another script run completes during this run is pending to wait for these operations
-            # and it sets the `ScriptRequests._state` to `ScriptRequestType.STOP` which denies the rerun request.
-            LOGGER.debug("Rerun to send the SDP answer to frontend")
-            rerun()
-
     webrtc_worker = context._get_worker()
+
+    if (
+        webrtc_worker
+        and webrtc_worker.pc.localDescription
+        and not context._is_sdp_answer_sent
+    ):
+        context._sdp_answer_json = json.dumps(
+            {
+                "sdp": webrtc_worker.pc.localDescription.sdp,
+                "type": webrtc_worker.pc.localDescription.type,
+            }
+        )
+
+        LOGGER.debug("Rerun to send the SDP answer to frontend")
+        # NOTE: rerun() may not work if it's called in the lock when the `runner.fastReruns` config is enabled
+        # because the `ScriptRequests._state` is set to `ScriptRequestType.STOP` by the rerun request from the frontend sent during awaiting the lock,
+        # which makes the rerun request refused.
+        # So we call rerun() here. It can be called even in a different thread(run) from the one where the worker is created as long as the condition is met.
+        rerun()
+
     if webrtc_worker and ice_candidates:
         webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
 
