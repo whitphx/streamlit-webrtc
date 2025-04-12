@@ -578,7 +578,6 @@ def webrtc_streamer(
             context._set_worker(None)
             context._is_sdp_answer_sent = False
             context._sdp_answer_json = None
-            webrtc_worker_to_stop = None
             # Rerun to unset the SDP answer from the frontend args
             rerun()
 
