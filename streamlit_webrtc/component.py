@@ -485,8 +485,6 @@ def webrtc_streamer(
         )
         context._frontend_rtc_configuration["iceServers"] = get_available_ice_servers()
 
-    webrtc_worker = context._get_worker()
-
     if context._sdp_answer_json:
         # Set the flag not to trigger rerun() any more as `context._sdp_answer_json` is already set and will have been sent to the frontend in this run.
         context._is_sdp_answer_sent = True
@@ -564,6 +562,8 @@ def webrtc_streamer(
     if component_value:
         sdp_offer = component_value.get("sdpOffer")
         ice_candidates = component_value.get("iceCandidates")
+
+    webrtc_worker = context._get_worker()
 
     if not context.state.playing and not context.state.signalling:
         LOGGER.debug(
