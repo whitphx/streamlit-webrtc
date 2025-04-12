@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.62.2] - 2025-04-12
+
+### Fixed
+
+- Fix a bug that the answer SDP is not sent to the worker, [#2032](https://github.com/whitphx/streamlit-webrtc/pull/2032).
+
 ## [0.62.1] - 2025-04-12
 
 ### Fixed
