@@ -226,6 +226,7 @@ export const useWebRtc = (
     props.rtcConfiguration,
     state.webRtcState,
     onDevicesOpened,
+    uniqueIdGenerator,
   ]);
 
   // processAnswer
