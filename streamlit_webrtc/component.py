@@ -95,6 +95,8 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _component_value_snapshot: Union[ComponentValueSnapshot, None]
     _worker_creation_lock: threading.Lock
     _frontend_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]]
+    _sdp_answer_json: Optional[str]
+    _sdp_answer_sent: bool
 
     def __init__(
         self,
@@ -106,6 +108,8 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._component_value_snapshot = None
         self._worker_creation_lock = threading.Lock()
         self._frontend_rtc_configuration = None
+        self._sdp_answer_json = None
+        self._sdp_answer_sent = False
 
     def _set_worker(
         self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
@@ -203,9 +207,6 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     def output_audio_track(self) -> Optional[MediaStreamTrack]:
         worker = self._get_worker()
         return worker.output_audio_track if worker else None
-
-    _sdp_answer_json: Optional[str] = None
-    _sdp_answer_sent: bool = False
 
 
 def generate_frontend_component_key(original_key: str) -> str:
