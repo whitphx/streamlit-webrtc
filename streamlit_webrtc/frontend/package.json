@@ -24,7 +24,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "streamlit-component-lib-react-hooks": "^2.1.0",
-    "webrtc-adapter": "^9.0.1"
+    "webrtc-adapter": "^9.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
