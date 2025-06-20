@@ -81,10 +81,10 @@ class VideoSourceTrack(MediaStreamTrack):
 
 class AudioSourceTrack(MediaStreamTrack):
     def __init__(
-        self, 
-        callback: AudioSourceCallback, 
+        self,
+        callback: AudioSourceCallback,
         sample_rate: int = AUDIO_SAMPLE_RATE,
-        ptime: float = AUDIO_PTIME
+        ptime: float = AUDIO_PTIME,
     ) -> None:
         super().__init__()
         self.kind = "audio"
@@ -111,9 +111,7 @@ class AudioSourceTrack(MediaStreamTrack):
 
             wait = self._started_at + (self._pts / self._sample_rate) - time.monotonic()
             if wait < 0:
-                logger.warning(
-                    "AudioSourceTrack: Audio frame callback is too slow."
-                )
+                logger.warning("AudioSourceTrack: Audio frame callback is too slow.")
                 wait = 0
             await asyncio.sleep(wait)
 

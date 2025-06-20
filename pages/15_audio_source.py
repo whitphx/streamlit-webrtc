@@ -1,6 +1,4 @@
 import fractions
-import math
-import time
 
 import av
 import numpy as np
@@ -8,7 +6,9 @@ import streamlit as st
 from streamlit_webrtc import WebRtcMode, create_audio_source_track, webrtc_streamer
 
 st.title("Audio Source Track Demo")
-st.write("This demo shows how to programmatically generate audio using AudioSourceTrack.")
+st.write(
+    "This demo shows how to programmatically generate audio using AudioSourceTrack."
+)
 
 # Audio generation parameters
 frequency = st.slider("Frequency (Hz)", 200, 2000, 440, 10)
@@ -21,15 +21,16 @@ channels = 1
 ptime = 0.020  # 20ms packets
 samples_per_frame = int(sample_rate * ptime)
 
+
 def audio_source_callback(pts: int, time_base: fractions.Fraction) -> av.AudioFrame:
     """Generate audio frames with the selected waveform."""
     pts_sec = pts * time_base
-    
+
     # Generate time array for this frame
     t_start = pts_sec
     t_end = pts_sec + ptime
     t = np.linspace(t_start, t_end, samples_per_frame, False)
-    
+
     # Generate waveform based on selected type
     if wave_type == "sine":
         audio_data = np.sin(2 * np.pi * frequency * t)
@@ -41,30 +42,32 @@ def audio_source_callback(pts: int, time_base: fractions.Fraction) -> av.AudioFr
         audio_data = 2 * (frequency * t - np.floor(frequency * t + 0.5))
     else:
         audio_data = np.sin(2 * np.pi * frequency * t)
-    
+
     # Apply volume and ensure proper range
     audio_data = audio_data * volume
-    
+
     # Convert to int16 format
     audio_data = (audio_data * 32767).astype(np.int16)
-    
+
     # Create audio frame
     frame = av.AudioFrame.from_ndarray(
         audio_data.reshape(1, -1),  # Shape: (channels, samples)
         format="s16",
-        layout="mono"
+        layout="mono",
     )
     frame.sample_rate = sample_rate
-    
+
     return frame
+
 
 # Create audio source track
 audio_source_track = create_audio_source_track(
-    audio_source_callback, 
-    key="audio_source_track", 
+    audio_source_callback,
+    key="audio_source_track",
     sample_rate=sample_rate,
-    ptime=ptime
+    ptime=ptime,
 )
+
 
 def on_change():
     """Handle state changes."""
@@ -73,8 +76,11 @@ def on_change():
     if stopped:
         audio_source_track.stop()  # Manually stop the track
 
+
 st.write("Click 'START' to begin audio generation. You should hear the generated tone.")
-st.warning("⚠️ Make sure your speakers/headphones are at a reasonable volume before starting!")
+st.warning(
+    "⚠️ Make sure your speakers/headphones are at a reasonable volume before starting!"
+)
 
 # WebRTC streamer in RECVONLY mode to output the generated audio
 webrtc_streamer(
