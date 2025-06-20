@@ -64,7 +64,7 @@ from .webrtc import (
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.NullHandler())
 
-_RELEASE = True  # TODO: How to dynamically manage this variable?
+_RELEASE = False  # TODO: How to dynamically manage this variable?
 
 if not _RELEASE:
     _component_func = components.declare_component(

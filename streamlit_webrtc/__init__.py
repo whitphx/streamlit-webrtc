@@ -21,9 +21,9 @@ from .credentials import (
     get_hf_ice_servers,
     get_twilio_ice_servers,
 )
-from .factory import create_mix_track, create_process_track, create_video_source_track
+from .factory import create_audio_source_track, create_mix_track, create_process_track, create_video_source_track
 from .mix import MediaStreamMixTrack, MixerCallback
-from .source import VideoSourceCallback, VideoSourceTrack
+from .source import AudioSourceCallback, AudioSourceTrack, VideoSourceCallback, VideoSourceTrack
 from .webrtc import (
     AudioProcessorBase,
     AudioProcessorFactory,
@@ -64,7 +64,10 @@ __all__ = [
     "VideoReceiver",
     "VideoSourceTrack",
     "VideoSourceCallback",
+    "AudioSourceTrack",
+    "AudioSourceCallback",
     "create_video_source_track",
+    "create_audio_source_track",
     "WebRtcMode",
     "WebRtcWorker",
     "MediaStreamConstraints",

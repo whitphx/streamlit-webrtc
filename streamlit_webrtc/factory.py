@@ -25,7 +25,7 @@ from .process import (
     VideoProcessTrack,
 )
 from .relay import get_global_relay
-from .source import VideoSourceCallback, VideoSourceTrack
+from .source import AudioSourceCallback, AudioSourceTrack, VideoSourceCallback, VideoSourceTrack
 
 _PROCESSOR_TRACK_CACHE_KEY_PREFIX = "__PROCESSOR_TRACK_CACHE__"
 
@@ -204,3 +204,32 @@ def create_video_source_track(
         video_source_track = VideoSourceTrack(callback=callback, fps=fps)
         st.session_state[cache_key] = video_source_track
     return video_source_track
+
+
+_AUDIO_SOURCE_TRACK_CACHE_KEY_PREFIX = "__AUDIO_SOURCE_TRACK_CACHE__"
+
+
+def create_audio_source_track(
+    callback: AudioSourceCallback,
+    key: str,
+    sample_rate: int = 48000,
+    ptime: float = 0.020,
+) -> AudioSourceTrack:
+    cache_key = _AUDIO_SOURCE_TRACK_CACHE_KEY_PREFIX + key
+    if (
+        cache_key in st.session_state
+        and isinstance(st.session_state[cache_key], AudioSourceTrack)
+        and st.session_state[cache_key].kind == "audio"
+        and st.session_state[cache_key].readyState == "live"
+    ):
+        audio_source_track: AudioSourceTrack = st.session_state[cache_key]
+        audio_source_track._callback = callback
+        audio_source_track._sample_rate = sample_rate
+        audio_source_track._ptime = ptime
+        audio_source_track._samples_per_frame = int(sample_rate * ptime)
+    else:
+        audio_source_track = AudioSourceTrack(
+            callback=callback, sample_rate=sample_rate, ptime=ptime
+        )
+        st.session_state[cache_key] = audio_source_track
+    return audio_source_track
