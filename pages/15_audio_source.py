@@ -27,8 +27,8 @@ def audio_source_callback(pts: int, time_base: fractions.Fraction) -> av.AudioFr
     pts_sec = pts * time_base
 
     # Generate time array for this frame
-    t_start = pts_sec
-    t_end = pts_sec + ptime
+    t_start = float(pts_sec)
+    t_end = t_start + ptime
     t = np.linspace(t_start, t_end, samples_per_frame, False)
 
     # Generate waveform based on selected type
