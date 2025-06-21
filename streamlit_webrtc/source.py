@@ -71,6 +71,7 @@ class VideoSourceTrack(MediaStreamTrack):
             logger.error(
                 "VideoSourceCallbackTrack: Video frame callback raised an exception: %s",  # noqa: E501
                 exc,
+                exc_info=True,
             )
             raise
 
