@@ -124,6 +124,7 @@ class AudioSourceTrack(MediaStreamTrack):
             logger.error(
                 "AudioSourceTrack: Audio frame callback raised an exception: %s",
                 exc,
+                exc_info=True,
             )
             raise
 
