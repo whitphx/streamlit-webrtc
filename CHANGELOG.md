@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.63.0] - 2025-06-21
+
+### Added
+
+- Add `AudioSourceTrack` that allows to send programatically generated audio data from the server side, [#2101](https://github.com/whitphx/streamlit-webrtc/pull/2101).
+
 ## [0.62.4] - 2025-04-12
 
 ### Fixed
