@@ -30,8 +30,8 @@ importers:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       streamlit-component-lib-react-hooks:
-        specifier: ^2.1.0
-        version: 2.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^2.1.1
+        version: 2.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       webrtc-adapter:
         specifier: ^9.0.3
         version: 9.0.3
@@ -1012,8 +1012,9 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
-  '@types/flatbuffers@1.10.3':
-    resolution: {integrity: sha512-kwJQsAROanCiMXSLjcTLmYVBIJ9Qyuqs92SaDIcj2EII2KnDgZbiU7it1Z/JfZd1gmxw/lAahMysQ6ZM+j3Ryw==}
+  '@types/flatbuffers@2.0.1':
+    resolution: {integrity: sha512-0Pdzoj3m2eiwaoBjpTUHigqob0NYLApeiojoksTh20GLz2ASVepYhD25TC91SgUGJHgD3kUrpZOnKYXq/ZLOaw==}
+    deprecated: This is a stub types definition. flatbuffers provides its own type definitions, so you do not need this installed.
 
   '@types/hast@3.0.4':
     resolution: {integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==}
@@ -3056,8 +3057,8 @@ packages:
   std-env@3.9.0:
     resolution: {integrity: sha512-UGvjygr6F6tpH7o2qyqR6QYpwraIjKSdtzyBdyytFOHmPZY917kwdwLG0RbOjWOnKmnm3PeHjaoLLMie7kPLQw==}
 
-  streamlit-component-lib-react-hooks@2.1.0:
-    resolution: {integrity: sha512-hf/zlbPnBnpSxslHOeaJqlo6iLCTx1PCroOAXYyavkaR4QmNPMAJ/iG9yXBCFh9COsd1uwJKhYP3un7L8AcWtQ==}
+  streamlit-component-lib-react-hooks@2.1.1:
+    resolution: {integrity: sha512-ALgNmyImdEXpaMDHFsU/63ypZS7NlXUkj6vDltBCG8spNIfmvK2trd3TOywCQSV3NaDLxMtQmVLyM9LBqm7TBQ==}
     peerDependencies:
       react: ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -3216,8 +3217,8 @@ packages:
       typescript:
         optional: true
 
-  tslib@2.6.2:
-    resolution: {integrity: sha512-AEYxH93jGFPn/a2iVAwW87VuUIkR1FVUKB77NwMF7nBTDkDrrT/Hpt/IrCJ0QXhW27jTBDcf5ZY7w6RiqTMw2Q==}
+  tslib@2.8.1:
+    resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
   tsscmp@1.0.6:
     resolution: {integrity: sha512-LxhtAkPDTkVCMQjt2h6eBVY28KCjikZqZfMcC15YBeNjkgUpdCfBu5HoiOTDu86v6smE8yOjyEktJ8hlbANHQA==}
@@ -4493,7 +4494,9 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
-  '@types/flatbuffers@1.10.3': {}
+  '@types/flatbuffers@2.0.1':
+    dependencies:
+      flatbuffers: 2.0.4
 
   '@types/hast@3.0.4':
     dependencies:
@@ -4748,7 +4751,7 @@ snapshots:
     dependencies:
       '@types/command-line-args': 5.2.0
       '@types/command-line-usage': 5.0.2
-      '@types/flatbuffers': 1.10.3
+      '@types/flatbuffers': 2.0.1
       '@types/node': 18.7.23
       '@types/pad-left': 2.1.1
       command-line-args: 5.2.1
@@ -4756,7 +4759,7 @@ snapshots:
       flatbuffers: 2.0.4
       json-bignum: 0.0.3
       pad-left: 2.1.0
-      tslib: 2.6.2
+      tslib: 2.8.1
 
   argparse@2.0.1: {}
 
@@ -7159,7 +7162,7 @@ snapshots:
 
   std-env@3.9.0: {}
 
-  streamlit-component-lib-react-hooks@2.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  streamlit-component-lib-react-hooks@2.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -7337,7 +7340,7 @@ snapshots:
     optionalDependencies:
       typescript: 5.8.3
 
-  tslib@2.6.2: {}
+  tslib@2.8.1: {}
 
   tsscmp@1.0.6: {}
 
