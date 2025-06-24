@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.63.1] - 2025-06-24
+
+### Fixed
+
+- Update `aioice` to `>=0.10.1` so that some debug logs are not wrongly printed, [#2111](https://github.com/whitphx/streamlit-webrtc/pull/2111).
+
 ## [0.63.0] - 2025-06-21
 
 ### Added
