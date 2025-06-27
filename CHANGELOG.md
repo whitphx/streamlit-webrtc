@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.63.2] - 2025-06-27
+
+### Fixed
+
+- Fix the way to print the error message from the worker thread and the mixer coroutines, [#2117](https://github.com/whitphx/streamlit-webrtc/pull/2117).
+- Fix `AsyncMediaProcessTrack` to propagate the error from the worker thread to `aiortc` thread, [#2118](https://github.com/whitphx/streamlit-webrtc/pull/2118).
+- Fix the way `AsyncMediaProcessTrack` handles the input track ending, [#2120](https://github.com/whitphx/streamlit-webrtc/pull/2120).
+
 ## [0.63.1] - 2025-06-24
 
 ### Fixed
