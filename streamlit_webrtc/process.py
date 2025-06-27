@@ -85,6 +85,12 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self._worker_exception_lock = threading.Lock()
         self._worker_exception: Optional[Exception] = None
 
+        def on_input_track_ended():
+            logger.debug("Input track %s ended. Stop self %s", self.track, self)
+            self.stop()
+
+        self.track.on("ended", on_input_track_ended)
+
     def _start(self) -> None:
         if self._thread:
             return
@@ -99,12 +105,6 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             daemon=True,
         )
         self._thread.start()
-
-        def on_input_track_ended():
-            logger.debug("Input track %s ended. Stop self %s", self.track, self)
-            self.stop()
-
-        self.track.on("ended", on_input_track_ended)
 
     def _run_worker_thread(self):
         try:
