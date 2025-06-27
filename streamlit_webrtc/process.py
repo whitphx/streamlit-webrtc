@@ -226,7 +226,9 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             if self._worker_exception:
                 exception_to_raise = self._worker_exception
                 self._worker_exception = None
-                raise exception_to_raise.with_traceback(exception_to_raise.__traceback__)
+                raise exception_to_raise.with_traceback(
+                    exception_to_raise.__traceback__
+                )
 
         self._start()
 
