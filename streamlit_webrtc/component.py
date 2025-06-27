@@ -94,7 +94,6 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
 
     _component_value_snapshot: Union[ComponentValueSnapshot, None]
     _worker_creation_lock: threading.Lock
-    _frontend_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]]
     _sdp_answer_json: Optional[str]
     _is_sdp_answer_sent: bool
 
@@ -107,7 +106,6 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._set_state(state)
         self._component_value_snapshot = None
         self._worker_creation_lock = threading.Lock()
-        self._frontend_rtc_configuration = None
         self._sdp_answer_json = None
         self._is_sdp_answer_sent = False
 
@@ -220,6 +218,25 @@ def compile_state(component_value) -> WebRtcStreamerState:
     playing = component_value.get("playing", False)
     signalling = bool(component_value.get("sdpOffer"))
     return WebRtcStreamerState(playing=playing, signalling=signalling)
+
+
+@st.cache_data
+def get_frontend_rtc_configuration(
+    user_frontend_rtc_configuration: Optional[
+        Union[Dict[str, Any], RTCConfiguration]
+    ] = None,
+) -> Union[Dict[str, Any], RTCConfiguration]:
+    config = (
+        copy.deepcopy(user_frontend_rtc_configuration)
+        if user_frontend_rtc_configuration
+        else {}
+    )
+    if config.get("iceServers") is None:
+        LOGGER.info(
+            "frontend_rtc_configuration.iceServers is not set. Try to set it automatically."
+        )
+        config["iceServers"] = get_available_ice_servers()
+    return config
 
 
 @overload
@@ -475,16 +492,6 @@ def webrtc_streamer(
         )
         st.session_state[key] = context
 
-    if context._frontend_rtc_configuration is None:
-        context._frontend_rtc_configuration = copy.deepcopy(frontend_rtc_configuration)
-    if context._frontend_rtc_configuration is None:
-        context._frontend_rtc_configuration = {}
-    if context._frontend_rtc_configuration.get("iceServers") is None:
-        LOGGER.info(
-            "frontend_rtc_configuration.iceServers is not set. Try to set it automatically."
-        )
-        context._frontend_rtc_configuration["iceServers"] = get_available_ice_servers()
-
     if context._sdp_answer_json:
         # Set the flag not to trigger rerun() any more as `context._sdp_answer_json` is already set and will have been sent to the frontend in this run.
         context._is_sdp_answer_sent = True
@@ -514,7 +521,7 @@ def webrtc_streamer(
         key=frontend_key,
         sdp_answer_json=context._sdp_answer_json,
         mode=mode.name,
-        rtc_configuration=context._frontend_rtc_configuration,
+        rtc_configuration=get_frontend_rtc_configuration(frontend_rtc_configuration),
         media_stream_constraints=media_stream_constraints,
         video_html_attrs=video_html_attrs,
         audio_html_attrs=audio_html_attrs,
@@ -568,8 +575,6 @@ def webrtc_streamer(
             "The frontend state is neither playing nor signalling (key=%s).",
             key,
         )
-
-        context._frontend_rtc_configuration = None
 
         webrtc_worker_to_stop = context._get_worker()
         if webrtc_worker_to_stop:
