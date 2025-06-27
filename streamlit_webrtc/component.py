@@ -30,7 +30,7 @@ from streamlit_webrtc.models import (
     VideoFrameCallback,
 )
 
-from ._compat import VER_GTE_1_36_0, rerun
+from ._compat import VER_GTE_1_36_0, cache_data, rerun
 from .components_callbacks import register_callback
 from .config import (
     DEFAULT_AUDIO_HTML_ATTRS,
@@ -220,7 +220,7 @@ def compile_state(component_value) -> WebRtcStreamerState:
     return WebRtcStreamerState(playing=playing, signalling=signalling)
 
 
-@st.cache_data
+@cache_data
 def get_frontend_rtc_configuration(
     user_frontend_rtc_configuration: Optional[
         Union[Dict[str, Any], RTCConfiguration]
