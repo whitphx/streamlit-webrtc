@@ -82,6 +82,8 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
 
         self._thread: Optional[threading.Thread] = None
 
+        self._worker_exception: Optional[Exception] = None
+
     def _start(self) -> None:
         if self._thread:
             return
@@ -108,6 +110,8 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             self._worker_thread()
         except Exception as exc:
             logger.error("Error occurred in the WebRTC thread: %s", exc, exc_info=True)
+
+            self._worker_exception = exc
 
     async def _fallback_recv_queued(self, frames: List[FrameT]) -> List[FrameT]:
         """
@@ -216,6 +220,9 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
     async def recv(self):
         if self.readyState != "live":
             raise MediaStreamError
+
+        if self._worker_exception:
+            raise self._worker_exception
 
         self._start()
 
