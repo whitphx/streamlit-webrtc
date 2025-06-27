@@ -2,10 +2,8 @@ import asyncio
 import fractions
 import functools
 import logging
-import sys
 import threading
 import time
-import traceback
 import weakref
 from collections import OrderedDict
 from typing import Callable, Generic, List, NamedTuple, Optional, Union, cast
@@ -106,11 +104,12 @@ async def mix_coro(mix_track: "MediaStreamMixTrack"):
                     output_frame.pts = int(timestamp * AUDIO_SAMPLE_RATE)
                     output_frame.time_base = AUDIO_TIME_BASE
 
-        except Exception:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            for tb in traceback.format_exception(exc_type, exc_value, exc_traceback):
-                for tbline in tb.rstrip().splitlines():
-                    LOGGER.error(tbline.rstrip())
+        except Exception as exc:
+            LOGGER.error(
+                "Error occurred in the WebRTC mixer task: %s", exc, exc_info=True
+            )
+            raise exc
+
         mix_track._queue.put_nowait(output_frame)
 
         wait = this_iter_start_time + mix_track.mixer_output_interval - time.monotonic()
