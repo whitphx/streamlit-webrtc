@@ -224,7 +224,9 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
 
         with self._worker_exception_lock:
             if self._worker_exception:
-                raise self._worker_exception
+                exception_to_raise = self._worker_exception
+                self._worker_exception = None
+                raise exception_to_raise
 
         self._start()
 
