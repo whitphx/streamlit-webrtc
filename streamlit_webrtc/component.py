@@ -221,7 +221,7 @@ def compile_state(component_value) -> WebRtcStreamerState:
 
 
 @cache_data
-def get_frontend_rtc_configuration(
+def enhance_frontend_rtc_configuration(
     user_frontend_rtc_configuration: Optional[
         Union[Dict[str, Any], RTCConfiguration]
     ] = None,
@@ -521,7 +521,9 @@ def webrtc_streamer(
         key=frontend_key,
         sdp_answer_json=context._sdp_answer_json,
         mode=mode.name,
-        rtc_configuration=get_frontend_rtc_configuration(frontend_rtc_configuration),
+        rtc_configuration=enhance_frontend_rtc_configuration(
+            frontend_rtc_configuration
+        ),
         media_stream_constraints=media_stream_constraints,
         video_html_attrs=video_html_attrs,
         audio_html_attrs=audio_html_attrs,
