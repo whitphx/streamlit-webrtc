@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.63.3] - 2025-06-28
+
+### Fixed
+
+- Fix the RTC config getter, [#2121](https://github.com/whitphx/streamlit-webrtc/pull/2121).
+
 ## [0.63.2] - 2025-06-27
 
 ### Fixed
