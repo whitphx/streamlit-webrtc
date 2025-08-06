@@ -70,20 +70,13 @@ TWILIO_CRED_TTL = 3600  # 1 hour. Twilio's default is 1 day. Shorter TTL should 
 
 
 @cache_data(ttl=TWILIO_CRED_TTL)
-def get_twilio_ice_servers(
-    twilio_sid: Optional[str] = None, twilio_token: Optional[str] = None
-) -> List[RTCIceServer]:
+def get_twilio_ice_servers(twilio_sid: str, twilio_token: str) -> List[RTCIceServer]:
     try:
         from twilio.rest import Client
     except ImportError:
-        raise ImportError("Please install twilio with `pip install twilio`")
-
-    if not twilio_sid and not twilio_token:
-        twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
-        twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
-
-    if twilio_sid is None or twilio_token is None:
-        raise ValueError("TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set")
+        raise ImportError(
+            "Twilio library is not installed. Please install it with `pip install twilio`"
+        )
 
     client = Client(twilio_sid, twilio_token)
 
@@ -94,6 +87,25 @@ def get_twilio_ice_servers(
 
 @cache_data(ttl=min(HF_ICE_SERVER_TTL, TWILIO_CRED_TTL))
 def get_available_ice_servers() -> List[RTCIceServer]:
+    twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
+    if twilio_sid and not twilio_token:
+        LOGGER.warning(
+            "TWILIO_ACCOUNT_SID is set but TWILIO_AUTH_TOKEN is not. "
+            "Twilio's STUN/TURN servers will not be used."
+        )
+    elif twilio_token and not twilio_sid:
+        LOGGER.warning(
+            "TWILIO_AUTH_TOKEN is set but TWILIO_ACCOUNT_SID is not. "
+            "Twilio's STUN/TURN servers will not be used."
+        )
+    if twilio_sid and twilio_token:
+        LOGGER.info("Twilio credentials found, using Twilio's STUN/TURN servers.")
+        try:
+            return get_twilio_ice_servers(twilio_sid, twilio_token)
+        except Exception as e:
+            LOGGER.warning("Failed to get TURN credentials from Twilio: %s", e)
+
     try:
         LOGGER.info("Try to use TURN server from Hugging Face.")
         hf_turn_servers = get_hf_ice_servers()
@@ -105,14 +117,6 @@ def get_available_ice_servers() -> List[RTCIceServer]:
         return ice_servers
     except Exception as e:
         LOGGER.info("Failed to get TURN credentials from Hugging Face: %s", e)
-
-    try:
-        LOGGER.info("Try to use STUN/TURN server from Twilio.")
-        ice_servers = get_twilio_ice_servers()
-        LOGGER.info("Successfully got STUN/TURN credentials from Twilio.")
-        return ice_servers
-    except Exception as e:
-        LOGGER.info("Failed to get TURN credentials from Twilio: %s", e)
 
     # NOTE: aiortc anyway uses this STUN server by default if the ICE server config is not set.
     # Ref: https://github.com/aiortc/aiortc/blob/3ff9bdd03f22bf511a8d304df30f29392338a070/src/aiortc/rtcicetransport.py#L204-L209
