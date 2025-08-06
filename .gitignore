@@ -142,6 +142,9 @@ cython_debug/
 # Streamlit secrets
 .streamlit/secrets.toml
 
+# direnv
+.envrc
+
 # Demo data
 models/
 data/
