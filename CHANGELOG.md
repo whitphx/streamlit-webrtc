@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.63.4] - 2025-08-06
+
+### Fixed
+
+- Better warning messages for auto-configured credentials, [#2158](https://github.com/whitphx/streamlit-webrtc/pull/2158).
+
 ## [0.63.3] - 2025-06-28
 
 ### Fixed
