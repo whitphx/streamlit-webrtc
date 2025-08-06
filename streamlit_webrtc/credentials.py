@@ -28,7 +28,7 @@ import logging
 import os
 import urllib.error
 import urllib.request
-from typing import List, Optional
+from typing import List
 
 from ._compat import cache_data
 from .config import RTCIceServer
@@ -40,12 +40,9 @@ HF_ICE_SERVER_TTL = 3600  # 1 hour. Not sure if this is the best value.
 
 
 @cache_data(ttl=HF_ICE_SERVER_TTL)
-def get_hf_ice_servers(token: Optional[str] = None) -> List[RTCIceServer]:
-    if token is None:
-        token = os.getenv("HF_TOKEN")
-
-    if token is None:
-        raise ValueError("HF_TOKEN is not set")
+def get_hf_ice_servers(token: str) -> List[RTCIceServer]:
+    if not token:
+        raise ValueError("Hugging Face API token is not set")
 
     req = urllib.request.Request(
         "https://fastrtc-turn-server-login.hf.space/credentials",
@@ -106,17 +103,21 @@ def get_available_ice_servers() -> List[RTCIceServer]:
         except Exception as e:
             LOGGER.warning("Failed to get TURN credentials from Twilio: %s", e)
 
-    try:
-        LOGGER.info("Try to use TURN server from Hugging Face.")
-        hf_turn_servers = get_hf_ice_servers()
-        LOGGER.info("Successfully got TURN credentials from Hugging Face.")
-        LOGGER.info("Using TURN server from Hugging Face and STUN server from Google.")
-        ice_servers = hf_turn_servers + [
-            RTCIceServer(urls="stun:stun.l.google.com:19302"),
-        ]
-        return ice_servers
-    except Exception as e:
-        LOGGER.info("Failed to get TURN credentials from Hugging Face: %s", e)
+    hf_token = os.getenv("HF_TOKEN")
+    if hf_token:
+        LOGGER.info("Hugging Face token found, using Hugging Face's STUN/TURN servers.")
+        try:
+            hf_turn_servers = get_hf_ice_servers(hf_token)
+            LOGGER.info("Successfully got TURN credentials from Hugging Face.")
+            LOGGER.info(
+                "Using TURN server from Hugging Face and STUN server from Google."
+            )
+            ice_servers = hf_turn_servers + [
+                RTCIceServer(urls="stun:stun.l.google.com:19302"),
+            ]
+            return ice_servers
+        except Exception as e:
+            LOGGER.warning("Failed to get TURN credentials from Hugging Face: %s", e)
 
     # NOTE: aiortc anyway uses this STUN server by default if the ICE server config is not set.
     # Ref: https://github.com/aiortc/aiortc/blob/3ff9bdd03f22bf511a8d304df30f29392338a070/src/aiortc/rtcicetransport.py#L204-L209
