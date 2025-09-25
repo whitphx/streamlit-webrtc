@@ -4,6 +4,12 @@ theme:
   name: material
 
 markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
   - pymdownx.snippets:
       base_path: ['./docs']
       check_paths: true
@@ -12,6 +18,3 @@ markdown_extensions:
       # however, currently `pymdownx.snippets` is officially documented by Material for MkDocs and
       # it has the compatible features to what FastAPI chose `mdx_include` for, which are importing regions and adjusting indentation levels,
       # so I think we can simply choose `pymdownx.snippets` now.
-
-hooks:
-  - docs/hooks/remove_trailing_line.py
