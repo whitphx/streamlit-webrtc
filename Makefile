@@ -14,6 +14,14 @@ format:
 	$(MAKE) format/backend
 	$(MAKE) format/frontend
 
+check/docs:
+	uv run mypy docs/examples/
+	uv run ruff check docs/examples/
+
+format/docs:
+	uv run ruff format docs/examples/
+	uv run ruff check docs/examples/ --fix
+
 release/patch:
 	$(MAKE) version=patch release
 
