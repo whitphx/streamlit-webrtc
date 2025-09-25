@@ -1,0 +1,4 @@
+site_name: Streamlit-WebRTC
+site_url: https://whitphx.github.io/streamlit-webrtc
+theme:
+  name: material
