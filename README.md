@@ -206,8 +206,10 @@ See the following sections.
 ### HTTPS
 `streamlit-webrtc` uses [`getUserMedia()`](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia) API to access local media devices, and this method does not work in an insecure context.
 
-[This document](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#privacy_and_security) says
+[This document](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#privacy_and_security) says [^1]
 > A secure context is, in short, a page loaded using HTTPS or the file:/// URL scheme, or a page loaded from localhost.
+
+[^1]: For more details about [This document](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts) explains the concept of secure context in detail.
 
 So, when hosting your app on a remote server, it must be served via HTTPS if your app is using webcam or microphone.
 If not, you will encounter an error when starting using the device. For example, it's something like below on Chrome.
