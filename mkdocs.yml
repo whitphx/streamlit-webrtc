@@ -5,7 +5,7 @@ theme:
 
 markdown_extensions:
   - pymdownx.snippets:
-      base_path: ['.']
+      base_path: ['./docs']
       # FastAPI's documentation is a great reference and it uses `mdx_include` for the same purpose, importing external snippets. ref: https://github.com/fastapi/fastapi/pull/3648
       # I think it's because `pymdownx.snippets` was not available or not announced to be supported at the moment,
       # however, currently `pymdownx.snippets` is officially documented by Material for MkDocs and

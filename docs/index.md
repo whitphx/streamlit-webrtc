@@ -14,13 +14,13 @@ Transform your Streamlit applications with live video and audio streams. `stream
 ## 🚀 Quick Start
 
 ```python
---8<-- "docs/examples/quick_start.py"
+--8<-- "./examples/quick_start.py"
 ```
 
 ## 🎯 Perfect For
 
 - **ML Engineers** building interactive demos
-- **Researchers** prototyping computer vision applications  
+- **Researchers** prototyping computer vision applications
 - **Developers** creating real-time web experiences
 - **Educators** teaching with live examples
 
