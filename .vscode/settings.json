@@ -12,6 +12,7 @@
     "tag:yaml.org,2002:python/object/apply:pymdownx.slugs.slugify mapping"
   ],
   "cSpell.words": [
-    "pymdownx"
+    "pymdownx",
+    "streamlit"
   ]
 }
