@@ -19,6 +19,11 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to system preference
+  icon:
+    repo: fontawesome/brands/github
+
+repo_url: https://github.com/whitphx/streamlit-webrtc
+repo_name: whitphx/streamlit-webrtc
 
 markdown_extensions:
   - pymdownx.highlight:
