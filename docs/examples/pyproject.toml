@@ -1,0 +1,5 @@
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["streamlit_webrtc"]
