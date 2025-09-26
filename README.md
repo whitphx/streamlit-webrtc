@@ -319,12 +319,13 @@ Also, `webrtc_streamer()`'s `video_transformer_factory` and `async_transform` ar
 See the samples in [app.py](./app.py) for their usage.
 
 ## Resources
-* [Developing web-based real-time video/audio processing apps quickly with Streamlit](https://www.whitphx.info/posts/20211231-streamlit-webrtc-video-app-tutorial/)
+* [📖 Developing web-based real-time video/audio processing apps quickly with Streamlit](https://www.whitphx.info/posts/20211231-streamlit-webrtc-video-app-tutorial/)
   * A tutorial for real-time video app development using `streamlit-webrtc`.
   * Crosspost on dev.to: https://dev.to/whitphx/developing-web-based-real-time-videoaudio-processing-apps-quickly-with-streamlit-4k89
-* [New Component: streamlit-webrtc, a new way to deal with real-time media streams (Streamlit Community)](https://discuss.streamlit.io/t/new-component-streamlit-webrtc-a-new-way-to-deal-with-real-time-media-streams/8669)
+* [📖 New Component: streamlit-webrtc, a new way to deal with real-time media streams (Streamlit Community)](https://discuss.streamlit.io/t/new-component-streamlit-webrtc-a-new-way-to-deal-with-real-time-media-streams/8669)
   * This is a forum topic where `streamlit-webrtc` has been introduced and discussed about.
-
+* [🎥 Real-time browser-ready computer vision apps with Streamlit, EuroPython 2022](https://www.youtube.com/watch?v=D4F6GKaoLns)
+  * A talk at EuroPython 2022 about `streamlit-webrtc` demonstrating quick development of a real-time computer vision app.
 
 ## Support the project
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D2ERWFG)
