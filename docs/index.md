@@ -6,8 +6,8 @@ Transform your [Streamlit](https://streamlit.io/) applications with live video a
 
 ## ✨ What You Can Build
 
-- **Real-time video apps** - Object detection, image filtering, and video processing
-- **Real-time audio apps** - Live audio filtering, effects processing, and sound analysis
+- **Live video apps** - Object detection, image filtering, and video processing in real-time
+- **Live audio apps** - Live audio filtering, effects processing, and sound analysis in real-time
 - **Recording tools** - Capture video/audio streams with custom processing pipelines
 - **Media streaming** - Stream and transform pre-recorded files or live camera feeds
 - **Interactive demos** - Build engaging ML showcases with immediate visual feedback
