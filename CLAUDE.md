@@ -58,10 +58,6 @@ make format
 
 # Type checking
 uv run mypy .
-
-# Documentation examples quality assurance
-make check/docs      # Type check and lint docs examples
-make format/docs     # Format docs examples
 ```
 
 ### Building
