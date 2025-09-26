@@ -14,13 +14,8 @@ import cv2
 import numpy as np
 import streamlit as st
 from streamlit_session_memo import st_session_memo
-from streamlit_webrtc import (
-    WebRtcMode,
-    webrtc_streamer,
-)
-from streamlit_webrtc import (
-    __version__ as st_webrtc_version,
-)
+from streamlit_webrtc import WebRtcMode, webrtc_streamer
+from streamlit_webrtc import __version__ as st_webrtc_version
 
 from sample_utils.download import download_file
 
