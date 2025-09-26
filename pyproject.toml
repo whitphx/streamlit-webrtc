@@ -36,6 +36,7 @@ dev = [
     "altair<5",
     # For testing older versions of Streamlit: https://discuss.streamlit.io/t/streamlit-run-with-protobuf-error/25632/3
     "protobuf<=3.20",
+    "mkdocs-material>=9.6.20",
 ]
 
 [tool.hatch.version]

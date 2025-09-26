@@ -1,0 +1,42 @@
+site_name: Streamlit-WebRTC
+site_url: https://whitphx.github.io/streamlit-webrtc
+theme:
+  name: material
+  palette:
+    # Light and dark modes
+    # https://squidfunk.github.io/mkdocs-material/setup/changing-the-colors/#system-preference
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  icon:
+    repo: fontawesome/brands/github
+
+repo_url: https://github.com/whitphx/streamlit-webrtc
+repo_name: whitphx/streamlit-webrtc
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: ['./docs']
+      check_paths: true
+      # FastAPI's documentation is a great reference and it uses `mdx_include` for the same purpose, importing external snippets. ref: https://github.com/fastapi/fastapi/pull/3648
+      # I think it's because `pymdownx.snippets` was not available or not announced to be supported at the moment,
+      # however, currently `pymdownx.snippets` is officially documented by Material for MkDocs and
+      # it has the compatible features to what FastAPI chose `mdx_include` for, which are importing regions and adjusting indentation levels,
+      # so I think we can simply choose `pymdownx.snippets` now.
