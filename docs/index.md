@@ -2,14 +2,15 @@
 
 **Real-time video and audio processing in Streamlit apps** ✨
 
-Transform your Streamlit applications with live video and audio streams. `streamlit-webrtc` bridges the gap between web browsers and Python, enabling real-time media processing with WebRTC technology.
+Transform your [Streamlit](https://streamlit.io/) applications with live video and audio streams. `streamlit-webrtc` bridges the gap between web browsers and Python, enabling real-time media processing with WebRTC technology.
 
 ## ✨ What You Can Build
 
-- **Live video filters** - Apply computer vision transformations in real-time
-- **Audio analysis apps** - Process microphone input with machine learning
-- **Interactive demos** - Create engaging ML showcases with live camera feeds
-- **Real-time pipelines** - Build production-ready streaming applications
+- **Real-time video apps** - Object detection, image filtering, and video processing
+- **Real-time audio apps** - Live audio filtering, effects processing, and sound analysis
+- **Recording tools** - Capture video/audio streams with custom processing pipelines
+- **Media streaming** - Stream and transform pre-recorded files or live camera feeds
+- **Interactive demos** - Build engaging ML showcases with immediate visual feedback
 
 ## 🚀 Quick Start
 
