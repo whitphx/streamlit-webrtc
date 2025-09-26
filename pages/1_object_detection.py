@@ -8,6 +8,7 @@ import queue
 from pathlib import Path
 from typing import List, NamedTuple
 
+import aiortc
 import av
 import cv2
 import numpy as np
@@ -16,9 +17,10 @@ from streamlit_session_memo import st_session_memo
 from streamlit_webrtc import (
     WebRtcMode,
     webrtc_streamer,
+)
+from streamlit_webrtc import (
     __version__ as st_webrtc_version,
 )
-import aiortc
 
 from sample_utils.download import download_file
 
