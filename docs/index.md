@@ -15,8 +15,30 @@ Transform your [Streamlit](https://streamlit.io/) applications with live video a
 ## 🚀 Quick Start
 
 ```python
---8<-- "./examples/quick_start.py"
+--8<-- "./examples/simple_loopback.py"
 ```
+
+## 🔧 Processing video/audio streams
+
+Real-time video and audio processing with custom frame callbacks:
+
+=== "Video"
+
+    ```python
+    --8<-- "./examples/video.py"
+    ```
+
+=== "Audio"
+
+    ```python
+    --8<-- "./examples/audio.py"
+    ```
+
+=== "Video & Audio"
+
+    ```python
+    --8<-- "./examples/both.py"
+    ```
 
 ## 🎯 Perfect For
 
