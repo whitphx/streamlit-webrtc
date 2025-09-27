@@ -21,7 +21,7 @@ Transform your [Streamlit](https://streamlit.io/) applications with live video a
 ## 🎯 Perfect For
 
 - **ML Engineers** building interactive demos
-- **Researchers** prototyping computer vision applications
+- **Researchers** prototyping computer vision/audio processing applications
 - **Developers** creating real-time web experiences
 - **Educators** teaching with live examples
 
