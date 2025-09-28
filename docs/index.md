@@ -1,4 +1,4 @@
-# Streamlit-WebRTC
+# Quickstart
 
 **Real-time video and audio processing in Streamlit apps** ✨
 
