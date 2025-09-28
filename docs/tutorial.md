@@ -6,7 +6,7 @@ Learn how to build real-time video processing apps with Streamlit-WebRTC step by
 
 Create `app.py` with the content below:
 
-```python
+```python title="app.py"
 --8<-- "./examples/tutorial/01_basic_usage.py"
 ```
 
@@ -28,7 +28,7 @@ Then, video and audio streaming starts. If asked for permissions to access the c
 
 Next, edit `app.py` as below and run it again:
 
-```python
+```python title="app.py"
 --8<-- "./examples/tutorial/02_video_processing.py"
 ```
 
@@ -48,7 +48,7 @@ You can also pass parameters to the callback.
 
 In the example below, a boolean `flip` flag is used to turn on/off the image flipping:
 
-```python
+```python title="app.py"
 --8<-- "./examples/tutorial/03_parameters.py"
 ```
 
@@ -63,7 +63,7 @@ Note that the callback is executed in a forked thread running independently of t
 
 The following example passes the image frames from the callback to the outer scope and continuously processes them in a loop. In this example, simple image analysis (calculating the histogram) is done on the image frames:
 
-```python
+```python title="app.py"
 --8<-- "./examples/tutorial/04_pull_values.py"
 ```
 
