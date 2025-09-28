@@ -40,6 +40,15 @@ Real-time video and audio processing with custom frame callbacks:
     --8<-- "./examples/both.py"
     ```
 
+### How Frame Callbacks Work
+
+The `video_frame_callback` and `audio_frame_callback` functions are called for each frame of media:
+
+- **`video_frame_callback(frame)`** - Receives an `av.VideoFrame`, processes it, and returns a modified `av.VideoFrame`
+- **`audio_frame_callback(frame)`** - Receives an `av.AudioFrame`, processes it, and returns a modified `av.AudioFrame`
+
+These callbacks run in real-time as media flows through your app, allowing you to apply computer vision, audio effects, or any custom processing frame-by-frame.
+
 ## 🎯 Perfect For
 
 - **ML Engineers** building interactive demos
