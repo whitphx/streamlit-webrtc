@@ -111,21 +111,6 @@ The [WebRTC sample app hosted on Community Cloud](https://webrtc.streamlit.app/)
 3. Add TURN server credentials to secrets (if needed)
 4. Deploy automatically with HTTPS enabled
 
-### Docker Deployment
-
-```dockerfile
-FROM python:3.9-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY . .
-EXPOSE 8501
-
-CMD ["streamlit", "run", "your_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
-```
-
 ### Other Cloud Platforms
 
 When deploying to other platforms (AWS, GCP, Azure, etc.):
