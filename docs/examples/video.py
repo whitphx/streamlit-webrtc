@@ -11,10 +11,10 @@ def video_frame_callback(frame):
     img = frame.to_ndarray(format="bgr24")
 
     # Apply flip transformation if enabled
-    new_img = img[::-1, :, :] if flip else img
+    img = img[::-1, :, :] if flip else img
 
     # Create new frame with processed video
-    return av.VideoFrame.from_ndarray(new_img, format="bgr24")
+    return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 
 webrtc_streamer(
