@@ -9,7 +9,7 @@ volume = st.slider("Volume", 0.0, 2.0, 1.0, 0.1)
 def audio_frame_callback(frame: av.AudioFrame) -> av.AudioFrame:
     # Apply volume control to audio samples
     samples = frame.to_ndarray()
-    samples = (samples * volume).astype(samples.dtype)
+    samples = (volume * samples).astype(samples.dtype)  # type: ignore
 
     # Create new frame with processed audio
     new_frame = av.AudioFrame.from_ndarray(samples, layout=frame.layout.name)
