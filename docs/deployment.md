@@ -29,10 +29,10 @@ If not, you will encounter an error when starting to use the device. For example
 
 ```bash
 # Assume your app is running on http://localhost:8501
-streamlit run your_app.py  
+streamlit run your_app.py
 
 # Then, after downloading the binary from the GitHub page above to ./ssl-proxy
-./ssl-proxy -from 0.0.0.0:8000 -to 127.0.0.1:8501  
+./ssl-proxy -from 0.0.0.0:8000 -to 127.0.0.1:8501
 
 # Then access https://localhost:8000
 ```
@@ -42,7 +42,7 @@ streamlit run your_app.py
 To deploy the app to the cloud, you need to configure the STUN server via the `rtc_configuration` argument:
 
 ```python
---8<-- "./examples/tutorial/05_stun_config.py"
+--8<-- "./examples/deployment/05_stun_config.py"
 ```
 
 This configuration is necessary to establish the media streaming connection when the server is on a remote host.
