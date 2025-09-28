@@ -12,7 +12,7 @@ Create `app.py` with the content below:
 
 Unlike other Streamlit components, `webrtc_streamer()` requires the `key` argument as a unique identifier. Set an arbitrary string to it.
 
-Then run it with Streamlit and open http://localhost:8501/:
+Then run it with Streamlit and open <http://localhost:8501/>:
 
 ```bash
 streamlit run app.py
