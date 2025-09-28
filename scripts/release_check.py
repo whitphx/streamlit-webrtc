@@ -28,10 +28,7 @@ def get_release_flag_value(filepath: Path):
         assigned_value = node.value
 
         if single_target.id == "_RELEASE":
-            ExpectedConstantClass = (
-                ast.Constant if sys.version_info.minor >= 8 else ast.NameConstant
-            )
-            if not isinstance(assigned_value, ExpectedConstantClass):
+            if not isinstance(assigned_value, ast.Constant):
                 raise Exception(
                     f"Not a constant value {assigned_value} is "
                     f"assigned to {single_target}"
