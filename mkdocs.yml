@@ -25,6 +25,11 @@ theme:
 repo_url: https://github.com/whitphx/streamlit-webrtc
 repo_name: whitphx/streamlit-webrtc
 
+nav:
+  - index.md
+  - tutorial.md
+  - deployment.md
+
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
