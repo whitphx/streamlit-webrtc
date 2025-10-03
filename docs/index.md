@@ -12,6 +12,16 @@ Transform your [Streamlit](https://streamlit.io/) applications with live video a
 - **Media streaming** - Stream and transform pre-recorded files or live camera feeds
 - **Interactive demos** - Build engaging ML showcases with immediate visual feedback
 
+## Installation
+
+First, install Streamlit and streamlit-webrtc:
+
+```bash
+pip install streamlit streamlit-webrtc
+```
+
+That's it! You're ready to build real-time apps.
+
 ## 🚀 Quick Start
 
 ```python
