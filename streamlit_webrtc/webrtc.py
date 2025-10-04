@@ -761,7 +761,10 @@ def _test():
     # Mock functions that depend on Streamlit global server object
     global get_global_relay, get_global_event_loop
 
-    loop = asyncio.get_event_loop()
+    # Use new_event_loop() instead of deprecated get_event_loop()
+    # since this test function runs outside of async context
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
     def get_global_event_loop_mock():
         return loop
