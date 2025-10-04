@@ -6,9 +6,20 @@ import streamlit as st
 from streamlit_webrtc import WebRtcMode, create_audio_source_track, webrtc_streamer
 
 st.title("Audio Source Track Demo")
-st.write(
-    "This demo shows how to programmatically generate audio using AudioSourceTrack."
-)
+st.markdown("""
+Generate **custom audio content programmatically** instead of using a microphone input. 
+This demo shows how to create synthetic audio streams with controllable frequency and volume.
+
+**Features:**
+- Programmatic audio generation
+- Adjustable frequency and volume
+- Real-time audio synthesis
+- No microphone required - pure code-generated audio
+
+**Instructions:** Adjust the frequency and volume sliders to generate different tones!
+""")
+
+st.markdown("---")
 
 # Audio generation parameters
 frequency = st.slider("Frequency (Hz)", 200, 2000, 440, 10)

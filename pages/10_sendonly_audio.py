@@ -11,6 +11,23 @@ import pydub
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
+# Page title and introduction
+st.title("Send-Only Audio Demo")
+st.markdown("""
+Capture audio from your microphone and send it to the server **without receiving any audio back**. 
+This demo shows one-way audio streaming with real-time visualization using matplotlib.
+
+**Features:**
+- One-way audio streaming (microphone to server)
+- Real-time audio waveform visualization
+- Audio level monitoring and analysis
+- No audio playback (send-only mode)
+
+**Instructions:** Click START and speak into your microphone to see live audio waveforms!
+""")
+
+st.markdown("---")
+
 logger = logging.getLogger(__name__)
 
 

@@ -5,6 +5,23 @@ import cv2
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
+# Page title and introduction
+st.title("OpenCV Video Filters")
+st.markdown("""
+Apply real-time video effects and filters to your camera feed using **OpenCV**. 
+Experiment with different visual transformations that process each frame instantly.
+
+**Available filters:**
+- **No operation** - Original video feed
+- **Cartoon** - Cartoon-style filter with smooth colors
+- **Edges** - Edge detection highlighting object boundaries  
+- **Rotate** - 180-degree rotation effect
+
+**Instructions:** Select a filter type below, then click START to see the effect on your camera!
+""")
+
+st.markdown("---")
+
 _type = st.radio("Select transform type", ("noop", "cartoon", "edges", "rotate"))
 
 

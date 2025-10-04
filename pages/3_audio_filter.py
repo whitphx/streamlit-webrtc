@@ -4,6 +4,24 @@ import pydub
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
+# Page title and introduction
+st.title("Audio Filter Demo")
+st.markdown("""
+Apply real-time audio effects to your microphone input. This demo processes live audio streams 
+with various filters and transformations.
+
+**Features:**
+- Real-time audio processing
+- Live audio filtering effects
+- Microphone input processing
+
+**Instructions:** Click START below and allow microphone access to hear the audio effects!
+""")
+
+st.markdown("---")
+
+gain = st.slider("Audio Gain", 0.0, 2.0, 1.0, 0.05)
+
 gain = st.slider("Gain", -10.0, +20.0, 1.0, 0.05)
 
 
