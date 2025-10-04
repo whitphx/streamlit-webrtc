@@ -424,7 +424,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._relayed_source_video_track: Optional[MediaStreamTrack] = None
         self._relayed_source_audio_track: Optional[MediaStreamTrack] = None
 
-        self._session_shutdown_observer = SessionShutdownObserver(self.stop)
+        self._session_shutdown_observer: Optional[SessionShutdownObserver] = (
+            SessionShutdownObserver(self.stop)
+        )
 
     def _run_process_offer_thread(
         self,
@@ -540,12 +542,22 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
         @self.pc.listens_to("iceconnectionstatechange")
         async def on_iceconnectionstatechange():
-            logger.debug("ICE connection state is %s", self.pc.iceConnectionState)
-            iceConnectionState = self.pc.iceConnectionState
-            if iceConnectionState == "closed" or iceConnectionState == "failed":
+            ice_state = self.pc.iceConnectionState
+            logger.debug("ICE connection state is %s", ice_state)
+
+            if ice_state in ("disconnected", "failed", "closed"):
+                logger.debug("ICE state=%s -> stopping WebRTC worker", ice_state)
+
                 self._unset_processors()
-            if self.pc.iceConnectionState == "failed":
-                await self.pc.close()
+
+                if self.pc and self.pc.connectionState != "closed":
+                    try:
+                        await self.pc.close()
+                    except Exception as e:
+                        logger.debug(
+                            "Error occurred while closing the peer connection", e
+                        )
+                self.stop()
 
         process_offer_task = asyncio.run_coroutine_threadsafe(
             _process_offer_coro(
@@ -740,9 +752,10 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._relayed_source_video_track = None
 
     def stop(self, timeout: Union[float, None] = 1.0):
-        logger.debug("Stopping the WebRTC worker")
+        logger.debug("Stopping WebRTC worker")
 
         self._unset_processors()
+
         if self._process_offer_thread:
             self._process_offer_thread.join(timeout=timeout)
             self._process_offer_thread = None
@@ -754,7 +767,10 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             else:
                 loop.run_until_complete(self.pc.close())
 
-        self._session_shutdown_observer.stop()
+        # 💡 Explicitly stop shutdown observer here
+        if self._session_shutdown_observer:
+            self._session_shutdown_observer.stop()
+            self._session_shutdown_observer = None
 
 
 def _test():
