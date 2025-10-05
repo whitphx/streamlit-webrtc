@@ -20,8 +20,6 @@ with various filters and transformations.
 
 st.markdown("---")
 
-gain = st.slider("Audio Gain", 0.0, 2.0, 1.0, 0.05)
-
 gain = st.slider("Gain", -10.0, +20.0, 1.0, 0.05)
 
 

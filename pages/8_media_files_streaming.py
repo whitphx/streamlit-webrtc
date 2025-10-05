@@ -8,7 +8,14 @@ import av
 import cv2
 import streamlit as st
 from aiortc.contrib.media import MediaPlayer
-from streamlit_webrtc import WebRtcMode, webrtc_streamer
+from streamlit_webrtc import WebRtcMode, WebRtcStreamerContext, webrtc_streamer
+
+from sample_utils.download import download_file
+
+HERE = Path(__file__).parent
+ROOT = HERE.parent
+
+logger = logging.getLogger(__name__)
 
 # Page title and introduction
 st.title("Media File Streaming")
@@ -26,28 +33,6 @@ This demo shows how to use custom media sources with various file formats.
 """)
 
 st.markdown("---")
-
-logger = logging.getLogger(__name__)
-""")
-
-st.markdown("---")reamings"""
-
-import logging
-from pathlib import Path
-from typing import Dict, Optional, cast
-
-import av
-import cv2
-import streamlit as st
-from aiortc.contrib.media import MediaPlayer
-from streamlit_webrtc import WebRtcMode, WebRtcStreamerContext, webrtc_streamer
-
-from sample_utils.download import download_file
-
-HERE = Path(__file__).parent
-ROOT = HERE.parent
-
-logger = logging.getLogger(__name__)
 
 
 MEDIAFILES: Dict[str, Dict] = {
