@@ -40,7 +40,7 @@ class MediaReceiver(Generic[FrameT]):
     def start(self):
         if self._task is not None:
             raise Exception(f"{self} has already a started task {self._task}")
-        
+
         # Try to get the running loop first (if we're in async context)
         # Otherwise get the event loop for the current thread
         try:
@@ -49,7 +49,7 @@ class MediaReceiver(Generic[FrameT]):
             # No running loop, so we need to get/create one
             # Policy manages per-thread loops: gets existing or creates new one
             loop = asyncio.get_event_loop_policy().get_event_loop()
-        
+
         self._task = loop.create_task(coro=self._run_track(self._track))
 
     def stop(self):
