@@ -128,7 +128,7 @@ jobs:
     - name: Download all the dists
       uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
       with:
-        name: streamlit-webrtc-${{ needs.get-build-info.outputs.trigger-sha }}
+        name: streamlit-webrtc-${{ needs.get-build-info.outputs.tag }}
         path: ${{ runner.temp }}/artifacts/streamlit-webrtc
         run-id: ${{ github.event.workflow_run.id }}
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -153,7 +153,7 @@ jobs:
     - name: Download all the dists
       uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
       with:
-        name: streamlit-webrtc-${{ needs.get-build-info.outputs.trigger-sha }}
+        name: streamlit-webrtc-${{ needs.get-build-info.outputs.tag }}
         path: ${{ runner.temp }}/artifacts/streamlit-webrtc
         run-id: ${{ github.event.workflow_run.id }}
         github-token: ${{ secrets.GITHUB_TOKEN }}
