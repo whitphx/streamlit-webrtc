@@ -38,9 +38,15 @@ def get_global_event_loop() -> asyncio.AbstractEventLoop:
 def loop_context(loop: asyncio.AbstractEventLoop):
     cur_ev_loop: Union[asyncio.AbstractEventLoop, None]
     try:
-        cur_ev_loop = asyncio.get_event_loop()
+        # Try to get the running loop first (if we're in async context)
+        cur_ev_loop = asyncio.get_running_loop()
     except RuntimeError:
-        cur_ev_loop = None
+        # No running loop, try to get the current loop from policy
+        try:
+            cur_ev_loop = asyncio.get_event_loop_policy().get_event_loop()
+        except RuntimeError:
+            cur_ev_loop = None
+
     asyncio.set_event_loop(loop)
 
     yield
