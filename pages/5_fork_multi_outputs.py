@@ -10,6 +10,23 @@ import cv2
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
+# Page title and introduction
+st.title("Fork Multi-Outputs Demo")
+st.markdown("""
+Demonstrate **forking a single video stream into multiple outputs** with different processing effects. 
+This shows how to create multiple video streams from one camera input, each with different filters.
+
+**Features:**
+- Single camera input forked to multiple streams
+- Different effects applied to each output (cartoon, edges, rotate)
+- Real-time multi-stream processing
+- Advanced WebRTC stream management
+
+**Instructions:** Click START to see your camera feed processed into multiple different outputs!
+""")
+
+st.markdown("---")
+
 st.markdown(
     """
 Fork one input to multiple outputs with different video filters.

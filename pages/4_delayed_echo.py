@@ -6,6 +6,23 @@ import av
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
+# Page title and introduction
+st.title("Delayed Video Echo")
+st.markdown("""
+Create a **video delay effect** by buffering video frames and playing them back with a time delay. 
+This demonstrates video frame buffering and timing control in real-time video processing.
+
+**How it works:**
+- Captures video frames from your camera
+- Stores frames in a buffer queue
+- Plays back the video with a configurable delay
+- Creates a time-delayed video echo effect
+
+**Instructions:** Adjust the delay amount below, then click START to see your delayed video!
+""")
+
+st.markdown("---")
+
 logger = logging.getLogger(__name__)
 
 
