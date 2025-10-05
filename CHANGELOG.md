@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.63.6] - 2025-10-05
+
+### Fixed
+
+- Delete all threads when the worker stops, [#2225](https://github.com/whitphx/streamlit-webrtc/pull/2225), by @kayush0712.
+- Use `asyncio.get_running_loop` instead of `asyncio.get_event_loop()`, which is deprecated since Python 3.12, [#2233](https://github.com/whitphx/streamlit-webrtc/pull/2233), by @ankitpokhrel08.
+- Add installation guide in the doc, [#2237](https://github.com/whitphx/streamlit-webrtc/pull/2237), by @ankitpokhrel08.
+- Update dependencies.
+
 ## [0.63.5] - 2025-09-28
 
 ### Fixed
