@@ -176,8 +176,8 @@ jobs:
         GITHUB_TOKEN: ${{ github.token }}
         TAG_NAME: ${{ needs.get-build-info.outputs.tag }}
       # Upload to GitHub Release using the `gh` CLI.
-      # `dist/` contains the built packages, and the
-      # sigstore-produced signatures and certificates.
+      # `${{ runner.temp }}/artifacts/streamlit-webrtc/` contains the built packages,
+      # and the sigstore-produced signatures and certificates.
       run: >-
         gh release upload
         "$TAG_NAME" ${{ runner.temp }}/artifacts/streamlit-webrtc/**
