@@ -49,6 +49,23 @@ ROOT = HERE.parent
 
 logger = logging.getLogger(__name__)
 
+# Page title and introduction
+st.title("Media File Streaming")
+st.markdown("""
+Stream pre-recorded video and audio files through WebRTC instead of using your camera/microphone. 
+This demo shows how to use custom media sources with various file formats.
+
+**Features:**
+- Stream video files (MP4, AVI, etc.)
+- Stream audio files (MP3, WAV, etc.)
+- Custom media source integration
+- File-based streaming with processing
+
+**Instructions:** Select a media file from the dropdown and click START to stream it!
+""")
+
+st.markdown("---")
+
 
 MEDIAFILES: Dict[str, Dict] = {
     "big_buck_bunny_720p_2mb.mp4 (local)": {
