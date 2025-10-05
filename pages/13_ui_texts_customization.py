@@ -1,4 +1,22 @@
+import streamlit as st
 from streamlit_webrtc import webrtc_streamer
+
+# Page title and introduction
+st.title("UI Text Customization")
+st.markdown("""
+Customize the **user interface text and labels** in the WebRTC streamer component. 
+This demo shows how to internationalize or customize button labels and messages.
+
+**Features:**
+- Custom button text (Start/Stop)
+- Customizable status messages
+- Internationalization support
+- UI text localization
+
+**Instructions:** See how the WebRTC component uses custom text labels below!
+""")
+
+st.markdown("---")
 
 webrtc_streamer(
     key="custom_ui_texts",

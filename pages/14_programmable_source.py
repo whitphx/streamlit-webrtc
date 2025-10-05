@@ -7,6 +7,23 @@ import numpy as np
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, create_video_source_track, webrtc_streamer
 
+# Page title and introduction
+st.title("Programmable Video Source")
+st.markdown("""
+Generate **custom video content programmatically** instead of using a camera input. 
+This demo shows how to create synthetic video streams with custom graphics and animations.
+
+**Features:**
+- Programmatic video generation
+- Custom graphics and shapes
+- Real-time animation
+- No camera required - pure code-generated video
+
+**Instructions:** Adjust the thickness slider and watch the animated shapes being generated!
+""")
+
+st.markdown("---")
+
 thickness = st.slider("thickness", 1, 10, 3, 1)
 
 

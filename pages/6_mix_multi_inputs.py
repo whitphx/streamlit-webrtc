@@ -18,6 +18,23 @@ from streamlit_webrtc import (
     webrtc_streamer,
 )
 
+# Page title and introduction
+st.title("Mix Multi-Inputs Demo")
+st.markdown("""
+Demonstrate **mixing multiple video inputs** into a single combined output stream. 
+This advanced example shows how to blend multiple video sources with custom layouts and compositions.
+
+**Features:**
+- Multiple video input streams
+- Custom video mixing and layout algorithms
+- Real-time stream composition
+- Advanced media stream processing with custom tracks
+
+**Instructions:** This demo combines multiple video sources into one mixed output stream!
+""")
+
+st.markdown("---")
+
 st.markdown(
     """
 Mix multiple inputs with different video filters into one stream.

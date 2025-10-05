@@ -19,6 +19,22 @@ from streamlit_webrtc import __version__ as st_webrtc_version
 
 from sample_utils.download import download_file
 
+# Page title and introduction
+st.title("Object Detection Demo")
+st.markdown("""
+Real-time object detection using **MobileNet SSD** on your camera feed. This demo identifies common objects 
+like people, cars, animals, and everyday items in live video.
+
+**How it works:**
+- Uses a pre-trained MobileNet SSD model for fast object detection
+- Processes each video frame in real-time
+- Draws bounding boxes around detected objects with confidence scores
+
+**Instructions:** Click START below and allow camera access to begin detecting objects!
+""")
+
+st.markdown("---")
+
 HERE = Path(__file__).parent
 ROOT = HERE.parent
 

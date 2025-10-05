@@ -7,6 +7,23 @@ import streamlit as st
 from aiortc.contrib.media import MediaRecorder
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
+# Page title and introduction
+st.title("Video & Audio Recording")
+st.markdown("""
+Record both video and audio streams from your camera and microphone. This demo shows how to 
+capture and save media streams with edge detection effects.
+
+**Features:**
+- Simultaneous video and audio recording
+- Real-time edge detection filter
+- File saving capabilities with unique IDs
+- Recorded files stored in the 'records' folder
+
+**Instructions:** Click START to begin recording. Files will be saved when you stop the stream.
+""")
+
+st.markdown("---")
+
 
 def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
     img = frame.to_ndarray(format="bgr24")

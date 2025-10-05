@@ -7,6 +7,23 @@ import queue
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, webrtc_streamer
 
+# Page title and introduction
+st.title("Send-Only Video Demo")
+st.markdown("""
+Capture video from your camera and send it to the server **without receiving any video back**. 
+This is useful for video recording, analysis, or one-way streaming scenarios.
+
+**How it works:**
+- Camera video is sent from browser to server
+- Server receives and can process video frames
+- No video is sent back to the browser
+- Captured frames are displayed using Streamlit's image component
+
+**Instructions:** Click START to begin sending video frames from your camera!
+""")
+
+st.markdown("---")
+
 logger = logging.getLogger(__name__)
 
 
