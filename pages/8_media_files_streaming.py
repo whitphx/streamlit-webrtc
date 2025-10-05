@@ -8,38 +8,6 @@ import av
 import cv2
 import streamlit as st
 from aiortc.contrib.media import MediaPlayer
-from streamlit_webrtc import WebRtcMode, webrtc_streamer
-
-# Page title and introduction
-st.title("Media File Streaming")
-st.markdown("""
-Stream pre-recorded video and audio files through WebRTC instead of using your camera/microphone. 
-This demo shows how to use custom media sources with various file formats.
-
-**Features:**
-- Stream video files (MP4, AVI, etc.)
-- Stream audio files (MP3, WAV, etc.)
-- Custom media source integration
-- File-based streaming with processing
-
-**Instructions:** Select a media file from the dropdown and click START to stream it!
-""")
-
-st.markdown("---")
-
-logger = logging.getLogger(__name__)
-""")
-
-st.markdown("---")reamings"""
-
-import logging
-from pathlib import Path
-from typing import Dict, Optional, cast
-
-import av
-import cv2
-import streamlit as st
-from aiortc.contrib.media import MediaPlayer
 from streamlit_webrtc import WebRtcMode, WebRtcStreamerContext, webrtc_streamer
 
 from sample_utils.download import download_file
