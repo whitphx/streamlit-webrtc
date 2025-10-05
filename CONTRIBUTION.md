@@ -151,7 +151,7 @@ cd ../..
    uv run streamlit run home.py
    ```
 
-The application will be available at http://localhost:8501
+The application will be available at <http://localhost:8501>
 
 #### For Backend-Only Development
 
@@ -265,7 +265,7 @@ git commit --no-verify -m "Your commit message"
 
 ## Project Structure
 
-```
+```text
 streamlit-webrtc/
 ├── streamlit_webrtc/           # Main Python package
 │   ├── __init__.py            # Package initialization
