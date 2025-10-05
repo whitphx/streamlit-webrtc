@@ -53,6 +53,7 @@ jobs:
     if: ${{ needs.get-build-info.outputs.pr-number }}
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pull-requests: write
     name: Deploy wheel file to Cloudflare Pages
     outputs:
