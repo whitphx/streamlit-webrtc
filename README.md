@@ -49,6 +49,11 @@ You can create video chat apps with ~100 lines of Python code.
 ### [⚡️Tokyo 2020 Pictogram](https://github.com/whitphx/Tokyo2020-Pictogram-using-MediaPipe): [🎈Online demo](https://share.streamlit.io/whitphx/tokyo2020-pictogram-using-mediapipe/streamlit-app)
 [MediaPipe](https://google.github.io/mediapipe/) is used for pose estimation.
 
+## Sponsors
+### Recall.ai - API for meeting recordings
+
+If you’re looking for a meeting recording API, consider checking out [Recall.ai](https://www.recall.ai/product/meeting-recording-api), an API that records Zoom, Google Meet, Microsoft Teams, in-person meetings, and more.
+
 ## Install
 ```shell
 $ pip install -U streamlit-webrtc
