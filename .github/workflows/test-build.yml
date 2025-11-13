@@ -72,8 +72,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-        streamlit-version: [null]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        streamlit-version: [""]
         include:
           # Test with streamlit <1.4.0 and >=1.4.0. See https://github.com/whitphx/streamlit-webrtc/issues/598
           - python-version: 3.9
