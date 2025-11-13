@@ -2,7 +2,7 @@
 name = "streamlit-webrtc"
 description = "Real-time video and audio processing on Streamlit"
 authors = [{ name = "Yuichiro Tachibana (Tsuchiya)", email = "t.yic.yt@gmail.com" }]
-requires-python = ">=3.9,!=3.9.7"  # 3.9.7 is excluded due to https://github.com/streamlit/streamlit/pull/5168
+requires-python = ">=3.10"
 readme = "README.md"
 license = "MIT"
 dynamic = ["version"]
