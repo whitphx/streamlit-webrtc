@@ -7,10 +7,7 @@ readme = "README.md"
 license = "MIT"
 dynamic = ["version"]
 dependencies = [
-    # For allow-same-origin, >=0.73.0 is required. See https://blog.streamlit.io/streamlit-components-security-and-a-five-month-quest-to-ship-a-single-line-of-code/
-    # 0.84.0 has an error at marshalling component values.
-    # For cache_data or experimental_memo, >=0.89.0 is required. See https://docs.streamlit.io/develop/quick-reference/release-notes/2021#version-0890, https://docs.streamlit.io/develop/quick-reference/release-notes/2023#version-1180
-    "streamlit>=0.89.0",
+    "streamlit>=1.4.0", # Minimum Streamlit version that supports Python 3.10
     "aiortc>=1.11.0", # aiortc<1.4.0 causes an error with cryptography>=39.0.0. See https://github.com/whitphx/streamlit-webrtc/issues/1164. The fix was introduced into aiortc in https://github.com/aiortc/aiortc/commit/08b0a7e9f5030a9f7e5617382e92560d4ae763a2 that 1.4.0 included.
     "packaging>=20.0",
     "aioice>=0.10.1",

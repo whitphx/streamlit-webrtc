@@ -2560,7 +2560,7 @@ requires-dist = [
     { name = "aioice", specifier = ">=0.10.1" },
     { name = "aiortc", specifier = ">=1.11.0" },
     { name = "packaging", specifier = ">=20.0" },
-    { name = "streamlit", specifier = ">=0.89.0" },
+    { name = "streamlit", specifier = ">=1.4.0" },
 ]
 
 [package.metadata.requires-dev]

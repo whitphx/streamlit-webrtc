@@ -75,9 +75,7 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
         streamlit-version: [""]
         include:
-          # Test with streamlit <1.4.0 and >=1.4.0. See https://github.com/whitphx/streamlit-webrtc/issues/598
-          - python-version: "3.10"
-            streamlit-version: 1.0.0
+          # 1.4.0 introduced Python 3.10 support: https://docs.streamlit.io/develop/quick-reference/release-notes/2022#version-140
           - python-version: "3.10"
             streamlit-version: 1.4.0
           # Test with streamlit >=1.6.0. See https://github.com/whitphx/streamlit-webrtc/issues/709
