@@ -29,7 +29,7 @@ jobs:
       pr-number: ${{ steps.build-info.outputs.pr-number }}
     steps:
       - name: Download build info
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: build-info
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -62,7 +62,7 @@ jobs:
       - run: mkdir -p ${{ runner.temp }}/artifacts/
 
       - name: Download all the dists
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: streamlit-webrtc-${{ needs.get-build-info.outputs.trigger-sha }}
           path: ${{ runner.temp }}/artifacts/streamlit-webrtc
@@ -126,7 +126,7 @@ jobs:
 
     steps:
     - name: Download all the dists
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
       with:
         name: streamlit-webrtc-${{ needs.get-build-info.outputs.tag }}
         path: dist/
@@ -149,7 +149,7 @@ jobs:
 
     steps:
     - name: Download all the dists
-      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
       with:
         name: streamlit-webrtc-${{ needs.get-build-info.outputs.tag }}
         path: dist/
