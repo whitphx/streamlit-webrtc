@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.64.0] - 2025-11-14
+
+### Changed
+
+- Drop support for Python 3.9, [#2280](https://github.com/whitphx/streamlit-webrtc/pull/2280).
+
 ## [0.63.11] - 2025-10-06
 
 ### Fixed
