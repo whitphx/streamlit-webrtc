@@ -107,7 +107,7 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      - name: Create a preview branch with collected changelog
+      - name: Get bump level
         id: get-bump-level
         run: |
           bump_level=$(uv run python scripts/get_bump_version_level.py)
