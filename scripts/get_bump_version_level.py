@@ -1,10 +1,10 @@
 import sys
 import warnings
-from typing import Literal, Optional
+from typing import Literal, Optional, TypeAlias
 
 from scriv.scriv import Scriv
 
-SEMVER_LEVELS = Literal["major", "minor", "patch"]
+SEMVER_LEVELS: TypeAlias = Literal["major", "minor", "patch"]
 
 
 CATEGORY_SEMVER_MAP: dict[str, SEMVER_LEVELS] = {
