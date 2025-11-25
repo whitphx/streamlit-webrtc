@@ -482,6 +482,18 @@ wheels = [
 ]
 
 [[package]]
+name = "click-log"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/32/32/228be4f971e4bd556c33d52a22682bfe318ffe57a1ddb7a546f347a90260/click-log-0.4.0.tar.gz", hash = "sha256:3970f8570ac54491237bcdb3d8ab5e3eef6c057df29f8c3d1151a51a9c23b975", size = 9985, upload-time = "2022-03-13T11:10:15.262Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ae/5a/4f025bc751087833686892e17e7564828e409c43b632878afeae554870cd/click_log-0.4.0-py2.py3-none-any.whl", hash = "sha256:a43e394b528d52112af599f2fc9e4b7cf3c15f94e53581f74fa6867e68c91756", size = 4273, upload-time = "2022-03-13T11:10:17.594Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -2446,6 +2458,23 @@ wheels = [
 ]
 
 [[package]]
+name = "scriv"
+version = "1.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "click" },
+    { name = "click-log" },
+    { name = "jinja2" },
+    { name = "markdown-it-py" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b2/ff/c32aee5e1750e884fb83de0e01b2979d065472276ac34454b8055c45f626/scriv-1.7.0.tar.gz", hash = "sha256:7c1a8be6351d03692e5e75784deea0d8f11b2c90f91be18b0fb3a375555b525e", size = 94092, upload-time = "2025-04-20T18:29:42.381Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c9/69/93a8c6e59e19a5b5325848452efc3ca74f09875921ba9cec84dd71497a59/scriv-1.7.0-py3-none-any.whl", hash = "sha256:cbbdb93c40c3a6f9936c5f68035f20335bba871ec60028e43ff21e27441cfd65", size = 37649, upload-time = "2025-04-20T18:29:40.678Z" },
+]
+
+[[package]]
 name = "six"
 version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2550,6 +2579,7 @@ dev = [
     { name = "pydub" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "scriv" },
     { name = "streamlit-server-state" },
     { name = "streamlit-session-memo" },
     { name = "twilio" },
@@ -2576,6 +2606,7 @@ dev = [
     { name = "pydub", specifier = ">=0.25.1" },
     { name = "pytest", specifier = ">=7.1.2" },
     { name = "ruff", specifier = ">=0.9.10" },
+    { name = "scriv", specifier = ">=1.7.0" },
     { name = "streamlit-server-state", specifier = ">=0.17.1" },
     { name = "streamlit-session-memo", specifier = ">=0.3.2" },
     { name = "twilio", specifier = ">=8.1" },
