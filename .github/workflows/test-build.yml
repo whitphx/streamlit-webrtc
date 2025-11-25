@@ -149,6 +149,9 @@ jobs:
         run: |
           echo "No version bump needed. Triggering release."
 
+          # Store the current HEAD before checking out previous revision
+          current_head=$(git rev-parse HEAD)
+
           # Check out the previous revision
           git checkout HEAD~1
 
@@ -157,7 +160,7 @@ jobs:
           echo "Bump version level from previous revision: $bump_version"
 
           # Restore the original checked-out revision
-          git checkout -
+          git checkout $current_head
 
           # If there was a bump version level in the previous revision, trigger the release
           if [ -z "$bump_version" ]; then
