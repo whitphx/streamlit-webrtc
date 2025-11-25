@@ -29,7 +29,7 @@ def get_bump_level() -> Optional[SEMVER_LEVELS]:
             changelog_levels.add(CATEGORY_SEMVER_MAP[changelog_key])
         else:
             warnings.warn(
-                f"Warning: Unrecognized changelog category '{changelog_key}'. It's treated as 'patch' for now."
+                f"Unrecognized changelog category '{changelog_key}'. It's treated as 'patch' for now."
             )
             changelog_levels.add("patch")
 
