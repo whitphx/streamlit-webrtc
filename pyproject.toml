@@ -61,3 +61,7 @@ ignore_missing_imports = true
 exclude = [
     '^site/',
 ]
+
+[tool.scriv]
+categories = ["Added", "Changed", "Deprecated", "Removed", "Fixed", "Security", "Chore"]
+format = "md"
