@@ -105,7 +105,7 @@ jobs:
         run: |
           bump_level=$(uv run python scripts/get_bump_version_level.py)
 
-          if [ $? -eq 0 ] && [ -n "$bump_level" ]; then
+          if [ -n "$bump_level" ]; then
             echo "Bump level: $bump_level"
           else
             echo "No version bump needed."
