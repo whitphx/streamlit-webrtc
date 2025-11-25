@@ -1,8 +1,9 @@
 import sys
 import warnings
-from typing import Literal, Optional, TypeAlias
+from typing import Literal, Optional
 
 from scriv.scriv import Scriv
+from typing_extensions import TypeAlias
 
 SEMVER_LEVELS: TypeAlias = Literal["major", "minor", "patch"]
 
