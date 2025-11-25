@@ -1,7 +1,8 @@
 # Changelog
-All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+<!-- scriv-insert-here -->
+
+<!-- scriv-end-here -->
 
 ## [0.64.0] - 2025-11-14
 
