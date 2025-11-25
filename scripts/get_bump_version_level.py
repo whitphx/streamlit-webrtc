@@ -1,3 +1,4 @@
+import sys
 import warnings
 from typing import Literal, Optional
 
@@ -45,8 +46,9 @@ def get_bump_level() -> Optional[SEMVER_LEVELS]:
 
 if __name__ == "__main__":
     level = get_bump_level()
+
     if level is None:
-        print("No version bump needed.")
-        exit(1)
+        print("No version bump needed.", file=sys.stderr)
+        raise SystemExit(1)
 
     print(level)
