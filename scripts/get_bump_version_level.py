@@ -50,6 +50,5 @@ if __name__ == "__main__":
 
     if level is None:
         print("No version bump needed.", file=sys.stderr)
-        raise SystemExit(1)
-
-    print(level)
+    else:
+        print(level)

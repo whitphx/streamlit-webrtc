@@ -147,10 +147,36 @@ jobs:
       - name: Trigger release
         if: steps.get-bump-level.outputs.bump_level == ''
         run: |
-
           echo "No version bump needed. Triggering release."
 
-          echo "TODO: Implement triggering release if the current version is not tagged and released yet."
+          # Store the current branch name before checking out previous revision
+          current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+          # Check out the previous revision
+          git checkout HEAD~1
+
+          # Get the bump version level from the previous revision
+          bump_version=$(uv run python scripts/get_bump_version_level.py)
+          echo "Bump version level from previous revision: $bump_version"
+
+          # Restore the original branch
+          git checkout "$current_branch"
+
+          # If there was a bump version level in the previous revision, trigger the release
+          if [ -z "$bump_version" ]; then
+            echo "No bump version level found in previous revision. Skipping release."
+            exit 0
+          fi
+
+          echo "Triggering release for bump level: $bump_version"
+          uv run bump-my-version bump "${bump_version}" --tag --commit --commit-args='--allow-empty' --verbose
+
+          # Push the release commit and tag
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          git push origin HEAD --follow-tags
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
   test-python:
     runs-on: ubuntu-latest
