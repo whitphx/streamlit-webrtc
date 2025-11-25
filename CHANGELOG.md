@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.64.1'></a>
+## 0.64.1 — 2025-11-25
+
+### Chore
+
+- Scriv for changelog management
+
 <!-- scriv-end-here -->
 
 ## [0.64.0] - 2025-11-14
