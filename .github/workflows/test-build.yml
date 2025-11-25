@@ -98,10 +98,14 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras --dev
 
-      - name: Configure Git Credentials
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@7e473efe3cb98aa54f8d4bac15400b15fad77d94 # v2.2.0
+        with:
+          app-id: ${{ vars.MY_CHANGESETS_APP_ID }}
+          private-key: ${{ secrets.MY_CHANGESETS_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
 
       - name: Create a preview branch with collected changelog
         id: get-bump-level
@@ -142,7 +146,7 @@ jobs:
           fi
         env:
           BUMP_LEVEL: ${{ steps.get-bump-level.outputs.bump_level }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
 
       - name: Trigger release
         if: steps.get-bump-level.outputs.bump_level == ''
@@ -175,7 +179,7 @@ jobs:
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
           git push origin HEAD --follow-tags
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
 
 
   test-python:
