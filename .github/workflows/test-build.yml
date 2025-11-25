@@ -84,6 +84,8 @@ jobs:
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
+          # `fetch-depth: 0` is required to determine a new version because this project's version is managed by `hatch-vcs`.
+          fetch-depth: 0
 
       - name: Install uv
         uses: astral-sh/setup-uv@85856786d1ce8acfbcc2f13a5f3fbd6b938f9f41 # v7.1.2
