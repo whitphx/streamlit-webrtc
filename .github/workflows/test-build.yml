@@ -166,7 +166,7 @@ jobs:
           fi
 
           echo "Triggering release for bump level: $bump_version"
-          uv run bump-my-version bump ${bump_version} --tag --commit --commit-args='--allow-empty' --verbose
+          uv run bump-my-version bump "${bump_version}" --tag --commit --commit-args='--allow-empty' --verbose
 
           # Push the release commit and tag
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
