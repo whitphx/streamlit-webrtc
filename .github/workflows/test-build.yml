@@ -119,6 +119,7 @@ jobs:
 
           git add -A
           git commit -m "Preview changelog for next release"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
           git push origin HEAD:${CHANGELOG_PREVIEW_BRANCH} --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
