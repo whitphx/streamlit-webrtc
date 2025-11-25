@@ -107,7 +107,7 @@ jobs:
         id: get-bump-level
         run: |
           bump_level=$(uv run python scripts/get_bump_version_level.py)
-          echo "bump_level=$bump_level" >> $GITHUB_ENV
+          echo "bump_level=$bump_level" >> $GITHUB_OUTPUT
           if [ -n "$bump_level" ]; then
             echo "Bump level: $bump_level"
           else
@@ -147,6 +147,7 @@ jobs:
       - name: Trigger release
         if: steps.get-bump-level.outputs.bump_level == ''
         run: |
+
           echo "No version bump needed. Triggering release."
 
           echo "TODO: Implement triggering release if the current version is not tagged and released yet."
