@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.64.2'></a>
+## 0.64.2 — 2025-11-25
+
+### Chore
+
+- Trigger release with Scriv
+
 <a id='changelog-0.64.1'></a>
 ## 0.64.1 — 2025-11-25
 
