@@ -16,6 +16,7 @@ permissions: {}
 
 env:
   BUILD_PYTHON_VERSION: "3.13"
+  CHANGELOG_PREVIEW_BRANCH: "scriv-preview"
 
 jobs:
   set-build-info:
@@ -78,7 +79,6 @@ jobs:
       pull-requests: write
     env:
       PYTHON_VERSION: "3.13"
-      CHANGELOG_PREVIEW_BRANCH: "scriv-preview"
     steps:
       - name: Checkout
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
@@ -104,45 +104,54 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
 
       - name: Create a preview branch with collected changelog
+        id: get-bump-level
         run: |
           bump_level=$(uv run python scripts/get_bump_version_level.py)
-
+          echo "bump_level=$bump_level" >> $GITHUB_ENV
           if [ -n "$bump_level" ]; then
             echo "Bump level: $bump_level"
           else
             echo "No version bump needed."
-            exit 0
           fi
 
-          uv run bump-my-version bump $bump_level --no-tag --no-commit --verbose
+      - name: Generate and push changelog preview
+        if: steps.get-bump-level.outputs.bump_level != ''
+        run: |
+          uv run bump-my-version bump $BUMP_LEVEL --no-tag --no-commit --verbose
 
           uv run scriv collect \
             --version $(uv run bump-my-version show current_version)
 
+          # Commit and push the changes to the preview branch
           git add -A
           git commit -m "Preview changelog for next release"
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
           git push origin HEAD:${CHANGELOG_PREVIEW_BRANCH} --force
+
+          # Check if a PR from the preview branch already exists
+          existing_pr=$(gh pr list --head "${CHANGELOG_PREVIEW_BRANCH}" --json number --jq '.[0].number')
+
+          # Create a PR if it doesn't exist
+          if [ -n "$existing_pr" ]; then
+            echo "PR #${existing_pr} already exists for branch ${CHANGELOG_PREVIEW_BRANCH}. Skipping PR creation."
+          else
+            gh pr create \
+              --title "Changelog Preview for Next Release" \
+              --body "This PR contains the preview of the changelog for the next release." \
+              --head "${CHANGELOG_PREVIEW_BRANCH}" \
+              --base "${{ github.event.repository.default_branch }}" \
+              --draft
+          fi
         env:
+          BUMP_LEVEL: ${{ steps.get-bump-level.outputs.bump_level }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Pull Request for changelog preview
+      - name: Trigger release
+        if: steps.get-bump-level.outputs.bump_level == ''
         run: |
-            # Check if a PR from the preview branch already exists
-            existing_pr=$(gh pr list --head "${CHANGELOG_PREVIEW_BRANCH}" --json number --jq '.[0].number')
+          echo "No version bump needed. Triggering release."
 
-            if [ -n "$existing_pr" ]; then
-              echo "PR #${existing_pr} already exists for branch ${CHANGELOG_PREVIEW_BRANCH}. Skipping PR creation."
-            else
-              gh pr create \
-                --title "Changelog Preview for Next Release" \
-                --body "This PR contains the preview of the changelog for the next release." \
-                --head "${CHANGELOG_PREVIEW_BRANCH}" \
-                --base "${{ github.event.repository.default_branch }}" \
-                --draft
-            fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "TODO: Implement triggering release if the current version is not tagged and released yet."
 
   test-python:
     runs-on: ubuntu-latest
