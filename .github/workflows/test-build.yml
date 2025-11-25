@@ -117,10 +117,8 @@ jobs:
       - name: Generate and push changelog preview
         if: steps.get-bump-level.outputs.bump_level != ''
         run: |
-          uv run bump-my-version bump $BUMP_LEVEL --no-tag --no-commit --verbose
-
           uv run scriv collect \
-            --version $(uv run bump-my-version show current_version)
+            --version $(uv run bump-my-version show --increment ${BUMP_LEVEL} new_version)
 
           # Commit and push the changes to the preview branch
           git add -A
