@@ -96,6 +96,11 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras --dev
 
+      - name: Configure Git Credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
       - name: Create a preview branch with collected changelog
         run: |
           bump_level=$(uv run python scripts/get_bump_version_level.py)
