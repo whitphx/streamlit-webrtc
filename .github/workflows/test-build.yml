@@ -98,6 +98,11 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras --dev
 
+      - name: Configure Git Credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
       - name: Generate a token
         id: generate-token
         uses: actions/create-github-app-token@7e473efe3cb98aa54f8d4bac15400b15fad77d94 # v2.2.0
