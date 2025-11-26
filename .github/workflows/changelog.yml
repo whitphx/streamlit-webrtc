@@ -80,7 +80,8 @@ jobs:
 
           # Create or update a PR for the changelog preview
           existing_pr=$(gh pr list --head "${CHANGELOG_PREVIEW_BRANCH}" --json number --jq '.[0].number')
-          changelog_preview=$(uv run scriv print --version ${next_version})
+          changelog_content=$(uv run scriv print --version ${next_version})
+          changelog_preview="# Changelog Preview for Version ${next_version}\n\n${changelog_content}"
           if [ -n "$existing_pr" ]; then
             gh pr edit "$existing_pr" \
               --title "Changelog Preview for Next Release" \
