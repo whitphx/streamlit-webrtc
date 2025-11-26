@@ -25,18 +25,10 @@
   $ streamlit run home.py
   ```
 
-## Release
-1. Edit `CHANGELOG.md` and commit it.
-2. Set the next version with the following command, which creates a new Git tag representing this release.
-   ```
-   $ uv run bump-my-version bump <version> --tag --commit --commit-args='--allow-empty' --verbose
-   ```
-   NOTE: `patch`, `minor`, or `major` can be used as `<version>`.
-3. Push the commit with the tag to GitHub. After pushing the tag, CI/CD automatically deploys the release.
-   ```
-   $ git push
-   $ git push --tags
-   ```
+## Changelog management and release
+
+1. **All contributors:** Run `scriv create` (`scriv create --edit` to open an editor) to create a changelog fragment (`changelog.d/*.md`), fill it to describe the changes you made, and commit it. **You should add a fragment for each pull request describing the changes made in the PR**.
+2. Maintainers: CI creates a PR to review the changelog collected from the committed fragments when a commit including changelog fragments is pushed to `main`. When to release, after reviewing the changelog preview PR, merge it to `main`. This triggers another CI/CD process that creates a new release with an updated changelog based on the merged changelog preview PR.
 
 ## Build
 The following command is run to build the package during the automated release process in CI/CD described above.
