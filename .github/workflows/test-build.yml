@@ -146,8 +146,7 @@ jobs:
               --title "Changelog Preview for Next Release" \
               --body "This PR contains the preview of the changelog for the next release." \
               --head "${CHANGELOG_PREVIEW_BRANCH}" \
-              --base "${{ github.event.repository.default_branch }}" \
-              --draft
+              --base "${{ github.event.repository.default_branch }}"
           fi
         env:
           BUMP_LEVEL: ${{ steps.get-bump-level.outputs.bump_level }}
