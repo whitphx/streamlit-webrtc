@@ -2,6 +2,15 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.64.3'></a>
+## 0.64.3 — 2025-11-26
+
+### Chore
+
+- Fix Scriv-based release workflow
+
+- Fix release workflow not to create an empty commit for version bump
+
 <a id='changelog-0.64.2'></a>
 ## 0.64.2 — 2025-11-25
 
