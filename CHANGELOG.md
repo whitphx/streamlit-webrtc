@@ -2,6 +2,14 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.64.4'></a>
+## 0.64.4 — 2025-11-26
+
+### Chore
+
+- Update `DEVELOPMENT.md` and rename it to `CONTRIBUTING.md`
+- Update frontend dependencies
+
 <a id='changelog-0.64.3'></a>
 ## 0.64.3 — 2025-11-26
 
