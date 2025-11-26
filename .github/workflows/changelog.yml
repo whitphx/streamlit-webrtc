@@ -133,10 +133,11 @@ jobs:
             exit 0
           fi
 
-          echo "Triggering release for bump level: $bump_version"
-          uv run bump-my-version bump "${bump_version}" --tag --commit --commit-args='--allow-empty' --verbose
+          echo "Bumping version for bump level $bump_version and creating a Git tag."
+          # Set a tag with the bumped version to the current HEAD, not creating a new commit.
+          uv run bump-my-version bump "${bump_version}" --tag --no-commit --verbose
 
-          # Push the release commit and tag
+          # Push the tag
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
           git push origin HEAD --follow-tags
         env:
