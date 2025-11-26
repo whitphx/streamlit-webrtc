@@ -64,8 +64,13 @@ jobs:
       - name: Generate and push changelog preview
         if: steps.get-bump-level.outputs.bump_level != ''
         run: |
+          echo "Generating changelog preview for bump level: ${BUMP_LEVEL}"
+
+          next_version=$(uv run bump-my-version show --increment ${BUMP_LEVEL} new_version)
+          echo "Next version: ${next_version}"
+
           uv run scriv collect \
-            --version $(uv run bump-my-version show --increment ${BUMP_LEVEL} new_version)
+            --version ${next_version}
 
           # Commit and push the changes to the preview branch
           git add -A
@@ -80,9 +85,10 @@ jobs:
           if [ -n "$existing_pr" ]; then
             echo "PR #${existing_pr} already exists for branch ${CHANGELOG_PREVIEW_BRANCH}. Skipping PR creation."
           else
+            changelog_preview=$(uv run scriv print --version ${next_version})
             gh pr create \
               --title "Changelog Preview for Next Release" \
-              --body "This PR contains the preview of the changelog for the next release." \
+              --body "$changelog_preview" \
               --head "${CHANGELOG_PREVIEW_BRANCH}" \
               --base "${{ github.event.repository.default_branch }}"
           fi
