@@ -1,0 +1,124 @@
+name: Changelog
+
+on:
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+env:
+  PYTHON_VERSION: "3.13"
+  CHANGELOG_PREVIEW_BRANCH: "scriv-preview"
+
+jobs:
+  scriv:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+          # `fetch-depth: 0` is required to determine a new version because this project's version is managed by `hatch-vcs`.
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@85856786d1ce8acfbcc2f13a5f3fbd6b938f9f41 # v7.1.2
+
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: "${{ env.PYTHON_VERSION }}"
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Configure Git Credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@7e473efe3cb98aa54f8d4bac15400b15fad77d94 # v2.2.0
+        with:
+          app-id: ${{ vars.MY_CHANGESETS_APP_ID }}
+          private-key: ${{ secrets.MY_CHANGESETS_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Get bump level
+        id: get-bump-level
+        run: |
+          bump_level=$(uv run python scripts/get_bump_version_level.py)
+          echo "bump_level=$bump_level" >> $GITHUB_OUTPUT
+          if [ -n "$bump_level" ]; then
+            echo "Bump level: $bump_level"
+          else
+            echo "No version bump needed."
+          fi
+
+      - name: Generate and push changelog preview
+        if: steps.get-bump-level.outputs.bump_level != ''
+        run: |
+          uv run scriv collect \
+            --version $(uv run bump-my-version show --increment ${BUMP_LEVEL} new_version)
+
+          # Commit and push the changes to the preview branch
+          git add -A
+          git commit -m "Preview changelog for next release"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          git push origin HEAD:${CHANGELOG_PREVIEW_BRANCH} --force
+
+          # Check if a PR from the preview branch already exists
+          existing_pr=$(gh pr list --head "${CHANGELOG_PREVIEW_BRANCH}" --json number --jq '.[0].number')
+
+          # Create a PR if it doesn't exist
+          if [ -n "$existing_pr" ]; then
+            echo "PR #${existing_pr} already exists for branch ${CHANGELOG_PREVIEW_BRANCH}. Skipping PR creation."
+          else
+            gh pr create \
+              --title "Changelog Preview for Next Release" \
+              --body "This PR contains the preview of the changelog for the next release." \
+              --head "${CHANGELOG_PREVIEW_BRANCH}" \
+              --base "${{ github.event.repository.default_branch }}"
+          fi
+        env:
+          BUMP_LEVEL: ${{ steps.get-bump-level.outputs.bump_level }}
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+
+      - name: Trigger release
+        if: steps.get-bump-level.outputs.bump_level == ''
+        run: |
+          echo "No version bump needed. Triggering release."
+
+          # Store the current branch name before checking out previous revision
+          current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+          # Check out the previous revision
+          git checkout HEAD~1
+
+          # Get the bump version level from the previous revision
+          bump_version=$(uv run python scripts/get_bump_version_level.py)
+          echo "Bump version level from previous revision: $bump_version"
+
+          # Restore the original branch
+          git checkout "$current_branch"
+
+          # If there was a bump version level in the previous revision, trigger the release
+          if [ -z "$bump_version" ]; then
+            echo "No bump version level found in previous revision. Skipping release."
+            exit 0
+          fi
+
+          echo "Triggering release for bump level: $bump_version"
+          uv run bump-my-version bump "${bump_version}" --tag --commit --commit-args='--allow-empty' --verbose
+
+          # Push the release commit and tag
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          git push origin HEAD --follow-tags
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
