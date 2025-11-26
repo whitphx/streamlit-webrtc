@@ -1,4 +1,14 @@
 name: Changelog
+# Changelog and release management inspired by Changesets.
+# 1. For commits pushed to `main` including changelog fragments created via `scriv add`,
+#    generate a changelog preview in a PR.
+#    The preview PR will contain changes collected by `scriv`
+#    that are an updated changelog and deleted fragments.
+# 2. For commits without changelog fragments, trigger a release based on the
+#    version bump level determined from the previous commit.
+#    Since the preview PR deletes the fragments, merging it results in this case and triggers a release.
+#    For normal commits that don't contain the fragments, the release step is also run
+#    but no version bump will be detected and thus no release will be made.
 
 on:
   push:
