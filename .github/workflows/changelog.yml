@@ -78,14 +78,14 @@ jobs:
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
           git push origin HEAD:${CHANGELOG_PREVIEW_BRANCH} --force
 
-          # Check if a PR from the preview branch already exists
+          # Create or update a PR for the changelog preview
           existing_pr=$(gh pr list --head "${CHANGELOG_PREVIEW_BRANCH}" --json number --jq '.[0].number')
-
-          # Create a PR if it doesn't exist
+          changelog_preview=$(uv run scriv print --version ${next_version})
           if [ -n "$existing_pr" ]; then
-            echo "PR #${existing_pr} already exists for branch ${CHANGELOG_PREVIEW_BRANCH}. Skipping PR creation."
+            gh pr edit "$existing_pr" \
+              --title "Changelog Preview for Next Release" \
+              --body "$changelog_preview"
           else
-            changelog_preview=$(uv run scriv print --version ${next_version})
             gh pr create \
               --title "Changelog Preview for Next Release" \
               --body "$changelog_preview" \
