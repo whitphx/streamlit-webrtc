@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.64.5'></a>
+## 0.64.5 — 2025-11-28
+
+### Chore
+
+- Update badges in README.md
+
 <a id='changelog-0.64.4'></a>
 ## 0.64.4 — 2025-11-26
 
