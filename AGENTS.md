@@ -1,6 +1,7 @@
 # AGENTS.md
 
 This file provides guidance for Codex (and other AI agents) working in this repository. Its scope covers the entire repo.
+- For repository-wide policies and detailed workflows (including releases and changelogs), defer to the canonical guidance in `CONTRIBUTING.md`.
 
 ## Quickstart
 - Install dependencies with `uv sync`.
