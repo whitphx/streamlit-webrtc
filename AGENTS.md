@@ -24,7 +24,9 @@ This file provides guidance for Codex (and other AI agents) working in this repo
 - Frontend-only build: `cd streamlit_webrtc/frontend && pnpm run build`
 
 ## Release notes
-- Update `CHANGELOG.md` at the start of release work and use the `make release/*` targets.
+- Refer to `CONTRIBUTING.md` for the authoritative release and changelog process.
+- Create a changelog fragment with `scriv create` for each PR (`scriv create --edit` to open an editor) and commit it under `changelog.d/`.
+- CI will open a changelog preview PR from committed fragments; maintainers merge it before the automated release build runs.
 
 ## Contribution notes
 - Keep changes minimal and focused; prefer small, reviewable commits.
