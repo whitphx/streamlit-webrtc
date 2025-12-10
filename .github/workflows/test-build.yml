@@ -60,7 +60,7 @@ jobs:
           echo "head-sha=$(cat head-sha)" >> $GITHUB_OUTPUT
           echo "pr-number=$(cat pr-number)" >> $GITHUB_OUTPUT
       - name: Upload build info
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: build-info
           path: |
@@ -225,7 +225,7 @@ jobs:
       run: make build
 
     - name: Upload the built artifacts
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       with:
         name: streamlit-webrtc-${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || github.sha  }}
         path: dist
