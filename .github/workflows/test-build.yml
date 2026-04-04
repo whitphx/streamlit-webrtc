@@ -124,7 +124,12 @@ jobs:
 
     - name: Install a specific version of Streamlit
       if: ${{ matrix.streamlit-version }}
-      run: uv add --dev streamlit=="${STREAMLIT_VERSION}" setuptools
+      run: |
+        uv add --dev streamlit=="${STREAMLIT_VERSION}"
+        # Old Streamlit versions (e.g. 1.4.0) import pkg_resources at startup,
+        # which requires setuptools. Install it directly via `uv pip` to ensure
+        # it's present in the venv regardless of dependency resolution.
+        uv pip install setuptools
       env:
         STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
 
