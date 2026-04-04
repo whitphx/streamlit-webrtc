@@ -145,11 +145,10 @@ jobs:
       run: mkdir streamlit_webrtc/frontend/dist
 
     - name: Test with pytest
-      # Old Streamlit versions (e.g. 1.4.0) import pkg_resources at startup,
-      # which requires setuptools. `--with setuptools` injects it into the
-      # run environment so it's available even though uv excludes it from
-      # venvs by default.
-      run: uv run --with setuptools pytest
+      # Old Streamlit versions (e.g. 1.4.0) import pkg_resources at startup.
+      # Recent setuptools removed pkg_resources, so we pin to <81 which
+      # still includes it.
+      run: uv run --with "setuptools<81" pytest
 
   test-frontend:
     runs-on: ubuntu-latest
