@@ -124,7 +124,7 @@ jobs:
 
     - name: Install a specific version of Streamlit
       if: ${{ matrix.streamlit-version }}
-      run: uv add --dev streamlit=="${STREAMLIT_VERSION}" setuptools
+      run: uv add --dev streamlit=="${STREAMLIT_VERSION}"
       env:
         STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
 
@@ -145,7 +145,10 @@ jobs:
       run: mkdir streamlit_webrtc/frontend/dist
 
     - name: Test with pytest
-      run: uv run pytest
+      # Old Streamlit versions (e.g. 1.4.0) import pkg_resources at startup.
+      # Recent setuptools removed pkg_resources, so we pin to <81 which
+      # still includes it.
+      run: uv run --with "setuptools<81" pytest
 
   test-frontend:
     runs-on: ubuntu-latest
