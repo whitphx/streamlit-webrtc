@@ -4,6 +4,8 @@ updates:
   directory: "/"
   schedule:
     interval: daily
+  cooldown:
+    default-days: 7
   ignore:
     - dependency-name: "cryptography"
       versions: ["39.0.0"]  # https://github.com/whitphx/streamlit-webrtc/issues/1164
@@ -12,8 +14,12 @@ updates:
   directory: "/streamlit_webrtc/frontend"
   schedule:
     interval: daily
+  cooldown:
+    default-days: 7
   open-pull-requests-limit: 10
 - package-ecosystem: github-actions
   directory: "/"
   schedule:
     interval: "daily"
+  cooldown:
+    default-days: 7
