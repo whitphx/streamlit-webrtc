@@ -1,0 +1,9 @@
+name: Install Aikido Safe Chain
+description: Install Aikido Safe Chain to guard npm/pnpm package installs against malicious packages.
+
+runs:
+  using: composite
+  steps:
+    - name: Install Aikido Safe Chain
+      shell: bash
+      run: curl -fsSL https://github.com/AikidoSec/safe-chain/releases/latest/download/install-safe-chain.sh | sh -s -- --ci

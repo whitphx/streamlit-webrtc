@@ -175,6 +175,8 @@ jobs:
         node-version-file: .nvmrc
         cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
 
+    - uses: ./.github/actions/install-safe-chain
+
     - name: Install dependencies
       run: pnpm install
 
@@ -219,6 +221,8 @@ jobs:
         cache: 'pnpm'
         node-version-file: .nvmrc
         cache-dependency-path: streamlit_webrtc/frontend/pnpm-lock.yaml
+
+    - uses: ./.github/actions/install-safe-chain
 
     - name: Install dependencies
       run: pnpm install
