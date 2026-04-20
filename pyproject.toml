@@ -30,7 +30,7 @@ dev = [
     "opencv-python-headless>=4.5.4.58",
     "streamlit-session-memo>=0.3.2",
     # For testing older versions of Streamlit: https://discuss.streamlit.io/t/modulenotfounderror-no-module-named-altair-vegalite-v4/42921
-    "altair<5",
+    "altair<7",
     # For testing older versions of Streamlit: https://discuss.streamlit.io/t/streamlit-run-with-protobuf-error/25632/3
     "protobuf<=3.20",
     "mkdocs-material>=9.6.20",
