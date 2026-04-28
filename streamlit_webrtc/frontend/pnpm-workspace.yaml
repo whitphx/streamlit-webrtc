@@ -1,0 +1,6 @@
+minimumReleaseAge: 10080 # For security reasons, see https://blog.flatt.tech/entry/axios_compromise#npm-%E3%81%AE-min-release-age
+strictDepBuilds: true
+onlyBuiltDependencies:
+  - esbuild
+  - "@swc/core"
+  - msw
