@@ -2,6 +2,17 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.64.6'></a>
+## 0.64.6 — 2026-04-28
+
+### Security
+
+- Bump transitive `vite` to 6.4.2 to address GHSA-p9ff-h696-f583 and GHSA-4w7w-66w2-5vf9.
+
+### Chore
+
+- Allow `@swc/core` and `msw` build scripts under pnpm's `strictDepBuilds`.
+
 <a id='changelog-0.64.5'></a>
 ## 0.64.5 — 2025-11-28
 
