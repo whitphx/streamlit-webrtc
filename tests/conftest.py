@@ -23,16 +23,18 @@ def setup_runtime():
 
     main_script_path = ""
 
-    return Runtime(
-        RuntimeConfig(
-            script_path=main_script_path,
-            command_line=None,
-            media_file_storage=media_file_storage,
-            uploaded_file_manager=uploaded_file_mgr,
-            cache_storage_manager=create_default_cache_storage_manager(),
-            is_hello=False,
-        )
+    config_kwargs = dict(
+        script_path=main_script_path,
+        media_file_storage=media_file_storage,
+        uploaded_file_manager=uploaded_file_mgr,
+        cache_storage_manager=create_default_cache_storage_manager(),
+        is_hello=False,
     )
+    if ST_VERSION < version.parse("1.55.0"):
+        # `command_line` was removed in Streamlit 1.55.0.
+        config_kwargs["command_line"] = None
+
+    return Runtime(RuntimeConfig(**config_kwargs))
 
 
 ST_VERSION = version.parse(st.__version__)
