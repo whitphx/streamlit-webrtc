@@ -1,0 +1,28 @@
+name: Setup Takumi Guard
+description: Configure pnpm to fetch packages through the Takumi Guard registry proxy (anonymous mode).
+
+inputs:
+  working-directory:
+    description: Directory containing the .npmrc to update.
+    required: false
+    default: .
+  registry-url:
+    description: Takumi Guard proxy registry URL.
+    required: false
+    default: https://npm.flatt.tech
+
+runs:
+  using: composite
+  steps:
+    - name: Set Takumi Guard registry in .npmrc
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        REGISTRY_URL: ${{ inputs.registry-url }}
+      run: |
+        if [ -f .npmrc ]; then
+          grep -v '^registry=' .npmrc > .npmrc.tmp || true
+          mv .npmrc.tmp .npmrc
+        fi
+        echo "registry=${REGISTRY_URL}/" >> .npmrc
+        echo "::notice::Takumi Guard registry set to ${REGISTRY_URL}"

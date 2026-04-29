@@ -1,12 +1,14 @@
 # streamlit-webrtc
 **Handling and transmitting real-time video/audio streams over the network with Streamlit** [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py)
 
-[![Test, Build, and Publish](https://github.com/whitphx/streamlit-webrtc/actions/workflows/main.yml/badge.svg)](https://github.com/whitphx/streamlit-webrtc/actions/workflows/main.yml)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Test and Build](https://github.com/whitphx/streamlit-webrtc/actions/workflows/test-build.yml/badge.svg)](https://github.com/whitphx/streamlit-webrtc/actions/workflows/test-build.yml)
+[![Post-build](https://github.com/whitphx/streamlit-webrtc/actions/workflows/post-build.yml/badge.svg)](https://github.com/whitphx/streamlit-webrtc/actions/workflows/post-build.yml)
 
 [![PyPI](https://img.shields.io/pypi/v/streamlit-webrtc)](https://pypi.org/project/streamlit-webrtc/)
 [![PyPI - License](https://img.shields.io/pypi/l/streamlit-webrtc)](https://pypi.org/project/streamlit-webrtc/)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/streamlit-webrtc)](https://pypi.org/project/streamlit-webrtc/)
+
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 <table>
 <tr>

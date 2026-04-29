@@ -1,7 +1,63 @@
 # Changelog
-All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+<!-- scriv-insert-here -->
+
+<a id='changelog-0.64.6'></a>
+## 0.64.6 — 2026-04-28
+
+### Security
+
+- Bump transitive `vite` to 6.4.2 to address GHSA-p9ff-h696-f583 and GHSA-4w7w-66w2-5vf9.
+
+### Chore
+
+- Allow `@swc/core` and `msw` build scripts under pnpm's `strictDepBuilds`.
+
+<a id='changelog-0.64.5'></a>
+## 0.64.5 — 2025-11-28
+
+### Chore
+
+- Update badges in README.md
+
+<a id='changelog-0.64.4'></a>
+## 0.64.4 — 2025-11-26
+
+### Chore
+
+- Update `DEVELOPMENT.md` and rename it to `CONTRIBUTING.md`
+- Update frontend dependencies
+
+<a id='changelog-0.64.3'></a>
+## 0.64.3 — 2025-11-26
+
+### Chore
+
+- Fix Scriv-based release workflow
+
+- Fix release workflow not to create an empty commit for version bump
+
+<a id='changelog-0.64.2'></a>
+## 0.64.2 — 2025-11-25
+
+### Chore
+
+- Trigger release with Scriv
+
+<a id='changelog-0.64.1'></a>
+## 0.64.1 — 2025-11-25
+
+### Chore
+
+- Scriv for changelog management
+
+<!-- scriv-end-here -->
+
+## [0.64.0] - 2025-11-14
+
+### Changed
+
+- Drop support for Python 3.9, [#2280](https://github.com/whitphx/streamlit-webrtc/pull/2280).
 
 ## [0.63.11] - 2025-10-06
 
