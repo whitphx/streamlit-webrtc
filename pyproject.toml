@@ -30,10 +30,11 @@ dev = [
     "twilio>=8.1",
     "opencv-python-headless>=4.5.4.58",
     "streamlit-session-memo>=0.3.2",
+    # Scoped to Python <3.11 because old Streamlit is only tested on the 3.10 matrix entries.
     # For testing older versions of Streamlit: https://discuss.streamlit.io/t/modulenotfounderror-no-module-named-altair-vegalite-v4/42921
-    "altair<5",
+    "altair<5 ; python_version < '3.11'",
     # For testing older versions of Streamlit: https://discuss.streamlit.io/t/streamlit-run-with-protobuf-error/25632/3
-    "protobuf<=3.20",
+    "protobuf<=3.20 ; python_version < '3.11'",
     "mkdocs-material>=9.6.20",
     "scriv>=1.7.0",
 ]
