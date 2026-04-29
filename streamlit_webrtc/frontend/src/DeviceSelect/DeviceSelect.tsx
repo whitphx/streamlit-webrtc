@@ -50,16 +50,14 @@ interface DeviceSelectionState {
 interface DeviceSelectionActionBase {
   type: string;
 }
-interface DeviceSelectionSetUnavailableAction
-  extends DeviceSelectionActionBase {
+interface DeviceSelectionSetUnavailableAction extends DeviceSelectionActionBase {
   type: "SET_UNAVAILABLE";
 }
 interface DeviceSelectionUpdateDevicesAction extends DeviceSelectionActionBase {
   type: "UPDATE_DEVICES";
   devices: MediaDeviceInfo[];
 }
-interface DeviceSelectionUpdateSelectedDeviceIdAction
-  extends DeviceSelectionActionBase {
+interface DeviceSelectionUpdateSelectedDeviceIdAction extends DeviceSelectionActionBase {
   type: "UPDATE_SELECTED_DEVICE_ID";
   payload: {
     selectedVideoInputDeviceId?: MediaDeviceInfo["deviceId"] | undefined;
