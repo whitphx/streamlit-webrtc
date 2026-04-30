@@ -12,7 +12,7 @@ def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
     img = frame.to_ndarray(format="bgr24")
 
     # perform edge detection
-    img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
+    img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)  # type: ignore[assignment]
 
     return av.VideoFrame.from_ndarray(img, format="bgr24")
 

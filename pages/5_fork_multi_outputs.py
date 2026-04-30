@@ -45,15 +45,15 @@ def make_video_frame_callback(_type: VideoFilterType):
             img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
 
             # combine color and edges
-            img = cv2.bitwise_and(img_color, img_edges)
+            img = cv2.bitwise_and(img_color, img_edges)  # type: ignore[assignment]
         elif _type == "edges":
             # perform edge detection
-            img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
+            img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)  # type: ignore[assignment]
         elif _type == "rotate":
             # rotate image
             rows, cols, _ = img.shape
             M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
-            img = cv2.warpAffine(img, M, (cols, rows))
+            img = cv2.warpAffine(img, M, (cols, rows))  # type: ignore[assignment]
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
