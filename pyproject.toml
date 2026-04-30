@@ -8,7 +8,8 @@ license = "MIT"
 dynamic = ["version"]
 dependencies = [
     "streamlit>=1.4.0", # Minimum Streamlit version that supports Python 3.10
-    "aiortc>=1.11.0", # aiortc<1.4.0 causes an error with cryptography>=39.0.0. See https://github.com/whitphx/streamlit-webrtc/issues/1164. The fix was introduced into aiortc in https://github.com/aiortc/aiortc/commit/08b0a7e9f5030a9f7e5617382e92560d4ae763a2 that 1.4.0 included.
+    "aiortc>=1.14.0", # aiortc<1.4.0 causes an error with cryptography>=39.0.0. See https://github.com/whitphx/streamlit-webrtc/issues/1164. The fix was introduced into aiortc in https://github.com/aiortc/aiortc/commit/08b0a7e9f5030a9f7e5617382e92560d4ae763a2 that 1.4.0 included. aiortc<1.14.0 caps av<15, which lacks Python 3.14 wheels.
+    "av>=15.1.0", # First version with prebuilt wheels for Python 3.14 (cp314).
     "packaging>=20.0",
     "aioice>=0.10.1",
 ]
@@ -29,10 +30,11 @@ dev = [
     "twilio>=8.1",
     "opencv-python-headless>=4.5.4.58",
     "streamlit-session-memo>=0.3.2",
+    # Scoped to Python <3.11 because old Streamlit is only tested on the 3.10 matrix entries.
     # For testing older versions of Streamlit: https://discuss.streamlit.io/t/modulenotfounderror-no-module-named-altair-vegalite-v4/42921
-    "altair<5",
+    "altair<5 ; python_version < '3.11'",
     # For testing older versions of Streamlit: https://discuss.streamlit.io/t/streamlit-run-with-protobuf-error/25632/3
-    "protobuf<=3.20",
+    "protobuf<=3.20 ; python_version < '3.11'",
     "mkdocs-material>=9.6.20",
     "scriv>=1.7.0",
 ]
@@ -56,7 +58,7 @@ build-backend = "hatchling.build"
 extend-select = ["I"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 ignore_missing_imports = true
 exclude = [
     '^site/',

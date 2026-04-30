@@ -510,13 +510,11 @@ def webrtc_streamer(
         if on_change and old_state != new_state:
             on_change()
 
+    kwargs: Dict[str, Any] = {}
     if not VER_GTE_1_36_0:
         register_callback(element_key=frontend_key, callback=callback)
-        kwargs = {}
     else:
-        kwargs = {
-            "on_change": callback,
-        }
+        kwargs["on_change"] = callback
     component_value_raw: Union[Dict, str, None] = _component_func(
         key=frontend_key,
         sdp_answer_json=context._sdp_answer_json,

@@ -75,7 +75,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
         streamlit-version: [""]
         include:
           # 1.4.0 introduced Python 3.10 support: https://docs.streamlit.io/develop/quick-reference/release-notes/2022#version-140

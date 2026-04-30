@@ -14,7 +14,7 @@ def video_source_callback(pts: int, time_base: fractions.Fraction) -> av.VideoFr
     pts_sec = pts * time_base
 
     buffer = np.zeros((480, 640, 3), dtype=np.uint8)
-    buffer = cv2.putText(
+    buffer = cv2.putText(  # type: ignore[assignment]
         buffer,
         text=f"time: {time.time():.2f}",
         org=(0, 32),
@@ -24,7 +24,7 @@ def video_source_callback(pts: int, time_base: fractions.Fraction) -> av.VideoFr
         thickness=thickness,
         lineType=cv2.LINE_4,
     )
-    buffer = cv2.putText(
+    buffer = cv2.putText(  # type: ignore[assignment]
         buffer,
         text=f"pts: {pts} ({float(pts_sec):.2f} sec)",
         org=(0, 64),
