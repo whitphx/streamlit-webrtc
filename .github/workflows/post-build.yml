@@ -79,7 +79,7 @@ jobs:
             pages deploy ${{ runner.temp }}/artifacts/streamlit-webrtc --project-name=streamlit-webrtc-preview --branch=${{ github.head_ref || github.ref_name }} --commit-hash=${{ github.sha }}
 
       - name: Comment on the PR to inform the deployment file URLs
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           ISSUE_NUMBER: ${{ needs.get-build-info.outputs.pr-number }}
         with:
