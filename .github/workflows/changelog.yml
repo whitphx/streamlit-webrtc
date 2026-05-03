@@ -21,9 +21,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: whitphx/scriv-release/.github/workflows/reusable.yml@3a30c62354121f2f7b9416bbefa6bd9f241f7409 # v0.1.0
+    uses: whitphx/scriv-release/.github/workflows/reusable.yml@f4037461feff2748702977b8633bf00a5cbad83c # v0.2.0
     with:
-      python-version: "3.13"
       preview-branch: scriv-preview
     secrets:
       app-id: ${{ vars.MY_CHANGESETS_APP_ID }}
