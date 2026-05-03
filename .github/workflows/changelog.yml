@@ -1,14 +1,13 @@
 name: Changelog
-# Changelog and release management inspired by Changesets.
-# 1. For commits pushed to `main` including changelog fragments created via `scriv add`,
-#    generate a changelog preview in a PR.
-#    The preview PR will contain changes collected by `scriv`
-#    that are an updated changelog and deleted fragments.
-# 2. For commits without changelog fragments, trigger a release based on the
-#    version bump level determined from the previous commit.
-#    Since the preview PR deletes the fragments, merging it results in this case and triggers a release.
-#    For normal commits that don't contain the fragments, the release step is also run
-#    but no version bump will be detected and thus no release will be made.
+# Changelog and release management inspired by Changesets, delegated to
+# the scriv-release reusable workflow:
+#   https://github.com/whitphx/scriv-release
+#
+# 1. Pushes to `main` that include a changelog fragment under
+#    `changelog.d/` open (or update) a "Changelog Preview" PR.
+# 2. Merging that preview PR removes the fragments and triggers a
+#    release: the action infers the bump level from the previous
+#    revision's fragments and pushes a tag.
 
 on:
   push:
@@ -17,128 +16,15 @@ on:
 
 permissions: {}
 
-env:
-  PYTHON_VERSION: "3.13"
-  CHANGELOG_PREVIEW_BRANCH: "scriv-preview"
-
 jobs:
-  scriv:
-    runs-on: ubuntu-latest
+  release:
     permissions:
       contents: write
       pull-requests: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-          # `fetch-depth: 0` is required to determine a new version because this project's version is managed by `hatch-vcs`.
-          fetch-depth: 0
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-        with:
-          python-version: "${{ env.PYTHON_VERSION }}"
-
-      - name: Install dependencies
-        run: uv sync --all-extras --dev
-
-      - name: Configure Git Credentials
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-
-      - name: Generate a token
-        id: generate-token
-        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v3.1.1
-        with:
-          app-id: ${{ vars.MY_CHANGESETS_APP_ID }}
-          private-key: ${{ secrets.MY_CHANGESETS_APP_PRIVATE_KEY }}
-          permission-contents: write
-          permission-pull-requests: write
-
-      - name: Get bump level
-        id: get-bump-level
-        run: |
-          bump_level=$(uv run python scripts/get_bump_version_level.py)
-          echo "bump_level=$bump_level" >> $GITHUB_OUTPUT
-          if [ -n "$bump_level" ]; then
-            echo "Bump level: $bump_level"
-          else
-            echo "No version bump needed."
-          fi
-
-      - name: Generate and push changelog preview
-        if: steps.get-bump-level.outputs.bump_level != ''
-        run: |
-          echo "Generating changelog preview for bump level: ${BUMP_LEVEL}"
-
-          next_version=$(uv run bump-my-version show --increment ${BUMP_LEVEL} new_version)
-          echo "Next version: ${next_version}"
-
-          uv run scriv collect \
-            --version ${next_version}
-
-          # Commit and push the changes to the preview branch
-          git add -A
-          git commit -m "Preview changelog for next release"
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
-          git push origin HEAD:${CHANGELOG_PREVIEW_BRANCH} --force
-
-          # Create or update a PR for the changelog preview
-          existing_pr=$(gh pr list --head "${CHANGELOG_PREVIEW_BRANCH}" --json number --jq '.[0].number')
-          changelog_content=$(uv run scriv print --version ${next_version})
-          changelog_preview="# Changelog Preview for Version ${next_version}
-
-          ${changelog_content}"
-          if [ -n "$existing_pr" ]; then
-            gh pr edit "$existing_pr" \
-              --title "Changelog Preview for Next Release" \
-              --body "$changelog_preview"
-          else
-            gh pr create \
-              --title "Changelog Preview for Next Release" \
-              --body "$changelog_preview" \
-              --head "${CHANGELOG_PREVIEW_BRANCH}" \
-              --base "${{ github.event.repository.default_branch }}"
-          fi
-        env:
-          BUMP_LEVEL: ${{ steps.get-bump-level.outputs.bump_level }}
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
-
-      - name: Trigger release
-        if: steps.get-bump-level.outputs.bump_level == ''
-        run: |
-          echo "No version bump needed. Triggering release."
-
-          # Store the current branch name before checking out previous revision
-          current_branch=$(git rev-parse --abbrev-ref HEAD)
-
-          # Check out the previous revision
-          git checkout HEAD~1
-
-          # Get the bump version level from the previous revision
-          bump_version=$(uv run python scripts/get_bump_version_level.py)
-          echo "Bump version level from previous revision: $bump_version"
-
-          # Restore the original branch
-          git checkout "$current_branch"
-
-          # If there was a bump version level in the previous revision, trigger the release
-          if [ -z "$bump_version" ]; then
-            echo "No bump version level found in previous revision. Skipping release."
-            exit 0
-          fi
-
-          echo "Bumping version for bump level $bump_version and creating a Git tag."
-          # Set a tag with the bumped version to the current HEAD, not creating a new commit.
-          uv run bump-my-version bump "${bump_version}" --tag --no-commit --verbose
-
-          # Push the tag
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
-          git push origin HEAD --follow-tags
-        env:
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+    uses: whitphx/scriv-release/.github/workflows/reusable.yml@3a30c62354121f2f7b9416bbefa6bd9f241f7409 # v0.1.0
+    with:
+      python-version: "3.13"
+      preview-branch: scriv-preview
+    secrets:
+      app-id: ${{ vars.MY_CHANGESETS_APP_ID }}
+      app-private-key: ${{ secrets.MY_CHANGESETS_APP_PRIVATE_KEY }}
