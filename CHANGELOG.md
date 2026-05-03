@@ -2,6 +2,17 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.65.0'></a>
+## 0.65.0 — 2026-05-02
+
+### Added
+
+- Python 3.14 support.
+
+### Changed
+
+- Bump `aiortc` to `>=1.14.0` and add `av>=15.1.0` to dependencies (required for Python 3.14 wheels).
+
 <a id='changelog-0.64.6'></a>
 ## 0.64.6 — 2026-04-28
 
