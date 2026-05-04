@@ -21,7 +21,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: whitphx/scriv-release/.github/workflows/reusable.yml@30455fdde15a17cae1ba33ce2f074e56532da755 # v0.2.1
+    uses: whitphx/scriv-release/.github/workflows/reusable.yml@e0903b1fd894bc1a25c3eb6b02e5c3581d7b8a6c # v0.2.3
     with:
       preview-branch: scriv-preview
     secrets:
