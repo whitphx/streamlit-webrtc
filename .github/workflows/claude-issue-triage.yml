@@ -1,0 +1,89 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  triage:
+    if: github.event.issue.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Claude triage
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          allowed_tools: "Bash(gh issue:*),Bash(gh label:*),Bash(gh search:*)"
+          direct_prompt: |
+            あなたは `whitphx/streamlit-webrtc` リポジトリの Issue トリアージ担当です。
+            対象 Issue 番号: #${{ github.event.issue.number }}
+
+            ## このリポジトリの前提
+
+            - `streamlit-webrtc` は Streamlit 上でリアルタイムに音声・映像を扱う Python ライブラリ（WebRTC ベース）
+            - Python バックエンド (`streamlit_webrtc/`) と React/TypeScript フロントエンド (`streamlit_webrtc/frontend/`) で構成
+            - 内部で `aiortc`, `PyAV` を利用しており、それらに起因するバグが報告されることもある
+
+            ## よくある報告分類
+
+            - カメラ/マイクが起動しない（ブラウザ権限・HTTPS 要件）
+            - デプロイ環境（Streamlit Community Cloud / Heroku / 自前サーバー等）での接続失敗（多くは TURN サーバー設定不足）
+            - `webrtc_streamer` の引数や `VideoProcessorBase` / `AudioProcessorBase` の使い方の質問
+            - フロントエンド側の表示崩れ
+            - `aiortc` / `PyAV` 由来のバグの可能性
+            - `streamlit` 本体のバージョン互換性
+
+            ## 判定手順
+
+            1. まず `gh issue view ${{ github.event.issue.number }}` で Issue 本文と既存コメントを取得する
+            2. `gh label list` で既存ラベルを確認する
+            3. `gh search issues --repo whitphx/streamlit-webrtc <キーワード>` で類似の過去 Issue を確認し、過去どう扱われたかを参考にする
+            4. 報告者が使っている言語（日本語/英語など）を判定する
+
+            ## 判定基準
+
+            **バグ報告の場合、以下が揃っているか確認:**
+            - 再現手順
+            - 期待される動作
+            - 実際の動作
+            - `streamlit-webrtc` のバージョン
+            - `streamlit` のバージョン
+            - Python バージョン
+            - OS
+            - ブラウザ
+            - デプロイ環境（ローカル / Community Cloud / 自前サーバー / Docker など）
+            - 最小再現コードの有無
+
+            **機能要望の場合、以下が揃っているか確認:**
+            - ユースケース（なぜ必要か）
+            - 現状の回避策の有無
+            - 提案する解決策
+
+            ## アクション（以下のいずれか 1 つを実行）
+
+            ### A. 情報が不足している場合
+            - 報告者の使用言語に合わせて、不足項目を箇条書きで丁寧に質問するコメントを投稿する
+            - `needs-info` ラベルを付与する
+            - 例: `gh issue comment ${{ github.event.issue.number }} --body "..."`
+            - 例: `gh issue edit ${{ github.event.issue.number }} --add-label needs-info`
+
+            ### B. 情報が十分にクリアな場合
+            - 内容を 3-5 行で要約したコメントを投稿する（メンテナが素早く把握できるように）
+            - `triaged` ラベルを付与する
+
+            ### C. このプロジェクトのスコープ外の場合
+            - スコープ外の例: Streamlit 本体のバグ、aiortc/PyAV の純粋なバグ、汎用的な使い方の質問で Discussions が適切なもの、別ライブラリへの質問
+            - 適切な誘導先（Streamlit forum、aiortc/PyAV のリポジトリ、GitHub Discussions など）を案内するコメントを報告者の言語で投稿する
+            - `out-of-scope` ラベルを付与する
+
+            ## 注意事項
+
+            - コメントは丁寧で建設的なトーンを保つこと
+            - 過度に断定せず、必要なら確認のための質問を残すこと
+            - ラベルが既に付いていたり存在しない場合は、`gh label list` で確認してから付与すること

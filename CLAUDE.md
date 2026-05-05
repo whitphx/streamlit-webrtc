@@ -123,3 +123,15 @@ pnpm run build
 - STUN/TURN server configuration via `rtc_configuration`
 - Default uses Google's public STUN server
 - Production deployments may need TURN servers (e.g., Twilio)
+
+## OSS Issue 自動対応の運用規約
+
+このリポジトリでは GitHub Actions 経由で Claude が Issue の一次対応と実装の一部を担います。Claude が Issue 起点で作業する際は以下を遵守してください。
+
+- **公開 API の破壊的変更は避ける**: `webrtc_streamer()` の引数、`VideoProcessorBase` / `AudioProcessorBase` の互換性、`WebRtcStreamerContext` のインターフェースは特に慎重に扱う。破壊的変更が必要な場合は実装を止めて Issue で議論を促す
+- **依存パッケージの追加は要相談**: `pyproject.toml` への新規依存追加は事前に Issue で合意を得る。可能なら標準ライブラリで解決する
+- **ライセンス互換性**: MIT 互換でないコード断片を持ち込まない
+- **changelog fragment を必ず追加**: ユーザー影響のある変更は `changelog.d/` にエントリを追加する
+- **テストとリンタ**: `uv run pytest` と `pre-commit run --all-files` がローカルで通ることを確認してから PR を出す
+- **不明瞭な設計判断は実装を止めて Issue でメンテナに質問する**
+- **Streamlit / aiortc / PyAV のバージョン互換性**: 既存の `pyproject.toml` の依存範囲を尊重し、必要な場合のみ慎重に拡張する
