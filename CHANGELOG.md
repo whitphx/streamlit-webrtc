@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.65.1'></a>
+## 0.65.1 — 2026-05-04
+
+### Chore
+
+- Migrate the changelog/release workflow to the [`scriv-release`](https://github.com/whitphx/scriv-release) reusable workflow. No user-visible behavior change.
+
 <a id='changelog-0.65.0'></a>
 ## 0.65.0 — 2026-05-02
 
