@@ -1,7 +1,6 @@
 name: Changelog
-# Changelog and release management inspired by Changesets, delegated to
-# the scriv-release reusable workflow:
-#   https://github.com/whitphx/scriv-release
+# Changelog and release management inspired by Changesets.
+# https://github.com/whitphx/scriv-release
 #
 # 1. Pushes to `main` that include a changelog fragment under
 #    `changelog.d/` open (or update) a "Changelog Preview" PR.
@@ -18,12 +17,20 @@ permissions: {}
 
 jobs:
   release:
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
-    uses: whitphx/scriv-release/.github/workflows/reusable.yml@8931f7412ef30b753ab73d35c4dc2ccb8d6bdcf4 # v0.2.4
-    with:
-      preview-branch: scriv-preview
-    secrets:
-      app-id: ${{ vars.MY_CHANGESETS_APP_ID }}
-      app-private-key: ${{ secrets.MY_CHANGESETS_APP_PRIVATE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run scriv-release
+        uses: whitphx/scriv-release@31da80e50064bc5f9d3f631f51264c532fa18747 # v0.3.0
+        with:
+          app-id: ${{ vars.MY_CHANGESETS_APP_ID }}
+          app-private-key: ${{ secrets.MY_CHANGESETS_APP_PRIVATE_KEY }}
+          preview-branch: scriv-preview
