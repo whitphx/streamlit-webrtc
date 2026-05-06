@@ -37,7 +37,7 @@ jobs:
             ## Procedure
 
             1. **Read existing conventions first (mandatory)**
-               - Always read `CLAUDE.md`, `AGENTS.md`, and `CONTRIBUTING.md` at the repository root.
+               - Always read `CLAUDE.md` and `CONTRIBUTING.md` at the repository root.
                - Read any additional rules under `.claude/` if present.
                - Never make changes that violate these documents.
 
@@ -47,7 +47,7 @@ jobs:
                - Use grep / glob to explore the relevant code.
 
             3. **Create a working branch**
-               - Run `git checkout -b claude/issue-${{ github.event.issue.number }}`.
+               - Run `git switch -c claude/issue-${{ github.event.issue.number }}`.
 
             4. **Implement**
                - For new Python dependencies, use `uv add <pkg>` (or `--dev`) so that `uv.lock` is updated.
