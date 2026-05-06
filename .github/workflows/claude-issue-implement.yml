@@ -31,55 +31,55 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           allowed_tools: "Bash,Edit,Write,Read,Grep,Glob"
           direct_prompt: |
-            あなたは `whitphx/streamlit-webrtc` リポジトリで、ラベル `ai-implement` が付いた Issue を実装する担当です。
-            対象 Issue 番号: #${{ github.event.issue.number }}
+            You are the implementation agent for issues labeled `ai-implement` in the `whitphx/streamlit-webrtc` repository.
+            Target issue number: #${{ github.event.issue.number }}
 
-            ## 手順
+            ## Procedure
 
-            1. **既存規約の読み込み（必須・最初に行う）**
-               - リポジトリルートの `CLAUDE.md`、`AGENTS.md`、`CONTRIBUTING.md` を必ず読む
-               - `.claude/` 配下に追加ルールがあれば読む
-               - これらに違反する変更は絶対に行わない
+            1. **Read existing conventions first (mandatory)**
+               - Always read `CLAUDE.md`, `AGENTS.md`, and `CONTRIBUTING.md` at the repository root.
+               - Read any additional rules under `.claude/` if present.
+               - Never make changes that violate these documents.
 
-            2. **Issue 内容の調査**
-               - `gh issue view ${{ github.event.issue.number }}` で Issue 本文・コメント・ラベル・関連 Issue/PR を確認する
-               - `gh search issues --repo whitphx/streamlit-webrtc <キーワード>` や `gh search prs` で関連する過去の議論を確認する
-               - grep / glob で関連コードを調査する
+            2. **Investigate the issue**
+               - Use `gh issue view ${{ github.event.issue.number }}` to inspect the body, comments, labels, and linked issues/PRs.
+               - Use `gh search issues --repo whitphx/streamlit-webrtc <keywords>` and `gh search prs` to find related historical discussions.
+               - Use grep / glob to explore the relevant code.
 
-            3. **作業ブランチを作成**
-               - `git checkout -b claude/issue-${{ github.event.issue.number }}` でブランチを切る
+            3. **Create a working branch**
+               - Run `git checkout -b claude/issue-${{ github.event.issue.number }}`.
 
-            4. **実装**
-               - Python の依存追加が必要な場合は `uv add <pkg>`（または `--dev`）で追加し、`uv.lock` も更新する
-               - フロントエンドに変更がある場合は `streamlit_webrtc/frontend` で `pnpm install` してから作業する
-               - **公開 API の破壊的変更を避ける**: `webrtc_streamer()` の引数、`VideoProcessorBase` / `AudioProcessorBase` の互換性、`WebRtcStreamerContext` のインターフェースは特に慎重に扱う
-               - 破壊的変更が必要、もしくは設計判断が不明瞭な場合は **実装を進めずに Issue にコメントで質問する** こと
+            4. **Implement**
+               - For new Python dependencies, use `uv add <pkg>` (or `--dev`) so that `uv.lock` is updated.
+               - When the frontend is involved, run `pnpm install` inside `streamlit_webrtc/frontend` before working.
+               - **Avoid breaking changes to the public API**: be especially cautious with `webrtc_streamer()` arguments, the `VideoProcessorBase` / `AudioProcessorBase` contract, and the `WebRtcStreamerContext` interface.
+               - If a breaking change appears unavoidable, or if a design decision is unclear, **stop the implementation and ask the maintainer in an issue comment**.
 
-            5. **テスト**
-               - テストを追加・更新し、`uv run pytest` がすべて通ることを確認する
-               - フロントエンドに変更がある場合は `cd streamlit_webrtc/frontend && pnpm run build` が通ることも確認する
+            5. **Test**
+               - Add or update tests and confirm `uv run pytest` passes.
+               - When the frontend is touched, also confirm `cd streamlit_webrtc/frontend && pnpm run build` succeeds.
 
-            6. **リンタ・フォーマッタ**
-               - `pre-commit run --all-files` を実行する（または `uv run ruff check . --fix` と `uv run ruff format .`）
-               - `uv run mypy .` も通すこと
+            6. **Linters / formatters**
+               - Run `pre-commit run --all-files` (or `uv run ruff check . --fix` and `uv run ruff format .`).
+               - Also ensure `uv run mypy .` passes.
 
-            7. **changelog fragment の追加（必須）**
-               - `changelog.d/` 配下の既存エントリの命名・書式を踏襲して新しいエントリファイルを追加する
-               - `scriv` 管理なので、既存エントリを参照して書式を合わせること
-               - ユーザー影響のある変更は必ずエントリを追加する
+            7. **Add a changelog fragment (mandatory)**
+               - Add a new entry under `changelog.d/`, following the naming and format used by existing entries.
+               - The directory is managed by `scriv`; mirror the format you observe in existing fragments.
+               - Any user-visible change must come with a fragment.
 
-            8. **PR 作成**
-               - コミットして push し、`gh pr create` で PR を作成する
-               - PR 本文に `Closes #${{ github.event.issue.number }}` を含める
-               - 変更概要・設計判断・テスト方針・後方互換性への影響を記載する
-               - フロントエンドのビルド成果物（`streamlit_webrtc/frontend/dist` など）は `.gitignore` を確認し、リポジトリの慣習に従う（コミットしない方針が標準）
+            8. **Open a PR**
+               - Commit, push, and run `gh pr create`.
+               - Include `Closes #${{ github.event.issue.number }}` in the PR body.
+               - Document the change summary, design decisions, test plan, and backward-compatibility impact.
+               - For frontend build artifacts (e.g., `streamlit_webrtc/frontend/dist`), follow the repository's convention by checking `.gitignore` (the convention is *not* to commit them).
 
-            ## 中断条件（以下に該当したら実装を止めて Issue にコメントする）
+            ## Stop conditions (halt the implementation and post a comment on the issue)
 
-            - 公開 API に破壊的変更が必要
-            - 新しい依存パッケージの追加が必要
-            - 設計判断が複数あり、メンテナの判断が必要
-            - Issue 内容が不明瞭で実装に必要な情報が足りない
+            - A breaking public-API change is required.
+            - A new third-party dependency must be added.
+            - There are multiple plausible design choices and maintainer input is needed.
+            - The issue is unclear and lacks information necessary to implement.
 
   wontfix:
     if: github.event.label.name == 'wontfix'
@@ -96,29 +96,29 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           allowed_tools: "Bash(gh issue:*),Bash(gh search:*)"
           direct_prompt: |
-            あなたは `whitphx/streamlit-webrtc` リポジトリで `wontfix` ラベルが付与された Issue に対し、丁寧な説明コメントを投稿してクローズする担当です。
-            対象 Issue 番号: #${{ github.event.issue.number }}
+            You are responsible for posting a polite explanation and closing issues that have been labeled `wontfix` on the `whitphx/streamlit-webrtc` repository.
+            Target issue number: #${{ github.event.issue.number }}
 
-            ## 手順
+            ## Procedure
 
-            1. `gh issue view ${{ github.event.issue.number }}` で Issue 内容を取得する
-            2. `README.md`、`CONTRIBUTING.md` を読み、プロジェクトの方針を把握する
-            3. `gh issue list --repo whitphx/streamlit-webrtc --label wontfix --state closed --limit 20` などで過去の wontfix 事例を確認し、どんな理由で見送られているかの傾向を掴む
-            4. 報告者の使用言語（日本語/英語など）を判定する
+            1. Run `gh issue view ${{ github.event.issue.number }}` to read the issue.
+            2. Read `README.md` and `CONTRIBUTING.md` to understand the project's direction.
+            3. Run `gh issue list --repo whitphx/streamlit-webrtc --label wontfix --state closed --limit 20` (or similar) to learn the kinds of reasons past issues were declined.
+            4. Detect the reporter's language.
 
-            ## コメント内容
+            ## Comment content
 
-            - **なぜ実装しない判断になったか** を丁寧かつ建設的に説明する
-            - **代替策を提案** する。例:
-              - Streamlit ネイティブ機能で代替できないか
-              - `aiortc` を直接利用する選択肢
-              - 姉妹プロジェクト（例: `streamlit-fesion` など）が適しているケース
-              - ユーザー側ワークアラウンド（callback の使い方、TURN サーバー設定、`rtc_configuration` 調整）
-              - fork して独自に拡張する選択肢
-            - 報告者の言語に合わせる
-            - 攻撃的・冷たい表現にならないよう配慮する
+            - Explain **why we decided not to implement this** in a polite and constructive tone.
+            - **Suggest alternatives**, for example:
+              - Whether native Streamlit features can solve it
+              - Using `aiortc` directly
+              - Sister projects (e.g., `streamlit-fesion`) that may fit better
+              - User-side workarounds (callback usage, TURN server configuration, `rtc_configuration` adjustments)
+              - Forking the project for custom extensions
+            - Match the reporter's language.
+            - Avoid harsh or dismissive wording.
 
-            ## アクション
+            ## Action
 
-            - `gh issue comment ${{ github.event.issue.number }} --body "..."` でコメントを投稿
-            - `gh issue close ${{ github.event.issue.number }}` で Issue をクローズ
+            - Post the comment with `gh issue comment ${{ github.event.issue.number }} --body "..."`.
+            - Close the issue with `gh issue close ${{ github.event.issue.number }}`.

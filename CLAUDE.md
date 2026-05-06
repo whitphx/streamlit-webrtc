@@ -124,14 +124,14 @@ pnpm run build
 - Default uses Google's public STUN server
 - Production deployments may need TURN servers (e.g., Twilio)
 
-## OSS Issue 自動対応の運用規約
+## OSS Issue Automation Rules
 
-このリポジトリでは GitHub Actions 経由で Claude が Issue の一次対応と実装の一部を担います。Claude が Issue 起点で作業する際は以下を遵守してください。
+This repository uses GitHub Actions to let Claude handle initial issue triage and a portion of the implementation work. When Claude works from an issue, follow these rules:
 
-- **公開 API の破壊的変更は避ける**: `webrtc_streamer()` の引数、`VideoProcessorBase` / `AudioProcessorBase` の互換性、`WebRtcStreamerContext` のインターフェースは特に慎重に扱う。破壊的変更が必要な場合は実装を止めて Issue で議論を促す
-- **依存パッケージの追加は要相談**: `pyproject.toml` への新規依存追加は事前に Issue で合意を得る。可能なら標準ライブラリで解決する
-- **ライセンス互換性**: MIT 互換でないコード断片を持ち込まない
-- **changelog fragment を必ず追加**: ユーザー影響のある変更は `changelog.d/` にエントリを追加する
-- **テストとリンタ**: `uv run pytest` と `pre-commit run --all-files` がローカルで通ることを確認してから PR を出す
-- **不明瞭な設計判断は実装を止めて Issue でメンテナに質問する**
-- **Streamlit / aiortc / PyAV のバージョン互換性**: 既存の `pyproject.toml` の依存範囲を尊重し、必要な場合のみ慎重に拡張する
+- **Avoid breaking changes to the public API**: be especially careful with `webrtc_streamer()` arguments, the `VideoProcessorBase` / `AudioProcessorBase` contract, and the `WebRtcStreamerContext` interface. If a breaking change is required, stop the implementation and ask for discussion in the issue.
+- **Discuss new dependencies first**: any new entry in `pyproject.toml` must be agreed upon in the issue beforehand. Prefer the standard library when possible.
+- **License compatibility**: do not bring in code that is not MIT-compatible.
+- **Always add a changelog fragment**: add an entry under `changelog.d/` for any user-visible change.
+- **Tests and linters**: confirm that `uv run pytest` and `pre-commit run --all-files` pass locally before opening a PR.
+- **Stop on unclear design decisions**: when in doubt, stop and ask the maintainer in the issue.
+- **Streamlit / aiortc / PyAV compatibility**: respect the existing dependency ranges in `pyproject.toml` and only widen them carefully when truly necessary.

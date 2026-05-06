@@ -1,119 +1,117 @@
-# AI Issue 自動対応ワークフロー
+# AI Issue Automation Workflow
 
-このリポジトリでは、外部から届く Issue の一次対応コストを下げるために、`anthropics/claude-code-action` を中核とした GitHub Actions ベースのワークフローを導入しています。本ドキュメントでは、その全体像と運用方法を記載します。
+This repository ships a GitHub Actions–based workflow centered on `anthropics/claude-code-action` to lower the cost of the initial response to incoming issues. It narrows the maintainer's decision surface to a single question — "should we implement this or not?" — and automates triage, requesting missing information, implementation, and the wontfix reply.
 
-## 概要
-
-人間（メンテナ）の判断ポイントは「実装するか／しないか」のラベル付けのみに絞り、トリアージ・不足情報の問い返し・実装・wontfix 時の返信は自動化しています。
+## Overview
 
 ```
-Issue 作成
+Issue created
     ↓
 [claude-issue-triage] ──→ needs-info / triaged / out-of-scope
                                    ↓
-                           （メンテナがラベル付与）
+                          (maintainer applies a label)
                                    ↓
                        ai-implement ─→ [implement] ─→ PR
-                       wontfix      ─→ [wontfix]   ─→ クローズ
+                       wontfix      ─→ [wontfix]   ─→ closed
 ```
 
-### 1. トリアージフェーズ (`claude-issue-triage.yml`)
+### 1. Triage phase (`claude-issue-triage.yml`)
 
-`issues.opened` をトリガーに発火します。Claude が Issue 内容を読み、以下のいずれかに振り分けます。
+Triggered by `issues.opened`. Claude reads the issue and routes it into one of:
 
-- **`needs-info`**: 再現手順・期待動作・実環境情報などが不足している場合。報告者の言語に合わせて、不足項目を箇条書きで質問するコメントを投稿します。
-- **`triaged`**: 内容が十分にクリアな場合。3-5 行の要約コメントを投稿し、メンテナが素早く把握できる状態にします。
-- **`out-of-scope`**: Streamlit 本体・aiortc・PyAV など別プロジェクトに属する問題、もしくは GitHub Discussions が適切なサポート質問の場合。誘導コメントを投稿します。
+- **`needs-info`**: required information (reproduction steps, expected behavior, environment, etc.) is missing. Claude posts a polite comment listing the missing items in the reporter's language.
+- **`triaged`**: the report is already actionable. Claude posts a 3-5 line summary so the maintainer can grasp it at a glance.
+- **`out-of-scope`**: the issue belongs to a different project (Streamlit core, aiortc, PyAV) or is a support question better suited for GitHub Discussions. Claude posts a redirection comment.
 
-ボット由来の Issue は `github.event.issue.user.type != 'Bot'` で除外しています。
+Bot-authored issues are skipped via `github.event.issue.user.type != 'Bot'`.
 
-### 2. ラベル駆動の実装フェーズ (`claude-issue-implement.yml`)
+### 2. Label-driven implementation phase (`claude-issue-implement.yml`)
 
-`issues.labeled` をトリガーに発火し、ラベル名で分岐します。
+Triggered by `issues.labeled`, with two jobs that branch on the label name:
 
-- **`ai-implement`**: メンテナが「実装してよい」と判断した Issue。Claude が実装ブランチ (`claude/issue-<番号>`) を作成し、テスト・リンタ・changelog fragment 追加まで行ってから PR を作成します。
-- **`wontfix`**: メンテナが「対応しない」と判断した Issue。Claude が理由を丁寧に説明し、代替策を提案するコメントを投稿してから Issue をクローズします。
+- **`ai-implement`**: the maintainer has approved implementation. Claude creates an implementation branch (`claude/issue-<number>`), runs tests/linters, adds a changelog fragment, and opens a PR.
+- **`wontfix`**: the maintainer has decided not to pursue the change. Claude posts a thoughtful explanation with alternatives in the reporter's language, then closes the issue.
 
-外部からの PR レビューは既存の AI レビューボットで運用しているため、本ワークフローのスコープ外です。
+External PR review is handled by an existing AI review bot and is out of scope for this workflow.
 
-## 初期セットアップ
+## Initial setup
 
-### 1. Anthropic API Key の登録
+### 1. Register the Anthropic API key
 
-GitHub リポジトリの設定で API Key を Secrets に登録します。
+Store the API key as a repository secret.
 
-1. リポジトリの **Settings → Secrets and variables → Actions** を開く
-2. **New repository secret** をクリック
-3. Name に `ANTHROPIC_API_KEY`、Value に Anthropic コンソールで発行した API Key を入力して保存
+1. Open **Settings → Secrets and variables → Actions** in the repo.
+2. Click **New repository secret**.
+3. Set the name to `ANTHROPIC_API_KEY` and the value to a key issued from the Anthropic console.
 
-### 2. ラベルの作成
+### 2. Create labels
 
-ワークフローで使うラベルを冪等に作成するスクリプトを用意しています。
+The script provisions the labels used by the workflows idempotently.
 
 ```bash
 bash scripts/setup-issue-labels.sh
 ```
 
-作成されるラベル:
+The labels created are:
 
-| name           | 用途 |
-| -------------- | ---- |
-| `needs-info`   | 報告者からの追加情報待ち（Claude が自動付与） |
-| `triaged`      | トリアージ済み・対応待ち（Claude が自動付与） |
-| `out-of-scope` | このプロジェクトのスコープ外 |
-| `ai-implement` | Claude による実装を依頼（メンテナが手動付与） |
-| `wontfix`      | 対応しない（メンテナが手動付与） |
+| name           | purpose |
+| -------------- | ------- |
+| `needs-info`   | Waiting for additional info from the reporter (auto-applied by Claude) |
+| `triaged`      | Triaged and awaiting maintainer action (auto-applied by Claude) |
+| `out-of-scope` | Out of scope for this project |
+| `ai-implement` | Request Claude to implement this issue (applied manually by the maintainer) |
+| `wontfix`      | This will not be worked on (applied manually by the maintainer) |
 
-### 3. Actions の権限設定
+### 3. Action permissions
 
-`ai-implement` ジョブが PR を作成できるように、以下を確認してください。
+So the `ai-implement` job can open PRs, confirm the following:
 
 - **Settings → Actions → General → Workflow permissions**
-  - 「Read and write permissions」が選択されていること
-  - 「Allow GitHub Actions to create and approve pull requests」にチェックが入っていること
+  - "Read and write permissions" is selected.
+  - "Allow GitHub Actions to create and approve pull requests" is enabled.
 
-## 運用ガイド
+## Operations guide
 
-### 導入直後の運用
+### The first couple of weeks
 
-最初の 2 週間は **`ai-implement` で生成された PR も必ず人間レビューを通す** こと。Claude の判断や実装パターンが想定通りか観察し、必要に応じて `direct_prompt` や `CLAUDE.md` のルールを調整します。
+Treat **every PR produced by `ai-implement` as a mandatory human-review PR** for at least the first two weeks. Observe how Claude makes decisions and adjust `direct_prompt` or `CLAUDE.md` rules as needed.
 
-観察ポイント:
+Things to watch for:
 
-- トリアージの判定精度（`needs-info` / `triaged` / `out-of-scope` の振り分けが妥当か）
-- 不足情報の質問内容が報告者にとって明確か
-- 実装 PR が CLAUDE.md / AGENTS.md の規約を守っているか
-- changelog fragment が正しく追加されているか
+- Triage classification quality (is the split between `needs-info` / `triaged` / `out-of-scope` reasonable?)
+- Whether the missing-info questions are clear to the reporter
+- Whether implementation PRs respect the conventions in CLAUDE.md / AGENTS.md
+- Whether changelog fragments are added correctly
 
-### プロンプトインジェクション対策
+### Prompt-injection mitigations
 
-- `allowed_tools` を最小化し、トリアージ・wontfix では `gh issue:*` / `gh label:*` / `gh search:*` のみ許可している
-- 実装フェーズでも `Bash,Edit,Write,Read,Grep,Glob` に限定
-- `permissions:` ブロックで必要最小限の `GITHUB_TOKEN` スコープに絞っている
+- `allowed_tools` is kept minimal: triage/wontfix only use `gh issue:*` / `gh label:*` / `gh search:*`.
+- The implementation job is limited to `Bash,Edit,Write,Read,Grep,Glob`.
+- The `permissions:` block scopes the `GITHUB_TOKEN` to the bare minimum required.
 
-Issue 本文内に悪意ある指示が混入している可能性に備え、**生成された PR は必ずレビューする** ことを徹底してください。
+Treat issue bodies as untrusted: **always review the generated PR**, since malicious instructions could be embedded in the issue body.
 
-### API 消費の抑制
+### Keeping API spend in check
 
-- ボット由来の Issue は `github.event.issue.user.type != 'Bot'` で除外
-- ノイズの多い時期は月のコストが嵩むので、必要に応じて以下のフィルタ追加を検討:
-  - Issue テンプレを使っていない Issue を除外
-  - 特定ラベル付きのみ反応させる
-  - 特定リポジトリ コラボレーター以外の Issue は人間レビューに回す
+- Bot-authored issues are skipped via `github.event.issue.user.type != 'Bot'`.
+- During noisy periods, cost can rise quickly. Consider adding filters such as:
+  - skipping issues that don't follow the issue template
+  - reacting only to issues with a specific label
+  - routing non-collaborator issues to human review instead of automation
 
-### デバッグ方法
+### Debugging
 
-ワークフローが期待通りに動かない場合:
+If the workflow does not behave as expected:
 
-1. **Actions タブのログを確認**: `Claude Issue Triage` / `Claude Issue Implement` の各ジョブログを開き、Claude が実行したコマンドと出力を確認
-2. **`direct_prompt` の調整**: 判定基準が曖昧な場合は、本ファイルが参照しているワークフロー YAML 内の `direct_prompt` を編集
-3. **`.claude/` 配下のルール追加**: 反復するミスがある場合、リポジトリの `.claude/` 配下にルールファイルを追加して恒常的に守らせる
-4. **`CLAUDE.md` への追記**: プロジェクト全体に効くガードレールは `CLAUDE.md` の「OSS Issue 自動対応の運用規約」セクションに追記
+1. **Inspect the Actions tab logs** for `Claude Issue Triage` / `Claude Issue Implement` to see the commands Claude ran and their outputs.
+2. **Tune `direct_prompt`** in the workflow YAML when triage criteria feel ambiguous.
+3. **Add rules under `.claude/`** when you observe recurring mistakes that need a durable guardrail.
+4. **Append to `CLAUDE.md`** — project-wide guardrails belong in the "OSS Issue Automation Rules" section.
 
-## コスト見積もりの考え方
+## Cost expectations
 
-トリアージは 1 件あたり Issue 本文 + コメント数件 + 関連 Issue/ラベル一覧を読む程度のトークン量で済みます。実装フェーズは規模に応じてトークン消費が大きく変動するため、月次コストはトリアージ件数よりも `ai-implement` 付与回数に強く依存します。
+Triage cost per issue is small: it reads the issue body, a few comments, and the labels/related-issue list. Implementation cost varies with the size of the change, so monthly spend tracks the number of `ai-implement` invocations more than triage volume.
 
-ノイズの多い時期は月のコストが嵩むので、必要に応じて Issue テンプレ未使用のものに絞るなどのフィルタ追加を検討してください。
+During noisy periods costs can climb, so consider tightening the filter — for example by skipping issues that don't use the issue template — when the volume becomes uncomfortable.
 
-<!-- TODO: mkdocs.yml の nav に追加してください -->
+<!-- TODO: add this page to the nav in mkdocs.yml -->
