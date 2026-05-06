@@ -13,10 +13,12 @@ jobs:
     if: github.event.issue.user.type != 'Bot'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Run Claude triage
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@987ec34d85571633d5c4b782331b052a56c3fc40 # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           allowed_tools: "Bash(gh issue:*),Bash(gh label:*),Bash(gh search:*)"
