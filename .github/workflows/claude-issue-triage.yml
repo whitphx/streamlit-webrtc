@@ -7,6 +7,7 @@ on:
 permissions:
   contents: read
   issues: write
+  id-token: write
 
 jobs:
   triage:
@@ -21,8 +22,8 @@ jobs:
         uses: anthropics/claude-code-action@987ec34d85571633d5c4b782331b052a56c3fc40 # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          allowed_tools: "Bash(gh issue:*),Bash(gh label:*),Bash(gh search:*)"
-          direct_prompt: |
+          claude_args: --allowed-tools "Bash(gh issue:*),Bash(gh label:*),Bash(gh search:*)"
+          prompt: |
             You are the issue triage agent for the `whitphx/streamlit-webrtc` repository.
             Target issue number: #${{ github.event.issue.number }}
 
