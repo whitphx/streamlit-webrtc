@@ -2,6 +2,15 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.65.2'></a>
+## 0.65.2 — 2026-05-12
+
+### Fixed
+
+- Hide the Start/Stop and Select Device buttons when `desired_playing_state` is set, since the playing state is controlled programmatically. Previously the Stop button was only disabled but still visible (#2331).
+
+- Fix `AudioSourceTrack` / `create_audio_source_track` so the outbound `AudioFrame.time_base` is derived from the configured `sample_rate` instead of being hard-coded to `1/48000`. Previously, using a non-`48000` `sample_rate` caused the receiver to play audio at the wrong speed (e.g. 3× faster at `sample_rate=16000`). ([#2405](https://github.com/whitphx/streamlit-webrtc/issues/2405))
+
 <a id='changelog-0.65.1'></a>
 ## 0.65.1 — 2026-05-04
 
