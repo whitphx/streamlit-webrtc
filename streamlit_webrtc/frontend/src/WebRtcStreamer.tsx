@@ -62,10 +62,8 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   }, [stop, clearTakingTooLongTimeout]);
 
   const mode = props.mode;
-  const buttonDisabled =
-    props.disabled ||
-    state.webRtcState === "STOPPING" ||
-    props.desiredPlayingState != null;
+  const userControlsPlayingState = props.desiredPlayingState == null;
+  const buttonDisabled = props.disabled || state.webRtcState === "STOPPING";
   const receivable = isWebRtcMode(mode) && isReceivable(mode);
   const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
   const { videoEnabled, audioEnabled } = getMediaUsage(
@@ -113,39 +111,41 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
           )
         )}
       </Box>
-      <Box display="flex" justifyContent="space-between">
-        {state.webRtcState === "PLAYING" ||
-        state.webRtcState === "SIGNALLING" ? (
-          <TranslatedButton
-            variant={
-              state.webRtcState === "SIGNALLING" && !isTakingTooLong
-                ? "outlined"
-                : "contained"
-            }
-            onClick={stopWithNotification}
-            disabled={buttonDisabled}
-            translationKey="stop"
-            defaultText="Stop"
-          />
-        ) : (
-          <TranslatedButton
-            variant="contained"
-            color="primary"
-            onClick={startWithNotification}
-            disabled={buttonDisabled}
-            translationKey="start"
-            defaultText="Start"
-          />
-        )}
-        {transmittable && state.webRtcState === "STOPPED" && (
-          <TranslatedButton
-            color="inherit"
-            onClick={openDeviceSelect}
-            translationKey="select_device"
-            defaultText="Select Device"
-          />
-        )}
-      </Box>
+      {userControlsPlayingState && (
+        <Box display="flex" justifyContent="space-between">
+          {state.webRtcState === "PLAYING" ||
+          state.webRtcState === "SIGNALLING" ? (
+            <TranslatedButton
+              variant={
+                state.webRtcState === "SIGNALLING" && !isTakingTooLong
+                  ? "outlined"
+                  : "contained"
+              }
+              onClick={stopWithNotification}
+              disabled={buttonDisabled}
+              translationKey="stop"
+              defaultText="Stop"
+            />
+          ) : (
+            <TranslatedButton
+              variant="contained"
+              color="primary"
+              onClick={startWithNotification}
+              disabled={buttonDisabled}
+              translationKey="start"
+              defaultText="Start"
+            />
+          )}
+          {transmittable && state.webRtcState === "STOPPED" && (
+            <TranslatedButton
+              color="inherit"
+              onClick={openDeviceSelect}
+              translationKey="select_device"
+              defaultText="Select Device"
+            />
+          )}
+        </Box>
+      )}
     </Box>
   );
 }
