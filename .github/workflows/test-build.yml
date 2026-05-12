@@ -236,8 +236,30 @@ jobs:
       run: pnpm install
       working-directory: streamlit_webrtc/frontend
 
+    - name: Diagnose working-tree state before build
+      run: |
+        echo "::group::git status --short"
+        git status --short
+        echo "::endgroup::"
+        echo "::group::git diff --stat"
+        git diff --stat
+        echo "::endgroup::"
+        echo "::group::git diff (capped)"
+        git diff | head -n 200
+        echo "::endgroup::"
+        echo "::group::git describe"
+        git describe --tags --dirty --always
+        echo "::endgroup::"
+
     - name: Build
       run: make build
+
+    - name: Diagnose working-tree state after build
+      if: always()
+      run: |
+        echo "::group::git status --short"
+        git status --short
+        echo "::endgroup::"
 
     - name: Upload the built artifacts
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
