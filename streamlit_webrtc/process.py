@@ -123,10 +123,7 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
                 "Some frames have been dropped. "
                 "`recv_queued` is recommended to use instead."
             )
-        if self.processor.recv:
-            return [self.processor.recv(frames[-1])]
-
-        return [frames[-1]]
+        return [self.processor.recv(frames[-1])]
 
     def _worker_thread(self) -> None:
         loop = asyncio.new_event_loop()
