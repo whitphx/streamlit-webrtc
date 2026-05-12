@@ -87,12 +87,17 @@ class AudioSourceTrack(MediaStreamTrack):
         sample_rate: int = AUDIO_SAMPLE_RATE,
         ptime: float = AUDIO_PTIME,
     ) -> None:
+        if sample_rate <= 0:
+            raise ValueError(
+                f"sample_rate must be a positive integer, got {sample_rate}"
+            )
         super().__init__()
         self.kind = "audio"
         self._callback = callback
         self._sample_rate = sample_rate
         self._ptime = ptime
         self._samples_per_frame = int(self._sample_rate * self._ptime)
+        self._time_base = fractions.Fraction(1, self._sample_rate)
         self._started_at: Optional[float] = None
         self._pts: Optional[int] = None
 
@@ -104,11 +109,11 @@ class AudioSourceTrack(MediaStreamTrack):
             self._started_at = time.monotonic()
             self._pts = 0
 
-            frame = self._call_callback(self._pts, AUDIO_TIME_BASE)
+            frame = self._call_callback(self._pts, self._time_base)
         else:
             self._pts += self._samples_per_frame
 
-            frame = self._call_callback(self._pts, AUDIO_TIME_BASE)
+            frame = self._call_callback(self._pts, self._time_base)
 
             wait = self._started_at + (self._pts / self._sample_rate) - time.monotonic()
             if wait < 0:
