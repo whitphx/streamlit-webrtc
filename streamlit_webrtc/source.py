@@ -87,6 +87,10 @@ class AudioSourceTrack(MediaStreamTrack):
         sample_rate: int = AUDIO_SAMPLE_RATE,
         ptime: float = AUDIO_PTIME,
     ) -> None:
+        if sample_rate <= 0:
+            raise ValueError(
+                f"sample_rate must be a positive integer, got {sample_rate}"
+            )
         super().__init__()
         self.kind = "audio"
         self._callback = callback

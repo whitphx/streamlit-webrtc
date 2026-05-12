@@ -51,3 +51,9 @@ def test_audio_source_track_time_base_matches_sample_rate(sample_rate: int) -> N
     assert timestamps[0] == pytest.approx(0.0)
     assert timestamps[1] == pytest.approx(ptime)
     assert timestamps[2] == pytest.approx(2 * ptime)
+
+
+@pytest.mark.parametrize("sample_rate", [0, -1])
+def test_audio_source_track_rejects_non_positive_sample_rate(sample_rate: int) -> None:
+    with pytest.raises(ValueError, match="sample_rate"):
+        AudioSourceTrack(callback=_make_callback(48000, 960), sample_rate=sample_rate)
