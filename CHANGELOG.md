@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.65.3'></a>
+## 0.65.3 — 2026-05-12
+
+### Chore
+
+- Fix the CI release pipeline so tag-push builds no longer leave the working tree dirty during `make build`. `v0.65.2` was tagged but never reached PyPI for this reason; this release supersedes it ([#2415](https://github.com/whitphx/streamlit-webrtc/pull/2415)).
+
 <a id='changelog-0.65.2'></a>
 ## 0.65.2 — 2026-05-12
 
