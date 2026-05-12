@@ -178,8 +178,6 @@ jobs:
     - uses: ./.github/actions/install-safe-chain
 
     - uses: ./.github/actions/setup-takumi-guard
-      with:
-        working-directory: streamlit_webrtc/frontend
 
     - name: Install dependencies
       run: pnpm install
@@ -229,8 +227,6 @@ jobs:
     - uses: ./.github/actions/install-safe-chain
 
     - uses: ./.github/actions/setup-takumi-guard
-      with:
-        working-directory: streamlit_webrtc/frontend
 
     - name: Install dependencies
       run: pnpm install
