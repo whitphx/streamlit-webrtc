@@ -424,6 +424,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._relayed_source_video_track: Optional[MediaStreamTrack] = None
         self._relayed_source_audio_track: Optional[MediaStreamTrack] = None
 
+        self._added_ice_candidate_ids: Set[str] = set()
+
         self._session_shutdown_observer: Optional[SessionShutdownObserver] = (
             SessionShutdownObserver(self.stop)
         )
@@ -623,8 +625,6 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             raise result
 
         return result
-
-    _added_ice_candidate_ids: Set[str] = set()
 
     def set_ice_candidates_from_offerer(self, candidates: Dict[str, Dict]):
         logger.info("Setting ICE candidates from offerer: %s", candidates)
