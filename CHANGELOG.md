@@ -2,6 +2,23 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.65.4'></a>
+## 0.65.4 — 2026-05-13
+
+### Fixed
+
+- Track ICE candidate IDs per `WebRtcWorker` instance instead of on the class. The deduplication set was previously a class-level mutable, so a candidate ID seen by one worker could silently suppress `addIceCandidate` calls in any other worker in the same Python process (including across different user sessions).
+
+### Chore
+
+- Delete three internal dead code paths with no user-visible behavior change: the unreachable `_test()` / `__main__` block in `webrtc.py` (its body's `WebRtcWorker(...)` call had been broken by signature drift), the streamlit==0.84.0 JSON-string HOTFIX in `component.py`, and an always-truthy `if self.processor.recv:` guard in `process.py`.
+
+- Add an internal `refactoring/` directory with a long-form code review broken into 8 single-concern work items plus an index. Not part of the published docs site (the `mkdocs.yml` `nav:` is allowlisted) — purely a planning reference for maintainers and coding agents.
+
+- Strengthen the changelog-fragments policy in `AGENTS.md` so coding agents always include a fragment when opening a PR, with explicit guidance on which scriv category to pick (`Chore` for internal-only changes).
+
+- Consolidate `CLAUDE.md` and `AGENTS.md` into a single `AGENTS.md` covering project overview, architecture, setup, testing, build, WebRTC config, the changelog-fragment policy, contribution notes, and OSS-issue automation rules. `CLAUDE.md` becomes a symlink to `AGENTS.md` so tooling that looks for `CLAUDE.md` by filename (Claude Code, etc.) keeps working transparently.
+
 <a id='changelog-0.65.3'></a>
 ## 0.65.3 — 2026-05-12
 
