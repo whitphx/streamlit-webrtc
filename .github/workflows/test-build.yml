@@ -76,35 +76,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-        streamlit-version: [""]
-        include:
-          # 1.4.0 introduced Python 3.10 support: https://docs.streamlit.io/develop/quick-reference/release-notes/2022#version-140
-          - python-version: "3.10"
-            streamlit-version: 1.4.0
-          # Test with streamlit >=1.6.0. See https://github.com/whitphx/streamlit-webrtc/issues/709
-          - python-version: "3.10"
-            streamlit-version: 1.6.0
-          # Test with streamlit >=1.8.0. See https://github.com/whitphx/streamlit-webrtc/issues/759
-          - python-version: "3.10"
-            streamlit-version: 1.8.0
-          # Test with streamlit >=1.12.0. See https://github.com/whitphx/streamlit-webrtc/issues/1004
-          - python-version: "3.10"
-            streamlit-version: 1.12.0
-          # Test with streamlit >=1.12.1. See https://github.com/whitphx/streamlit-webrtc/issues/1024
-          - python-version: "3.10"
-            streamlit-version: 1.12.1
-          # Test with streamlit >=1.14.0. See https://github.com/whitphx/streamlit-webrtc/pull/1189
-          - python-version: "3.10"
-            streamlit-version: 1.14.0
-          # Test with streamlit >=1.18.0. See https://github.com/whitphx/streamlit-webrtc/issues/1187
-          - python-version: "3.10"
-            streamlit-version: 1.18.0
-          # Test with streamlit >=1.27.0. See https://github.com/whitphx/streamlit-webrtc/pull/1393
-          - python-version: "3.10"
-            streamlit-version: 1.27.0
-          # Test with streamlit >=1.34.0. See https://github.com/whitphx/streamlit-webrtc/pull/1627
-          - python-version: "3.10"
-            streamlit-version: 1.34.0
 
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -121,12 +92,6 @@ jobs:
 
     - name: Install dependencies
       run: uv sync --all-extras --dev
-
-    - name: Install a specific version of Streamlit
-      if: ${{ matrix.streamlit-version }}
-      run: uv add --dev streamlit=="${STREAMLIT_VERSION}"
-      env:
-        STREAMLIT_VERSION: ${{ matrix.streamlit-version }}
 
     - name: Run Ruff
       run: |
@@ -145,10 +110,7 @@ jobs:
       run: mkdir streamlit_webrtc/frontend/dist
 
     - name: Test with pytest
-      # Old Streamlit versions (e.g. 1.4.0) import pkg_resources at startup.
-      # Recent setuptools removed pkg_resources, so we pin to <81 which
-      # still includes it.
-      run: uv run --with "setuptools<81" pytest
+      run: uv run pytest
 
   test-frontend:
     runs-on: ubuntu-latest
