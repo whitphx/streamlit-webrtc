@@ -62,7 +62,7 @@ function write(key: string, value: PersistedDeviceIds): void {
 export function loadPersistedDeviceIds(
   componentKey: string | undefined,
 ): PersistedDeviceIds {
-  if (componentKey) {
+  if (componentKey != null) {
     const perComponent = read(PER_COMPONENT_PREFIX + componentKey);
     if (perComponent != null) return perComponent;
   }
@@ -77,7 +77,7 @@ export function persistDeviceIds(
   // selection with `{}` during the brief window before devices are opened.
   if (deviceIds.video == null && deviceIds.audio == null) return;
   write(GLOBAL_KEY, deviceIds);
-  if (componentKey) {
+  if (componentKey != null) {
     write(PER_COMPONENT_PREFIX + componentKey, deviceIds);
   }
 }
