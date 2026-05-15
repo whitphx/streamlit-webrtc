@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.66.0'></a>
+## 0.66.0 — 2026-05-15
+
+### Added
+
+- Remember the selected input devices (camera/microphone) across page reloads. Each `webrtc_streamer(key=...)` keeps its own selection, and a never-configured instance inherits the most recent selection chosen anywhere on the origin. See [#2418](https://github.com/whitphx/streamlit-webrtc/issues/2418).
+
 <a id='changelog-0.65.4'></a>
 ## 0.65.4 — 2026-05-13
 
