@@ -517,6 +517,11 @@ def webrtc_streamer(
         kwargs["on_change"] = callback
     component_value: Union[Dict, None] = _component_func(
         key=frontend_key,
+        # The user-supplied `key` scopes per-instance persistence (e.g.
+        # device selection) in the frontend's localStorage. `frontend_key`
+        # carries an obfuscation suffix that's irrelevant here, so we
+        # forward the original `key` instead.
+        component_key=key,
         sdp_answer_json=context._sdp_answer_json,
         mode=mode.name,
         rtc_configuration=enhance_frontend_rtc_configuration(
