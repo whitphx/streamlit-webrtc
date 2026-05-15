@@ -2,6 +2,15 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.67.2'></a>
+## 0.67.2 — 2026-05-15
+
+### Chore
+
+- Bump the `whitphx/scriv-release` GitHub Action from v0.4.0 to v0.5.0. The action's release flow now bundles the version-file bump into the Changelog Preview PR itself (so the merge commit carries both the new CHANGELOG entry and the pyproject.toml bump in a single commit), and it aborts with a clear error when the version provider's reported current version disagrees with the most recent CHANGELOG.md entry — catching the kind of orphan/stale tag drift that produced the v0.67.0 mishap.
+
+- Bump the `whitphx/scriv-release` GitHub Action from v0.5.0 to v0.5.1, which fixes a regression v0.5.0 introduced: the new "bump version files in the preview PR" step crashed with `Git working directory is not clean` because `bump-my-version` was invoked right after `scriv collect` (which leaves CHANGELOG.md modified and the fragment deleted). v0.5.1 passes `--allow-dirty` so the bump tool tolerates that intentional in-progress state.
+
 <a id='changelog-0.67.1'></a>
 ## 0.67.1 — 2026-05-15
 
