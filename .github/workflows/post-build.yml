@@ -1,4 +1,5 @@
 name: Post-build
+run-name: Post-build for ${{ github.event.workflow_run.display_title || github.event.workflow_run.run_number }}
 
 on:
   # For security reasons, this workflow is separated from the test-and-build workflow and triggered by the `workflow_run` event following it.

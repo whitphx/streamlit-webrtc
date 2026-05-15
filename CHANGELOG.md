@@ -2,6 +2,20 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.67.1'></a>
+## 0.67.1 — 2026-05-15
+
+### Chore
+
+- Burn version `0.67.0`. During the `v0.66.0` release on 2026-05-15 a stray `v0.67.0` git tag caused `hatch-vcs` to label the v0.66.0 wheel as `0.67.0`, which then got published to PyPI. The PyPI release `0.67.0` is yanked; the git tag `v0.67.0` is now a permanent placeholder pointing at the `v0.66.1` commit so the release pipeline skips `0.67.0` and advances to `0.68.0` on the next minor bump.
+
+<a id='changelog-0.66.1'></a>
+## 0.66.1 — 2026-05-15
+
+### Chore
+
+- Bump the `whitphx/scriv-release` GitHub Action from v0.3.0 to v0.4.0, which renamed the `app-id` input to `client-id` (the GitHub App's Client ID, not its App ID).
+
 <a id='changelog-0.66.0'></a>
 ## 0.66.0 — 2026-05-15
 
