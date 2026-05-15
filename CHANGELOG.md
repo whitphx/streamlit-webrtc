@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.66.1'></a>
+## 0.66.1 — 2026-05-15
+
+### Chore
+
+- Bump the `whitphx/scriv-release` GitHub Action from v0.3.0 to v0.4.0, which renamed the `app-id` input to `client-id` (the GitHub App's Client ID, not its App ID).
+
 <a id='changelog-0.66.0'></a>
 ## 0.66.0 — 2026-05-15
 
