@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Box from "@mui/material/Box";
 import DeviceSelectForm from "./DeviceSelect/DeviceSelectForm";
 import MediaStreamPlayer from "./MediaStreamPlayer";
@@ -14,6 +14,7 @@ import {
 import { useTimer } from "./use-timeout";
 import { getMediaUsage } from "./media-constraint";
 import { ComponentValue, setComponentValue } from "./component-value";
+import { loadPersistedDeviceIds, persistDeviceIds } from "./device-storage";
 import TranslatedButton from "./translation/components/TranslatedButton";
 import InfoHeader from "./InfoHeader";
 import "webrtc-adapter";
@@ -23,6 +24,7 @@ const BACKEND_VANILLA_ICE_TIMEOUT = 10 * 1000; // `aiortc` runs ICE in the Vanil
 interface WebRtcStreamerInnerProps {
   disabled: boolean;
   mode: WebRtcMode;
+  componentKey: string | undefined;
   desiredPlayingState: boolean | undefined;
   sdpAnswerJson: string | undefined;
   rtcConfiguration: RTCConfiguration | undefined;
@@ -32,10 +34,20 @@ interface WebRtcStreamerInnerProps {
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
 function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
+  const { componentKey } = props;
   const [deviceIds, setDeviceIds] = useState<{
     video?: MediaDeviceInfo["deviceId"] | undefined;
     audio?: MediaDeviceInfo["deviceId"] | undefined;
-  }>({ video: undefined, audio: undefined });
+  }>(() => loadPersistedDeviceIds(componentKey));
+
+  // Persist whenever the selection changes — both the DeviceSelect form's
+  // `onSelect` and the WebRTC hook's `onDevicesOpened` route through
+  // `setDeviceIds`, so this single effect covers both paths.
+  const initialDeviceIdsRef = useRef(deviceIds);
+  useEffect(() => {
+    if (deviceIds === initialDeviceIdsRef.current) return;
+    persistDeviceIds(componentKey, deviceIds);
+  }, [componentKey, deviceIds]);
   const { state, start, stop } = useWebRtc(
     props,
     deviceIds.video,
@@ -154,6 +166,7 @@ function WebRtcStreamer() {
   const renderData = useRenderData();
 
   const mode = renderData.args["mode"];
+  const componentKey: string | undefined = renderData.args["component_key"];
   const desiredPlayingState = renderData.args["desired_playing_state"];
   const sdpAnswerJson = renderData.args["sdp_answer_json"];
   const rtcConfiguration: RTCConfiguration = renderData.args.rtc_configuration;
@@ -170,6 +183,7 @@ function WebRtcStreamer() {
     <WebRtcStreamerInner
       disabled={renderData.disabled}
       mode={mode}
+      componentKey={componentKey}
       desiredPlayingState={desiredPlayingState}
       sdpAnswerJson={sdpAnswerJson}
       rtcConfiguration={rtcConfiguration}
