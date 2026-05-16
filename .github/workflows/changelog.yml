@@ -29,7 +29,7 @@ jobs:
           persist-credentials: false
 
       - name: Run scriv-release
-        uses: whitphx/scriv-release@09e7d274caf0c1bdc6fd9637e4b0922d12e83be3 # v0.6.3
+        uses: whitphx/scriv-release@591fbdc73d28e1fc559c92ead1e227f7aa05b2fa # v0.7.0
         with:
           client-id: ${{ vars.MY_CHANGESETS_APP_CLIENT_ID }}
           app-private-key: ${{ secrets.MY_CHANGESETS_APP_PRIVATE_KEY }}
