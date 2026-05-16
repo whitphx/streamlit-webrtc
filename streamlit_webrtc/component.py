@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import threading
-import warnings
 import weakref
 from typing import (
     Any,
@@ -156,11 +155,10 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     @property
     def video_transformer(self) -> Optional[VideoProcessorT]:
         """
-        A video transformer instance which has been created through
-        the callable provided as `video_transformer_factory` argument
-        to `webrtc_streamer()`.
+        Alias of :py:attr:`video_processor`.
 
         .. deprecated:: 0.20.0
+            Use :py:attr:`video_processor` instead.
         """
         worker = self._get_worker()
         return cast(VideoProcessorT, worker.video_processor) if worker else None
@@ -271,9 +269,6 @@ def webrtc_streamer(
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
-    # Deprecated. Just for backward compatibility
-    video_transformer_factory: None = None,
-    async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext:
     # XXX: We wanted something like `WebRtcStreamerContext[None, None]`
     # as the return value, but could not find a good solution
@@ -315,9 +310,6 @@ def webrtc_streamer(
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
-    # Deprecated. Just for backward compatibility
-    video_transformer_factory: None = None,
-    async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, Any]:
     pass
 
@@ -355,9 +347,6 @@ def webrtc_streamer(
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
-    # Deprecated. Just for backward compatibility
-    video_transformer_factory: None = None,
-    async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext[Any, AudioProcessorT]:
     pass
 
@@ -395,9 +384,6 @@ def webrtc_streamer(
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
-    # Deprecated. Just for backward compatibility
-    video_transformer_factory: None = None,
-    async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     pass
 
@@ -434,30 +420,7 @@ def webrtc_streamer(
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
     on_change: Optional[Callable] = None,
-    # Deprecated. Just for backward compatibility
-    video_transformer_factory=None,
-    async_transform: Optional[bool] = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
-    # Backward compatibility
-    if video_transformer_factory is not None:
-        warnings.warn(
-            "The argument video_transformer_factory is deprecated. "
-            "Use video_processor_factory instead.\n"
-            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        video_processor_factory = video_transformer_factory
-    if async_transform is not None:
-        warnings.warn(
-            "The argument async_transform is deprecated. "
-            "Use async_processing instead.\n"
-            "See https://github.com/whitphx/streamlit-webrtc#for-users-since-versions-020",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        async_processing = async_transform
-
     # `rtc_configuration` is a shorthand to configure both frontend and server.
     # `frontend_rtc_configuration` or `server_rtc_configuration` are prioritized.
     if frontend_rtc_configuration is None:
