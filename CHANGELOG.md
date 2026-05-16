@@ -2,6 +2,17 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.67.3'></a>
+## 0.67.3 — 2026-05-16
+
+### Chore
+
+- Bump the `whitphx/scriv-release` GitHub Action from v0.5.1 to v0.6.0. v0.6.0 reverts the "bump version files in the Changelog Preview PR" approach v0.5.0–v0.5.1 introduced — that flow tagged `provider.current()` at merge time, which crashed on every tag-only project (this one included, via `bump-my-version` + `hatch-vcs`) with `fatal: tag 'vX.Y.Z' already exists` because the new version only exists once we tag it. The release flow now goes back to tag-based bumping: `tag_release` tags `provider.next(level)` and the preview PR carries only the CHANGELOG entry. The orphan-tag drift guard added in v0.4.1 now compares the latest git tag against the most recent CHANGELOG entry (provider-independent), so it still catches the v0.67.0 mishap shape without false-positiving on any provider.
+
+- Bump the `whitphx/scriv-release` GitHub Action from v0.6.0 to v0.6.2. v0.6.1 expands the drift-guard error message to also show the correct `git tag -a v{version} <commit>` recovery hint when the latest tag is *behind* the latest CHANGELOG entry (the shape we hit during the v0.5.x → v0.6.0 transition that required manually tagging v0.67.2). v0.6.2 switches scriv-release's own packaging to `hatch-vcs`-driven dynamic versioning — internal-only, no behavior change for this project.
+
+- Bump the `whitphx/scriv-release` GitHub Action from v0.6.2 to v0.6.3. v0.6.3 fixes a regression v0.6.2 introduced: the action's `pip install` step crashed with `setuptools-scm was unable to detect version` because v0.6.2 switched scriv-release's own packaging to `hatch-vcs` but GitHub Actions checks out the action source without a `.git` directory, so hatch-vcs had nothing to compute a version from. v0.6.3 sets a `fallback-version` so the install succeeds — see action run 25949017805 on this repo for the original crash.
+
 <a id='changelog-0.67.2'></a>
 ## 0.67.2 — 2026-05-15
 
