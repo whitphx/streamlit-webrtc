@@ -30,8 +30,7 @@ from streamlit_webrtc.models import (
     VideoFrameCallback,
 )
 
-from ._compat import VER_GTE_1_36_0, cache_data, rerun
-from .components_callbacks import register_callback
+from ._compat import cache_data, rerun
 from .config import (
     DEFAULT_AUDIO_HTML_ATTRS,
     DEFAULT_MEDIA_STREAM_CONSTRAINTS,
@@ -510,11 +509,6 @@ def webrtc_streamer(
         if on_change and old_state != new_state:
             on_change()
 
-    kwargs: Dict[str, Any] = {}
-    if not VER_GTE_1_36_0:
-        register_callback(element_key=frontend_key, callback=callback)
-    else:
-        kwargs["on_change"] = callback
     component_value: Union[Dict, None] = _component_func(
         key=frontend_key,
         # The user-supplied `key` scopes per-instance persistence (e.g.
@@ -532,7 +526,7 @@ def webrtc_streamer(
         audio_html_attrs=audio_html_attrs,
         translations=translations,
         desired_playing_state=desired_playing_state,
-        **kwargs,
+        on_change=callback,
     )
 
     # HACK: Save the component value in this run to the session state
