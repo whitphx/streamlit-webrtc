@@ -380,12 +380,22 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         audio_receiver_size: int,
         sendback_video: bool,
         sendback_audio: bool,
+        *,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        relay: Optional[MediaRelay] = None,
     ) -> None:
+        # Resolve runtime-bound dependencies once at construction so subsequent
+        # methods can run without touching Streamlit's Runtime singleton.
+        # Callers that own their own loop/relay (e.g. tests) can inject them;
+        # if they do, they must have constructed the relay on the same loop.
+        self._loop = loop if loop is not None else get_global_event_loop()
+        self._relay = relay if relay is not None else get_global_relay()
+
         self._process_offer_thread: Union[threading.Thread, None] = None
         self.pc = RTCPeerConnection(rtc_configuration)
         self._answer_queue: queue.Queue = queue.Queue()
 
-        with loop_context(get_global_event_loop()):
+        with loop_context(self._loop):
             self._remote_description_set = asyncio.Event()
 
         self.mode = mode
@@ -453,7 +463,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             "_process_offer_thread_impl starts",
         )
 
-        loop = get_global_event_loop()
+        loop = self._loop
         asyncio.set_event_loop(loop)
 
         offer = RTCSessionDescription(sdp, type_)
@@ -519,7 +529,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._video_receiver = video_receiver
         self._audio_receiver = audio_receiver
 
-        relay = get_global_relay()
+        relay = self._relay
 
         source_audio_track = None
         source_video_track = None
@@ -650,8 +660,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
 
     def add_ice_candidate(self, candidate: RTCIceCandidate):
         logger.info("Adding ICE candidate: %s", candidate)
-        loop = get_global_event_loop()
-        asyncio.run_coroutine_threadsafe(self._add_ice_candidate(candidate), loop=loop)
+        asyncio.run_coroutine_threadsafe(
+            self._add_ice_candidate(candidate), loop=self._loop
+        )
 
     async def _add_ice_candidate(self, candidate: RTCIceCandidate):
         # Wait until `setRemoteDescription` is called which sets up the transceiver
@@ -761,7 +772,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             self._process_offer_thread = None
 
         if self.pc and self.pc.connectionState != "closed":
-            loop = get_global_event_loop()
+            loop = self._loop
             if loop.is_running():
                 asyncio.run_coroutine_threadsafe(self.pc.close(), loop=loop)
             else:

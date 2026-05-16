@@ -18,8 +18,14 @@ def get_session_id() -> str:
 
 
 def get_this_session_info() -> Optional[SessionInfo]:
-    session_id = get_session_id()
-    return Runtime.instance()._session_mgr.get_session_info(session_id)  # type: ignore
+    # Both lookups can fail when called outside a live Streamlit run
+    # (e.g. unit tests, or worker threads spawned before a Runtime exists).
+    # Return None so callers can no-op rather than crash.
+    try:
+        session_id = get_session_id()
+        return Runtime.instance()._session_mgr.get_session_info(session_id)  # type: ignore
+    except (NoSessionError, RuntimeError):
+        return None
 
 
 def get_script_run_count(session_info: SessionInfo) -> int:
