@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.67.4'></a>
+## 0.67.4 — 2026-05-16
+
+### Chore
+
+- Bump the `whitphx/scriv-release` GitHub Action from v0.6.3 to v0.7.0. v0.7.0 re-introduces the "bump version files in the Changelog Preview PR" behavior — for file-based providers the preview-PR commit captures both the new CHANGELOG entry and the version-file bump in a single commit; for tag-only providers (this project, via `bump-my-version` + `hatch-vcs`) it remains a no-op. The release-time bug from the previous attempt (v0.5.x crashed with `fatal: tag 'vX.Y.Z' already exists` for tag-only providers) is fixed by reading the version to tag from the latest `CHANGELOG.md` entry rather than from `provider.current()`, so both provider styles converge on the right tag.
+
 <a id='changelog-0.67.3'></a>
 ## 0.67.3 — 2026-05-16
 
