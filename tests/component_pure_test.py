@@ -1,0 +1,59 @@
+from streamlit_webrtc.component import (
+    compile_state,
+    generate_frontend_component_key,
+)
+
+
+class TestCompileState:
+    def test_neither_playing_nor_signalling(self) -> None:
+        state = compile_state({})
+        assert state.playing is False
+        assert state.signalling is False
+
+    def test_playing_only(self) -> None:
+        state = compile_state({"playing": True})
+        assert state.playing is True
+        assert state.signalling is False
+
+    def test_signalling_derived_from_sdp_offer_truthiness(self) -> None:
+        # An empty dict is falsy -> not signalling.
+        assert compile_state({"sdpOffer": {}}).signalling is False
+        # A populated dict is truthy -> signalling.
+        assert (
+            compile_state({"sdpOffer": {"sdp": "v=0\r\n", "type": "offer"}}).signalling
+            is True
+        )
+
+    def test_both_true(self) -> None:
+        state = compile_state(
+            {"playing": True, "sdpOffer": {"sdp": "v=0\r\n", "type": "offer"}}
+        )
+        assert state.playing is True
+        assert state.signalling is True
+
+
+class TestGenerateFrontendComponentKey:
+    def test_idempotent(self) -> None:
+        # Same input -> same output, every time.
+        assert generate_frontend_component_key("k") == generate_frontend_component_key(
+            "k"
+        )
+
+    def test_distinct_keys_stay_distinct(self) -> None:
+        assert generate_frontend_component_key("a") != generate_frontend_component_key(
+            "b"
+        )
+
+    def test_output_contains_original_key(self) -> None:
+        # The frontend key is a prefix + salt; the prefix is the user-supplied
+        # key. Anything that strips that property would break Streamlit's
+        # session-state correlation between the Python and frontend sides.
+        assert generate_frontend_component_key("my-key").startswith("my-key")
+
+    def test_collision_resistant_under_simple_substring_attack(self) -> None:
+        # The salt prevents `key="x:frontend"` from colliding with the frontend
+        # key generated from `key="x"`. Without the salt, an attacker (or a
+        # careless user) picking that suffix could shadow another widget.
+        assert generate_frontend_component_key(
+            "x:frontend"
+        ) != generate_frontend_component_key("x")
