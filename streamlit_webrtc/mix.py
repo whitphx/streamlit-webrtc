@@ -10,7 +10,7 @@ from typing import Callable, Generic, List, NamedTuple, Optional, Union, cast
 
 import av
 from aiortc import MediaStreamTrack
-from aiortc.contrib.media import RelayStreamTrack
+from aiortc.contrib.media import MediaRelay, RelayStreamTrack
 from aiortc.mediastreams import MediaStreamError
 from av.frame import Frame
 from av.packet import Packet
@@ -144,16 +144,27 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
         kind: str,
         mixer_callback: MixerCallback[FrameT],
         mixer_output_interval: float = 1 / 30,
+        *,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        relay: Optional[MediaRelay] = None,
     ) -> None:
+        # Resolve runtime-bound dependencies once at construction so subsequent
+        # methods can run without touching Streamlit's Runtime singleton.
+        # Callers that own their own loop/relay (e.g. tests) can inject them;
+        # if they do, they must have constructed the relay on the same loop.
+        resolved_loop = loop if loop is not None else get_global_event_loop()
+        self._relay = relay if relay is not None else get_global_relay()
+
         self.kind = kind
         self._mixer_callback: MixerCallback[FrameT] = mixer_callback
         self._mixer_callback_lock = threading.Lock()
 
         self.mixer_output_interval = mixer_output_interval
 
-        loop = get_global_event_loop()
-
-        with loop_context(loop):
+        with loop_context(resolved_loop):
+            # aiortc's `MediaStreamTrack.__init__` sets its own `self._loop`,
+            # so our assignment to `self._loop` has to land after `super()`
+            # to avoid being clobbered.
             super().__init__()
 
             self._queue = asyncio.Queue()
@@ -169,7 +180,7 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
 
             self._latest_frames_updated_event = asyncio.Event()
 
-            self._loop = loop
+            self._loop = resolved_loop
 
             self._gather_frames_task = None
             self._mix_task = None
@@ -208,9 +219,8 @@ class MediaStreamMixTrack(MediaStreamTrack, Generic[FrameT]):
             if input_track in self._input_proxies:
                 return
 
-            relay = get_global_relay()
             with loop_context(self._loop):
-                input_proxy = cast(RelayStreamTrack, relay.subscribe(input_track))
+                input_proxy = cast(RelayStreamTrack, self._relay.subscribe(input_track))
 
             self._input_proxies[input_track] = input_proxy
 
