@@ -2,6 +2,21 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.69.0'></a>
+## 0.69.0 — 2026-05-17
+
+### Removed
+
+- Drop the long-deprecated `WebRtcStreamerContext.video_transformer` property (deprecated since v0.20, 2021). Use `video_processor` instead.
+
+### Chore
+
+- Collapse the eight repeated worker-passthrough properties on `WebRtcStreamerContext` (`video_receiver`, `audio_receiver`, `source_video_track`, `source_audio_track`, `input_video_track`, `input_audio_track`, `output_video_track`, `output_audio_track`) into a typed descriptor. Behavior is unchanged for users; the attributes still return `None` when no worker is attached.
+
+- Add layer-1 (pure-function) and layer-2 (track-unit) tests for the WebRTC core: `tests/config_test.py`, `tests/models_test.py`, `tests/component_pure_test.py`, and `tests/process_test.py`. Together they bring `streamlit_webrtc.config.*`, `streamlit_webrtc.models.CallbackAttachableProcessor`, `compile_state` / `generate_frontend_component_key`, and the sync/async video process tracks under regression coverage (32 new tests, all green).
+
+- Add layer-3 loopback integration coverage: `tests/webrtc_loopback_test.py` runs both ends of a `WebRtcWorker` connection in-process and verifies the SENDONLY video-frame-callback path and live `update_video_callbacks` hot-swap. Adds `pytest-asyncio` as a dev dependency.
+
 <a id='changelog-0.68.1'></a>
 ## 0.68.1 — 2026-05-16
 
