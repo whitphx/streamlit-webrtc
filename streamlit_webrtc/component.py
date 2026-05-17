@@ -227,6 +227,194 @@ def enhance_frontend_rtc_configuration(
     return config
 
 
+def _get_or_create_context(key: str) -> WebRtcStreamerContext:
+    """Return the per-key `WebRtcStreamerContext` from `st.session_state`,
+    creating one if absent."""
+    if key in st.session_state:
+        context = st.session_state[key]
+
+        # Substitute for `isinstance(context, WebRtcStreamerContext)`. Under
+        # Streamlit's script-rerun mechanism, the class object's identity
+        # changes between runs, so `isinstance` returns False even when the
+        # object is in fact a `WebRtcStreamerContext`. Compare by class
+        # *name* instead.
+        if type(context).__name__ != WebRtcStreamerContext.__name__:
+            raise TypeError(
+                f'st.session_state["{key}"] has an invalid type: {type(context)}'
+            )
+    else:
+        context = WebRtcStreamerContext(
+            worker=None, state=WebRtcStreamerState(playing=False, signalling=False)
+        )
+        st.session_state[key] = context
+
+    if context._sdp_answer_json:
+        # The SDP answer was set in a previous run and forwarded to the
+        # frontend in this run via the component args; mark it sent so the
+        # next `_handle_worker_lifecycle` call doesn't trigger another rerun.
+        context._is_sdp_answer_sent = True
+
+    return context
+
+
+def _make_state_change_callback(
+    key: str,
+    frontend_key: str,
+    user_on_change: Optional[Callable],
+) -> Callable[[], None]:
+    """Build the `on_change` callback handed to `_component_func`.
+
+    Reads the latest component value out of `st.session_state`, computes the
+    new `WebRtcStreamerState`, writes it back onto the context, and forwards
+    to the user-supplied `on_change` only when the state actually changed.
+    """
+
+    def callback() -> None:
+        component_value = st.session_state[frontend_key]
+        new_state = compile_state(component_value)
+
+        context = st.session_state[key]
+        old_state = context.state
+        context._set_state(new_state)
+
+        if user_on_change and old_state != new_state:
+            user_on_change()
+
+    return callback
+
+
+def _restore_snapshot_if_needed(
+    context: WebRtcStreamerContext,
+    component_value: Union[Dict, None],
+) -> Union[Dict, None]:
+    """Workaround for component-value loss across `rerun()`.
+
+    When multiple `webrtc_streamer()` components live in the same script and
+    one of them triggers `rerun()`, the *other* instances see their
+    component value reset to `None` in the next run. Restore the most
+    recent snapshot when that pattern is detected, and stash the current
+    value for the next run regardless.
+    """
+    session_info = get_this_session_info()
+    run_count = get_script_run_count(session_info) if session_info else None
+    if component_value is None:
+        restored = context._component_value_snapshot
+        if (
+            restored is not None
+            # Only the snapshot from the immediately-prior run is
+            # restored, so this workaround only fires for the rerun case.
+            and run_count == restored.run_count + 1
+        ):
+            LOGGER.debug("Restore the component value")
+            component_value = restored.component_value
+    if run_count is not None:
+        context._component_value_snapshot = ComponentValueSnapshot(
+            component_value=component_value, run_count=run_count
+        )
+    return component_value
+
+
+def _resolve_server_rtc_configuration(
+    server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]],
+) -> AiortcRTCConfiguration:
+    """Convert the user-supplied server RTC configuration into the aiortc
+    equivalent, filling in default ICE servers when none were given."""
+    config = (
+        compile_rtc_configuration(server_rtc_configuration)
+        if server_rtc_configuration and isinstance(server_rtc_configuration, dict)
+        else AiortcRTCConfiguration()
+    )
+    if config.iceServers is None:
+        LOGGER.info(
+            "rtc_configuration.iceServers is not set. Try to set it automatically."
+        )
+        # NOTE: `get_available_ice_servers()` may include a yield point where
+        # Streamlit's script runner interrupts execution and stops the run.
+        config.iceServers = compile_ice_servers(get_available_ice_servers())
+    return config
+
+
+def _handle_worker_lifecycle(
+    context: WebRtcStreamerContext,
+    key: str,
+    sdp_offer: Optional[Dict],
+    *,
+    make_worker: Callable[[], "WebRtcWorker"],
+) -> None:
+    """Reconcile the worker against the frontend's current state.
+
+    Three sub-cases, in order:
+
+    - **Stop**: the frontend is idle but a worker is alive. Tear it down
+      and `rerun()` so the SDP answer args get cleared from the frontend.
+    - **Create**: there is no worker but the frontend offered an SDP.
+      Construct a worker under the creation lock and feed it the offer.
+    - **Flush answer**: a worker has produced a local description that the
+      frontend hasn't seen yet. Stash it on the context and `rerun()` so
+      the next run forwards it as a component arg.
+    """
+    # --- Stop ---
+    if not context.state.playing and not context.state.signalling:
+        LOGGER.debug(
+            "The frontend state is neither playing nor signalling (key=%s).", key
+        )
+
+        worker_to_stop = context._get_worker()
+        if worker_to_stop:
+            LOGGER.debug("Stop the worker (key=%s).", key)
+            worker_to_stop.stop()
+            context._set_worker(None)
+            context._is_sdp_answer_sent = False
+            context._sdp_answer_json = None
+            # Rerun to unset the SDP answer from the frontend args
+            rerun()
+
+    # --- Create ---
+    # This point can be reached in parallel, so the lock makes worker
+    # creation atomic.
+    with context._worker_creation_lock:
+        if not context._get_worker() and sdp_offer:
+            LOGGER.debug(
+                "No worker exists though the offer SDP is set. "
+                'Create a new worker (key="%s").',
+                key,
+            )
+            worker = make_worker()
+            worker.process_offer(
+                sdp_offer["sdp"],
+                sdp_offer["type"],
+                # aioice's internal method uses a 5s timeout
+                # (https://github.com/aiortc/aioice/blob/aaada959aa8de31b880822db36f1c0c0cef75c0e/src/aioice/ice.py#L973);
+                # give a bit more headroom here.
+                timeout=10,
+            )
+            context._set_worker(worker)
+
+    # --- Flush answer ---
+    running_worker = context._get_worker()
+    if (
+        running_worker
+        and running_worker.pc.localDescription
+        and not context._is_sdp_answer_sent
+    ):
+        context._sdp_answer_json = json.dumps(
+            {
+                "sdp": running_worker.pc.localDescription.sdp,
+                "type": running_worker.pc.localDescription.type,
+            }
+        )
+        LOGGER.debug("Rerun to send the SDP answer to frontend")
+        # NOTE: rerun() may not work if it's called inside the lock when the
+        # `runner.fastReruns` config is enabled, because
+        # `ScriptRequests._state` may have already been set to
+        # `ScriptRequestType.STOP` by the rerun request issued from the
+        # frontend while we were awaiting the lock — which would make a
+        # rerun request from inside the lock get refused. Call it here
+        # (outside the lock) instead. Crossing threads is fine as long as
+        # the condition holds.
+        rerun()
+
+
 @overload
 def webrtc_streamer(
     key: str,
@@ -461,42 +649,8 @@ def webrtc_streamer(
     if audio_html_attrs is None:
         audio_html_attrs = DEFAULT_AUDIO_HTML_ATTRS
 
-    if key in st.session_state:
-        context = st.session_state[key]
-
-        # This if-clause below is an alternative to something like
-        # `if not isinstance(context, WebRtcStreamerContext)`.
-        # Under the Streamlit execution mechanism,
-        # the identity of the class object `WebRtcStreamerContext` changes at each run,
-        # so `isinstance` cannot be used.
-        # Then, type().__name__ is used for this purpose instead.
-        if type(context).__name__ != WebRtcStreamerContext.__name__:
-            raise TypeError(
-                f'st.session_state["{key}"] has an invalid type: {type(context)}'
-            )
-    else:
-        context = WebRtcStreamerContext(
-            worker=None, state=WebRtcStreamerState(playing=False, signalling=False)
-        )
-        st.session_state[key] = context
-
-    if context._sdp_answer_json:
-        # Set the flag not to trigger rerun() any more as `context._sdp_answer_json` is already set and will have been sent to the frontend in this run.
-        context._is_sdp_answer_sent = True
-
+    context = _get_or_create_context(key)
     frontend_key = generate_frontend_component_key(key)
-
-    def callback():
-        component_value = st.session_state[frontend_key]
-        new_state = compile_state(component_value)
-
-        context = st.session_state[key]
-        old_state = context.state
-
-        context._set_state(new_state)
-
-        if on_change and old_state != new_state:
-            on_change()
 
     component_value: Union[Dict, None] = _component_func(
         key=frontend_key,
@@ -515,137 +669,55 @@ def webrtc_streamer(
         audio_html_attrs=audio_html_attrs,
         translations=translations,
         desired_playing_state=desired_playing_state,
-        on_change=callback,
+        on_change=_make_state_change_callback(key, frontend_key, on_change),
+    )
+    component_value = _restore_snapshot_if_needed(context, component_value)
+
+    sdp_offer = component_value.get("sdpOffer") if component_value else None
+
+    _handle_worker_lifecycle(
+        context,
+        key,
+        sdp_offer,
+        make_worker=lambda: WebRtcWorker(
+            mode=mode,
+            rtc_configuration=_resolve_server_rtc_configuration(
+                server_rtc_configuration
+            ),
+            player_factory=player_factory,
+            in_recorder_factory=in_recorder_factory,
+            out_recorder_factory=out_recorder_factory,
+            video_frame_callback=video_frame_callback,
+            audio_frame_callback=audio_frame_callback,
+            queued_video_frames_callback=queued_video_frames_callback,
+            queued_audio_frames_callback=queued_audio_frames_callback,
+            on_video_ended=on_video_ended,
+            on_audio_ended=on_audio_ended,
+            video_processor_factory=video_processor_factory,
+            audio_processor_factory=audio_processor_factory,
+            async_processing=async_processing,
+            video_receiver_size=video_receiver_size,
+            audio_receiver_size=audio_receiver_size,
+            source_video_track=source_video_track,
+            source_audio_track=source_audio_track,
+            sendback_video=sendback_video,
+            sendback_audio=sendback_audio,
+        ),
     )
 
-    # HACK: Save the component value in this run to the session state
-    # to be restored in the next run because the component values of
-    # component instances behind the one which calls `rerun()`
-    # will not be held but be reset to the initial value in the next run.
-    # For example, when there are two `webrtc_streamer()` component instances
-    # in a script and `rerun()` in the first one is called,
-    # the component value of the second instance will be None in the next run
-    # after `rerun()`.
-    session_info = get_this_session_info()
-    run_count = get_script_run_count(session_info) if session_info else None
-    if component_value is None:
-        restored_component_value_snapshot = context._component_value_snapshot
-        if (
-            restored_component_value_snapshot
-            # Only the component value saved in the previous run is restored
-            # so that this workaround is only effective in the case of `rerun()`.
-            and run_count == restored_component_value_snapshot.run_count + 1
-        ):
-            LOGGER.debug("Restore the component value (key=%s)", key)
-            component_value = restored_component_value_snapshot.component_value
-    if run_count is not None:
-        context._component_value_snapshot = ComponentValueSnapshot(
-            component_value=component_value, run_count=run_count
-        )
-
-    sdp_offer = None
-    ice_candidates = None
-    if component_value:
-        sdp_offer = component_value.get("sdpOffer")
-        ice_candidates = component_value.get("iceCandidates")
-
-    if not context.state.playing and not context.state.signalling:
-        LOGGER.debug(
-            "The frontend state is neither playing nor signalling (key=%s).",
-            key,
-        )
-
-        webrtc_worker_to_stop = context._get_worker()
-        if webrtc_worker_to_stop:
-            LOGGER.debug("Stop the worker (key=%s).", key)
-            webrtc_worker_to_stop.stop()
-            context._set_worker(None)
-            context._is_sdp_answer_sent = False
-            context._sdp_answer_json = None
-            # Rerun to unset the SDP answer from the frontend args
-            rerun()
-
-    with context._worker_creation_lock:  # This point can be reached in parallel so we need to use a lock to make the worker creation process atomic.
-        if not context._get_worker() and sdp_offer:
-            LOGGER.debug(
-                "No worker exists though the offer SDP is set. "
-                'Create a new worker (key="%s").',
-                key,
-            )
-
-            aiortc_rtc_configuration = (
-                compile_rtc_configuration(server_rtc_configuration)
-                if server_rtc_configuration
-                and isinstance(server_rtc_configuration, dict)
-                else AiortcRTCConfiguration()
-            )
-            if aiortc_rtc_configuration.iceServers is None:
-                LOGGER.info(
-                    "rtc_configuration.iceServers is not set. Try to set it automatically."
-                )
-                ice_servers = get_available_ice_servers()  # NOTE: This may include a yield point where Streamlit's script runner interrupts the execution and may stop the current run.
-                aiortc_rtc_configuration.iceServers = compile_ice_servers(ice_servers)
-
-            worker_created_in_this_run: WebRtcWorker = WebRtcWorker(
-                mode=mode,
-                rtc_configuration=aiortc_rtc_configuration,
-                player_factory=player_factory,
-                in_recorder_factory=in_recorder_factory,
-                out_recorder_factory=out_recorder_factory,
-                video_frame_callback=video_frame_callback,
-                audio_frame_callback=audio_frame_callback,
-                queued_video_frames_callback=queued_video_frames_callback,
-                queued_audio_frames_callback=queued_audio_frames_callback,
-                on_video_ended=on_video_ended,
-                on_audio_ended=on_audio_ended,
-                video_processor_factory=video_processor_factory,
-                audio_processor_factory=audio_processor_factory,
-                async_processing=async_processing,
-                video_receiver_size=video_receiver_size,
-                audio_receiver_size=audio_receiver_size,
-                source_video_track=source_video_track,
-                source_audio_track=source_audio_track,
-                sendback_video=sendback_video,
-                sendback_audio=sendback_audio,
-            )
-
-            worker_created_in_this_run.process_offer(
-                sdp_offer["sdp"],
-                sdp_offer["type"],
-                timeout=10,  # The timeout of aioice's method that is used in the internal of this method is 5: https://github.com/aiortc/aioice/blob/aaada959aa8de31b880822db36f1c0c0cef75c0e/src/aioice/ice.py#L973. We set a bit longer timeout here.
-            )
-
-            # Set the worker here within the lock.
-            context._set_worker(worker_created_in_this_run)
-
-    webrtc_worker = context._get_worker()
-    if webrtc_worker:
-        if webrtc_worker.pc.localDescription and not context._is_sdp_answer_sent:
-            context._sdp_answer_json = json.dumps(
-                {
-                    "sdp": webrtc_worker.pc.localDescription.sdp,
-                    "type": webrtc_worker.pc.localDescription.type,
-                }
-            )
-
-            LOGGER.debug("Rerun to send the SDP answer to frontend")
-            # NOTE: rerun() may not work if it's called in the lock when the `runner.fastReruns` config is enabled
-            # because the `ScriptRequests._state` is set to `ScriptRequestType.STOP` by the rerun request from the frontend sent during awaiting the lock,
-            # which makes the rerun request refused.
-            # So we call rerun() here. It can be called even in a different thread(run) from the one where the worker is created as long as the condition is met.
-            rerun()
-
-        if ice_candidates:
-            webrtc_worker.set_ice_candidates_from_offerer(ice_candidates)
+    worker = context._get_worker()
+    if worker is not None:
+        if component_value and component_value.get("iceCandidates"):
+            worker.set_ice_candidates_from_offerer(component_value["iceCandidates"])
 
         if video_frame_callback or queued_video_frames_callback or on_video_ended:
-            webrtc_worker.update_video_callbacks(
+            worker.update_video_callbacks(
                 frame_callback=video_frame_callback,
                 queued_frames_callback=queued_video_frames_callback,
                 on_ended=on_video_ended,
             )
         if audio_frame_callback or queued_audio_frames_callback or on_audio_ended:
-            webrtc_worker.update_audio_callbacks(
+            worker.update_audio_callbacks(
                 frame_callback=audio_frame_callback,
                 queued_frames_callback=queued_audio_frames_callback,
                 on_ended=on_audio_ended,
