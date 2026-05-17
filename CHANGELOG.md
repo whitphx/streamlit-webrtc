@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.68.1'></a>
+## 0.68.1 — 2026-05-16
+
+### Chore
+
+- Decouple `WebRtcWorker` from the Streamlit `Runtime` singleton at runtime. The worker now resolves its event loop and `MediaRelay` once at construction (still defaulting to the Streamlit-bound globals), and accepts `loop=` / `relay=` keyword-only kwargs so callers — e.g. tests — can inject their own. `get_this_session_info()` also returns `None` instead of raising when no Streamlit `Runtime` is present, making `SessionShutdownObserver` a no-op outside a live session. No behavior change for the Streamlit-driven code path.
+
 <a id='changelog-0.68.0'></a>
 ## 0.68.0 — 2026-05-16
 
