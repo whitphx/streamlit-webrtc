@@ -6,6 +6,7 @@ import queue
 import threading
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
     Dict,
     Generic,
@@ -89,6 +90,52 @@ class SignallingTimeoutError(Exception):
 TrackType = Literal["input:video", "input:audio", "output:video", "output:audio"]
 
 
+def _build_output_track(
+    *,
+    input_track: Optional[MediaStreamTrack],
+    source_track: Optional[MediaStreamTrack],
+    processor: Optional[Any],
+    async_processing: bool,
+    relay: MediaRelay,
+) -> Optional[MediaStreamTrack]:
+    """Pick the track to hand off to ``pc.addTrack`` / a recorder / a receiver.
+
+    Precedence:
+
+    1. ``source_track`` if provided (a player-driven source supersedes the
+       incoming peer track outright — the processor doesn't apply).
+    2. processor-wrapped ``input_track``.
+    3. raw ``input_track`` (passthrough).
+    4. ``None`` if neither ``source_track`` nor ``input_track`` is given.
+
+    The processor-wrapped path subscribes the input through ``relay`` so the
+    same input can also feed a recorder via a separate ``relay.subscribe``.
+    """
+    if source_track is not None:
+        return source_track
+    if input_track is None:
+        return None
+    if processor is None:
+        return input_track
+
+    if input_track.kind == "audio":
+        cls: Any = AsyncAudioProcessTrack if async_processing else AudioProcessTrack
+    elif input_track.kind == "video":
+        cls = AsyncVideoProcessTrack if async_processing else VideoProcessTrack
+    else:
+        raise ValueError(f"Unknown track kind {input_track.kind}")
+    return cls(track=relay.subscribe(input_track), processor=processor)
+
+
+def _notify_track_created(
+    callback: Callable[[TrackType, MediaStreamTrack], None],
+    role: Literal["input", "output"],
+    track: MediaStreamTrack,
+) -> None:
+    if track.kind in ("video", "audio"):
+        callback(cast(TrackType, f"{role}:{track.kind}"), track)
+
+
 async def _process_offer_coro(
     mode: WebRtcMode,
     pc: RTCPeerConnection,
@@ -108,81 +155,43 @@ async def _process_offer_coro(
     on_track_created: Callable[[TrackType, MediaStreamTrack], None],
     remote_description_set_event: asyncio.Event,
 ):
-    AudioTrack = AsyncAudioProcessTrack if async_processing else AudioProcessTrack
-    VideoTrack = AsyncVideoProcessTrack if async_processing else VideoProcessTrack
+    def _source_for(kind: str) -> Optional[MediaStreamTrack]:
+        return source_audio_track if kind == "audio" else source_video_track
+
+    def _processor_for(kind: str) -> Optional[Any]:
+        return audio_processor if kind == "audio" else video_processor
 
     if mode == WebRtcMode.SENDRECV:
 
         @pc.listens_to("track")
         def on_track(input_track: MediaStreamTrack):
             logger.info("Track %s received", input_track.kind)
+            _notify_track_created(on_track_created, "input", input_track)
 
-            if input_track.kind == "video":
-                on_track_created("input:video", input_track)
-            elif input_track.kind == "audio":
-                on_track_created("input:audio", input_track)
+            output_track = _build_output_track(
+                input_track=input_track,
+                source_track=_source_for(input_track.kind),
+                processor=_processor_for(input_track.kind),
+                async_processing=async_processing,
+                relay=relay,
+            )
+            assert output_track is not None  # input_track is non-None here
 
-            if input_track.kind == "audio":
-                if source_audio_track:
-                    logger.info("Set %s as an input audio track", source_audio_track)
-                    output_track = source_audio_track
-                elif audio_processor:
-                    logger.info(
-                        "Set %s as an input audio track with audio_processor %s",
-                        input_track,
-                        AudioTrack,
-                    )
-                    output_track = AudioTrack(
-                        track=relay.subscribe(input_track),
-                        processor=audio_processor,
-                    )
-                else:
-                    output_track = input_track  # passthrough
-            elif input_track.kind == "video":
-                if source_video_track:
-                    logger.info("Set %s as an input video track", source_video_track)
-                    output_track = source_video_track
-                elif video_processor:
-                    logger.info(
-                        "Set %s as an input video track with video_processor %s",
-                        input_track,
-                        VideoTrack,
-                    )
-                    output_track = VideoTrack(
-                        track=relay.subscribe(input_track),
-                        processor=video_processor,
-                    )
-                else:
-                    output_track = input_track
-            else:
-                raise Exception(f"Unknown track kind {input_track.kind}")
-
-            if (output_track.kind == "video" and sendback_video) or (
-                output_track.kind == "audio" and sendback_audio
-            ):
-                logger.info(
-                    "Add a track %s of kind %s to %s",
-                    output_track,
-                    output_track.kind,
-                    pc,
-                )
+            sendback = (
+                sendback_video if output_track.kind == "video" else sendback_audio
+            )
+            if sendback:
+                logger.info("Add a track %s to %s", output_track, pc)
                 pc.addTrack(relay.subscribe(output_track))
             else:
-                logger.info(
-                    "Block a track %s of kind %s", output_track, output_track.kind
-                )
+                logger.info("Block a track %s", output_track)
 
             if out_recorder:
-                logger.info("Track %s is added to out_recorder", output_track.kind)
                 out_recorder.addTrack(relay.subscribe(output_track))
             if in_recorder:
-                logger.info("Track %s is added to in_recorder", input_track.kind)
                 in_recorder.addTrack(relay.subscribe(input_track))
 
-            if output_track.kind == "video":
-                on_track_created("output:video", output_track)
-            elif output_track.kind == "audio":
-                on_track_created("output:audio", output_track)
+            _notify_track_created(on_track_created, "output", output_track)
 
             @input_track.listens_to("ended")
             async def on_ended():
@@ -197,53 +206,26 @@ async def _process_offer_coro(
         @pc.listens_to("track")
         def on_track(input_track: MediaStreamTrack):
             logger.info("Track %s received", input_track.kind)
+            _notify_track_created(on_track_created, "input", input_track)
 
-            if input_track.kind == "video":
-                on_track_created("input:video", input_track)
-            elif input_track.kind == "audio":
-                on_track_created("input:audio", input_track)
-
-            output_track: MediaStreamTrack
-
-            if input_track.kind == "audio":
-                if audio_receiver:
-                    if audio_processor:
-                        logger.info(
-                            "Set %s as an input audio track with audio_processor %s",
-                            input_track,
-                            AudioTrack,
-                        )
-                        output_track = AudioTrack(
-                            track=relay.subscribe(input_track),
-                            processor=audio_processor,
-                        )
-                    else:
-                        output_track = input_track  # passthrough
-                    logger.info(
-                        "Add a track %s to receiver %s", output_track, audio_receiver
-                    )
-                    audio_receiver.addTrack(relay.subscribe(output_track))
-            elif input_track.kind == "video":
-                if video_receiver:
-                    if video_processor:
-                        logger.info(
-                            "Set %s as an input video track with video_processor %s",
-                            input_track,
-                            VideoTrack,
-                        )
-                        output_track = VideoTrack(
-                            track=relay.subscribe(input_track),
-                            processor=video_processor,
-                        )
-                    else:
-                        output_track = input_track  # passthrough
-                    logger.info(
-                        "Add a track %s to receiver %s", output_track, video_receiver
-                    )
-                    video_receiver.addTrack(relay.subscribe(output_track))
+            receiver: Union[AudioReceiver, VideoReceiver, None] = (
+                audio_receiver if input_track.kind == "audio" else video_receiver
+            )
+            if receiver is not None:
+                # SENDONLY has no source-track path — the worker only consumes
+                # what arrived from the peer.
+                output_track = _build_output_track(
+                    input_track=input_track,
+                    source_track=None,
+                    processor=_processor_for(input_track.kind),
+                    async_processing=async_processing,
+                    relay=relay,
+                )
+                assert output_track is not None
+                logger.info("Add a track %s to receiver %s", output_track, receiver)
+                receiver.addTrack(relay.subscribe(output_track))
 
             if in_recorder:
-                logger.info("Track %s is added to in_recorder", input_track.kind)
                 in_recorder.addTrack(relay.subscribe(input_track))
 
             @input_track.listens_to("ended")
@@ -261,45 +243,23 @@ async def _process_offer_coro(
 
     if mode == WebRtcMode.RECVONLY:
         for t in pc.getTransceivers():
-            output_track: Optional[MediaStreamTrack] = None
-            if t.kind == "audio":
-                if source_audio_track:
-                    if audio_processor:
-                        logger.info(
-                            "Set %s as an input audio track with audio_processor %s",
-                            source_audio_track,
-                            AudioTrack,
-                        )
-                        output_track = AudioTrack(
-                            track=source_audio_track, processor=audio_processor
-                        )
-                    else:
-                        output_track = source_audio_track  # passthrough
-            elif t.kind == "video":
-                if source_video_track:
-                    if video_processor:
-                        logger.info(
-                            "Set %s as an input video track with video_processor %s",
-                            source_video_track,
-                            VideoTrack,
-                        )
-                        output_track = VideoTrack(
-                            track=source_video_track, processor=video_processor
-                        )
-                    else:
-                        output_track = source_video_track  # passthrough
-
+            # RECVONLY has no input track — the configured source is what we
+            # feed into the processor (if any) and onto the peer. Pass it as
+            # `input_track` so the helper's processor-wrap branch runs.
+            output_track = _build_output_track(
+                input_track=_source_for(t.kind),
+                source_track=None,
+                processor=_processor_for(t.kind),
+                async_processing=async_processing,
+                relay=relay,
+            )
             if output_track:
                 logger.info("Add a track %s to %s", output_track, pc)
                 pc.addTrack(relay.subscribe(output_track))
                 # NOTE: Recording is not supported in this mode
                 # because connecting player to recorder does not work somehow;
                 # it generates unplayable movie files.
-
-                if output_track.kind == "video":
-                    on_track_created("output:video", output_track)
-                elif output_track.kind == "audio":
-                    on_track_created("output:audio", output_track)
+                _notify_track_created(on_track_created, "output", output_track)
 
     if video_receiver and video_receiver.hasTrack():
         video_receiver.start()
