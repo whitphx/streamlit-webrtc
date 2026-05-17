@@ -283,42 +283,6 @@ def _make_state_change_callback(
     return callback
 
 
-def _render_frontend(
-    *,
-    key: str,
-    frontend_key: str,
-    context: WebRtcStreamerContext,
-    mode: WebRtcMode,
-    frontend_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]],
-    media_stream_constraints: Union[Dict, MediaStreamConstraints],
-    video_html_attrs: Union[VideoHTMLAttributes, Dict],
-    audio_html_attrs: Union[AudioHTMLAttributes, Dict],
-    translations: Optional[Translations],
-    desired_playing_state: Optional[bool],
-    on_change: Callable[[], None],
-) -> Union[Dict, None]:
-    """Invoke the frontend component and return its raw value."""
-    return _component_func(
-        key=frontend_key,
-        # The user-supplied `key` scopes per-instance persistence (e.g.
-        # device selection) in the frontend's localStorage. `frontend_key`
-        # carries an obfuscation suffix that's irrelevant here, so we
-        # forward the original `key` instead.
-        component_key=key,
-        sdp_answer_json=context._sdp_answer_json,
-        mode=mode.name,
-        rtc_configuration=enhance_frontend_rtc_configuration(
-            frontend_rtc_configuration
-        ),
-        media_stream_constraints=media_stream_constraints,
-        video_html_attrs=video_html_attrs,
-        audio_html_attrs=audio_html_attrs,
-        translations=translations,
-        desired_playing_state=desired_playing_state,
-        on_change=on_change,
-    )
-
-
 def _restore_snapshot_if_needed(
     context: WebRtcStreamerContext,
     component_value: Union[Dict, None],
@@ -449,46 +413,6 @@ def _handle_worker_lifecycle(
         # (outside the lock) instead. Crossing threads is fine as long as
         # the condition holds.
         rerun()
-
-
-def _handle_ice_candidates(
-    context: WebRtcStreamerContext,
-    component_value: Union[Dict, None],
-) -> None:
-    """Hand any trickled ICE candidates from the frontend to the worker."""
-    worker = context._get_worker()
-    if worker and component_value:
-        ice_candidates = component_value.get("iceCandidates")
-        if ice_candidates:
-            worker.set_ice_candidates_from_offerer(ice_candidates)
-
-
-def _update_worker_callbacks(
-    context: WebRtcStreamerContext,
-    *,
-    video_frame_callback: Optional[VideoFrameCallback],
-    queued_video_frames_callback: Optional[QueuedVideoFramesCallback],
-    on_video_ended: Optional[MediaEndedCallback],
-    audio_frame_callback: Optional[AudioFrameCallback],
-    queued_audio_frames_callback: Optional[QueuedAudioFramesCallback],
-    on_audio_ended: Optional[MediaEndedCallback],
-) -> None:
-    """Forward any per-rerun callback changes to a running worker."""
-    worker = context._get_worker()
-    if not worker:
-        return
-    if video_frame_callback or queued_video_frames_callback or on_video_ended:
-        worker.update_video_callbacks(
-            frame_callback=video_frame_callback,
-            queued_frames_callback=queued_video_frames_callback,
-            on_ended=on_video_ended,
-        )
-    if audio_frame_callback or queued_audio_frames_callback or on_audio_ended:
-        worker.update_audio_callbacks(
-            frame_callback=audio_frame_callback,
-            queued_frames_callback=queued_audio_frames_callback,
-            on_ended=on_audio_ended,
-        )
 
 
 @overload
@@ -728,12 +652,18 @@ def webrtc_streamer(
     context = _get_or_create_context(key)
     frontend_key = generate_frontend_component_key(key)
 
-    component_value: Union[Dict, None] = _render_frontend(
-        key=key,
-        frontend_key=frontend_key,
-        context=context,
-        mode=mode,
-        frontend_rtc_configuration=frontend_rtc_configuration,
+    component_value: Union[Dict, None] = _component_func(
+        key=frontend_key,
+        # The user-supplied `key` scopes per-instance persistence (e.g.
+        # device selection) in the frontend's localStorage. `frontend_key`
+        # carries an obfuscation suffix that's irrelevant here, so we
+        # forward the original `key` instead.
+        component_key=key,
+        sdp_answer_json=context._sdp_answer_json,
+        mode=mode.name,
+        rtc_configuration=enhance_frontend_rtc_configuration(
+            frontend_rtc_configuration
+        ),
         media_stream_constraints=media_stream_constraints,
         video_html_attrs=video_html_attrs,
         audio_html_attrs=audio_html_attrs,
@@ -772,15 +702,23 @@ def webrtc_streamer(
         )
 
     _handle_worker_lifecycle(context, key, sdp_offer, make_worker=make_worker)
-    _handle_ice_candidates(context, component_value)
-    _update_worker_callbacks(
-        context,
-        video_frame_callback=video_frame_callback,
-        queued_video_frames_callback=queued_video_frames_callback,
-        on_video_ended=on_video_ended,
-        audio_frame_callback=audio_frame_callback,
-        queued_audio_frames_callback=queued_audio_frames_callback,
-        on_audio_ended=on_audio_ended,
-    )
+
+    worker = context._get_worker()
+    if worker is not None:
+        if component_value and component_value.get("iceCandidates"):
+            worker.set_ice_candidates_from_offerer(component_value["iceCandidates"])
+
+        if video_frame_callback or queued_video_frames_callback or on_video_ended:
+            worker.update_video_callbacks(
+                frame_callback=video_frame_callback,
+                queued_frames_callback=queued_video_frames_callback,
+                on_ended=on_video_ended,
+            )
+        if audio_frame_callback or queued_audio_frames_callback or on_audio_ended:
+            worker.update_audio_callbacks(
+                frame_callback=audio_frame_callback,
+                queued_frames_callback=queued_audio_frames_callback,
+                on_ended=on_audio_ended,
+            )
 
     return context
