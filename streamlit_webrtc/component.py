@@ -94,10 +94,10 @@ _T = TypeVar("_T")
 class _WorkerForwarded(Generic[_T]):
     """Read-only descriptor that forwards attribute access to the live worker.
 
-    Returns ``None`` when no worker is attached, matching what every previous
-    hand-rolled passthrough property used to return. The descriptor's typed
-    ``__get__`` overload is what gives users back the original
-    ``Optional[T]`` shape on attribute access.
+    Returns ``None`` when no worker is attached — the worker is held via a
+    weakref on the enclosing context, so it can also disappear under us
+    between accesses. The overloaded ``__get__`` lets type checkers see the
+    attribute as ``Optional[_T]`` on instance access.
     """
 
     def __init__(self, attr_name: str) -> None:
