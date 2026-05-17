@@ -12,6 +12,7 @@ from typing import (
     Generic,
     NamedTuple,
     Optional,
+    TypeVar,
     Union,
     cast,
     overload,
@@ -87,6 +88,34 @@ class ComponentValueSnapshot(NamedTuple):
     run_count: int
 
 
+_T = TypeVar("_T")
+
+
+class _WorkerForwarded(Generic[_T]):
+    """Read-only descriptor that forwards attribute access to the live worker.
+
+    Returns ``None`` when no worker is attached — the worker is held via a
+    weakref on the enclosing context, so it can also disappear under us
+    between accesses. The overloaded ``__get__`` lets type checkers see the
+    attribute as ``Optional[_T]`` on instance access.
+    """
+
+    def __init__(self, attr_name: str) -> None:
+        self._attr_name = attr_name
+
+    @overload
+    def __get__(
+        self, instance: None, owner: Optional[type] = None
+    ) -> "_WorkerForwarded[_T]": ...
+    @overload
+    def __get__(self, instance: Any, owner: Optional[type] = None) -> Optional[_T]: ...
+    def __get__(self, instance: Any, owner: Optional[type] = None) -> Any:
+        if instance is None:
+            return self
+        worker = instance._get_worker()
+        return getattr(worker, self._attr_name) if worker else None
+
+
 class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _state: WebRtcStreamerState
     _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker[VideoProcessorT, AudioProcessorT]]]"  # noqa
@@ -95,6 +124,17 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _worker_creation_lock: threading.Lock
     _sdp_answer_json: Optional[str]
     _is_sdp_answer_sent: bool
+
+    # Passthrough attributes forwarded to the worker. Each returns the
+    # worker's attribute when a worker is attached, otherwise None.
+    video_receiver = _WorkerForwarded[VideoReceiver]("video_receiver")
+    audio_receiver = _WorkerForwarded[AudioReceiver]("audio_receiver")
+    source_video_track = _WorkerForwarded[MediaStreamTrack]("source_video_track")
+    source_audio_track = _WorkerForwarded[MediaStreamTrack]("source_audio_track")
+    input_video_track = _WorkerForwarded[MediaStreamTrack]("input_video_track")
+    input_audio_track = _WorkerForwarded[MediaStreamTrack]("input_audio_track")
+    output_video_track = _WorkerForwarded[MediaStreamTrack]("output_video_track")
+    output_audio_track = _WorkerForwarded[MediaStreamTrack]("output_audio_track")
 
     def __init__(
         self,
@@ -153,64 +193,13 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         # so we can ignore that type here by casting the type into AudioProcessorT only.
         return cast(AudioProcessorT, worker.audio_processor) if worker else None
 
-    @property
-    def video_transformer(self) -> Optional[VideoProcessorT]:
-        """
-        A video transformer instance which has been created through
-        the callable provided as `video_transformer_factory` argument
-        to `webrtc_streamer()`.
-
-        .. deprecated:: 0.20.0
-        """
-        worker = self._get_worker()
-        return cast(VideoProcessorT, worker.video_processor) if worker else None
-
-    @property
-    def video_receiver(self) -> Optional[VideoReceiver]:
-        worker = self._get_worker()
-        return worker.video_receiver if worker else None
-
-    @property
-    def audio_receiver(self) -> Optional[AudioReceiver]:
-        worker = self._get_worker()
-        return worker.audio_receiver if worker else None
-
-    @property
-    def source_video_track(self) -> Optional[MediaStreamTrack]:
-        worker = self._get_worker()
-        return worker.source_video_track if worker else None
-
-    @property
-    def source_audio_track(self) -> Optional[MediaStreamTrack]:
-        worker = self._get_worker()
-        return worker.source_audio_track if worker else None
-
-    @property
-    def input_video_track(self) -> Optional[MediaStreamTrack]:
-        worker = self._get_worker()
-        return worker.input_video_track if worker else None
-
-    @property
-    def input_audio_track(self) -> Optional[MediaStreamTrack]:
-        worker = self._get_worker()
-        return worker.input_audio_track if worker else None
-
-    @property
-    def output_video_track(self) -> Optional[MediaStreamTrack]:
-        worker = self._get_worker()
-        return worker.output_video_track if worker else None
-
-    @property
-    def output_audio_track(self) -> Optional[MediaStreamTrack]:
-        worker = self._get_worker()
-        return worker.output_audio_track if worker else None
-
 
 def generate_frontend_component_key(original_key: str) -> str:
-    return (
-        original_key + r':frontend 6)r])0Gea7e#2E#{y^i*_UzwU"@RJP<z'
-    )  # Random string to avoid conflicts.
-    # XXX: Any other cleaner way to ensure the key does not conflict?
+    # The frontend component is registered in `st.session_state` under a key
+    # that must not collide with the user's own `key=` (which we also store
+    # the `WebRtcStreamerContext` under). Appending a long, unlikely-to-be-typed
+    # suffix is the simplest collision avoidance — it's our salt, not a secret.
+    return original_key + r':frontend 6)r])0Gea7e#2E#{y^i*_UzwU"@RJP<z'
 
 
 def compile_state(component_value) -> WebRtcStreamerState:
