@@ -98,19 +98,9 @@ def _build_output_track(
     async_processing: bool,
     relay: MediaRelay,
 ) -> Optional[MediaStreamTrack]:
-    """Pick the track to hand off to ``pc.addTrack`` / a recorder / a receiver.
-
-    Precedence:
-
-    1. ``source_track`` if provided (a player-driven source supersedes the
-       incoming peer track outright — the processor doesn't apply).
-    2. processor-wrapped ``input_track``.
-    3. raw ``input_track`` (passthrough).
-    4. ``None`` if neither ``source_track`` nor ``input_track`` is given.
-
-    The processor-wrapped path subscribes the input through ``relay`` so the
-    same input can also feed a recorder via a separate ``relay.subscribe``.
-    """
+    """Decide which media track should leave the worker for the peer."""
+    # An explicitly-configured source overrides the incoming peer track
+    # outright; the processor doesn't apply.
     if source_track is not None:
         return source_track
     if input_track is None:
@@ -124,6 +114,8 @@ def _build_output_track(
         cls = AsyncVideoProcessTrack if async_processing else VideoProcessTrack
     else:
         raise ValueError(f"Unknown track kind {input_track.kind}")
+    # Wrap via the relay so the unwrapped input can still feed a recorder
+    # (or another consumer) via its own `relay.subscribe()` call.
     return cls(track=relay.subscribe(input_track), processor=processor)
 
 
@@ -168,14 +160,19 @@ async def _process_offer_coro(
             logger.info("Track %s received", input_track.kind)
             _notify_track_created(on_track_created, "input", input_track)
 
-            output_track = _build_output_track(
-                input_track=input_track,
-                source_track=_source_for(input_track.kind),
-                processor=_processor_for(input_track.kind),
-                async_processing=async_processing,
-                relay=relay,
+            # `input_track` is non-None here (it came from the `track` event),
+            # so the helper's "no input, no source" path can't fire — narrow
+            # the type for the rest of the block.
+            output_track = cast(
+                MediaStreamTrack,
+                _build_output_track(
+                    input_track=input_track,
+                    source_track=_source_for(input_track.kind),
+                    processor=_processor_for(input_track.kind),
+                    async_processing=async_processing,
+                    relay=relay,
+                ),
             )
-            assert output_track is not None  # input_track is non-None here
 
             sendback = (
                 sendback_video if output_track.kind == "video" else sendback_audio
@@ -213,15 +210,18 @@ async def _process_offer_coro(
             )
             if receiver is not None:
                 # SENDONLY has no source-track path — the worker only consumes
-                # what arrived from the peer.
-                output_track = _build_output_track(
-                    input_track=input_track,
-                    source_track=None,
-                    processor=_processor_for(input_track.kind),
-                    async_processing=async_processing,
-                    relay=relay,
+                # what arrived from the peer. With `input_track` non-None and
+                # `source_track=None`, the helper never returns `None`.
+                output_track = cast(
+                    MediaStreamTrack,
+                    _build_output_track(
+                        input_track=input_track,
+                        source_track=None,
+                        processor=_processor_for(input_track.kind),
+                        async_processing=async_processing,
+                        relay=relay,
+                    ),
                 )
-                assert output_track is not None
                 logger.info("Add a track %s to receiver %s", output_track, receiver)
                 receiver.addTrack(relay.subscribe(output_track))
 
