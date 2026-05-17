@@ -67,8 +67,10 @@ class TestCompileRtcConfiguration:
         config = compile_rtc_configuration(
             {"iceServers": [{"urls": "stun:stun.l.google.com:19302"}]}
         )
-        assert len(config.iceServers) == 1
-        assert config.iceServers[0].urls == "stun:stun.l.google.com:19302"
+        servers = config.iceServers
+        assert servers is not None
+        assert len(servers) == 1
+        assert servers[0].urls == "stun:stun.l.google.com:19302"
 
     def test_non_dict_raises(self) -> None:
         with pytest.raises(ValueError, match="dict"):
