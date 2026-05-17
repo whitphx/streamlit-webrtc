@@ -90,33 +90,26 @@ class SignallingTimeoutError(Exception):
 TrackType = Literal["input:video", "input:audio", "output:video", "output:audio"]
 
 
-def _build_output_track(
-    *,
-    input_track: Optional[MediaStreamTrack],
-    source_track: Optional[MediaStreamTrack],
+def _wrap_with_processor(
+    track: MediaStreamTrack,
     processor: Optional[Any],
+    *,
     async_processing: bool,
     relay: MediaRelay,
-) -> Optional[MediaStreamTrack]:
-    """Decide which media track should leave the worker for the peer."""
-    # An explicitly-configured source overrides the incoming peer track
-    # outright; the processor doesn't apply.
-    if source_track is not None:
-        return source_track
-    if input_track is None:
-        return None
+) -> MediaStreamTrack:
+    """Wrap ``track`` in a kind-matched process track when a processor is given,
+    otherwise return ``track`` unchanged."""
     if processor is None:
-        return input_track
-
-    if input_track.kind == "audio":
+        return track
+    if track.kind == "audio":
         cls: Any = AsyncAudioProcessTrack if async_processing else AudioProcessTrack
-    elif input_track.kind == "video":
+    elif track.kind == "video":
         cls = AsyncVideoProcessTrack if async_processing else VideoProcessTrack
     else:
-        raise ValueError(f"Unknown track kind {input_track.kind}")
+        raise ValueError(f"Unknown track kind {track.kind}")
     # Wrap via the relay so the unwrapped input can still feed a recorder
     # (or another consumer) via its own `relay.subscribe()` call.
-    return cls(track=relay.subscribe(input_track), processor=processor)
+    return cls(track=relay.subscribe(track), processor=processor)
 
 
 def _notify_track_created(
@@ -160,18 +153,19 @@ async def _process_offer_coro(
             logger.info("Track %s received", input_track.kind)
             _notify_track_created(on_track_created, "input", input_track)
 
-            # `input_track` is non-None here (it came from the `track` event),
-            # so the helper's "no input, no source" path can't fire — narrow
-            # the type for the rest of the block.
-            output_track = cast(
-                MediaStreamTrack,
-                _build_output_track(
-                    input_track=input_track,
-                    source_track=_source_for(input_track.kind),
-                    processor=_processor_for(input_track.kind),
+            # An explicitly-configured source overrides the peer track outright
+            # (and skips the processor); otherwise wrap the peer track with the
+            # processor if one is configured.
+            source = _source_for(input_track.kind)
+            output_track = (
+                source
+                if source is not None
+                else _wrap_with_processor(
+                    input_track,
+                    _processor_for(input_track.kind),
                     async_processing=async_processing,
                     relay=relay,
-                ),
+                )
             )
 
             sendback = (
@@ -209,18 +203,11 @@ async def _process_offer_coro(
                 audio_receiver if input_track.kind == "audio" else video_receiver
             )
             if receiver is not None:
-                # SENDONLY has no source-track path — the worker only consumes
-                # what arrived from the peer. With `input_track` non-None and
-                # `source_track=None`, the helper never returns `None`.
-                output_track = cast(
-                    MediaStreamTrack,
-                    _build_output_track(
-                        input_track=input_track,
-                        source_track=None,
-                        processor=_processor_for(input_track.kind),
-                        async_processing=async_processing,
-                        relay=relay,
-                    ),
+                output_track = _wrap_with_processor(
+                    input_track,
+                    _processor_for(input_track.kind),
+                    async_processing=async_processing,
+                    relay=relay,
                 )
                 logger.info("Add a track %s to receiver %s", output_track, receiver)
                 receiver.addTrack(relay.subscribe(output_track))
@@ -243,23 +230,23 @@ async def _process_offer_coro(
 
     if mode == WebRtcMode.RECVONLY:
         for t in pc.getTransceivers():
-            # RECVONLY has no input track — the configured source is what we
-            # feed into the processor (if any) and onto the peer. Pass it as
-            # `input_track` so the helper's processor-wrap branch runs.
-            output_track = _build_output_track(
-                input_track=_source_for(t.kind),
-                source_track=None,
-                processor=_processor_for(t.kind),
+            # RECVONLY has no incoming peer track — the worker emits the
+            # configured source (optionally wrapped in a processor).
+            source = _source_for(t.kind)
+            if source is None:
+                continue
+            output_track = _wrap_with_processor(
+                source,
+                _processor_for(t.kind),
                 async_processing=async_processing,
                 relay=relay,
             )
-            if output_track:
-                logger.info("Add a track %s to %s", output_track, pc)
-                pc.addTrack(relay.subscribe(output_track))
-                # NOTE: Recording is not supported in this mode
-                # because connecting player to recorder does not work somehow;
-                # it generates unplayable movie files.
-                _notify_track_created(on_track_created, "output", output_track)
+            logger.info("Add a track %s to %s", output_track, pc)
+            pc.addTrack(relay.subscribe(output_track))
+            # NOTE: Recording is not supported in this mode
+            # because connecting player to recorder does not work somehow;
+            # it generates unplayable movie files.
+            _notify_track_created(on_track_created, "output", output_track)
 
     if video_receiver and video_receiver.hasTrack():
         video_receiver.start()
