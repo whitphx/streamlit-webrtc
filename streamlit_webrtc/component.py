@@ -675,8 +675,11 @@ def webrtc_streamer(
 
     sdp_offer = component_value.get("sdpOffer") if component_value else None
 
-    def make_worker() -> WebRtcWorker:
-        return WebRtcWorker(
+    _handle_worker_lifecycle(
+        context,
+        key,
+        sdp_offer,
+        make_worker=lambda: WebRtcWorker(
             mode=mode,
             rtc_configuration=_resolve_server_rtc_configuration(
                 server_rtc_configuration
@@ -699,9 +702,8 @@ def webrtc_streamer(
             source_audio_track=source_audio_track,
             sendback_video=sendback_video,
             sendback_audio=sendback_audio,
-        )
-
-    _handle_worker_lifecycle(context, key, sdp_offer, make_worker=make_worker)
+        ),
+    )
 
     worker = context._get_worker()
     if worker is not None:
