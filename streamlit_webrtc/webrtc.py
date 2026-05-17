@@ -6,7 +6,6 @@ import queue
 import threading
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
     Dict,
     Generic,
@@ -39,6 +38,7 @@ from .models import (
     MediaEndedCallback,
     MediaPlayerFactory,
     MediaRecorderFactory,
+    ProcessorBase,
     QueuedAudioFramesCallback,
     QueuedVideoFramesCallback,
     VideoFrameCallback,
@@ -92,7 +92,7 @@ TrackType = Literal["input:video", "input:audio", "output:video", "output:audio"
 
 def _wrap_with_processor(
     track: MediaStreamTrack,
-    processor: Optional[Any],
+    processor: Optional[ProcessorBase],
     *,
     async_processing: bool,
     relay: MediaRelay,
@@ -101,15 +101,16 @@ def _wrap_with_processor(
     otherwise return ``track`` unchanged."""
     if processor is None:
         return track
-    if track.kind == "audio":
-        cls: Any = AsyncAudioProcessTrack if async_processing else AudioProcessTrack
-    elif track.kind == "video":
-        cls = AsyncVideoProcessTrack if async_processing else VideoProcessTrack
-    else:
-        raise ValueError(f"Unknown track kind {track.kind}")
     # Wrap via the relay so the unwrapped input can still feed a recorder
     # (or another consumer) via its own `relay.subscribe()` call.
-    return cls(track=relay.subscribe(track), processor=processor)
+    relayed = relay.subscribe(track)
+    if track.kind == "audio":
+        audio_cls = AsyncAudioProcessTrack if async_processing else AudioProcessTrack
+        return audio_cls(track=relayed, processor=cast(AudioProcessorBase, processor))
+    if track.kind == "video":
+        video_cls = AsyncVideoProcessTrack if async_processing else VideoProcessTrack
+        return video_cls(track=relayed, processor=cast(VideoProcessorBase, processor))
+    raise ValueError(f"Unknown track kind {track.kind}")
 
 
 def _notify_track_created(
@@ -143,7 +144,7 @@ async def _process_offer_coro(
     def _source_for(kind: str) -> Optional[MediaStreamTrack]:
         return source_audio_track if kind == "audio" else source_video_track
 
-    def _processor_for(kind: str) -> Optional[Any]:
+    def _processor_for(kind: str) -> Optional[ProcessorBase]:
         return audio_processor if kind == "audio" else video_processor
 
     if mode == WebRtcMode.SENDRECV:
