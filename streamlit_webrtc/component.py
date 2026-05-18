@@ -669,6 +669,11 @@ def webrtc_streamer(
         audio_html_attrs=audio_html_attrs,
         translations=translations,
         desired_playing_state=desired_playing_state,
+        # `sendback_*` lets the frontend negotiate recvonly transceivers for
+        # kinds the local capture won't produce — without this, an audio-only
+        # capture cannot receive a server-generated video stream.
+        sendback_video=sendback_video,
+        sendback_audio=sendback_audio,
         on_change=_make_state_change_callback(key, frontend_key, on_change),
     )
     component_value = _restore_snapshot_if_needed(context, component_value)

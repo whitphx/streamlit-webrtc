@@ -29,6 +29,8 @@ interface WebRtcStreamerInnerProps {
   sdpAnswerJson: string | undefined;
   rtcConfiguration: RTCConfiguration | undefined;
   mediaStreamConstraints: MediaStreamConstraints | undefined;
+  sendbackVideo: boolean;
+  sendbackAudio: boolean;
   videoHtmlAttrs: Record<string, string>;
   audioHtmlAttrs: Record<string, string>;
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
@@ -172,6 +174,8 @@ function WebRtcStreamer() {
   const rtcConfiguration: RTCConfiguration = renderData.args.rtc_configuration;
   const mediaStreamConstraints: MediaStreamConstraints =
     renderData.args.media_stream_constraints;
+  const sendbackVideo: boolean = renderData.args.sendback_video ?? true;
+  const sendbackAudio: boolean = renderData.args.sendback_audio ?? true;
   const videoHtmlAttrs = renderData.args.video_html_attrs;
   const audioHtmlAttrs = renderData.args.audio_html_attrs;
 
@@ -188,6 +192,8 @@ function WebRtcStreamer() {
       sdpAnswerJson={sdpAnswerJson}
       rtcConfiguration={rtcConfiguration}
       mediaStreamConstraints={mediaStreamConstraints}
+      sendbackVideo={sendbackVideo}
+      sendbackAudio={sendbackAudio}
       videoHtmlAttrs={videoHtmlAttrs}
       audioHtmlAttrs={audioHtmlAttrs}
       onComponentValueChange={setComponentValue}
