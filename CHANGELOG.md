@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.69.3'></a>
+## 0.69.3 — 2026-05-18
+
+### Chore
+
+- Decouple `MediaStreamMixTrack` from the Streamlit `Runtime` singleton, mirroring the `WebRtcWorker` change from #2447. The constructor now accepts optional `loop=` and `relay=` keyword-only kwargs and stores them on the instance; existing callers that omit them resolve the same Streamlit-bound globals as before. Adds three layer-2 mix tests (`tests/mix_test.py`) that exercise the single-input, multi-input, and `mixer_output_interval` paths against the test's running event loop.
+
 <a id='changelog-0.69.2'></a>
 ## 0.69.2 — 2026-05-18
 
