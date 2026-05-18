@@ -1,4 +1,11 @@
-import { lazy, Suspense, useState, useCallback, useEffect, useRef } from "react";
+import {
+  lazy,
+  Suspense,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 import Box from "@mui/material/Box";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
