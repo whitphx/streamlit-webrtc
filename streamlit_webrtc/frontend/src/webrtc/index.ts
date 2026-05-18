@@ -19,6 +19,8 @@ export const useWebRtc = (
     sdpAnswerJson: string | undefined;
     rtcConfiguration: RTCConfiguration | undefined;
     mediaStreamConstraints: MediaStreamConstraints | undefined;
+    sendbackVideo: boolean;
+    sendbackAudio: boolean;
   },
   videoDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
   audioDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
@@ -166,6 +168,28 @@ export const useWebRtc = (
           for (const transceiver of pc.getTransceivers()) {
             transceiver.direction = "sendonly";
           }
+        } else if (mode === "SENDRECV") {
+          // When the local capture is one-sided (e.g. audio-only), the SDP
+          // offer ends up with only an audio m-section and the server has
+          // nowhere to attach a video sender. Add an explicit recvonly
+          // transceiver for any kind we are not sending so the server can
+          // still send back a track of that kind (driven by `source_*`).
+          // Gated on the corresponding `sendback_*` so opting out skips
+          // the extra m-section.
+          const localKinds = new Set(
+            pc
+              .getTransceivers()
+              .map((t) => t.sender.track?.kind)
+              .filter(
+                (k): k is "audio" | "video" => k === "audio" || k === "video",
+              ),
+          );
+          if (props.sendbackVideo && !localKinds.has("video")) {
+            pc.addTransceiver("video", { direction: "recvonly" });
+          }
+          if (props.sendbackAudio && !localKinds.has("audio")) {
+            pc.addTransceiver("audio", { direction: "recvonly" });
+          }
         }
       } else if (mode === "RECVONLY") {
         pc.addTransceiver("video", { direction: "recvonly" });
@@ -224,6 +248,8 @@ export const useWebRtc = (
     props.mediaStreamConstraints,
     props.mode,
     props.rtcConfiguration,
+    props.sendbackVideo,
+    props.sendbackAudio,
     state.webRtcState,
     onDevicesOpened,
     uniqueIdGenerator,

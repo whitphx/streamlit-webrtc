@@ -147,11 +147,21 @@ async def _process_offer_coro(
     def _processor_for(kind: str) -> Optional[ProcessorBase]:
         return audio_processor if kind == "audio" else video_processor
 
+    def _sendback_for(kind: str) -> bool:
+        return sendback_video if kind == "video" else sendback_audio
+
+    # Tracks which kinds the peer is actually sending. Populated by `on_track`
+    # in SENDRECV mode and consulted after `setRemoteDescription` so we can
+    # attach `source_*` for kinds the peer didn't send (e.g. audio-only input
+    # paired with a server-side video source).
+    peer_sending_kinds: Set[str] = set()
+
     if mode == WebRtcMode.SENDRECV:
 
         @pc.listens_to("track")
         def on_track(input_track: MediaStreamTrack):
             logger.info("Track %s received", input_track.kind)
+            peer_sending_kinds.add(input_track.kind)
             _notify_track_created(on_track_created, "input", input_track)
 
             # An explicitly-configured source overrides the peer track outright
@@ -169,10 +179,7 @@ async def _process_offer_coro(
                 )
             )
 
-            sendback = (
-                sendback_video if output_track.kind == "video" else sendback_audio
-            )
-            if sendback:
+            if _sendback_for(output_track.kind):
                 logger.info("Add a track %s to %s", output_track, pc)
                 pc.addTrack(relay.subscribe(output_track))
             else:
@@ -247,6 +254,32 @@ async def _process_offer_coro(
             # NOTE: Recording is not supported in this mode
             # because connecting player to recorder does not work somehow;
             # it generates unplayable movie files.
+            _notify_track_created(on_track_created, "output", output_track)
+
+    if mode == WebRtcMode.SENDRECV:
+        # `on_track` only fires for kinds the peer is sending, so when the
+        # peer offered a recvonly m-section for a kind (one-sided input,
+        # e.g. audio-only) the configured `source_*` for that kind has not
+        # been attached yet. Symmetric with the RECVONLY block above.
+        for t in pc.getTransceivers():
+            if t.kind in peer_sending_kinds:
+                continue
+            source = _source_for(t.kind)
+            if source is None:
+                continue
+            output_track = _wrap_with_processor(
+                source,
+                _processor_for(t.kind),
+                async_processing=async_processing,
+                relay=relay,
+            )
+            if _sendback_for(t.kind):
+                logger.info("Add a track %s to %s", output_track, pc)
+                pc.addTrack(relay.subscribe(output_track))
+            else:
+                logger.info("Block a track %s", output_track)
+            if out_recorder:
+                out_recorder.addTrack(relay.subscribe(output_track))
             _notify_track_created(on_track_created, "output", output_track)
 
     if video_receiver and video_receiver.hasTrack():

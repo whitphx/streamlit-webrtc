@@ -11,7 +11,7 @@ failures.
 
 import asyncio
 import fractions
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 import av
 import numpy as np
@@ -19,7 +19,7 @@ import pytest
 from aiortc import RTCPeerConnection
 from aiortc.contrib.media import MediaRelay
 
-from streamlit_webrtc.source import VideoSourceTrack
+from streamlit_webrtc.source import AudioSourceTrack, VideoSourceTrack
 from streamlit_webrtc.webrtc import WebRtcMode, WebRtcWorker
 
 _WORKER_DEFAULTS: Dict[str, Any] = dict(
@@ -133,6 +133,61 @@ async def test_sendonly_video_frame_callback_observes_frames() -> None:
     try:
         # Generous deadline — aiortc connection establishment is the long pole.
         assert await _drain_until(lambda: len(received) >= 1, loop.time() + 15)
+    finally:
+        await _teardown_loopback(client, worker)
+
+
+def _audio_source_callback(pts: int, time_base: fractions.Fraction) -> av.AudioFrame:
+    samples = np.zeros((1, 960), dtype=np.int16)
+    frame = av.AudioFrame.from_ndarray(samples, format="s16", layout="mono")
+    frame.sample_rate = 48000
+    return frame
+
+
+@pytest.mark.asyncio
+async def test_sendrecv_audio_only_input_with_source_video_track() -> None:
+    """SENDRECV with audio-only peer input still delivers `source_video_track`.
+
+    Regression test for the case where the developer wants to receive audio
+    from the browser AND send back a server-generated video stream. The
+    worker used to attach output tracks only inside `on_track`, which fires
+    once per incoming peer kind, so the configured `source_video_track` was
+    silently dropped when the peer didn't send video.
+    """
+    loop = asyncio.get_running_loop()
+    client = RTCPeerConnection()
+    client.addTrack(AudioSourceTrack(_audio_source_callback, sample_rate=48000))
+    # Mirror the frontend behavior: explicitly request a video stream from
+    # the server even though the client isn't sending one.
+    client.addTransceiver("video", direction="recvonly")
+
+    received_kinds: Set[str] = set()
+
+    @client.on("track")  # type: ignore[arg-type]
+    def _on_track(track):  # pragma: no cover - aiortc-driven
+        received_kinds.add(track.kind)
+
+    server_source = VideoSourceTrack(_source_callback, fps=15)
+    worker: WebRtcWorker = WebRtcWorker(
+        loop=loop,
+        relay=MediaRelay(),
+        mode=WebRtcMode.SENDRECV,
+        **{**_WORKER_DEFAULTS, "source_video_track": server_source},
+    )
+    _wire_ice(client, worker)
+    await client.setLocalDescription(await client.createOffer())
+    assert client.localDescription is not None
+    answer = await asyncio.to_thread(
+        worker.process_offer,
+        client.localDescription.sdp,
+        client.localDescription.type,
+        10,
+    )
+    await client.setRemoteDescription(answer)
+
+    try:
+        assert await _drain_until(lambda: "video" in received_kinds, loop.time() + 15)
+        assert worker.output_video_track is not None
     finally:
         await _teardown_loopback(client, worker)
 
