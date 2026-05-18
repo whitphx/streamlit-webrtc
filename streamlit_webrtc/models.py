@@ -116,7 +116,16 @@ class VideoProcessorBase(ProcessorBase[av.VideoFrame]):
 
     def on_ended(self):
         """
-        A callback method which is called when the input track ends.
+        Called when the input track ends — i.e. when the user clicks "STOP",
+        closes the page, or the connection drops.
+
+        Override this to release per-session resources (worker threads,
+        model handles, file writers, queues, etc.) allocated by ``recv()``
+        or ``recv_queued()``.
+
+        This is invoked on aiortc's asyncio loop, not Streamlit's main
+        thread, so ``st.*`` calls do not work here and shared state must
+        be accessed in a thread-safe way.
         """
 
 
@@ -160,7 +169,16 @@ class AudioProcessorBase(ProcessorBase[av.AudioFrame]):
 
     def on_ended(self):
         """
-        A callback method which is called when the input track ends.
+        Called when the input track ends — i.e. when the user clicks "STOP",
+        closes the page, or the connection drops.
+
+        Override this to release per-session resources (worker threads,
+        model handles, file writers, queues, etc.) allocated by ``recv()``
+        or ``recv_queued()``.
+
+        This is invoked on aiortc's asyncio loop, not Streamlit's main
+        thread, so ``st.*`` calls do not work here and shared state must
+        be accessed in a thread-safe way.
         """
 
 
