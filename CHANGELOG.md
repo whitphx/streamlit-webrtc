@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.69.2'></a>
+## 0.69.2 — 2026-05-18
+
+### Chore
+
+- Add `audioop-lts` as a development dependency for Python 3.13 and later since the `audioop` module is removed from the standard library in Python 3.13. This change is only about the development environment and does not affect the runtime dependencies of the project.
+
 <a id='changelog-0.69.1'></a>
 ## 0.69.1 — 2026-05-17
 
