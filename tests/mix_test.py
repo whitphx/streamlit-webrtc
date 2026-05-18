@@ -48,7 +48,7 @@ async def test_mixer_callback_receives_a_single_input() -> None:
     received: List[List[av.VideoFrame]] = []
 
     def mixer_cb(frames: List[av.VideoFrame]) -> av.VideoFrame:
-        received.append(list(frames))
+        received.append(frames)
         return _output_frame()
 
     mix_track: MediaStreamMixTrack = MediaStreamMixTrack(
@@ -78,7 +78,7 @@ async def test_mixer_callback_receives_multiple_inputs() -> None:
     received: List[List[av.VideoFrame]] = []
 
     def mixer_cb(frames: List[av.VideoFrame]) -> av.VideoFrame:
-        received.append(list(frames))
+        received.append(frames)
         return _output_frame()
 
     mix_track: MediaStreamMixTrack = MediaStreamMixTrack(
