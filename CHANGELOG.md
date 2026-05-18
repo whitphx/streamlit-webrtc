@@ -2,6 +2,15 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.69.1'></a>
+## 0.69.1 — 2026-05-17
+
+### Chore
+
+- Refactor `_process_offer_coro` in `streamlit_webrtc/webrtc.py`. Extract `_wrap_with_processor` (wrap a track in a kind-matched process track when a processor is given, otherwise pass through) and `_notify_track_created` (the four-branch `kind`/`role` dispatcher) helpers, collapsing the duplicated audio/video branches across SENDRECV / SENDONLY / RECVONLY. Each mode's source-vs-peer precedence stays at its call site, where it reads naturally. No public-API change; existing pytest layer-3 loopback coverage proves behavior preservation.
+
+- Split `webrtc_streamer()`'s ~220-line orchestration body in `streamlit_webrtc/component.py` into named module-level helpers (`_get_or_create_context`, `_make_state_change_callback`, `_render_frontend`, `_restore_snapshot_if_needed`, `_resolve_server_rtc_configuration`, `_handle_worker_lifecycle`, `_handle_ice_candidates`, `_update_worker_callbacks`). The function body is now a linear sequence of helper calls; each helper documents its concern. No public-API change.
+
 <a id='changelog-0.69.0'></a>
 ## 0.69.0 — 2026-05-17
 
