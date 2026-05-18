@@ -1,6 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { lazy, Suspense, useState, useCallback, useEffect, useRef } from "react";
 import Box from "@mui/material/Box";
-import DeviceSelectForm from "./DeviceSelect/DeviceSelectForm";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
 import { useRenderData } from "streamlit-component-lib-react-hooks";
@@ -17,7 +16,8 @@ import { ComponentValue, setComponentValue } from "./component-value";
 import { loadPersistedDeviceIds, persistDeviceIds } from "./device-storage";
 import TranslatedButton from "./translation/components/TranslatedButton";
 import InfoHeader from "./InfoHeader";
-import "webrtc-adapter";
+
+const DeviceSelectForm = lazy(() => import("./DeviceSelect/DeviceSelectForm"));
 
 const BACKEND_VANILLA_ICE_TIMEOUT = 10 * 1000; // `aiortc` runs ICE in the Vanilla manner and its timeout is set to 5 seconds: https://github.com/aiortc/aioice/blob/fc863fde4676e1f67dce981b7f9592ab02c6a09a/src/aioice/ice.py#L881. We set the timeout here to account for network latency and some additional delay.
 
@@ -91,14 +91,16 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   }, []);
   if (deviceSelectOpen) {
     return (
-      <DeviceSelectForm
-        video={videoEnabled}
-        audio={audioEnabled}
-        defaultVideoDeviceId={deviceIds.video}
-        defaultAudioDeviceId={deviceIds.audio}
-        onSelect={setDeviceIds}
-        onClose={closeDeviceSelect}
-      />
+      <Suspense fallback={null}>
+        <DeviceSelectForm
+          video={videoEnabled}
+          audio={audioEnabled}
+          defaultVideoDeviceId={deviceIds.video}
+          defaultAudioDeviceId={deviceIds.audio}
+          onSelect={setDeviceIds}
+          onClose={closeDeviceSelect}
+        />
+      </Suspense>
     );
   }
 
