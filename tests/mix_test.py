@@ -51,7 +51,7 @@ async def test_mixer_callback_receives_a_single_input() -> None:
         received.append(frames)
         return _output_frame()
 
-    mix_track: MediaStreamMixTrack = MediaStreamMixTrack(
+    mix_track = MediaStreamMixTrack(
         kind="video",
         mixer_callback=mixer_cb,
         mixer_output_interval=1 / 60,
@@ -81,7 +81,7 @@ async def test_mixer_callback_receives_multiple_inputs() -> None:
         received.append(frames)
         return _output_frame()
 
-    mix_track: MediaStreamMixTrack = MediaStreamMixTrack(
+    mix_track = MediaStreamMixTrack(
         kind="video",
         mixer_callback=mixer_cb,
         mixer_output_interval=1 / 60,
@@ -116,7 +116,7 @@ async def test_mixer_output_cadence_tracks_configured_interval() -> None:
     def mixer_cb(frames: List[av.VideoFrame]) -> av.VideoFrame:
         return _output_frame()
 
-    mix_track: MediaStreamMixTrack = MediaStreamMixTrack(
+    mix_track = MediaStreamMixTrack(
         kind="video",
         mixer_callback=mixer_cb,
         mixer_output_interval=interval,
