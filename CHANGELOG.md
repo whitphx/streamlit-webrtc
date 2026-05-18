@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.69.4'></a>
+## 0.69.4 — 2026-05-18
+
+### Fixed
+
+- Fix SENDRECV mode silently dropping `source_video_track` / `source_audio_track` when the browser-side capture is one-sided (e.g. `media_stream_constraints={"audio": True, "video": False}` paired with a server-generated video source). The frontend now negotiates a recvonly transceiver for any kind it isn't sending (gated on `sendback_video` / `sendback_audio`), and the worker attaches the configured source to that transceiver after the offer is set.
+
 <a id='changelog-0.69.3'></a>
 ## 0.69.3 — 2026-05-18
 
