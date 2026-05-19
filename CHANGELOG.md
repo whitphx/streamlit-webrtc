@@ -2,6 +2,17 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.69.5'></a>
+## 0.69.5 — 2026-05-19
+
+### Chore
+
+- Document the `on_video_ended` / `on_audio_ended` callbacks (and the matching `VideoProcessorBase.on_ended()` / `AudioProcessorBase.on_ended()` hooks) as the recommended way to release per-session resources when a WebRTC session ends. Adds a "Cleanup on Stop" section to the README and the mkdocs tutorial, and expands the docstrings on the processor base classes to spell out when the hook fires and the threading caveat (it runs on aiortc's asyncio loop, not Streamlit's main thread). Closes #2406.
+
+- Clarify in the README that the function-based callbacks (`video_frame_callback` / `audio_frame_callback`) are the recommended API and that the class-based API (`video_processor_factory` / `audio_processor_factory` with `VideoProcessorBase` / `AudioProcessorBase` subclasses) — while still supported — is planned for removal in a future major release. Closes #1102.
+
+- Fix log messages from `VideoSourceTrack` and `AudioSourceTrack`.
+
 <a id='changelog-0.69.4'></a>
 ## 0.69.4 — 2026-05-18
 
