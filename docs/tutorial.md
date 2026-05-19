@@ -78,6 +78,18 @@ The callbacks are executed in forked threads different from the main one, so the
 * The `global` keyword does not work expectedly in the callbacks.
 * You have to care about thread-safety when accessing the same objects both from outside and inside the callbacks as stated in the section above.
 
+## Cleanup on Stop
+
+`webrtc_streamer()` accepts `on_video_ended` and `on_audio_ended` arguments — zero-argument callables that fire when the corresponding input media track ends (the user clicks "STOP", closes the page, or the connection drops). They are the recommended hook for tearing down per-session resources that the frame callbacks allocated, such as worker threads, model handles, file writers, queues, or `st.session_state` entries:
+
+```python title="app.py"
+--8<-- "./examples/tutorial/05_cleanup.py"
+```
+
+These callbacks run on `aiortc`'s asyncio loop — not Streamlit's main thread — so the same caveats as the frame callbacks apply: `st.*` calls do not work inside them, and shared state must be mutated in a thread-safe way (e.g. with a `threading.Lock`, a `queue`, or a `threading.Event`).
+
+When using the class-based API (`video_processor_factory` / `audio_processor_factory`), override `VideoProcessorBase.on_ended()` / `AudioProcessorBase.on_ended()` instead — they fire at the same lifecycle point.
+
 ## Ready for Production?
 
 When you're ready to deploy your app, see the [Deployment Guide](deployment.md) for:

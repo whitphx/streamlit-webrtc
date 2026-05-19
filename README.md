@@ -193,9 +193,39 @@ The callbacks are executed in forked threads different from the main one, so the
 * The `global` keyword does not work expectedly in the callbacks.
 * You have to care about thread-safety when accessing the same objects both from outside and inside the callbacks as stated in the section above.
 
+## Cleanup on Stop (session lifecycle)
+
+`webrtc_streamer()` accepts `on_video_ended` and `on_audio_ended` arguments — zero-argument callables that fire when the corresponding input media track ends (the user clicks "STOP", closes the page, or the connection drops). They are the recommended hook for tearing down per-session resources that the frame callbacks allocated, such as worker threads, model handles, file writers, queues, or `st.session_state` entries.
+
+```python
+import streamlit as st
+from streamlit_webrtc import webrtc_streamer
+
+
+def video_frame_callback(frame):
+    # ... process the frame, possibly initializing per-session state on first call ...
+    return frame
+
+
+def on_video_ended():
+    st.session_state.pop("my_session_resource", None)
+
+
+webrtc_streamer(
+    key="example",
+    video_frame_callback=video_frame_callback,
+    on_video_ended=on_video_ended,
+)
+```
+
+These callbacks run on `aiortc`'s asyncio loop — not Streamlit's main thread — so the same caveats as the frame callbacks apply: `st.*` calls do not work inside them, and shared state must be mutated in a thread-safe way (e.g. with a `threading.Lock`, a `queue`, or a `threading.Event`).
+
+When using the [class-based API](#class-based-callbacks), override `VideoProcessorBase.on_ended()` / `AudioProcessorBase.on_ended()` instead — they fire at the same lifecycle point.
+
 ## Class-based callbacks
-Until v0.37, the class-based callbacks were the standard.
-See the [old version of the README](https://github.com/whitphx/streamlit-webrtc/blob/v0.37.0/README.md#quick-tutorial) about it.
+The function-based callbacks (`video_frame_callback` / `audio_frame_callback`) shown above are the recommended API.
+
+Until v0.37, the class-based callbacks (`video_processor_factory` / `audio_processor_factory` taking a `VideoProcessorBase` / `AudioProcessorBase` subclass) were the standard. They are still supported for backward compatibility — see the [old version of the README](https://github.com/whitphx/streamlit-webrtc/blob/v0.37.0/README.md#quick-tutorial) for that style — but new code should prefer the function-based callbacks. The class-based API is planned to be removed in a future major release (v1.0).
 
 ## Serving from remote host
 When deploying apps to remote servers, there are some things you need to be aware of.
