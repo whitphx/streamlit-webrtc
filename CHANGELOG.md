@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.70.1'></a>
+## 0.70.1 — 2026-05-19
+
+### Chore
+
+- Code-split the frontend bundle so the device picker and the `webrtc-adapter` shim load on demand, trimming the initial chunk from 579 kB to 501 kB (171 kB → 151 kB gzipped).
+
 <a id='changelog-0.70.0'></a>
 ## 0.70.0 — 2026-05-19
 
