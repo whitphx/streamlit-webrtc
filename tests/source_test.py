@@ -5,7 +5,7 @@ import av
 import numpy as np
 import pytest
 
-from streamlit_webrtc.source import AudioSourceTrack
+from streamlit_webrtc.source import AudioSourceTrack, VideoSourceTrack
 
 
 def _make_callback(sample_rate: int, samples_per_frame: int):
@@ -57,3 +57,46 @@ def test_audio_source_track_time_base_matches_sample_rate(sample_rate: int) -> N
 def test_audio_source_track_rejects_non_positive_sample_rate(sample_rate: int) -> None:
     with pytest.raises(ValueError, match="sample_rate"):
         AudioSourceTrack(callback=_make_callback(48000, 960), sample_rate=sample_rate)
+
+
+def _video_callback(pts: int, time_base: fractions.Fraction) -> av.VideoFrame:
+    buffer = np.zeros((4, 4, 3), dtype=np.uint8)
+    return av.VideoFrame.from_ndarray(buffer, format="bgr24")
+
+
+def test_video_source_track_fires_on_ended_on_stop() -> None:
+    """Regression test for
+    https://github.com/whitphx/streamlit-webrtc/issues/1800:
+    source tracks need a deterministic notification when the session ends.
+    """
+    track = VideoSourceTrack(callback=_video_callback, fps=30)
+
+    calls: list[int] = []
+    track._on_ended_callback = lambda: calls.append(1)
+
+    track.stop()
+
+    assert calls == [1]
+
+
+def test_audio_source_track_fires_on_ended_on_stop() -> None:
+    track = AudioSourceTrack(callback=_make_callback(48000, 960), sample_rate=48000)
+
+    calls: list[int] = []
+    track._on_ended_callback = lambda: calls.append(1)
+
+    track.stop()
+
+    assert calls == [1]
+
+
+def test_video_source_track_on_ended_exception_is_swallowed() -> None:
+    """A misbehaving on_ended must not propagate into aiortc's event loop."""
+    track = VideoSourceTrack(callback=_video_callback, fps=30)
+
+    def boom() -> None:
+        raise RuntimeError("boom")
+
+    track._on_ended_callback = boom
+
+    track.stop()

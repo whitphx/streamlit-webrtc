@@ -32,6 +32,8 @@ AudioSourceCallback = Callable[
 
 
 class VideoSourceTrack(MediaStreamTrack):
+    _on_ended_callback: Optional[Callable[[], None]]
+
     def __init__(self, callback: VideoSourceCallback, fps: Union[int, float]) -> None:
         super().__init__()
         self.kind = "video"
@@ -39,6 +41,17 @@ class VideoSourceTrack(MediaStreamTrack):
         self._fps = fps
         self._started_at: Optional[float] = None
         self._pts: Optional[int] = None
+        self._on_ended_callback = None
+        self.on("ended", self._fire_on_ended)
+
+    def _fire_on_ended(self) -> None:
+        cb = self._on_ended_callback
+        if cb is None:
+            return
+        try:
+            cb()
+        except Exception:
+            logger.exception("VideoSourceTrack: on_ended callback raised an exception")
 
     async def recv(self) -> av.frame.Frame:
         if self.readyState != "live":
@@ -83,6 +96,8 @@ class VideoSourceTrack(MediaStreamTrack):
 
 
 class AudioSourceTrack(MediaStreamTrack):
+    _on_ended_callback: Optional[Callable[[], None]]
+
     def __init__(
         self,
         callback: AudioSourceCallback,
@@ -102,6 +117,17 @@ class AudioSourceTrack(MediaStreamTrack):
         self._time_base = fractions.Fraction(1, self._sample_rate)
         self._started_at: Optional[float] = None
         self._pts: Optional[int] = None
+        self._on_ended_callback = None
+        self.on("ended", self._fire_on_ended)
+
+    def _fire_on_ended(self) -> None:
+        cb = self._on_ended_callback
+        if cb is None:
+            return
+        try:
+            cb()
+        except Exception:
+            logger.exception("AudioSourceTrack: on_ended callback raised an exception")
 
     async def recv(self) -> av.frame.Frame:
         if self.readyState != "live":
