@@ -10,6 +10,7 @@ from typing import (
     Callable,
     Dict,
     Generic,
+    List,
     NamedTuple,
     Optional,
     TypeVar,
@@ -30,6 +31,7 @@ from streamlit_webrtc.models import (
     QueuedVideoFramesCallback,
     VideoFrameCallback,
 )
+from streamlit_webrtc.sink import MediaSink
 
 from ._compat import cache_data, rerun
 from .config import (
@@ -131,6 +133,8 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     audio_receiver = _WorkerForwarded[AudioReceiver]("audio_receiver")
     source_video_track = _WorkerForwarded[MediaStreamTrack]("source_video_track")
     source_audio_track = _WorkerForwarded[MediaStreamTrack]("source_audio_track")
+    sink_video_track = _WorkerForwarded[MediaSink]("sink_video_track")
+    sink_audio_track = _WorkerForwarded[MediaSink]("sink_audio_track")
     input_video_track = _WorkerForwarded[MediaStreamTrack]("input_video_track")
     input_audio_track = _WorkerForwarded[MediaStreamTrack]("input_audio_track")
     output_video_track = _WorkerForwarded[MediaStreamTrack]("output_video_track")
@@ -192,6 +196,41 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         # as class-less callback API is used in that case,
         # so we can ignore that type here by casting the type into AudioProcessorT only.
         return cast(AudioProcessorT, worker.audio_processor) if worker else None
+
+
+def _validate_sink_conflicts(
+    *,
+    kind: str,
+    sink: Optional[MediaSink],
+    frame_callback: Optional[Callable],
+    queued_frames_callback: Optional[Callable],
+    on_ended: Optional[Callable],
+    processor_factory: Optional[Callable],
+) -> None:
+    """Reject combinations where the same kind has both a sink and a per-frame
+    consumer wired through ``webrtc_streamer()``.
+
+    Sinks are an alternative input strategy: routing the same upstream to a
+    sink *and* a per-frame callback / processor would silently fan-out the
+    stream, which is rarely what the caller intended and is easy to express
+    explicitly via two consumers attached to one upstream relay when it is.
+    """
+    if sink is None:
+        return
+    conflicting: List[str] = []
+    if frame_callback is not None:
+        conflicting.append(f"{kind}_frame_callback")
+    if queued_frames_callback is not None:
+        conflicting.append(f"queued_{kind}_frames_callback")
+    if on_ended is not None:
+        conflicting.append(f"on_{kind}_ended")
+    if processor_factory is not None:
+        conflicting.append(f"{kind}_processor_factory")
+    if conflicting:
+        raise ValueError(
+            f"sink_{kind}_track is mutually exclusive with "
+            f"{', '.join(conflicting)} — choose one input strategy per kind."
+        )
 
 
 def generate_frontend_component_key(original_key: str) -> str:
@@ -442,6 +481,8 @@ def webrtc_streamer(
     audio_receiver_size: int = 4,
     source_video_track: Optional[MediaStreamTrack] = None,
     source_audio_track: Optional[MediaStreamTrack] = None,
+    sink_video_track: Optional[MediaSink] = None,
+    sink_audio_track: Optional[MediaSink] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
@@ -486,6 +527,8 @@ def webrtc_streamer(
     audio_receiver_size: int = 4,
     source_video_track: Optional[MediaStreamTrack] = None,
     source_audio_track: Optional[MediaStreamTrack] = None,
+    sink_video_track: Optional[MediaSink] = None,
+    sink_audio_track: Optional[MediaSink] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
@@ -526,6 +569,8 @@ def webrtc_streamer(
     audio_receiver_size: int = 4,
     source_video_track: Optional[MediaStreamTrack] = None,
     source_audio_track: Optional[MediaStreamTrack] = None,
+    sink_video_track: Optional[MediaSink] = None,
+    sink_audio_track: Optional[MediaSink] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
@@ -566,6 +611,8 @@ def webrtc_streamer(
     audio_receiver_size: int = 4,
     source_video_track: Optional[MediaStreamTrack] = None,
     source_audio_track: Optional[MediaStreamTrack] = None,
+    sink_video_track: Optional[MediaSink] = None,
+    sink_audio_track: Optional[MediaSink] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
@@ -605,6 +652,8 @@ def webrtc_streamer(
     audio_receiver_size: int = 4,
     source_video_track: Optional[MediaStreamTrack] = None,
     source_audio_track: Optional[MediaStreamTrack] = None,
+    sink_video_track: Optional[MediaSink] = None,
+    sink_audio_track: Optional[MediaSink] = None,
     sendback_video: bool = True,
     sendback_audio: bool = True,
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
@@ -648,6 +697,23 @@ def webrtc_streamer(
         video_html_attrs = DEFAULT_VIDEO_HTML_ATTRS
     if audio_html_attrs is None:
         audio_html_attrs = DEFAULT_AUDIO_HTML_ATTRS
+
+    _validate_sink_conflicts(
+        kind="video",
+        sink=sink_video_track,
+        frame_callback=video_frame_callback,
+        queued_frames_callback=queued_video_frames_callback,
+        on_ended=on_video_ended,
+        processor_factory=video_processor_factory,
+    )
+    _validate_sink_conflicts(
+        kind="audio",
+        sink=sink_audio_track,
+        frame_callback=audio_frame_callback,
+        queued_frames_callback=queued_audio_frames_callback,
+        on_ended=on_audio_ended,
+        processor_factory=audio_processor_factory,
+    )
 
     context = _get_or_create_context(key)
     frontend_key = generate_frontend_component_key(key)
@@ -705,6 +771,8 @@ def webrtc_streamer(
             audio_receiver_size=audio_receiver_size,
             source_video_track=source_video_track,
             source_audio_track=source_audio_track,
+            sink_video_track=sink_video_track,
+            sink_audio_track=sink_audio_track,
             sendback_video=sendback_video,
             sendback_audio=sendback_audio,
         ),
