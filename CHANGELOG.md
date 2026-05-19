@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.70.0'></a>
+## 0.70.0 — 2026-05-19
+
+### Added
+
+- `create_video_source_track()` and `create_audio_source_track()` now accept an `on_ended` callback that fires when the source track ends. The factory also installs a `SessionShutdownObserver` per cached source track, so closing the page (without first clicking "STOP") now stops the track and fires `on_ended` deterministically — previously the track survived page close with no notification to user code. `VideoSourceTrack` / `AudioSourceTrack` also gained an `"ended"` event hook (via aiortc's `MediaStreamTrack.on("ended", ...)`) for callers that construct the tracks directly without the factory. Closes #1800.
+
 <a id='changelog-0.69.5'></a>
 ## 0.69.5 — 2026-05-19
 
