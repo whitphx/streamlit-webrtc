@@ -57,7 +57,8 @@ class VideoSourceTrack(MediaStreamTrack):
             wait = self._started_at + (self._pts / VIDEO_CLOCK_RATE) - time.monotonic()
             if wait < 0:
                 logger.warning(
-                    "VideoSourceCallbackTrack: Video frame callback is too slow."
+                    "%s: Video frame callback is too slow.",
+                    self.__class__.__name__,
                 )
                 wait = 0
             await asyncio.sleep(wait)
@@ -69,7 +70,8 @@ class VideoSourceTrack(MediaStreamTrack):
             frame = self._callback(pts, time_base)
         except Exception as exc:
             logger.error(
-                "VideoSourceCallbackTrack: Video frame callback raised an exception: %s",  # noqa: E501
+                "%s: Video frame callback raised an exception: %s",
+                self.__class__.__name__,
                 exc,
                 exc_info=True,
             )
@@ -117,7 +119,10 @@ class AudioSourceTrack(MediaStreamTrack):
 
             wait = self._started_at + (self._pts / self._sample_rate) - time.monotonic()
             if wait < 0:
-                logger.warning("AudioSourceTrack: Audio frame callback is too slow.")
+                logger.warning(
+                    "%s: Audio frame callback is too slow.",
+                    self.__class__.__name__,
+                )
                 wait = 0
             await asyncio.sleep(wait)
 
@@ -128,7 +133,8 @@ class AudioSourceTrack(MediaStreamTrack):
             frame = self._callback(pts, time_base)
         except Exception as exc:
             logger.error(
-                "AudioSourceTrack: Audio frame callback raised an exception: %s",
+                "%s: Audio frame callback raised an exception: %s",
+                self.__class__.__name__,
                 exc,
                 exc_info=True,
             )
