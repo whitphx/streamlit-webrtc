@@ -26,6 +26,12 @@ from .process import (
 )
 from .relay import get_global_relay
 from .shutdown import SessionShutdownObserver
+from .sink import (
+    AudioSinkCallback,
+    AudioSinkTrack,
+    VideoSinkCallback,
+    VideoSinkTrack,
+)
 from .source import (
     AudioSourceCallback,
     AudioSourceTrack,
@@ -235,6 +241,74 @@ _AUDIO_SOURCE_TRACK_CACHE_KEY_PREFIX = "__AUDIO_SOURCE_TRACK_CACHE__"
 _AUDIO_SOURCE_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX = (
     "__AUDIO_SOURCE_TRACK_SHUTDOWN_OBSERVER_CACHE__"
 )
+
+
+_VIDEO_SINK_TRACK_CACHE_KEY_PREFIX = "__VIDEO_SINK_TRACK_CACHE__"
+_VIDEO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX = (
+    "__VIDEO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE__"
+)
+
+
+def create_video_sink_track(
+    callback: VideoSinkCallback,
+    key: str,
+    on_ended: Optional[Callable[[], None]] = None,
+) -> VideoSinkTrack:
+    cache_key = _VIDEO_SINK_TRACK_CACHE_KEY_PREFIX + key
+    observer_cache_key = _VIDEO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    if (
+        cache_key in st.session_state
+        and isinstance(st.session_state[cache_key], VideoSinkTrack)
+        and st.session_state[cache_key].readyState != "ended"
+    ):
+        video_sink_track: VideoSinkTrack = st.session_state[cache_key]
+        video_sink_track._callback = callback
+    else:
+        old_observer = st.session_state.get(observer_cache_key)
+        if isinstance(old_observer, SessionShutdownObserver):
+            old_observer.stop()
+
+        video_sink_track = VideoSinkTrack(callback=callback)
+        st.session_state[cache_key] = video_sink_track
+        st.session_state[observer_cache_key] = SessionShutdownObserver(
+            video_sink_track.stop
+        )
+    video_sink_track._on_ended_callback = on_ended
+    return video_sink_track
+
+
+_AUDIO_SINK_TRACK_CACHE_KEY_PREFIX = "__AUDIO_SINK_TRACK_CACHE__"
+_AUDIO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX = (
+    "__AUDIO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE__"
+)
+
+
+def create_audio_sink_track(
+    callback: AudioSinkCallback,
+    key: str,
+    on_ended: Optional[Callable[[], None]] = None,
+) -> AudioSinkTrack:
+    cache_key = _AUDIO_SINK_TRACK_CACHE_KEY_PREFIX + key
+    observer_cache_key = _AUDIO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    if (
+        cache_key in st.session_state
+        and isinstance(st.session_state[cache_key], AudioSinkTrack)
+        and st.session_state[cache_key].readyState != "ended"
+    ):
+        audio_sink_track: AudioSinkTrack = st.session_state[cache_key]
+        audio_sink_track._callback = callback
+    else:
+        old_observer = st.session_state.get(observer_cache_key)
+        if isinstance(old_observer, SessionShutdownObserver):
+            old_observer.stop()
+
+        audio_sink_track = AudioSinkTrack(callback=callback)
+        st.session_state[cache_key] = audio_sink_track
+        st.session_state[observer_cache_key] = SessionShutdownObserver(
+            audio_sink_track.stop
+        )
+    audio_sink_track._on_ended_callback = on_ended
+    return audio_sink_track
 
 
 def create_audio_source_track(
