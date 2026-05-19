@@ -124,6 +124,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _worker_creation_lock: threading.Lock
     _sdp_answer_json: Optional[str]
     _is_sdp_answer_sent: bool
+    _last_rendered_run_count: Optional[int]
 
     # Passthrough attributes forwarded to the worker. Each returns the
     # worker's attribute when a worker is attached, otherwise None.
@@ -147,6 +148,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._worker_creation_lock = threading.Lock()
         self._sdp_answer_json = None
         self._is_sdp_answer_sent = False
+        self._last_rendered_run_count = None
 
     def _set_worker(
         self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
@@ -230,6 +232,9 @@ def enhance_frontend_rtc_configuration(
 def _get_or_create_context(key: str) -> WebRtcStreamerContext:
     """Return the per-key `WebRtcStreamerContext` from `st.session_state`,
     creating one if absent."""
+    session_info = get_this_session_info()
+    current_run_count = get_script_run_count(session_info) if session_info else None
+
     if key in st.session_state:
         context = st.session_state[key]
 
@@ -242,11 +247,33 @@ def _get_or_create_context(key: str) -> WebRtcStreamerContext:
             raise TypeError(
                 f'st.session_state["{key}"] has an invalid type: {type(context)}'
             )
+
+        # Detect an orphaned context: the script ran one or more times
+        # without rendering this component (typically because the user
+        # navigated to a different page in a multi-page app and came back).
+        # The frontend iframe has been remounted with fresh React state, so
+        # any worker / playing-state / SDP-answer carried over from the
+        # previous page is stale and would collide with the new offer.
+        if (
+            current_run_count is not None
+            and context._last_rendered_run_count is not None
+            and current_run_count > context._last_rendered_run_count + 1
+        ):
+            LOGGER.debug(
+                "Context for key=%s was not rendered for %d script runs; "
+                "resetting stale state.",
+                key,
+                current_run_count - context._last_rendered_run_count - 1,
+            )
+            _reset_orphaned_context(context)
     else:
         context = WebRtcStreamerContext(
             worker=None, state=WebRtcStreamerState(playing=False, signalling=False)
         )
         st.session_state[key] = context
+
+    if current_run_count is not None:
+        context._last_rendered_run_count = current_run_count
 
     if context._sdp_answer_json:
         # The SDP answer was set in a previous run and forwarded to the
@@ -255,6 +282,21 @@ def _get_or_create_context(key: str) -> WebRtcStreamerContext:
         context._is_sdp_answer_sent = True
 
     return context
+
+
+def _reset_orphaned_context(context: WebRtcStreamerContext) -> None:
+    """Tear down any worker / signalling state on a context that survived a
+    page-away-and-back round-trip. The next `_handle_worker_lifecycle` call
+    will then treat the component as freshly mounted."""
+    worker = context._get_worker()
+    if worker:
+        LOGGER.debug("Stopping orphaned worker.")
+        worker.stop()
+    context._set_worker(None)
+    context._set_state(WebRtcStreamerState(playing=False, signalling=False))
+    context._sdp_answer_json = None
+    context._is_sdp_answer_sent = False
+    context._component_value_snapshot = None
 
 
 def _make_state_change_callback(
