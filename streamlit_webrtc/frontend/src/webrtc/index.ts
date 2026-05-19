@@ -102,6 +102,11 @@ export const useWebRtc = (
     }
 
     const startInner = async () => {
+      // Load the `webrtc-adapter` shims before any `RTCPeerConnection` /
+      // `getUserMedia` call below. The import is dynamic so the polyfill is
+      // split into its own chunk and not paid for on initial render.
+      await import("webrtc-adapter");
+
       dispatch({ type: "SIGNALLING_START" });
 
       uniqueIdGenerator.reset();
