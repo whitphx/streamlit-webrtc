@@ -1,4 +1,5 @@
 import fractions
+import logging
 import time
 
 import av
@@ -6,6 +7,8 @@ import cv2
 import numpy as np
 import streamlit as st
 from streamlit_webrtc import WebRtcMode, create_video_source_track, webrtc_streamer
+
+logger = logging.getLogger(__name__)
 
 thickness = st.slider("thickness", 1, 10, 3, 1)
 
@@ -40,8 +43,15 @@ def video_source_callback(pts: int, time_base: fractions.Fraction) -> av.VideoFr
 fps = st.slider("fps", 1, 30, 30, 1)
 
 
+def on_source_ended():
+    logger.info("Source track ended; release per-session resources here.")
+
+
 video_source_track = create_video_source_track(
-    video_source_callback, key="video_source_track", fps=fps
+    video_source_callback,
+    key="video_source_track",
+    fps=fps,
+    on_ended=on_source_ended,
 )
 
 
