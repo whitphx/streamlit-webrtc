@@ -30,6 +30,7 @@ from typing import Optional
 
 import av
 import numpy as np
+import numpy.typing as npt
 import streamlit as st
 from streamlit_webrtc import (
     WebRtcMode,
@@ -79,14 +80,14 @@ class _PcmRingBuffer:
     """
 
     def __init__(self) -> None:
-        self._buf = np.zeros(0, dtype=np.int16)
+        self._buf: npt.NDArray[np.int16] = np.zeros(0, dtype=np.int16)
         self._lock = threading.Lock()
 
-    def push(self, samples: np.ndarray) -> None:
+    def push(self, samples: npt.NDArray[np.int16]) -> None:
         with self._lock:
             self._buf = np.concatenate([self._buf, samples])
 
-    def pull(self, n: int) -> np.ndarray:
+    def pull(self, n: int) -> npt.NDArray[np.int16]:
         with self._lock:
             available = len(self._buf)
             if available >= n:
