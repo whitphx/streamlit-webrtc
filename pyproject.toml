@@ -34,6 +34,7 @@ dev = [
     "scriv>=1.7.0",
     "pytest-asyncio>=1.3.0",
     "audioop-lts==0.2.2; python_version >= '3.13'",
+    "openai[realtime]>=1.51.0",  # For pages/18_audio_chat_realtime.py — the [realtime] extra pulls in websockets.
 ]
 
 [tool.hatch.version]
