@@ -69,16 +69,15 @@ class VideoSourceTrack(MediaStreamTrack):
 
             wait = self._started_at + (self._pts / VIDEO_CLOCK_RATE) - time.monotonic()
             if wait < 0:
-                logger.warning(
-                    "%s: Video frame callback is too slow.",
-                    self.__class__.__name__,
-                )
                 wait = 0
             await asyncio.sleep(wait)
 
         return frame
 
     def _call_callback(self, pts: int, time_base: fractions.Fraction) -> av.VideoFrame:
+        # Per-call timing (not cumulative wall-clock drift): one late frame
+        # mustn't keep tripping the warning on subsequent fast calls.
+        callback_start = time.monotonic()
         try:
             frame = self._callback(pts, time_base)
         except Exception as exc:
@@ -89,6 +88,17 @@ class VideoSourceTrack(MediaStreamTrack):
                 exc_info=True,
             )
             raise
+        callback_elapsed = time.monotonic() - callback_start
+
+        frame_budget = 1.0 / self._fps
+        if callback_elapsed > frame_budget:
+            logger.warning(
+                "%s: Video frame callback is too slow "
+                "(%.1f ms > frame budget %.1f ms).",
+                self.__class__.__name__,
+                callback_elapsed * 1000,
+                frame_budget * 1000,
+            )
 
         frame.pts = pts
         frame.time_base = time_base
@@ -145,16 +155,15 @@ class AudioSourceTrack(MediaStreamTrack):
 
             wait = self._started_at + (self._pts / self._sample_rate) - time.monotonic()
             if wait < 0:
-                logger.warning(
-                    "%s: Audio frame callback is too slow.",
-                    self.__class__.__name__,
-                )
                 wait = 0
             await asyncio.sleep(wait)
 
         return frame
 
     def _call_callback(self, pts: int, time_base: fractions.Fraction) -> av.AudioFrame:
+        # Per-call timing (not cumulative wall-clock drift): one late frame
+        # mustn't keep tripping the warning on subsequent fast calls.
+        callback_start = time.monotonic()
         try:
             frame = self._callback(pts, time_base)
         except Exception as exc:
@@ -165,6 +174,15 @@ class AudioSourceTrack(MediaStreamTrack):
                 exc_info=True,
             )
             raise
+        callback_elapsed = time.monotonic() - callback_start
+
+        if callback_elapsed > self._ptime:
+            logger.warning(
+                "%s: Audio frame callback is too slow (%.1f ms > ptime %.1f ms).",
+                self.__class__.__name__,
+                callback_elapsed * 1000,
+                self._ptime * 1000,
+            )
 
         frame.pts = pts
         frame.time_base = time_base
