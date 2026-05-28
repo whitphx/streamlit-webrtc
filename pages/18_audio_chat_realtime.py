@@ -70,39 +70,44 @@ DEFAULT_INSTRUCTIONS = (
 
 
 class _PcmRingBuffer:
-    """Thread-safe int16 mono PCM ring with silence-padded pulls.
+    """Thread-safe int16 mono PCM buffer with silence-padded pulls.
 
-    The OpenAI session thread pushes irregular-sized chunks as they
-    arrive in ``response.output_audio.delta`` events; the aiortc source
-    callback pulls fixed-size frames at the playback cadence. If the
-    model hasn't sent enough audio yet the pull is padded with silence
-    so the source track stays on schedule.
+    Wraps :class:`av.AudioFifo` (FFmpeg's ``AVAudioFifo``) so the
+    producer/consumer split inherits FFmpeg's tested partial-read
+    semantics. The OpenAI session thread pushes irregular-sized chunks
+    as they arrive in ``response.output_audio.delta`` events; the
+    aiortc source callback pulls fixed-size frames at the playback
+    cadence. If the model hasn't sent enough audio yet the pull is
+    padded with silence so the source track stays on schedule.
     """
 
     def __init__(self) -> None:
-        self._buf: npt.NDArray[np.int16] = np.zeros(0, dtype=np.int16)
+        # PyAV's AudioFifo is not documented thread-safe, and we have a
+        # producer thread (OpenAI session) and consumer thread (aiortc
+        # source callback) hitting it concurrently.
+        self._fifo = av.AudioFifo()
         self._lock = threading.Lock()
 
     def push(self, samples: npt.NDArray[np.int16]) -> None:
+        frame = av.AudioFrame.from_ndarray(
+            samples.reshape(1, -1), format="s16", layout="mono"
+        )
+        frame.sample_rate = TARGET_SAMPLE_RATE
         with self._lock:
-            self._buf = np.concatenate([self._buf, samples])
+            self._fifo.write(frame)
 
     def pull(self, n: int) -> npt.NDArray[np.int16]:
         with self._lock:
-            available = len(self._buf)
-            if available >= n:
-                out = self._buf[:n].copy()
-                self._buf = self._buf[n:]
-                return out
-            out = np.zeros(n, dtype=np.int16)
-            if available:
-                out[:available] = self._buf
-                self._buf = np.zeros(0, dtype=np.int16)
-            return out
+            frame = self._fifo.read(n, partial=True)
+        out = np.zeros(n, dtype=np.int16)
+        if frame is not None:
+            available = frame.to_ndarray().reshape(-1)
+            out[: available.shape[0]] = available
+        return out
 
     def clear(self) -> None:
         with self._lock:
-            self._buf = np.zeros(0, dtype=np.int16)
+            self._fifo = av.AudioFifo()
 
 
 class RealtimeBridge:
