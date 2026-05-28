@@ -25,11 +25,13 @@ from .factory import (
     create_audio_sink_track,
     create_audio_source_track,
     create_mix_track,
+    create_pcm_audio_source_track,
     create_process_track,
     create_video_sink_track,
     create_video_source_track,
 )
 from .mix import MediaStreamMixTrack, MixerCallback
+from .pcm_source import PcmAudioSource
 from .sink import (
     AudioSinkCallback,
     AudioSinkTrack,
@@ -94,6 +96,8 @@ __all__ = [
     "AudioSinkCallback",
     "create_video_source_track",
     "create_audio_source_track",
+    "create_pcm_audio_source_track",
+    "PcmAudioSource",
     "create_video_sink_track",
     "create_audio_sink_track",
     "WebRtcMode",

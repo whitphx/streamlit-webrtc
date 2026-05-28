@@ -16,6 +16,7 @@ from .models import (
     VideoProcessorFactory,
     VideoProcessorT,
 )
+from .pcm_source import PcmAudioSource
 from .process import (
     AsyncAudioProcessTrack,
     AsyncMediaProcessTrack,
@@ -309,6 +310,51 @@ def create_audio_sink_track(
         )
     audio_sink_track._on_ended_callback = on_ended
     return audio_sink_track
+
+
+_PCM_AUDIO_SOURCE_CACHE_KEY_PREFIX = "__PCM_AUDIO_SOURCE_CACHE__"
+_PCM_AUDIO_SOURCE_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX = (
+    "__PCM_AUDIO_SOURCE_SHUTDOWN_OBSERVER_CACHE__"
+)
+
+
+def create_pcm_audio_source_track(
+    *,
+    key: str,
+    sample_rate: int,
+    ptime: float = 0.020,
+) -> PcmAudioSource:
+    """Create a source track that plays s16-mono PCM pushed from any thread.
+
+    Mirrors :func:`create_audio_source_track`'s key-based session cache so
+    the buffer survives Streamlit reruns and queued audio isn't lost.
+
+    The returned :class:`PcmAudioSource` exposes ``track`` (pass to
+    ``webrtc_streamer(source_audio_track=...)``), :meth:`PcmAudioSource.push`
+    (append PCM bytes / int16 ndarray, callable from any thread), and
+    :meth:`PcmAudioSource.clear` (drop buffered samples, e.g. on barge-in).
+    """
+    cache_key = _PCM_AUDIO_SOURCE_CACHE_KEY_PREFIX + key
+    observer_cache_key = _PCM_AUDIO_SOURCE_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    existing = st.session_state.get(cache_key)
+    if (
+        isinstance(existing, PcmAudioSource)
+        and existing.track.readyState == "live"
+        and existing.sample_rate == sample_rate
+        and existing.ptime == ptime
+    ):
+        return existing
+
+    old_observer = st.session_state.get(observer_cache_key)
+    if isinstance(old_observer, SessionShutdownObserver):
+        old_observer.stop()
+
+    pcm_source = PcmAudioSource(sample_rate=sample_rate, ptime=ptime)
+    st.session_state[cache_key] = pcm_source
+    st.session_state[observer_cache_key] = SessionShutdownObserver(
+        pcm_source.track.stop
+    )
+    return pcm_source
 
 
 def create_audio_source_track(
