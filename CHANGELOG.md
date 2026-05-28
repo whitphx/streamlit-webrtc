@@ -2,6 +2,19 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.71.1'></a>
+## 0.71.1 — 2026-05-28
+
+### Fixed
+
+- `AudioSourceTrack` and `VideoSourceTrack` no longer spam "callback is too slow" warnings under normal asyncio scheduling jitter. The check used a cumulative wall-clock target, so any one-off scheduling delay (loop contention, GC, etc.) made the wait stay negative forever and produced a warning on every subsequent frame. Now the warning fires only when the user's callback itself exceeds its frame budget (`ptime` for audio, `1/fps` for video) and includes the measured runtime.
+
+### Chore
+
+- New `pages/18_audio_chat_realtime.py` sample: a two-way voice chat that streams microphone audio to OpenAI's Realtime API (`gpt-realtime`) over WebSocket and plays the model's spoken response back to the browser. Exercises the `sink_audio_track` + `source_audio_track` pair end-to-end (mic in → 24 kHz PCM → OpenAI → 24 kHz PCM → speaker) on independent clocks, with server-side VAD for turn-taking and barge-in. Adds `openai[realtime]>=1.51.0` as a dev dependency.
+
+- Reimplement the OpenAI Realtime sample's PCM buffer (`pages/18_audio_chat_realtime.py`) on top of `av.AudioFifo` instead of a hand-rolled `np.concatenate` ring. Same external behavior (silence-padded fixed-size pulls), but the per-push O(n) recopy is gone and the partial-read edge cases ride on FFmpeg's `AVAudioFifo`.
+
 <a id='changelog-0.71.0'></a>
 ## 0.71.0 — 2026-05-19
 
