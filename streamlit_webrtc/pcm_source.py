@@ -36,9 +36,15 @@ class PcmAudioSource:
             )
         if ptime <= 0:
             raise ValueError(f"ptime must be a positive number, got {ptime}")
+        samples_per_frame = int(sample_rate * ptime)
+        if samples_per_frame <= 0:
+            raise ValueError(
+                f"ptime ({ptime}) is too small for sample_rate ({sample_rate}); "
+                "int(sample_rate * ptime) must be >= 1"
+            )
         self._sample_rate = sample_rate
         self._ptime = ptime
-        self._samples_per_frame = int(sample_rate * ptime)
+        self._samples_per_frame = samples_per_frame
         # PyAV's AudioFifo isn't documented thread-safe and we have a
         # producer (caller's thread) and consumer (aiortc media loop)
         # touching it concurrently.

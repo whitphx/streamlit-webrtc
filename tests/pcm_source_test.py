@@ -116,6 +116,12 @@ def test_rejects_non_positive_ptime(ptime: float) -> None:
         PcmAudioSource(sample_rate=8000, ptime=ptime)
 
 
+def test_rejects_ptime_smaller_than_one_sample() -> None:
+    # 8000 * 0.0001 == 0.8, floors to 0 → degenerate frame size.
+    with pytest.raises(ValueError, match="too small"):
+        PcmAudioSource(sample_rate=8000, ptime=0.0001)
+
+
 def test_push_is_thread_safe() -> None:
     """Concurrent producers must not corrupt the FIFO (total sample count
     matches the sum of pushed lengths)."""
@@ -125,7 +131,6 @@ def test_push_is_thread_safe() -> None:
     n_threads = 8
 
     def producer() -> None:
-        # Each thread pushes its own block of distinct samples.
         src.push(np.ones(per_thread, dtype=np.int16))
 
     threads = [threading.Thread(target=producer) for _ in range(n_threads)]

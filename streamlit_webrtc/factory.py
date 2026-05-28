@@ -348,6 +348,11 @@ def create_pcm_audio_source_track(
     old_observer = st.session_state.get(observer_cache_key)
     if isinstance(old_observer, SessionShutdownObserver):
         old_observer.stop()
+    # Stopping the observer doesn't fire its callback, so if the cache held a
+    # PcmAudioSource whose track is still live (param change between reruns),
+    # stop it explicitly to avoid leaking the underlying media track.
+    if isinstance(existing, PcmAudioSource) and existing.track.readyState == "live":
+        existing.track.stop()
 
     pcm_source = PcmAudioSource(sample_rate=sample_rate, ptime=ptime)
     st.session_state[cache_key] = pcm_source
