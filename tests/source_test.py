@@ -123,7 +123,10 @@ def _make_audio_callback_with_optional_delay(
     return callback
 
 
-def test_audio_source_track_warns_when_callback_is_slow(caplog) -> None:
+@pytest.mark.parametrize("slow_call_index", [1, 2])
+def test_audio_source_track_warns_when_callback_is_slow(
+    caplog, slow_call_index: int
+) -> None:
     ptime = 0.020
     sample_rate = 8000
     samples_per_frame = int(sample_rate * ptime)
@@ -131,9 +134,7 @@ def test_audio_source_track_warns_when_callback_is_slow(caplog) -> None:
     callback = _make_audio_callback_with_optional_delay(
         sample_rate=sample_rate,
         samples_per_frame=samples_per_frame,
-        # Second call (the first that's measured — the first frame
-        # establishes the baseline) blocks for 2× ptime.
-        delay_on_call={2: ptime * 2},
+        delay_on_call={slow_call_index: ptime * 2},
     )
     track = AudioSourceTrack(callback=callback, sample_rate=sample_rate, ptime=ptime)
 
@@ -148,7 +149,10 @@ def test_audio_source_track_warns_when_callback_is_slow(caplog) -> None:
     assert len(slow_warnings) == 1, [r.getMessage() for r in slow_warnings]
 
 
-def test_audio_source_track_does_not_warn_for_cumulative_drift(caplog) -> None:
+@pytest.mark.parametrize("slow_call_index", [1, 2])
+def test_audio_source_track_does_not_warn_for_cumulative_drift(
+    caplog, slow_call_index: int
+) -> None:
     """Regression: one slow callback must not spam warnings on subsequent calls.
 
     The pre-fix implementation compared a cumulative wall-clock target
@@ -165,8 +169,7 @@ def test_audio_source_track_does_not_warn_for_cumulative_drift(caplog) -> None:
     callback = _make_audio_callback_with_optional_delay(
         sample_rate=sample_rate,
         samples_per_frame=samples_per_frame,
-        # Only the second call is slow; calls 3-5 are instant.
-        delay_on_call={2: ptime * 2},
+        delay_on_call={slow_call_index: ptime * 2},
     )
     track = AudioSourceTrack(callback=callback, sample_rate=sample_rate, ptime=ptime)
 
@@ -195,12 +198,15 @@ def _make_video_callback_with_optional_delay(delay_on_call: dict[int, float]):
     return callback
 
 
-def test_video_source_track_warns_when_callback_is_slow(caplog) -> None:
+@pytest.mark.parametrize("slow_call_index", [1, 2])
+def test_video_source_track_warns_when_callback_is_slow(
+    caplog, slow_call_index: int
+) -> None:
     fps = 30
     frame_budget = 1.0 / fps
 
     callback = _make_video_callback_with_optional_delay(
-        delay_on_call={2: frame_budget * 2}
+        delay_on_call={slow_call_index: frame_budget * 2}
     )
     track = VideoSourceTrack(callback=callback, fps=fps)
 
@@ -215,12 +221,15 @@ def test_video_source_track_warns_when_callback_is_slow(caplog) -> None:
     assert len(slow_warnings) == 1, [r.getMessage() for r in slow_warnings]
 
 
-def test_video_source_track_does_not_warn_for_cumulative_drift(caplog) -> None:
+@pytest.mark.parametrize("slow_call_index", [1, 2])
+def test_video_source_track_does_not_warn_for_cumulative_drift(
+    caplog, slow_call_index: int
+) -> None:
     fps = 30
     frame_budget = 1.0 / fps
 
     callback = _make_video_callback_with_optional_delay(
-        delay_on_call={2: frame_budget * 2}
+        delay_on_call={slow_call_index: frame_budget * 2}
     )
     track = VideoSourceTrack(callback=callback, fps=fps)
 

@@ -65,23 +65,7 @@ class VideoSourceTrack(MediaStreamTrack):
         else:
             self._pts += int(VIDEO_CLOCK_RATE / self._fps)
 
-            # Time the callback itself, not the cumulative schedule slip:
-            # any one-off scheduling delay (loop contention, GC, the
-            # `_started_at` baseline being set early) makes the cumulative
-            # `wait` below stay negative forever, so it can't distinguish
-            # a slow callback from loop jitter.
-            callback_start = time.monotonic()
             frame = self._call_callback(self._pts, VIDEO_TIME_BASE)
-            callback_elapsed = time.monotonic() - callback_start
-            frame_budget = 1.0 / self._fps
-            if callback_elapsed > frame_budget:
-                logger.warning(
-                    "%s: Video frame callback is too slow "
-                    "(%.1f ms > frame budget %.1f ms).",
-                    self.__class__.__name__,
-                    callback_elapsed * 1000,
-                    frame_budget * 1000,
-                )
 
             wait = self._started_at + (self._pts / VIDEO_CLOCK_RATE) - time.monotonic()
             if wait < 0:
@@ -91,6 +75,9 @@ class VideoSourceTrack(MediaStreamTrack):
         return frame
 
     def _call_callback(self, pts: int, time_base: fractions.Fraction) -> av.VideoFrame:
+        # Per-call timing (not cumulative wall-clock drift): one late frame
+        # mustn't keep tripping the warning on subsequent fast calls.
+        callback_start = time.monotonic()
         try:
             frame = self._callback(pts, time_base)
         except Exception as exc:
@@ -101,6 +88,17 @@ class VideoSourceTrack(MediaStreamTrack):
                 exc_info=True,
             )
             raise
+        callback_elapsed = time.monotonic() - callback_start
+
+        frame_budget = 1.0 / self._fps
+        if callback_elapsed > frame_budget:
+            logger.warning(
+                "%s: Video frame callback is too slow "
+                "(%.1f ms > frame budget %.1f ms).",
+                self.__class__.__name__,
+                callback_elapsed * 1000,
+                frame_budget * 1000,
+            )
 
         frame.pts = pts
         frame.time_base = time_base
@@ -153,21 +151,7 @@ class AudioSourceTrack(MediaStreamTrack):
         else:
             self._pts += self._samples_per_frame
 
-            # Time the callback itself, not the cumulative schedule slip:
-            # any one-off scheduling delay (loop contention, GC, the
-            # `_started_at` baseline being set early) makes the cumulative
-            # `wait` below stay negative forever, so it can't distinguish
-            # a slow callback from loop jitter.
-            callback_start = time.monotonic()
             frame = self._call_callback(self._pts, self._time_base)
-            callback_elapsed = time.monotonic() - callback_start
-            if callback_elapsed > self._ptime:
-                logger.warning(
-                    "%s: Audio frame callback is too slow (%.1f ms > ptime %.1f ms).",
-                    self.__class__.__name__,
-                    callback_elapsed * 1000,
-                    self._ptime * 1000,
-                )
 
             wait = self._started_at + (self._pts / self._sample_rate) - time.monotonic()
             if wait < 0:
@@ -177,6 +161,9 @@ class AudioSourceTrack(MediaStreamTrack):
         return frame
 
     def _call_callback(self, pts: int, time_base: fractions.Fraction) -> av.AudioFrame:
+        # Per-call timing (not cumulative wall-clock drift): one late frame
+        # mustn't keep tripping the warning on subsequent fast calls.
+        callback_start = time.monotonic()
         try:
             frame = self._callback(pts, time_base)
         except Exception as exc:
@@ -187,6 +174,15 @@ class AudioSourceTrack(MediaStreamTrack):
                 exc_info=True,
             )
             raise
+        callback_elapsed = time.monotonic() - callback_start
+
+        if callback_elapsed > self._ptime:
+            logger.warning(
+                "%s: Audio frame callback is too slow (%.1f ms > ptime %.1f ms).",
+                self.__class__.__name__,
+                callback_elapsed * 1000,
+                self._ptime * 1000,
+            )
 
         frame.pts = pts
         frame.time_base = time_base
