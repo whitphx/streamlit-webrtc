@@ -4,15 +4,11 @@ The browser captures microphone audio. The server consumes every
 audio frame through ``create_audio_sink_track`` (push-based, no
 drop), resamples it to 24 kHz mono PCM16, and streams it to
 ``gpt-realtime`` over OpenAI's Realtime WebSocket. The model's spoken
-response arrives as 24 kHz PCM16 chunks, which are buffered and emitted
-back to the browser through ``create_audio_source_track``. Server-side
-VAD on OpenAI's side handles turn-taking and interruption.
-
-This page doubles as an end-to-end exercise of the ``sink_audio_track``
-+ ``source_audio_track`` pair (introduced in #2479) — the primitive
-that lets the input rate (browser mic, 48 kHz Opus) and the output
-rate (model response, 24 kHz PCM) run on independent clocks without
-the 1:1 frame coupling of ``audio_frame_callback``.
+response arrives as 24 kHz PCM16 chunks, pushed straight into a
+``PcmAudioSource`` whose track is wired to the browser via
+``source_audio_track=``. Server-side VAD on OpenAI's side handles
+turn-taking and interruption (a ``speech_started`` event clears the
+output buffer for barge-in).
 
 Setup:
 - ``pip install openai``
@@ -30,12 +26,12 @@ from typing import Optional
 
 import av
 import numpy as np
-import numpy.typing as npt
 import streamlit as st
 from streamlit_webrtc import (
+    PcmAudioSource,
     WebRtcMode,
     create_audio_sink_track,
-    create_audio_source_track,
+    create_pcm_audio_source_track,
     webrtc_streamer,
 )
 from streamlit_webrtc.shutdown import SessionShutdownObserver
@@ -49,7 +45,6 @@ logger = logging.getLogger(__name__)
 # transceiver.
 TARGET_SAMPLE_RATE = 24000
 SOURCE_PTIME = 0.020
-SOURCE_SAMPLES_PER_FRAME = int(TARGET_SAMPLE_RATE * SOURCE_PTIME)
 
 DEFAULT_MODEL = "gpt-realtime"
 DEFAULT_VOICE = "alloy"
@@ -69,47 +64,6 @@ DEFAULT_INSTRUCTIONS = (
 )
 
 
-class _PcmRingBuffer:
-    """Thread-safe int16 mono PCM buffer with silence-padded pulls.
-
-    Wraps :class:`av.AudioFifo` (FFmpeg's ``AVAudioFifo``) so the
-    producer/consumer split inherits FFmpeg's tested partial-read
-    semantics. The OpenAI session thread pushes irregular-sized chunks
-    as they arrive in ``response.output_audio.delta`` events; the
-    aiortc source callback pulls fixed-size frames at the playback
-    cadence. If the model hasn't sent enough audio yet the pull is
-    padded with silence so the source track stays on schedule.
-    """
-
-    def __init__(self) -> None:
-        # PyAV's AudioFifo is not documented thread-safe, and we have a
-        # producer thread (OpenAI session) and consumer thread (aiortc
-        # source callback) hitting it concurrently.
-        self._fifo = av.AudioFifo()
-        self._lock = threading.Lock()
-
-    def push(self, samples: npt.NDArray[np.int16]) -> None:
-        frame = av.AudioFrame.from_ndarray(
-            samples.reshape(1, -1), format="s16", layout="mono"
-        )
-        frame.sample_rate = TARGET_SAMPLE_RATE
-        with self._lock:
-            self._fifo.write(frame)
-
-    def pull(self, n: int) -> npt.NDArray[np.int16]:
-        with self._lock:
-            frame = self._fifo.read(n, partial=True)
-        out = np.zeros(n, dtype=np.int16)
-        if frame is not None:
-            available = frame.to_ndarray().reshape(-1)
-            out[: available.shape[0]] = available
-        return out
-
-    def clear(self) -> None:
-        with self._lock:
-            self._fifo = av.AudioFifo()
-
-
 class RealtimeBridge:
     """Owns the OpenAI Realtime WebSocket and the I/O bridges.
 
@@ -122,26 +76,26 @@ class RealtimeBridge:
       :meth:`push_input` — bytes hop onto the session loop's queue via
       ``call_soon_threadsafe``.
     * **Output** (session thread → aiortc loop): the session thread
-      decodes ``response.output_audio.delta`` chunks and writes them
-      into a :class:`_PcmRingBuffer`; the source callback pulls
-      fixed-size slices each tick.
+      decodes ``response.output_audio.delta`` chunks and pushes them
+      into the :class:`PcmAudioSource` passed in at construction time.
     """
 
     def __init__(
         self,
         api_key: str,
+        pcm_out: PcmAudioSource,
         model: str = DEFAULT_MODEL,
         voice: str = DEFAULT_VOICE,
         instructions: str = DEFAULT_INSTRUCTIONS,
     ) -> None:
         self._api_key = api_key
+        self._pcm_out = pcm_out
         self._model = model
         self._voice = voice
         self._instructions = instructions
 
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._input_queue: Optional["asyncio.Queue[bytes]"] = None
-        self._output_buffer = _PcmRingBuffer()
         # av.AudioResampler buffers internally, so calling resample() on
         # each input frame yields zero-or-more output frames at the
         # target rate. The instance is stateful and must not be shared
@@ -192,7 +146,7 @@ class RealtimeBridge:
         if thread is not None:
             thread.join(timeout=3.0)
         self._thread = None
-        self._output_buffer.clear()
+        self._pcm_out.clear()
 
     # ------------------------------------------------------------------
     # Called from aiortc loop
@@ -212,9 +166,6 @@ class RealtimeBridge:
             except RuntimeError:
                 # Loop just shut down underneath us; drop the frame.
                 return
-
-    def pull_output(self, n_samples: int) -> np.ndarray:
-        return self._output_buffer.pull(n_samples)
 
     # ------------------------------------------------------------------
     # Status (for the UI)
@@ -307,14 +258,12 @@ class RealtimeBridge:
         async for event in conn:
             etype = getattr(event, "type", "")
             if etype == "response.output_audio.delta":
-                pcm = base64.b64decode(event.delta)
-                samples = np.frombuffer(pcm, dtype=np.int16)
-                self._output_buffer.push(samples)
+                self._pcm_out.push(base64.b64decode(event.delta))
             elif etype == "input_audio_buffer.speech_started":
                 # Barge-in: drop any pending model audio so the user's
                 # new utterance isn't talked over while we wait for the
                 # next response.
-                self._output_buffer.clear()
+                self._pcm_out.clear()
             elif etype == "response.output_audio_transcript.delta":
                 with self._state_lock:
                     self._assistant_transcript += getattr(event, "delta", "") or ""
@@ -383,6 +332,13 @@ BRIDGE_KEY = "openai_realtime_bridge"
 BRIDGE_SHUTDOWN_OBSERVER_KEY = "openai_realtime_bridge_shutdown_observer"
 
 
+pcm_out = create_pcm_audio_source_track(
+    key="openai_realtime_out",
+    sample_rate=TARGET_SAMPLE_RATE,
+    ptime=SOURCE_PTIME,
+)
+
+
 def _get_or_make_bridge() -> RealtimeBridge:
     bridge = st.session_state.get(BRIDGE_KEY)
     # Reconfigure on any setting change by tearing down and rebuilding;
@@ -396,7 +352,11 @@ def _get_or_make_bridge() -> RealtimeBridge:
         if isinstance(old_observer, SessionShutdownObserver):
             old_observer.stop()
         bridge = RealtimeBridge(
-            api_key=api_key, model=model, voice=voice, instructions=instructions
+            api_key=api_key,
+            pcm_out=pcm_out,
+            model=model,
+            voice=voice,
+            instructions=instructions,
         )
         st.session_state[BRIDGE_KEY] = bridge
         st.session_state["_bridge_config"] = config
@@ -413,25 +373,8 @@ def audio_sink_callback(frame: av.AudioFrame) -> None:
     bridge.push_input(frame)
 
 
-def audio_source_callback(pts, time_base) -> av.AudioFrame:
-    samples = bridge.pull_output(SOURCE_SAMPLES_PER_FRAME)
-    # av.AudioFrame.from_ndarray expects shape (channels, samples) for
-    # non-planar `s16` mono.
-    frame = av.AudioFrame.from_ndarray(
-        samples.reshape(1, -1), format="s16", layout="mono"
-    )
-    frame.sample_rate = TARGET_SAMPLE_RATE
-    return frame
-
-
 audio_sink_track = create_audio_sink_track(
     audio_sink_callback, key="openai_realtime_in"
-)
-audio_source_track = create_audio_source_track(
-    audio_source_callback,
-    key="openai_realtime_out",
-    sample_rate=TARGET_SAMPLE_RATE,
-    ptime=SOURCE_PTIME,
 )
 
 
@@ -443,7 +386,7 @@ def on_change() -> None:
     if stopped:
         bridge.stop()
         audio_sink_track.stop()
-        audio_source_track.stop()
+        pcm_out.track.stop()
 
 
 webrtc_streamer(
@@ -451,7 +394,7 @@ webrtc_streamer(
     mode=WebRtcMode.SENDRECV,
     media_stream_constraints={"audio": True, "video": False},
     sink_audio_track=audio_sink_track,
-    source_audio_track=audio_source_track,
+    source_audio_track=pcm_out.track,
     on_change=on_change,
 )
 
@@ -482,6 +425,6 @@ render_live_status()
 st.caption(
     "Audio path: browser mic → 48 kHz Opus → aiortc decode → "
     "`audio_sink_track` callback → resample 24 kHz s16 → OpenAI WS. "
-    "Model audio: WS → 24 kHz s16 PCM ring → `audio_source_track` "
-    "callback → aiortc Opus encode → browser speaker."
+    "Model audio: WS → `PcmAudioSource.push` → aiortc Opus encode → "
+    "browser speaker."
 )
