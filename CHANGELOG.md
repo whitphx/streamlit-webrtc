@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.72.1'></a>
+## 0.72.1 — 2026-05-29
+
+### Fixed
+
+- In multi-page apps, the `webrtc_streamer()` worker is now terminated when the user navigates away from its page. Previously the worker survived navigation, and revisiting the page collided the newly mounted iframe's offer with the stale worker, leaving the connection broken. The `SessionShutdownObserver` polling thread now also watches `AppSession`'s current page hash, and `_get_or_create_context` defensively resets stale worker / playing-state / SDP-answer when it detects the component was not rendered in one or more intervening script runs. Closes #2475.
+
 <a id='changelog-0.72.0'></a>
 ## 0.72.0 — 2026-05-29
 
