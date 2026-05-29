@@ -2,6 +2,47 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.72.0'></a>
+## 0.72.0 — 2026-05-29
+
+### Added
+
+- `create_pcm_audio_source_track(key, sample_rate, ptime) -> PcmAudioSource`: a higher-level source-track factory for samples that drive playback from an external streaming PCM producer (TTS / voice LLM / pre-buffered audio). The returned `PcmAudioSource` exposes a thread-safe `push(bytes | np.int16 ndarray)` for irregular producer chunks and `clear()` for barge-in, while internally pulling fixed-cadence s16-mono frames into a `track` you pass to `webrtc_streamer(source_audio_track=...)`. Underruns are silence-padded to keep the track on schedule. The realtime sample (`pages/18_audio_chat_realtime.py`) now uses this helper.
+
+<a id='changelog-0.71.1'></a>
+## 0.71.1 — 2026-05-28
+
+### Fixed
+
+- `AudioSourceTrack` and `VideoSourceTrack` no longer spam "callback is too slow" warnings under normal asyncio scheduling jitter. The check used a cumulative wall-clock target, so any one-off scheduling delay (loop contention, GC, etc.) made the wait stay negative forever and produced a warning on every subsequent frame. Now the warning fires only when the user's callback itself exceeds its frame budget (`ptime` for audio, `1/fps` for video) and includes the measured runtime.
+
+### Chore
+
+- New `pages/18_audio_chat_realtime.py` sample: a two-way voice chat that streams microphone audio to OpenAI's Realtime API (`gpt-realtime`) over WebSocket and plays the model's spoken response back to the browser. Exercises the `sink_audio_track` + `source_audio_track` pair end-to-end (mic in → 24 kHz PCM → OpenAI → 24 kHz PCM → speaker) on independent clocks, with server-side VAD for turn-taking and barge-in. Adds `openai[realtime]>=1.51.0` as a dev dependency.
+
+- Reimplement the OpenAI Realtime sample's PCM buffer (`pages/18_audio_chat_realtime.py`) on top of `av.AudioFifo` instead of a hand-rolled `np.concatenate` ring. Same external behavior (silence-padded fixed-size pulls), but the per-push O(n) recopy is gone and the partial-read edge cases ride on FFmpeg's `AVAudioFifo`.
+
+<a id='changelog-0.71.0'></a>
+## 0.71.0 — 2026-05-19
+
+### Added
+
+- New `MediaSink` consumer abstraction and `create_video_sink_track()` / `create_audio_sink_track()` factories, plus `sink_video_track` / `sink_audio_track` arguments on `webrtc_streamer()`. Sinks are a push-based, no-drop input consumer: every browser frame reaches the user callback on aiortc's event loop, decoupled from output generation. Combine with `source_*_track` to consume input via a callback while emitting output at an independent FPS (or no output at all). `sink_*_track` is mutually exclusive with `*_frame_callback` / `queued_*_frames_callback` / `on_*_ended` / `*_processor_factory` for the same kind. `MediaReceiver` (the existing polling consumer with drop-on-overflow) now satisfies `MediaSink` structurally and can also be passed via `sink_*_track`. Added demo pages `pages/16_audio_in_video_out.py` (rewritten to use a sink) and `pages/17_video_in_video_out_decoupled.py`.
+
+<a id='changelog-0.70.1'></a>
+## 0.70.1 — 2026-05-19
+
+### Chore
+
+- Code-split the frontend bundle so the device picker and the `webrtc-adapter` shim load on demand, trimming the initial chunk from 579 kB to 501 kB (171 kB → 151 kB gzipped).
+
+<a id='changelog-0.70.0'></a>
+## 0.70.0 — 2026-05-19
+
+### Added
+
+- `create_video_source_track()` and `create_audio_source_track()` now accept an `on_ended` callback that fires when the source track ends. The factory also installs a `SessionShutdownObserver` per cached source track, so closing the page (without first clicking "STOP") now stops the track and fires `on_ended` deterministically — previously the track survived page close with no notification to user code. `VideoSourceTrack` / `AudioSourceTrack` also gained an `"ended"` event hook (via aiortc's `MediaStreamTrack.on("ended", ...)`) for callers that construct the tracks directly without the factory. Closes #1800.
+
 <a id='changelog-0.69.5'></a>
 ## 0.69.5 — 2026-05-19
 

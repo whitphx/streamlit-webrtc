@@ -16,6 +16,11 @@ FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
 
 # Inspired by `aiortc.contrib.media.MediaRecorder`:
 # https://github.com/aiortc/aiortc/blob/2362e6d1f0c730a0f8c387bbea76546775ad2fe8/src/aiortc/contrib/media.py#L304  # noqa: E501
+# Satisfies the structural :class:`~streamlit_webrtc.sink.MediaSink` protocol
+# (the four-method consumer surface), so a receiver can also be passed as
+# ``sink_*_track=`` to ``webrtc_streamer()``. The drop-on-overflow polling
+# semantics are receiver-specific; sinks built on :class:`CallbackSinkTrack`
+# get no-drop dispatch instead.
 class MediaReceiver(Generic[FrameT]):
     _frames_queue: queue.Queue
     _track: Union[MediaStreamTrack, None]

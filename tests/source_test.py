@@ -1,5 +1,7 @@
 import asyncio
 import fractions
+import logging
+import time
 
 import av
 import numpy as np
@@ -100,3 +102,143 @@ def test_video_source_track_on_ended_exception_is_swallowed() -> None:
     track._on_ended_callback = boom
 
     track.stop()
+
+
+def _make_audio_callback_with_optional_delay(
+    sample_rate: int, samples_per_frame: int, delay_on_call: dict[int, float]
+):
+    """Audio callback that sleeps `delay_on_call[n]` on the n-th invocation (1-based)."""
+    call_count = [0]
+
+    def callback(pts: int, time_base: fractions.Fraction) -> av.AudioFrame:
+        call_count[0] += 1
+        delay = delay_on_call.get(call_count[0], 0.0)
+        if delay > 0:
+            time.sleep(delay)
+        samples = np.zeros((1, samples_per_frame), dtype=np.int16)
+        frame = av.AudioFrame.from_ndarray(samples, format="s16", layout="mono")
+        frame.sample_rate = sample_rate
+        return frame
+
+    return callback
+
+
+@pytest.mark.parametrize("slow_call_index", [1, 2])
+def test_audio_source_track_warns_when_callback_is_slow(
+    caplog, slow_call_index: int
+) -> None:
+    ptime = 0.020
+    sample_rate = 8000
+    samples_per_frame = int(sample_rate * ptime)
+
+    callback = _make_audio_callback_with_optional_delay(
+        sample_rate=sample_rate,
+        samples_per_frame=samples_per_frame,
+        delay_on_call={slow_call_index: ptime * 2},
+    )
+    track = AudioSourceTrack(callback=callback, sample_rate=sample_rate, ptime=ptime)
+
+    async def run():
+        await track.recv()
+        await track.recv()
+
+    with caplog.at_level(logging.WARNING, logger="streamlit_webrtc.source"):
+        asyncio.run(run())
+
+    slow_warnings = [r for r in caplog.records if "too slow" in r.getMessage()]
+    assert len(slow_warnings) == 1, [r.getMessage() for r in slow_warnings]
+
+
+@pytest.mark.parametrize("slow_call_index", [1, 2])
+def test_audio_source_track_does_not_warn_for_cumulative_drift(
+    caplog, slow_call_index: int
+) -> None:
+    """Regression: one slow callback must not spam warnings on subsequent calls.
+
+    The pre-fix implementation compared a cumulative wall-clock target
+    (``_started_at + N * ptime``) against ``time.monotonic()``; once the
+    wait went negative for any reason it stayed negative forever, so
+    every fast callback after a single slow one produced a "too slow"
+    warning. Per-frame timing isolates the diagnostic to the callback's
+    own runtime.
+    """
+    ptime = 0.020
+    sample_rate = 8000
+    samples_per_frame = int(sample_rate * ptime)
+
+    callback = _make_audio_callback_with_optional_delay(
+        sample_rate=sample_rate,
+        samples_per_frame=samples_per_frame,
+        delay_on_call={slow_call_index: ptime * 2},
+    )
+    track = AudioSourceTrack(callback=callback, sample_rate=sample_rate, ptime=ptime)
+
+    async def run():
+        for _ in range(5):
+            await track.recv()
+
+    with caplog.at_level(logging.WARNING, logger="streamlit_webrtc.source"):
+        asyncio.run(run())
+
+    slow_warnings = [r for r in caplog.records if "too slow" in r.getMessage()]
+    assert len(slow_warnings) == 1, [r.getMessage() for r in slow_warnings]
+
+
+def _make_video_callback_with_optional_delay(delay_on_call: dict[int, float]):
+    call_count = [0]
+
+    def callback(pts: int, time_base: fractions.Fraction) -> av.VideoFrame:
+        call_count[0] += 1
+        delay = delay_on_call.get(call_count[0], 0.0)
+        if delay > 0:
+            time.sleep(delay)
+        buffer = np.zeros((4, 4, 3), dtype=np.uint8)
+        return av.VideoFrame.from_ndarray(buffer, format="bgr24")
+
+    return callback
+
+
+@pytest.mark.parametrize("slow_call_index", [1, 2])
+def test_video_source_track_warns_when_callback_is_slow(
+    caplog, slow_call_index: int
+) -> None:
+    fps = 30
+    frame_budget = 1.0 / fps
+
+    callback = _make_video_callback_with_optional_delay(
+        delay_on_call={slow_call_index: frame_budget * 2}
+    )
+    track = VideoSourceTrack(callback=callback, fps=fps)
+
+    async def run():
+        await track.recv()
+        await track.recv()
+
+    with caplog.at_level(logging.WARNING, logger="streamlit_webrtc.source"):
+        asyncio.run(run())
+
+    slow_warnings = [r for r in caplog.records if "too slow" in r.getMessage()]
+    assert len(slow_warnings) == 1, [r.getMessage() for r in slow_warnings]
+
+
+@pytest.mark.parametrize("slow_call_index", [1, 2])
+def test_video_source_track_does_not_warn_for_cumulative_drift(
+    caplog, slow_call_index: int
+) -> None:
+    fps = 30
+    frame_budget = 1.0 / fps
+
+    callback = _make_video_callback_with_optional_delay(
+        delay_on_call={slow_call_index: frame_budget * 2}
+    )
+    track = VideoSourceTrack(callback=callback, fps=fps)
+
+    async def run():
+        for _ in range(5):
+            await track.recv()
+
+    with caplog.at_level(logging.WARNING, logger="streamlit_webrtc.source"):
+        asyncio.run(run())
+
+    slow_warnings = [r for r in caplog.records if "too slow" in r.getMessage()]
+    assert len(slow_warnings) == 1, [r.getMessage() for r in slow_warnings]

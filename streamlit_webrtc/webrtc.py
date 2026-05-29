@@ -55,6 +55,7 @@ from .process import (
 )
 from .receive import AudioReceiver, VideoReceiver
 from .relay import get_global_relay
+from .sink import MediaSink
 
 if TYPE_CHECKING:
     import concurrent.futures
@@ -129,6 +130,8 @@ async def _process_offer_coro(
     relay: MediaRelay,
     source_video_track: Optional[MediaStreamTrack],
     source_audio_track: Optional[MediaStreamTrack],
+    sink_video_track: Optional[MediaSink],
+    sink_audio_track: Optional[MediaSink],
     in_recorder: Optional[MediaRecorder],
     out_recorder: Optional[MediaRecorder],
     video_processor: Optional[Union[VideoProcessorBase, CallbackAttachableProcessor]],
@@ -144,11 +147,45 @@ async def _process_offer_coro(
     def _source_for(kind: str) -> Optional[MediaStreamTrack]:
         return source_audio_track if kind == "audio" else source_video_track
 
+    def _sink_for(kind: str) -> Optional[MediaSink]:
+        return sink_audio_track if kind == "audio" else sink_video_track
+
     def _processor_for(kind: str) -> Optional[ProcessorBase]:
         return audio_processor if kind == "audio" else video_processor
 
     def _sendback_for(kind: str) -> bool:
         return sendback_video if kind == "video" else sendback_audio
+
+    def _resolve_output(
+        kind: str, input_track: Optional[MediaStreamTrack]
+    ) -> Optional[MediaStreamTrack]:
+        """Pick the track that should be sent back to the peer for ``kind``.
+
+        Precedence: an explicit ``source_*_track`` wins (optionally wrapped
+        with a processor). Otherwise, if a sink is configured for the kind,
+        no output is produced — the sink is an explicit "consume only"
+        signal and silently echoing the input would surprise users who
+        chose the sink to avoid that. With neither, fall back to wrapping
+        the input (legacy behavior).
+        """
+        source = _source_for(kind)
+        if source is not None:
+            return _wrap_with_processor(
+                source,
+                _processor_for(kind),
+                async_processing=async_processing,
+                relay=relay,
+            )
+        if _sink_for(kind) is not None:
+            return None
+        if input_track is None:
+            return None
+        return _wrap_with_processor(
+            input_track,
+            _processor_for(kind),
+            async_processing=async_processing,
+            relay=relay,
+        )
 
     # Tracks which kinds the peer is actually sending. Populated by `on_track`
     # in SENDRECV mode and consulted after `setRemoteDescription` so we can
@@ -164,33 +201,25 @@ async def _process_offer_coro(
             peer_sending_kinds.add(input_track.kind)
             _notify_track_created(on_track_created, "input", input_track)
 
-            # An explicitly-configured source overrides the peer track outright
-            # (and skips the processor); otherwise wrap the peer track with the
-            # processor if one is configured.
-            source = _source_for(input_track.kind)
-            output_track = (
-                source
-                if source is not None
-                else _wrap_with_processor(
-                    input_track,
-                    _processor_for(input_track.kind),
-                    async_processing=async_processing,
-                    relay=relay,
-                )
-            )
+            sink = _sink_for(input_track.kind)
+            if sink is not None:
+                logger.info("Add a track %s to sink %s", input_track, sink)
+                sink.addTrack(relay.subscribe(input_track))
 
-            if _sendback_for(output_track.kind):
-                logger.info("Add a track %s to %s", output_track, pc)
-                pc.addTrack(relay.subscribe(output_track))
-            else:
-                logger.info("Block a track %s", output_track)
+            output_track = _resolve_output(input_track.kind, input_track)
+            if output_track is not None:
+                if _sendback_for(output_track.kind):
+                    logger.info("Add a track %s to %s", output_track, pc)
+                    pc.addTrack(relay.subscribe(output_track))
+                else:
+                    logger.info("Block a track %s", output_track)
 
-            if out_recorder:
-                out_recorder.addTrack(relay.subscribe(output_track))
+                if out_recorder:
+                    out_recorder.addTrack(relay.subscribe(output_track))
+                _notify_track_created(on_track_created, "output", output_track)
+
             if in_recorder:
                 in_recorder.addTrack(relay.subscribe(input_track))
-
-            _notify_track_created(on_track_created, "output", output_track)
 
             @input_track.listens_to("ended")
             async def on_ended():
@@ -207,18 +236,26 @@ async def _process_offer_coro(
             logger.info("Track %s received", input_track.kind)
             _notify_track_created(on_track_created, "input", input_track)
 
-            receiver: Union[AudioReceiver, VideoReceiver, None] = (
-                audio_receiver if input_track.kind == "audio" else video_receiver
-            )
-            if receiver is not None:
-                output_track = _wrap_with_processor(
-                    input_track,
-                    _processor_for(input_track.kind),
-                    async_processing=async_processing,
-                    relay=relay,
+            sink = _sink_for(input_track.kind)
+            if sink is not None:
+                # An explicit sink replaces the auto-receiver path. The
+                # processor doesn't apply here — that conflict is rejected
+                # at the streamer level.
+                logger.info("Add a track %s to sink %s", input_track, sink)
+                sink.addTrack(relay.subscribe(input_track))
+            else:
+                receiver: Union[AudioReceiver, VideoReceiver, None] = (
+                    audio_receiver if input_track.kind == "audio" else video_receiver
                 )
-                logger.info("Add a track %s to receiver %s", output_track, receiver)
-                receiver.addTrack(relay.subscribe(output_track))
+                if receiver is not None:
+                    output_track = _wrap_with_processor(
+                        input_track,
+                        _processor_for(input_track.kind),
+                        async_processing=async_processing,
+                        relay=relay,
+                    )
+                    logger.info("Add a track %s to receiver %s", output_track, receiver)
+                    receiver.addTrack(relay.subscribe(output_track))
 
             if in_recorder:
                 in_recorder.addTrack(relay.subscribe(input_track))
@@ -230,6 +267,10 @@ async def _process_offer_coro(
                     video_receiver.stop()
                 if audio_receiver:
                     audio_receiver.stop()
+                if sink_video_track:
+                    sink_video_track.stop()
+                if sink_audio_track:
+                    sink_audio_track.stop()
                 if in_recorder:
                     await in_recorder.stop()
 
@@ -240,15 +281,9 @@ async def _process_offer_coro(
         for t in pc.getTransceivers():
             # RECVONLY has no incoming peer track — the worker emits the
             # configured source (optionally wrapped in a processor).
-            source = _source_for(t.kind)
-            if source is None:
+            output_track = _resolve_output(t.kind, input_track=None)
+            if output_track is None:
                 continue
-            output_track = _wrap_with_processor(
-                source,
-                _processor_for(t.kind),
-                async_processing=async_processing,
-                relay=relay,
-            )
             logger.info("Add a track %s to %s", output_track, pc)
             pc.addTrack(relay.subscribe(output_track))
             # NOTE: Recording is not supported in this mode
@@ -264,15 +299,9 @@ async def _process_offer_coro(
         for t in pc.getTransceivers():
             if t.kind in peer_sending_kinds:
                 continue
-            source = _source_for(t.kind)
-            if source is None:
+            output_track = _resolve_output(t.kind, input_track=None)
+            if output_track is None:
                 continue
-            output_track = _wrap_with_processor(
-                source,
-                _processor_for(t.kind),
-                async_processing=async_processing,
-                relay=relay,
-            )
             if _sendback_for(t.kind):
                 logger.info("Add a track %s to %s", output_track, pc)
                 pc.addTrack(relay.subscribe(output_track))
@@ -286,6 +315,10 @@ async def _process_offer_coro(
         video_receiver.start()
     if audio_receiver and audio_receiver.hasTrack():
         audio_receiver.start()
+    if sink_video_track is not None and sink_video_track.hasTrack():
+        sink_video_track.start()
+    if sink_audio_track is not None and sink_audio_track.hasTrack():
+        sink_audio_track.start()
 
     if in_recorder:
         await in_recorder.start()
@@ -345,6 +378,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         rtc_configuration: Optional[RTCConfiguration],
         source_video_track: Optional[MediaStreamTrack],
         source_audio_track: Optional[MediaStreamTrack],
+        sink_video_track: Optional[MediaSink],
+        sink_audio_track: Optional[MediaSink],
         player_factory: Optional[MediaPlayerFactory],
         in_recorder_factory: Optional[MediaRecorderFactory],
         out_recorder_factory: Optional[MediaRecorderFactory],
@@ -382,6 +417,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self.mode = mode
         self.source_video_track = source_video_track
         self.source_audio_track = source_audio_track
+        self.sink_video_track = sink_video_track
+        self.sink_audio_track = sink_audio_track
         self.player_factory = player_factory
         self.in_recorder_factory = in_recorder_factory
         self.out_recorder_factory = out_recorder_factory
@@ -502,8 +539,14 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         video_receiver = None
         audio_receiver = None
         if self.mode == WebRtcMode.SENDONLY:
-            video_receiver = VideoReceiver(queue_maxsize=self.video_receiver_size)
-            audio_receiver = AudioReceiver(queue_maxsize=self.audio_receiver_size)
+            # An explicit sink for a kind suppresses the auto-receiver for the
+            # same kind; the two are alternative strategies for consuming the
+            # peer input, and routing the same upstream to both would be
+            # surprising.
+            if self.sink_video_track is None:
+                video_receiver = VideoReceiver(queue_maxsize=self.video_receiver_size)
+            if self.sink_audio_track is None:
+                audio_receiver = AudioReceiver(queue_maxsize=self.audio_receiver_size)
 
         self._video_processor = video_processor
         self._audio_processor = audio_processor
@@ -560,6 +603,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 relay=relay,
                 source_video_track=source_video_track,
                 source_audio_track=source_audio_track,
+                sink_video_track=self.sink_video_track,
+                sink_audio_track=self.sink_audio_track,
                 in_recorder=in_recorder,
                 out_recorder=out_recorder,
                 video_processor=video_processor,
@@ -716,6 +761,13 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         if self._audio_receiver:
             self._audio_receiver.stop()
         self._audio_receiver = None
+
+        if self.sink_video_track is not None:
+            self.sink_video_track.stop()
+        self.sink_video_track = None
+        if self.sink_audio_track is not None:
+            self.sink_audio_track.stop()
+        self.sink_audio_track = None
 
         # The player tracks are not automatically stopped when the WebRTC session ends
         # because these tracks are connected to the consumer via `MediaRelay` proxies

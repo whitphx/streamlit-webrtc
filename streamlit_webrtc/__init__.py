@@ -22,12 +22,24 @@ from .credentials import (
     get_twilio_ice_servers,
 )
 from .factory import (
+    create_audio_sink_track,
     create_audio_source_track,
     create_mix_track,
+    create_pcm_audio_source_track,
     create_process_track,
+    create_video_sink_track,
     create_video_source_track,
 )
 from .mix import MediaStreamMixTrack, MixerCallback
+from .pcm_source import PcmAudioSource
+from .sink import (
+    AudioSinkCallback,
+    AudioSinkTrack,
+    CallbackSinkTrack,
+    MediaSink,
+    VideoSinkCallback,
+    VideoSinkTrack,
+)
 from .source import (
     AudioSourceCallback,
     AudioSourceTrack,
@@ -76,8 +88,18 @@ __all__ = [
     "VideoSourceCallback",
     "AudioSourceTrack",
     "AudioSourceCallback",
+    "MediaSink",
+    "CallbackSinkTrack",
+    "VideoSinkTrack",
+    "VideoSinkCallback",
+    "AudioSinkTrack",
+    "AudioSinkCallback",
     "create_video_source_track",
     "create_audio_source_track",
+    "create_pcm_audio_source_track",
+    "PcmAudioSource",
+    "create_video_sink_track",
+    "create_audio_sink_track",
     "WebRtcMode",
     "WebRtcWorker",
     "MediaStreamConstraints",

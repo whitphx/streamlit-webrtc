@@ -16,6 +16,7 @@ from .models import (
     VideoProcessorFactory,
     VideoProcessorT,
 )
+from .pcm_source import PcmAudioSource
 from .process import (
     AsyncAudioProcessTrack,
     AsyncMediaProcessTrack,
@@ -26,6 +27,12 @@ from .process import (
 )
 from .relay import get_global_relay
 from .shutdown import SessionShutdownObserver
+from .sink import (
+    AudioSinkCallback,
+    AudioSinkTrack,
+    VideoSinkCallback,
+    VideoSinkTrack,
+)
 from .source import (
     AudioSourceCallback,
     AudioSourceTrack,
@@ -235,6 +242,124 @@ _AUDIO_SOURCE_TRACK_CACHE_KEY_PREFIX = "__AUDIO_SOURCE_TRACK_CACHE__"
 _AUDIO_SOURCE_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX = (
     "__AUDIO_SOURCE_TRACK_SHUTDOWN_OBSERVER_CACHE__"
 )
+
+
+_VIDEO_SINK_TRACK_CACHE_KEY_PREFIX = "__VIDEO_SINK_TRACK_CACHE__"
+_VIDEO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX = (
+    "__VIDEO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE__"
+)
+
+
+def create_video_sink_track(
+    callback: VideoSinkCallback,
+    key: str,
+    on_ended: Optional[Callable[[], None]] = None,
+) -> VideoSinkTrack:
+    cache_key = _VIDEO_SINK_TRACK_CACHE_KEY_PREFIX + key
+    observer_cache_key = _VIDEO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    if (
+        cache_key in st.session_state
+        and isinstance(st.session_state[cache_key], VideoSinkTrack)
+        and st.session_state[cache_key].readyState != "ended"
+    ):
+        video_sink_track: VideoSinkTrack = st.session_state[cache_key]
+        video_sink_track._callback = callback
+    else:
+        old_observer = st.session_state.get(observer_cache_key)
+        if isinstance(old_observer, SessionShutdownObserver):
+            old_observer.stop()
+
+        video_sink_track = VideoSinkTrack(callback=callback)
+        st.session_state[cache_key] = video_sink_track
+        st.session_state[observer_cache_key] = SessionShutdownObserver(
+            video_sink_track.stop
+        )
+    video_sink_track._on_ended_callback = on_ended
+    return video_sink_track
+
+
+_AUDIO_SINK_TRACK_CACHE_KEY_PREFIX = "__AUDIO_SINK_TRACK_CACHE__"
+_AUDIO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX = (
+    "__AUDIO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE__"
+)
+
+
+def create_audio_sink_track(
+    callback: AudioSinkCallback,
+    key: str,
+    on_ended: Optional[Callable[[], None]] = None,
+) -> AudioSinkTrack:
+    cache_key = _AUDIO_SINK_TRACK_CACHE_KEY_PREFIX + key
+    observer_cache_key = _AUDIO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    if (
+        cache_key in st.session_state
+        and isinstance(st.session_state[cache_key], AudioSinkTrack)
+        and st.session_state[cache_key].readyState != "ended"
+    ):
+        audio_sink_track: AudioSinkTrack = st.session_state[cache_key]
+        audio_sink_track._callback = callback
+    else:
+        old_observer = st.session_state.get(observer_cache_key)
+        if isinstance(old_observer, SessionShutdownObserver):
+            old_observer.stop()
+
+        audio_sink_track = AudioSinkTrack(callback=callback)
+        st.session_state[cache_key] = audio_sink_track
+        st.session_state[observer_cache_key] = SessionShutdownObserver(
+            audio_sink_track.stop
+        )
+    audio_sink_track._on_ended_callback = on_ended
+    return audio_sink_track
+
+
+_PCM_AUDIO_SOURCE_CACHE_KEY_PREFIX = "__PCM_AUDIO_SOURCE_CACHE__"
+_PCM_AUDIO_SOURCE_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX = (
+    "__PCM_AUDIO_SOURCE_SHUTDOWN_OBSERVER_CACHE__"
+)
+
+
+def create_pcm_audio_source_track(
+    *,
+    key: str,
+    sample_rate: int,
+    ptime: float = 0.020,
+) -> PcmAudioSource:
+    """Create a source track that plays s16-mono PCM pushed from any thread.
+
+    Mirrors :func:`create_audio_source_track`'s key-based session cache so
+    the buffer survives Streamlit reruns and queued audio isn't lost.
+
+    The returned :class:`PcmAudioSource` exposes ``track`` (pass to
+    ``webrtc_streamer(source_audio_track=...)``), :meth:`PcmAudioSource.push`
+    (append PCM bytes / int16 ndarray, callable from any thread), and
+    :meth:`PcmAudioSource.clear` (drop buffered samples, e.g. on barge-in).
+    """
+    cache_key = _PCM_AUDIO_SOURCE_CACHE_KEY_PREFIX + key
+    observer_cache_key = _PCM_AUDIO_SOURCE_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    existing = st.session_state.get(cache_key)
+    if (
+        isinstance(existing, PcmAudioSource)
+        and existing.track.readyState == "live"
+        and existing.sample_rate == sample_rate
+        and existing.ptime == ptime
+    ):
+        return existing
+
+    old_observer = st.session_state.get(observer_cache_key)
+    if isinstance(old_observer, SessionShutdownObserver):
+        old_observer.stop()
+    # Stopping the observer doesn't fire its callback, so if the cache held a
+    # PcmAudioSource whose track is still live (param change between reruns),
+    # stop it explicitly to avoid leaking the underlying media track.
+    if isinstance(existing, PcmAudioSource) and existing.track.readyState == "live":
+        existing.track.stop()
+
+    pcm_source = PcmAudioSource(sample_rate=sample_rate, ptime=ptime)
+    st.session_state[cache_key] = pcm_source
+    st.session_state[observer_cache_key] = SessionShutdownObserver(
+        pcm_source.track.stop
+    )
+    return pcm_source
 
 
 def create_audio_source_track(
