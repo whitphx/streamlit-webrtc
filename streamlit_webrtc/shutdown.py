@@ -34,10 +34,12 @@ class SessionShutdownObserver:
 
     _polling_thread: Union[threading.Thread, None]
     _polling_thread_stop_event: threading.Event
+    _stop_lock: threading.Lock
 
     def __init__(self, callback: Callback) -> None:
         self._polling_thread = None
         self._polling_thread_stop_event = threading.Event()
+        self._stop_lock = threading.Lock()
         self._callback = callback
 
         session_info = get_this_session_info()
@@ -117,17 +119,20 @@ class SessionShutdownObserver:
             logger.exception("Error in shutdown callback: %s", e)
 
     def stop(self, timeout: float = 1.0) -> None:
-        if self._polling_thread:
+        with self._stop_lock:
+            polling_thread = self._polling_thread
+            self._polling_thread = None
             self._polling_thread_stop_event.set()
 
-            # 🔑 FIX: do not join current thread
-            if threading.current_thread() is not self._polling_thread:
-                self._polling_thread.join(timeout=timeout)
-                if self._polling_thread.is_alive():
-                    logger.warning("ShutdownPolling thread did not exit cleanly")
-                else:
-                    logger.debug("ShutdownPolling thread stopped cleanly")
-            else:
-                logger.debug("Stop called from polling thread itself, skipping join.")
+        if polling_thread is None:
+            return
 
-            self._polling_thread = None
+        if threading.current_thread() is polling_thread:
+            logger.debug("Stop called from polling thread itself, skipping join.")
+            return
+
+        polling_thread.join(timeout=timeout)
+        if polling_thread.is_alive():
+            logger.warning("ShutdownPolling thread did not exit cleanly")
+        else:
+            logger.debug("ShutdownPolling thread stopped cleanly")

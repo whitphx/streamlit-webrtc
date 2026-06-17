@@ -1,5 +1,6 @@
 import threading
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import patch
 
 from streamlit_webrtc._compat import AppSessionState
@@ -164,3 +165,52 @@ def test_stop_idempotent_and_safe_to_call_after_callback():
         observer.stop()
         # Idempotent.
         observer.stop()
+
+
+class _RaceThread:
+    def __init__(self) -> None:
+        self.first_join_entered = threading.Event()
+        self.release_first_join = threading.Event()
+        self._join_count = 0
+        self._lock = threading.Lock()
+
+    def join(self, timeout=None) -> None:
+        with self._lock:
+            self._join_count += 1
+            join_count = self._join_count
+
+        if join_count == 1:
+            self.first_join_entered.set()
+            self.release_first_join.wait(timeout=3.0)
+        else:
+            self.release_first_join.set()
+
+    def is_alive(self) -> bool:
+        return False
+
+
+def test_stop_safe_when_called_concurrently():
+    errors = []
+    with patch("streamlit_webrtc.shutdown.get_this_session_info", return_value=None):
+        observer = SessionShutdownObserver(lambda: None)
+
+    race_thread = _RaceThread()
+    observer._polling_thread = cast(threading.Thread, race_thread)
+
+    def call_stop():
+        try:
+            observer.stop()
+        except Exception as e:
+            errors.append(e)
+
+    stop_thread = threading.Thread(target=call_stop)
+    stop_thread.start()
+
+    assert race_thread.first_join_entered.wait(timeout=3.0)
+    observer.stop()
+    race_thread.release_first_join.set()
+
+    stop_thread.join(timeout=3.0)
+
+    assert not stop_thread.is_alive()
+    assert errors == []

@@ -811,7 +811,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             else:
                 loop.run_until_complete(self.pc.close())
 
-        # 💡 Explicitly stop shutdown observer here
-        if self._session_shutdown_observer:
-            self._session_shutdown_observer.stop()
-            self._session_shutdown_observer = None
+        session_shutdown_observer = self._session_shutdown_observer
+        self._session_shutdown_observer = None
+        if session_shutdown_observer:
+            session_shutdown_observer.stop()
