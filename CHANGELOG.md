@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.72.2'></a>
+## 0.72.2 — 2026-06-19
+
+### Fixed
+
+- Fixed a race in shutdown observer cleanup that could raise `AttributeError: 'NoneType' object has no attribute 'is_alive'` when a WebRTC worker stops from overlapping shutdown paths.
+
 <a id='changelog-0.72.1'></a>
 ## 0.72.1 — 2026-05-29
 
