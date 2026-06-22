@@ -6,6 +6,7 @@ export interface State {
   webRtcState: WebRtcState;
   sdpOffer: RTCSessionDescription | null;
   iceCandidates: Record<string, RTCIceCandidate>; // key: candidate id for the server to identify the added candidates
+  frontendEvent: ComponentValue["frontendEvent"] | null;
   stream: MediaStream | null;
   error: Error | null;
 }
@@ -13,6 +14,7 @@ export const initialState: State = {
   webRtcState: "STOPPED",
   sdpOffer: null,
   iceCandidates: {},
+  frontendEvent: null,
   stream: null,
   error: null,
 };
@@ -23,6 +25,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
       return {
         ...state,
         webRtcState: "SIGNALLING",
+        frontendEvent: null,
         stream: null,
         error: null,
       };
@@ -51,6 +54,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         webRtcState: "STOPPING",
         sdpOffer: null,
         iceCandidates: {},
+        frontendEvent: action.frontendEvent ?? state.frontendEvent,
       };
     case "STOPPED":
       return {
@@ -114,7 +118,15 @@ export const connectReducer = (
       Object.keys(nextIceCandidates).length !==
       Object.keys(prevIceCandidates).length;
 
-    if (playingChanged || sdpOfferChanged || iceCandidatesChanged) {
+    const frontendEventChanged =
+      nextState.frontendEvent !== state.frontendEvent;
+
+    if (
+      playingChanged ||
+      sdpOfferChanged ||
+      iceCandidatesChanged ||
+      frontendEventChanged
+    ) {
       const serializedIceCandidates = Object.fromEntries(
         Object.entries(nextIceCandidates).map(([key, value]) => [
           key,
@@ -122,11 +134,14 @@ export const connectReducer = (
         ]),
       );
 
-      const componentValue = {
+      const componentValue: ComponentValue = {
         playing: nextPlaying,
         sdpOffer: nextSdpOffer ? nextSdpOffer.toJSON() : "", // `Streamlit.setComponentValue` cannot "unset" the field by passing null or undefined, so here an empty string is set instead when `sdpOffer` is undefined. // TODO: Create an issue
         iceCandidates: serializedIceCandidates,
-      } satisfies ComponentValue;
+      };
+      if (nextState.frontendEvent) {
+        componentValue.frontendEvent = nextState.frontendEvent;
+      }
       console.debug("set component value", componentValue);
       onComponentValueChange(componentValue);
     }

@@ -1,6 +1,6 @@
 import { useReducer, useCallback, useRef, useEffect, useMemo } from "react";
 import { compileMediaConstraints } from "../media-constraint";
-import { ComponentValue } from "../component-value";
+import { ComponentValue, FrontendEvent } from "../component-value";
 import { connectReducer, initialState } from "./reducer";
 import { useUniqueId } from "./use-unique-id";
 
@@ -11,6 +11,8 @@ export const isReceivable = (mode: WebRtcMode): boolean =>
   mode === "SENDRECV" || mode === "RECVONLY";
 export const isTransmittable = (mode: WebRtcMode): boolean =>
   mode === "SENDRECV" || mode === "SENDONLY";
+
+type FrontendTerminationEventInput = Pick<FrontendEvent, "type" | "reason">;
 
 export const useWebRtc = (
   props: {
@@ -40,6 +42,8 @@ export const useWebRtc = (
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pcRef = useRef<RTCPeerConnection>();
+  const frontendEventSequenceRef = useRef(0);
+  const frontendTerminationNotifiedRef = useRef(false);
   const reducer = useMemo(
     () => connectReducer(onComponentValueChange),
     [onComponentValueChange],
@@ -48,50 +52,69 @@ export const useWebRtc = (
 
   const uniqueIdGenerator = useUniqueId();
 
-  const stop = useCallback(() => {
-    const stopInner = async () => {
-      if (state.webRtcState === "STOPPING") {
-        return;
-      }
+  const stop = useCallback(
+    (frontendEventInput?: FrontendTerminationEventInput) => {
+      const stopInner = async () => {
+        if (state.webRtcState === "STOPPING") {
+          return;
+        }
 
-      const pc = pcRef.current;
-      pcRef.current = undefined;
+        const pc = pcRef.current;
+        pcRef.current = undefined;
 
-      dispatch({ type: "STOPPING" });
+        let frontendEvent: FrontendEvent | undefined;
+        const shouldSendFrontendEvent =
+          frontendEventInput && !frontendTerminationNotifiedRef.current;
+        frontendTerminationNotifiedRef.current = true;
+        if (shouldSendFrontendEvent) {
+          frontendEventSequenceRef.current += 1;
+          const at = Date.now();
+          frontendEvent = {
+            ...frontendEventInput,
+            id:
+              globalThis.crypto?.randomUUID?.() ??
+              `${at}-${frontendEventSequenceRef.current}`,
+            at,
+          };
+        }
 
-      if (pc == null) {
-        return;
-      }
+        dispatch({ type: "STOPPING", frontendEvent });
 
-      // close transceivers
-      if (pc.getTransceivers) {
-        pc.getTransceivers().forEach(function (transceiver) {
-          if (transceiver.stop) {
-            transceiver.stop();
-          }
+        if (pc == null) {
+          return;
+        }
+
+        // close transceivers
+        if (pc.getTransceivers) {
+          pc.getTransceivers().forEach(function (transceiver) {
+            if (transceiver.stop) {
+              transceiver.stop();
+            }
+          });
+        }
+
+        // close local audio / video
+        pc.getSenders().forEach(function (sender) {
+          sender.track?.stop();
         });
-      }
 
-      // close local audio / video
-      pc.getSenders().forEach(function (sender) {
-        sender.track?.stop();
-      });
+        // close peer connection
+        return new Promise<void>((resolve) => {
+          setTimeout(() => {
+            pc.close();
+            resolve();
+          }, 500);
+        });
+      };
 
-      // close peer connection
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          pc.close();
-          resolve();
-        }, 500);
-      });
-    };
-
-    stopInner()
-      .catch((error) => dispatch({ type: "ERROR", error }))
-      .finally(() => {
-        dispatch({ type: "STOPPED" });
-      });
-  }, [state.webRtcState]);
+      stopInner()
+        .catch((error) => dispatch({ type: "ERROR", error }))
+        .finally(() => {
+          dispatch({ type: "STOPPED" });
+        });
+    },
+    [state.webRtcState],
+  );
 
   const stopRef = useRef(stop);
   stopRef.current = stop;
@@ -110,6 +133,7 @@ export const useWebRtc = (
       dispatch({ type: "SIGNALLING_START" });
 
       uniqueIdGenerator.reset();
+      frontendTerminationNotifiedRef.current = false;
 
       const mode = props.mode;
 
@@ -121,6 +145,12 @@ export const useWebRtc = (
       if (mode === "SENDRECV" || mode === "RECVONLY") {
         pc.addEventListener("track", (evt) => {
           const stream = evt.streams[0]; // TODO: Handle multiple streams
+          evt.track.addEventListener("ended", () => {
+            stopRef.current({
+              type: "track_ended",
+              reason: `${evt.track.kind} track ended`,
+            });
+          });
           dispatch({ type: "SET_STREAM", stream });
         });
       }
@@ -211,7 +241,24 @@ export const useWebRtc = (
           pc.connectionState === "closed" ||
           pc.connectionState === "failed"
         ) {
-          stopRef.current();
+          stopRef.current({
+            type: "connection_lost",
+            reason: `pc.connectionState=${pc.connectionState}`,
+          });
+        }
+      });
+
+      pc.addEventListener("iceconnectionstatechange", () => {
+        console.debug("iceconnectionstatechange", pc.iceConnectionState);
+        if (
+          pc.iceConnectionState === "disconnected" ||
+          pc.iceConnectionState === "closed" ||
+          pc.iceConnectionState === "failed"
+        ) {
+          stopRef.current({
+            type: "connection_lost",
+            reason: `pc.iceConnectionState=${pc.iceConnectionState}`,
+          });
         }
       });
 

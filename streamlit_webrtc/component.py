@@ -127,6 +127,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _sdp_answer_json: Optional[str]
     _is_sdp_answer_sent: bool
     _last_rendered_run_count: Optional[int]
+    _last_frontend_event_id: Optional[str]
 
     # Passthrough attributes forwarded to the worker. Each returns the
     # worker's attribute when a worker is attached, otherwise None.
@@ -153,6 +154,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._sdp_answer_json = None
         self._is_sdp_answer_sent = False
         self._last_rendered_run_count = None
+        self._last_frontend_event_id = None
 
     def _set_worker(
         self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
@@ -336,6 +338,40 @@ def _reset_orphaned_context(context: WebRtcStreamerContext) -> None:
     context._sdp_answer_json = None
     context._is_sdp_answer_sent = False
     context._component_value_snapshot = None
+    context._last_frontend_event_id = None
+
+
+def _handle_frontend_event(
+    context: WebRtcStreamerContext,
+    key: str,
+    component_value: Union[Dict, None],
+) -> None:
+    if not component_value:
+        return
+
+    frontend_event = component_value.get("frontendEvent")
+    if not isinstance(frontend_event, dict):
+        return
+
+    event_id = frontend_event.get("id")
+    if not event_id or event_id == context._last_frontend_event_id:
+        return
+
+    context._last_frontend_event_id = event_id
+    LOGGER.info(
+        "Frontend requested WebRTC termination (key=%s, type=%s, reason=%s)",
+        key,
+        frontend_event.get("type"),
+        frontend_event.get("reason"),
+    )
+
+    worker = context._get_worker()
+    if worker:
+        worker.stop()
+        context._set_worker(None)
+
+    context._sdp_answer_json = None
+    context._is_sdp_answer_sent = False
 
 
 def _make_state_change_callback(
@@ -352,9 +388,11 @@ def _make_state_change_callback(
 
     def callback() -> None:
         component_value = st.session_state[frontend_key]
-        new_state = compile_state(component_value)
 
         context = st.session_state[key]
+        _handle_frontend_event(context, key, component_value)
+
+        new_state = compile_state(component_value)
         old_state = context.state
         context._set_state(new_state)
 

@@ -1,3 +1,5 @@
+import { FrontendEvent } from "../component-value";
+
 interface ActionBase {
   type: string;
 }
@@ -19,6 +21,7 @@ interface AddIceCandidateAction extends ActionBase {
 }
 interface StoppingAction extends ActionBase {
   type: "STOPPING";
+  frontendEvent?: FrontendEvent;
 }
 interface StoppedAction extends ActionBase {
   type: "STOPPED";

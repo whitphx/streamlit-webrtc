@@ -1,6 +1,11 @@
+from unittest.mock import MagicMock
+
 import pytest
 
 from streamlit_webrtc.component import (
+    WebRtcStreamerContext,
+    WebRtcStreamerState,
+    _handle_frontend_event,
     _validate_sink_conflicts,
     compile_state,
     generate_frontend_component_key,
@@ -134,3 +139,52 @@ class TestValidateSinkConflicts:
                 on_ended=None,
                 processor_factory=lambda: object(),
             )
+
+
+class TestHandleFrontendEvent:
+    def test_stops_worker_and_clears_pending_answer(self) -> None:
+        worker = MagicMock()
+        context: WebRtcStreamerContext = WebRtcStreamerContext(
+            worker=worker,
+            state=WebRtcStreamerState(playing=True, signalling=False),
+        )
+        context._sdp_answer_json = '{"type":"answer","sdp":"v=0\\r\\n"}'
+        context._is_sdp_answer_sent = True
+
+        _handle_frontend_event(
+            context,
+            "key",
+            {
+                "frontendEvent": {
+                    "id": "event-1",
+                    "type": "connection_lost",
+                    "reason": "pc.connectionState=failed",
+                }
+            },
+        )
+
+        worker.stop.assert_called_once()
+        assert context._get_worker() is None
+        assert context._sdp_answer_json is None
+        assert context._is_sdp_answer_sent is False
+        assert context._last_frontend_event_id == "event-1"
+
+    def test_ignores_duplicate_event(self) -> None:
+        worker = MagicMock()
+        context: WebRtcStreamerContext = WebRtcStreamerContext(
+            worker=worker,
+            state=WebRtcStreamerState(playing=True, signalling=False),
+        )
+        component_value = {
+            "frontendEvent": {
+                "id": "event-1",
+                "type": "connection_lost",
+                "reason": "pc.connectionState=failed",
+            }
+        }
+
+        _handle_frontend_event(context, "key", component_value)
+        context._set_worker(worker)
+        _handle_frontend_event(context, "key", component_value)
+
+        worker.stop.assert_called_once()
