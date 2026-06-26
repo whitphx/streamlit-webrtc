@@ -49,15 +49,19 @@ def app():
     )
 
     if in_file.exists():
-        with in_file.open("rb") as f:
-            st.download_button(
-                "Download the recorded video without video filter", f, "input.flv"
-            )
+        st.video(in_file.absolute())
+        st.download_button(
+            "Download the recorded video without video filter",
+            lambda: in_file.open("rb"),
+            "input.flv",
+        )
     if out_file.exists():
-        with out_file.open("rb") as f:
-            st.download_button(
-                "Download the recorded video with video filter", f, "output.flv"
-            )
+        st.video(out_file.absolute())
+        st.download_button(
+            "Download the recorded video with video filter",
+            lambda: out_file.open("rb"),
+            "output.flv",
+        )
 
 
 if __name__ == "__main__":

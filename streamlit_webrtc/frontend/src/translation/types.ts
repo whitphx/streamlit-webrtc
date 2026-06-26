@@ -6,5 +6,9 @@ export interface Translations {
   device_ask_permission: string | null;
   device_not_available: string | null;
   device_access_denied: string | null;
+  turn_camera_on: string | null;
+  turn_camera_off: string | null;
+  mute_microphone: string | null;
+  unmute_microphone: string | null;
 }
 export type TranslationKey = keyof Translations;

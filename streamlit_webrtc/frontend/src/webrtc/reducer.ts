@@ -7,6 +7,7 @@ export interface State {
   sdpOffer: RTCSessionDescription | null;
   iceCandidates: Record<string, RTCIceCandidate>; // key: candidate id for the server to identify the added candidates
   stream: MediaStream | null;
+  localStream: MediaStream | null;
   error: Error | null;
 }
 export const initialState: State = {
@@ -14,6 +15,7 @@ export const initialState: State = {
   sdpOffer: null,
   iceCandidates: {},
   stream: null,
+  localStream: null,
   error: null,
 };
 
@@ -24,12 +26,18 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         ...state,
         webRtcState: "SIGNALLING",
         stream: null,
+        localStream: null,
         error: null,
       };
     case "SET_STREAM":
       return {
         ...state,
         stream: action.stream,
+      };
+    case "SET_LOCAL_STREAM":
+      return {
+        ...state,
+        localStream: action.stream,
       };
     case "SET_OFFER":
       return {
@@ -59,6 +67,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         sdpOffer: null,
         iceCandidates: {},
         stream: null,
+        localStream: null,
       };
     case "START_PLAYING":
       return {
@@ -73,6 +82,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         webRtcState: "STOPPED",
         sdpOffer: null,
         iceCandidates: {},
+        localStream: null,
         error: action.error,
       };
     case "PROCESS_ANSWER_ERROR":
@@ -81,6 +91,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         webRtcState: "STOPPED",
         sdpOffer: null,
         iceCandidates: {},
+        localStream: null,
         error: action.error,
       };
     case "ERROR":
@@ -89,6 +100,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         webRtcState: "STOPPED",
         sdpOffer: null,
         iceCandidates: {},
+        localStream: null,
         error: action.error,
       };
   }

@@ -151,6 +151,7 @@ export const useWebRtc = (
             audio?: MediaDeviceInfo["deviceId"];
           } = {};
           const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          dispatch({ type: "SET_LOCAL_STREAM", stream });
           stream.getTracks().forEach((track) => {
             pc.addTrack(track, stream);
 

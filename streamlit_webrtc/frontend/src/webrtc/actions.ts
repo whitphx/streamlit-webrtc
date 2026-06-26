@@ -8,6 +8,10 @@ interface StreamSetAction extends ActionBase {
   type: "SET_STREAM";
   stream: MediaStream;
 }
+interface LocalStreamSetAction extends ActionBase {
+  type: "SET_LOCAL_STREAM";
+  stream: MediaStream;
+}
 interface SetOfferAction extends ActionBase {
   type: "SET_OFFER";
   offer: RTCSessionDescription;
@@ -41,6 +45,7 @@ interface ErrorAction extends ActionBase {
 export type Action =
   | SignallingStartAction
   | StreamSetAction
+  | LocalStreamSetAction
   | SetOfferAction
   | AddIceCandidateAction
   | StoppingAction

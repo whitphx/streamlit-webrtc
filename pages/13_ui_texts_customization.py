@@ -10,5 +10,9 @@ webrtc_streamer(
         "device_ask_permission": "メディアデバイスへのアクセスを許可してください",
         "device_not_available": "メディアデバイスを利用できません",
         "device_access_denied": "メディアデバイスへのアクセスが拒否されました",
+        "turn_camera_on": "カメラをオンにする",
+        "turn_camera_off": "カメラをオフにする",
+        "mute_microphone": "マイクをミュートする",
+        "unmute_microphone": "マイクのミュートを解除する",
     },
 )

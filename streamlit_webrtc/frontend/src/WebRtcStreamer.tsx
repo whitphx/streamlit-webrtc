@@ -7,6 +7,7 @@ import {
   useRef,
 } from "react";
 import Box from "@mui/material/Box";
+import InputMediaControls from "./InputMediaControls";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
 import { useRenderData } from "streamlit-component-lib-react-hooks";
@@ -87,6 +88,11 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const buttonDisabled = props.disabled || state.webRtcState === "STOPPING";
   const receivable = isWebRtcMode(mode) && isReceivable(mode);
   const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
+  const localStream = state.localStream;
+  const showInputMediaControls =
+    transmittable &&
+    localStream != null &&
+    (state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING");
   const { videoEnabled, audioEnabled } = getMediaUsage(
     props.mediaStreamConstraints,
   );
@@ -134,39 +140,53 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
           )
         )}
       </Box>
-      {userControlsPlayingState && (
-        <Box display="flex" justifyContent="space-between">
-          {state.webRtcState === "PLAYING" ||
-          state.webRtcState === "SIGNALLING" ? (
-            <TranslatedButton
-              variant={
-                state.webRtcState === "SIGNALLING" && !isTakingTooLong
-                  ? "outlined"
-                  : "contained"
-              }
-              onClick={stopWithNotification}
-              disabled={buttonDisabled}
-              translationKey="stop"
-              defaultText="Stop"
-            />
-          ) : (
-            <TranslatedButton
-              variant="contained"
-              color="primary"
-              onClick={startWithNotification}
-              disabled={buttonDisabled}
-              translationKey="start"
-              defaultText="Start"
-            />
-          )}
-          {transmittable && state.webRtcState === "STOPPED" && (
-            <TranslatedButton
-              color="inherit"
-              onClick={openDeviceSelect}
-              translationKey="select_device"
-              defaultText="Select Device"
-            />
-          )}
+      {(userControlsPlayingState || showInputMediaControls) && (
+        <Box display="flex" alignItems="center" justifyContent="space-between">
+          <Box display="flex" alignItems="center" gap={1}>
+            {userControlsPlayingState && (
+              <>
+                {state.webRtcState === "PLAYING" ||
+                state.webRtcState === "SIGNALLING" ? (
+                  <TranslatedButton
+                    variant={
+                      state.webRtcState === "SIGNALLING" && !isTakingTooLong
+                        ? "outlined"
+                        : "contained"
+                    }
+                    onClick={stopWithNotification}
+                    disabled={buttonDisabled}
+                    translationKey="stop"
+                    defaultText="Stop"
+                  />
+                ) : (
+                  <TranslatedButton
+                    variant="contained"
+                    color="primary"
+                    onClick={startWithNotification}
+                    disabled={buttonDisabled}
+                    translationKey="start"
+                    defaultText="Start"
+                  />
+                )}
+              </>
+            )}
+            {showInputMediaControls && localStream != null && (
+              <InputMediaControls
+                disabled={buttonDisabled}
+                stream={localStream}
+              />
+            )}
+          </Box>
+          {userControlsPlayingState &&
+            transmittable &&
+            state.webRtcState === "STOPPED" && (
+              <TranslatedButton
+                color="inherit"
+                onClick={openDeviceSelect}
+                translationKey="select_device"
+                defaultText="Select Device"
+              />
+            )}
         </Box>
       )}
     </Box>

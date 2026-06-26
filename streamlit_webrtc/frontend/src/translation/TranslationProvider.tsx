@@ -16,6 +16,10 @@ function TranslationProvider(props: TranslationProviderProps) {
     device_not_available,
     device_access_denied,
     media_api_not_available,
+    turn_camera_on,
+    turn_camera_off,
+    mute_microphone,
+    unmute_microphone,
   } = renderData.args["translations"] || {};
   const value: Translations = useMemo(
     () => ({
@@ -26,6 +30,10 @@ function TranslationProvider(props: TranslationProviderProps) {
       device_not_available,
       device_access_denied,
       media_api_not_available,
+      turn_camera_on,
+      turn_camera_off,
+      mute_microphone,
+      unmute_microphone,
     }),
     [
       start,
@@ -35,6 +43,10 @@ function TranslationProvider(props: TranslationProviderProps) {
       device_not_available,
       device_access_denied,
       media_api_not_available,
+      turn_camera_on,
+      turn_camera_off,
+      mute_microphone,
+      unmute_microphone,
     ],
   );
   return (
