@@ -82,6 +82,18 @@ You see the app view, so click the "START" button.
 Then, video and audio streaming starts. If asked for permissions to access the camera and microphone, allow it.
 ![Basic example of streamlit-webrtc](./docs/images/streamlit_webrtc_basic.gif)
 
+### Media toggle controls
+
+When the app sends local camera or microphone input, `webrtc_streamer()` shows camera and microphone toggle buttons next to the Start/Stop button. These controls let users turn their outgoing camera or microphone track on and off without stopping the WebRTC session.
+
+Set `media_toggle_controls=False` to hide these toggle buttons.
+
+```python
+from streamlit_webrtc import webrtc_streamer
+
+webrtc_streamer(key="example", media_toggle_controls=False)
+```
+
 Next, edit `app.py` as below and run it again.
 ```py
 from streamlit_webrtc import webrtc_streamer
