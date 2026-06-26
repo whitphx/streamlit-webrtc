@@ -79,7 +79,7 @@ webrtc_streamer(
     mode=WebRtcMode.RECVONLY,
     video_frame_callback=callback,
     source_video_track=ctx.output_video_track,
-    desired_playing_state=ctx.state.signalling or ctx.state.playing,
+    desired_playing_state=ctx.state.playing,
     media_stream_constraints={"video": True, "audio": False},
 )
 
@@ -95,6 +95,6 @@ webrtc_streamer(
     mode=WebRtcMode.RECVONLY,
     video_frame_callback=callback,
     source_video_track=ctx.output_video_track,
-    desired_playing_state=ctx.state.signalling or ctx.state.playing,
+    desired_playing_state=ctx.state.playing,
     media_stream_constraints={"video": True, "audio": False},
 )
