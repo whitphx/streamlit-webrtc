@@ -41,7 +41,7 @@ interface WebRtcStreamerInnerProps {
   sendbackAudio: boolean;
   videoHtmlAttrs: Record<string, string>;
   audioHtmlAttrs: Record<string, string>;
-  showInputMediaControls: boolean;
+  mediaToggleControls: boolean;
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
 export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
@@ -90,8 +90,8 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const receivable = isWebRtcMode(mode) && isReceivable(mode);
   const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
   const localStream = state.localStream;
-  const showInputMediaControls =
-    props.showInputMediaControls &&
+  const showMediaToggleControls =
+    props.mediaToggleControls &&
     transmittable &&
     localStream != null &&
     (state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING");
@@ -142,7 +142,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
           )
         )}
       </Box>
-      {(userControlsPlayingState || showInputMediaControls) && (
+      {(userControlsPlayingState || showMediaToggleControls) && (
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Box display="flex" alignItems="center" gap={1}>
             {userControlsPlayingState && (
@@ -172,7 +172,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
                 )}
               </>
             )}
-            {showInputMediaControls && localStream != null && (
+            {showMediaToggleControls && localStream != null && (
               <InputMediaControls
                 disabled={buttonDisabled}
                 stream={localStream}
@@ -209,8 +209,8 @@ function WebRtcStreamer() {
   const sendbackAudio: boolean = renderData.args.sendback_audio ?? true;
   const videoHtmlAttrs = renderData.args.video_html_attrs;
   const audioHtmlAttrs = renderData.args.audio_html_attrs;
-  const showInputMediaControls: boolean =
-    renderData.args.show_input_media_controls ?? true;
+  const mediaToggleControls: boolean =
+    renderData.args.media_toggle_controls ?? true;
 
   if (!isWebRtcMode(mode)) {
     throw new Error(`Invalid mode ${mode}`);
@@ -229,7 +229,7 @@ function WebRtcStreamer() {
       sendbackAudio={sendbackAudio}
       videoHtmlAttrs={videoHtmlAttrs}
       audioHtmlAttrs={audioHtmlAttrs}
-      showInputMediaControls={showInputMediaControls}
+      mediaToggleControls={mediaToggleControls}
       onComponentValueChange={setComponentValue}
     />
   );

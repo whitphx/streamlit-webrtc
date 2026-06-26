@@ -530,7 +530,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
-    show_input_media_controls: bool = True,
+    media_toggle_controls: bool = True,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
@@ -577,7 +577,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
-    show_input_media_controls: bool = True,
+    media_toggle_controls: bool = True,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
@@ -620,7 +620,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
-    show_input_media_controls: bool = True,
+    media_toggle_controls: bool = True,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
@@ -663,7 +663,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
-    show_input_media_controls: bool = True,
+    media_toggle_controls: bool = True,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
@@ -705,7 +705,7 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
-    show_input_media_controls: bool = True,
+    media_toggle_controls: bool = True,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory=None,
@@ -781,7 +781,7 @@ def webrtc_streamer(
         video_html_attrs=video_html_attrs,
         audio_html_attrs=audio_html_attrs,
         translations=translations,
-        show_input_media_controls=show_input_media_controls,
+        media_toggle_controls=media_toggle_controls,
         desired_playing_state=desired_playing_state,
         # `sendback_*` lets the frontend negotiate recvonly transceivers for
         # kinds the local capture won't produce — without this, an audio-only

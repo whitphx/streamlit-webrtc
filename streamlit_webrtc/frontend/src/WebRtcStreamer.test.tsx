@@ -30,9 +30,9 @@ function makeStream() {
 }
 
 function renderStreamer({
-  showInputMediaControls = true,
+  mediaToggleControls = true,
 }: {
-  showInputMediaControls?: boolean;
+  mediaToggleControls?: boolean;
 } = {}) {
   vi.mocked(useWebRtc).mockReturnValue({
     state: {
@@ -60,7 +60,7 @@ function renderStreamer({
       sendbackAudio={true}
       videoHtmlAttrs={{}}
       audioHtmlAttrs={{}}
-      showInputMediaControls={showInputMediaControls}
+      mediaToggleControls={mediaToggleControls}
       onComponentValueChange={vi.fn()}
     />,
   );
@@ -79,7 +79,7 @@ describe("<WebRtcStreamerInner />", () => {
   });
 
   it("hides input media controls when disabled", () => {
-    renderStreamer({ showInputMediaControls: false });
+    renderStreamer({ mediaToggleControls: false });
 
     expect(
       screen.queryByRole("button", { name: "Turn camera off" }),
