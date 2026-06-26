@@ -41,9 +41,10 @@ interface WebRtcStreamerInnerProps {
   sendbackAudio: boolean;
   videoHtmlAttrs: Record<string, string>;
   audioHtmlAttrs: Record<string, string>;
+  showInputMediaControls: boolean;
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
-function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
+export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const { componentKey } = props;
   const [deviceIds, setDeviceIds] = useState<{
     video?: MediaDeviceInfo["deviceId"] | undefined;
@@ -90,6 +91,7 @@ function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
   const localStream = state.localStream;
   const showInputMediaControls =
+    props.showInputMediaControls &&
     transmittable &&
     localStream != null &&
     (state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING");
@@ -207,6 +209,8 @@ function WebRtcStreamer() {
   const sendbackAudio: boolean = renderData.args.sendback_audio ?? true;
   const videoHtmlAttrs = renderData.args.video_html_attrs;
   const audioHtmlAttrs = renderData.args.audio_html_attrs;
+  const showInputMediaControls: boolean =
+    renderData.args.show_input_media_controls ?? true;
 
   if (!isWebRtcMode(mode)) {
     throw new Error(`Invalid mode ${mode}`);
@@ -225,6 +229,7 @@ function WebRtcStreamer() {
       sendbackAudio={sendbackAudio}
       videoHtmlAttrs={videoHtmlAttrs}
       audioHtmlAttrs={audioHtmlAttrs}
+      showInputMediaControls={showInputMediaControls}
       onComponentValueChange={setComponentValue}
     />
   );
