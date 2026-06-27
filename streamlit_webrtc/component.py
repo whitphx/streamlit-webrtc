@@ -530,11 +530,11 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
-    media_toggle_controls: bool = True,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    media_toggle_controls: bool = True,
 ) -> WebRtcStreamerContext:
     # XXX: We wanted something like `WebRtcStreamerContext[None, None]`
     # as the return value, but could not find a good solution
@@ -577,11 +577,11 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
-    media_toggle_controls: bool = True,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    media_toggle_controls: bool = True,
 ) -> WebRtcStreamerContext[VideoProcessorT, Any]:
     pass
 
@@ -620,11 +620,11 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
-    media_toggle_controls: bool = True,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    media_toggle_controls: bool = True,
 ) -> WebRtcStreamerContext[Any, AudioProcessorT]:
     pass
 
@@ -663,11 +663,11 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
-    media_toggle_controls: bool = True,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    media_toggle_controls: bool = True,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     pass
 
@@ -705,11 +705,11 @@ def webrtc_streamer(
     video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
     audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
     translations: Optional[Translations] = None,
-    media_toggle_controls: bool = True,
     on_change: Optional[Callable] = None,
     # Deprecated. Just for backward compatibility
     video_transformer_factory=None,
     async_transform: Optional[bool] = None,
+    media_toggle_controls: bool = True,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     # Backward compatibility
     if video_transformer_factory is not None:

@@ -82,6 +82,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         webRtcState: "STOPPED",
         sdpOffer: null,
         iceCandidates: {},
+        outputMediaStream: null,
         inputMediaStream: null,
         error: action.error,
       };
@@ -91,6 +92,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         webRtcState: "STOPPED",
         sdpOffer: null,
         iceCandidates: {},
+        outputMediaStream: null,
         inputMediaStream: null,
         error: action.error,
       };
@@ -100,6 +102,7 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         webRtcState: "STOPPED",
         sdpOffer: null,
         iceCandidates: {},
+        outputMediaStream: null,
         inputMediaStream: null,
         error: action.error,
       };
