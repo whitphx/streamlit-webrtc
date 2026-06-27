@@ -94,6 +94,8 @@ from streamlit_webrtc import webrtc_streamer
 webrtc_streamer(key="example", media_toggle_controls=False)
 ```
 
+When a user turns off the camera or microphone with these buttons, the WebRTC track stays active. Disabled audio tracks send silence, and disabled video tracks send black frames; the session does not stop or renegotiate.
+
 Next, edit `app.py` as below and run it again.
 ```py
 from streamlit_webrtc import webrtc_streamer
