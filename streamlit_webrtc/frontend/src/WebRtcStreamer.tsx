@@ -89,11 +89,11 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const buttonDisabled = props.disabled || state.webRtcState === "STOPPING";
   const receivable = isWebRtcMode(mode) && isReceivable(mode);
   const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
-  const localStream = state.localStream;
+  const inputMediaStream = state.inputMediaStream;
   const showMediaToggleControls =
     props.mediaToggleControls &&
     transmittable &&
-    localStream != null &&
+    inputMediaStream != null &&
     (state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING");
   const { videoEnabled, audioEnabled } = getMediaUsage(
     props.mediaStreamConstraints,
@@ -130,9 +130,9 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
         }
       />
       <Box py={1} display="flex">
-        {state.stream ? (
+        {state.outputMediaStream ? (
           <MediaStreamPlayer
-            stream={state.stream}
+            stream={state.outputMediaStream}
             userDefinedVideoAttrs={props.videoHtmlAttrs}
             userDefinedAudioAttrs={props.audioHtmlAttrs}
           />
@@ -172,10 +172,10 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
                 )}
               </>
             )}
-            {showMediaToggleControls && localStream != null && (
+            {showMediaToggleControls && inputMediaStream != null && (
               <InputMediaControls
                 disabled={buttonDisabled}
-                stream={localStream}
+                stream={inputMediaStream}
               />
             )}
           </Box>

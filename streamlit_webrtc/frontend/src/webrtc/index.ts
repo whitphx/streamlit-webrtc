@@ -120,8 +120,8 @@ export const useWebRtc = (
       // Connect received audio / video to DOM elements
       if (mode === "SENDRECV" || mode === "RECVONLY") {
         pc.addEventListener("track", (evt) => {
-          const stream = evt.streams[0]; // TODO: Handle multiple streams
-          dispatch({ type: "SET_STREAM", stream });
+          const outputMediaStream = evt.streams[0]; // TODO: Handle multiple streams
+          dispatch({ type: "SET_OUTPUT_MEDIA_STREAM", outputMediaStream });
         });
       }
 
@@ -150,10 +150,11 @@ export const useWebRtc = (
             video?: MediaDeviceInfo["deviceId"];
             audio?: MediaDeviceInfo["deviceId"];
           } = {};
-          const stream = await navigator.mediaDevices.getUserMedia(constraints);
-          dispatch({ type: "SET_LOCAL_STREAM", stream });
-          stream.getTracks().forEach((track) => {
-            pc.addTrack(track, stream);
+          const inputMediaStream =
+            await navigator.mediaDevices.getUserMedia(constraints);
+          dispatch({ type: "SET_INPUT_MEDIA_STREAM", inputMediaStream });
+          inputMediaStream.getTracks().forEach((track) => {
+            pc.addTrack(track, inputMediaStream);
 
             const kind = track.kind;
             if (kind !== "video" && kind !== "audio") {
