@@ -4,9 +4,13 @@ interface ActionBase {
 interface SignallingStartAction extends ActionBase {
   type: "SIGNALLING_START";
 }
-interface StreamSetAction extends ActionBase {
-  type: "SET_STREAM";
-  stream: MediaStream;
+interface OutputMediaStreamSetAction extends ActionBase {
+  type: "SET_OUTPUT_MEDIA_STREAM";
+  outputMediaStream: MediaStream;
+}
+interface InputMediaStreamSetAction extends ActionBase {
+  type: "SET_INPUT_MEDIA_STREAM";
+  inputMediaStream: MediaStream;
 }
 interface SetOfferAction extends ActionBase {
   type: "SET_OFFER";
@@ -40,7 +44,8 @@ interface ErrorAction extends ActionBase {
 }
 export type Action =
   | SignallingStartAction
-  | StreamSetAction
+  | OutputMediaStreamSetAction
+  | InputMediaStreamSetAction
   | SetOfferAction
   | AddIceCandidateAction
   | StoppingAction

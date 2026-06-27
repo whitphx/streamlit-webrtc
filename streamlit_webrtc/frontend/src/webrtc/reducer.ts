@@ -6,14 +6,16 @@ export interface State {
   webRtcState: WebRtcState;
   sdpOffer: RTCSessionDescription | null;
   iceCandidates: Record<string, RTCIceCandidate>; // key: candidate id for the server to identify the added candidates
-  stream: MediaStream | null;
+  outputMediaStream: MediaStream | null;
+  inputMediaStream: MediaStream | null;
   error: Error | null;
 }
 export const initialState: State = {
   webRtcState: "STOPPED",
   sdpOffer: null,
   iceCandidates: {},
-  stream: null,
+  outputMediaStream: null,
+  inputMediaStream: null,
   error: null,
 };
 
@@ -23,13 +25,19 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
       return {
         ...state,
         webRtcState: "SIGNALLING",
-        stream: null,
+        outputMediaStream: null,
+        inputMediaStream: null,
         error: null,
       };
-    case "SET_STREAM":
+    case "SET_OUTPUT_MEDIA_STREAM":
       return {
         ...state,
-        stream: action.stream,
+        outputMediaStream: action.outputMediaStream,
+      };
+    case "SET_INPUT_MEDIA_STREAM":
+      return {
+        ...state,
+        inputMediaStream: action.inputMediaStream,
       };
     case "SET_OFFER":
       return {
@@ -58,7 +66,8 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         webRtcState: "STOPPED",
         sdpOffer: null,
         iceCandidates: {},
-        stream: null,
+        outputMediaStream: null,
+        inputMediaStream: null,
       };
     case "START_PLAYING":
       return {
@@ -73,6 +82,8 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         webRtcState: "STOPPED",
         sdpOffer: null,
         iceCandidates: {},
+        outputMediaStream: null,
+        inputMediaStream: null,
         error: action.error,
       };
     case "PROCESS_ANSWER_ERROR":
@@ -81,6 +92,8 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         webRtcState: "STOPPED",
         sdpOffer: null,
         iceCandidates: {},
+        outputMediaStream: null,
+        inputMediaStream: null,
         error: action.error,
       };
     case "ERROR":
@@ -89,6 +102,8 @@ export const reducer: React.Reducer<State, Action> = (state, action) => {
         webRtcState: "STOPPED",
         sdpOffer: null,
         iceCandidates: {},
+        outputMediaStream: null,
+        inputMediaStream: null,
         error: action.error,
       };
   }

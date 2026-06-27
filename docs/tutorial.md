@@ -24,6 +24,20 @@ Then, video and audio streaming starts. If asked for permissions to access the c
 
 ![Basic example of streamlit-webrtc](./images/streamlit_webrtc_basic.gif)
 
+## Media Toggle Controls
+
+When the app sends local camera or microphone input, `webrtc_streamer()` shows camera and microphone toggle buttons next to the Start/Stop button. These controls let users turn their outgoing camera or microphone track on and off without stopping the WebRTC session.
+
+Set `media_toggle_controls=False` to hide these toggle buttons:
+
+```python
+from streamlit_webrtc import webrtc_streamer
+
+webrtc_streamer(key="example", media_toggle_controls=False)
+```
+
+When a user turns off the camera or microphone with these buttons, the WebRTC track stays active. As described in MDN's [`MediaStreamTrack.enabled` documentation](https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack/enabled), disabled audio tracks send silence, and disabled video tracks send black frames; the session does not stop or renegotiate.
+
 ## Adding Video Processing
 
 Next, edit `app.py` as below and run it again:

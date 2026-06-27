@@ -534,6 +534,7 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    media_toggle_controls: bool = True,
 ) -> WebRtcStreamerContext:
     # XXX: We wanted something like `WebRtcStreamerContext[None, None]`
     # as the return value, but could not find a good solution
@@ -580,6 +581,7 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    media_toggle_controls: bool = True,
 ) -> WebRtcStreamerContext[VideoProcessorT, Any]:
     pass
 
@@ -622,6 +624,7 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    media_toggle_controls: bool = True,
 ) -> WebRtcStreamerContext[Any, AudioProcessorT]:
     pass
 
@@ -664,6 +667,7 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
+    media_toggle_controls: bool = True,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     pass
 
@@ -705,6 +709,7 @@ def webrtc_streamer(
     # Deprecated. Just for backward compatibility
     video_transformer_factory=None,
     async_transform: Optional[bool] = None,
+    media_toggle_controls: bool = True,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     # Backward compatibility
     if video_transformer_factory is not None:
@@ -776,6 +781,7 @@ def webrtc_streamer(
         video_html_attrs=video_html_attrs,
         audio_html_attrs=audio_html_attrs,
         translations=translations,
+        media_toggle_controls=media_toggle_controls,
         desired_playing_state=desired_playing_state,
         # `sendback_*` lets the frontend negotiate recvonly transceivers for
         # kinds the local capture won't produce — without this, an audio-only
