@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.73.0'></a>
+## 0.73.0 — 2026-06-27
+
+### Added
+
+- Added camera and microphone toggle buttons to the WebRTC component controls, with a `media_toggle_controls` option to hide them.
+
 <a id='changelog-0.72.2'></a>
 ## 0.72.2 — 2026-06-19
 
