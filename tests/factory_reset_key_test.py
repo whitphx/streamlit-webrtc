@@ -17,7 +17,7 @@ from streamlit_webrtc.factory import (
 
 
 class FakeSessionShutdownObserver:
-    instances = []
+    instances: list["FakeSessionShutdownObserver"] = []
 
     def __init__(self, callback):
         self.callback = callback
