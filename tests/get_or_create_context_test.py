@@ -12,9 +12,11 @@ from unittest.mock import MagicMock, patch
 import streamlit as st
 
 from streamlit_webrtc.component import (
+    ComponentValueSnapshot,
     WebRtcStreamerContext,
     WebRtcStreamerState,
     _get_or_create_context,
+    _handle_worker_lifecycle,
 )
 
 
@@ -124,3 +126,36 @@ def test_orphan_reset_handles_already_stopped_worker():
         _get_or_create_context("key4")
 
     worker.stop.assert_called_once()
+
+
+def test_idle_frontend_resets_worker_and_signalling_state():
+    ctx = WebRtcStreamerContext(
+        worker=None,
+        state=WebRtcStreamerState(playing=False, signalling=False),
+    )
+    worker = MagicMock()
+    ctx._set_worker(worker)
+    ctx._sdp_answer_json = "stub-answer"
+    ctx._is_sdp_answer_sent = True
+    ctx._component_value_snapshot = ComponentValueSnapshot(
+        component_value={"playing": True},
+        run_count=1,
+    )
+    make_worker = MagicMock()
+
+    with patch("streamlit_webrtc.component.rerun") as rerun:
+        _handle_worker_lifecycle(
+            ctx,
+            key="key5",
+            sdp_offer=None,
+            make_worker=make_worker,
+        )
+
+    worker.stop.assert_called_once()
+    make_worker.assert_not_called()
+    rerun.assert_called_once()
+    assert ctx._get_worker() is None
+    assert ctx.state == WebRtcStreamerState(playing=False, signalling=False)
+    assert ctx._sdp_answer_json is None
+    assert ctx._is_sdp_answer_sent is False
+    assert ctx._component_value_snapshot is None
