@@ -52,8 +52,8 @@ def set_default_factory_reset_key(
 
     The default is scoped to the current Streamlit session. Factory helpers use
     it when their per-call ``reset_key`` argument is ``None``. Passing ``None``
-    to this function clears the default and restores the legacy key-only cache
-    behavior.
+    to this function clears the default, so helpers cache only by their own
+    ``key`` unless a per-call ``reset_key`` is supplied.
     """
     if reset_key is None:
         st.session_state.pop(_DEFAULT_RESET_KEY_SESSION_STATE_KEY, None)
