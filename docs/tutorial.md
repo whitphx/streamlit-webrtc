@@ -104,46 +104,30 @@ These callbacks run on `aiortc`'s asyncio loop — not Streamlit's main thread �
 
 When using the class-based API (`video_processor_factory` / `audio_processor_factory`), override `VideoProcessorBase.on_ended()` / `AudioProcessorBase.on_ended()` instead — they fire at the same lifecycle point.
 
-## Reset Cached Source/Sink Tracks
+## Source/Sink Track Lifecycle
 
-The source/sink factory helpers cache their returned objects by `key` so they survive Streamlit reruns. When your app has a separate logical media session, pass a stable `reset_key` and change it only when that media session should restart.
+The source/sink factory helpers cache their returned objects by `key` so they survive Streamlit reruns. By default, these cached objects are scoped to the active WebRTC session: when the user clicks STOP, closes the page, or the connection drops, the cached source/sink object is stopped and removed from `st.session_state`.
 
 ```python
-import uuid
-
-import streamlit as st
 from streamlit_webrtc import create_video_source_track
-
-
-if "media_session_id" not in st.session_state:
-    st.session_state.media_session_id = str(uuid.uuid4())
-
-if st.button("Start new media session"):
-    st.session_state.media_session_id = str(uuid.uuid4())
 
 video_track = create_video_source_track(
     callback=video_source_callback,
     key="avatar-video",
-    reset_key=st.session_state.media_session_id,
 )
 ```
 
-To share one lifecycle across multiple factory helpers, set the session-scoped default:
+To keep a factory-created object alive across multiple WebRTC sessions in the same Streamlit session, opt out with `lifecycle_scope="streamlit-session"`:
 
 ```python
-from streamlit_webrtc import (
-    create_audio_source_track,
-    create_video_source_track,
-    set_default_factory_reset_key,
+video_track = create_video_source_track(
+    callback=video_source_callback,
+    key="avatar-video",
+    lifecycle_scope="streamlit-session",
 )
-
-set_default_factory_reset_key(st.session_state.media_session_id)
-
-video_track = create_video_source_track(video_source_callback, key="avatar-video")
-audio_track = create_audio_source_track(audio_source_callback, key="avatar-audio")
 ```
 
-The default applies to source/sink factory helpers and `create_pcm_audio_source_track()`. Use per-call `reset_key` values for tracks with independent lifecycles. `reset_key` does not affect `webrtc_streamer()`, `create_process_track()`, or `create_mix_track()`.
+`lifecycle_scope` applies to source/sink factory helpers and `create_pcm_audio_source_track()`. It does not affect `webrtc_streamer()`, `create_process_track()`, or `create_mix_track()`.
 
 ## Ready for Production?
 

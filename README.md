@@ -236,54 +236,32 @@ These callbacks run on `aiortc`'s asyncio loop — not Streamlit's main thread �
 
 When using the [class-based API](#class-based-callbacks), override `VideoProcessorBase.on_ended()` / `AudioProcessorBase.on_ended()` instead — they fire at the same lifecycle point.
 
-## Reset cached source/sink tracks
+## Source/sink track lifecycle
 
 Factory helpers such as `create_video_source_track()`, `create_audio_source_track()`, `create_video_sink_track()`, `create_audio_sink_track()`, and `create_pcm_audio_source_track()` cache their returned objects in `st.session_state` by `key` so they survive Streamlit reruns. This is usually what you want: widget changes and reruns keep using the same media track.
 
-If your app has its own logical session lifecycle, pass a `reset_key` to tell the factory when to stop the cached object and create a fresh one.
+By default, factory-created source and sink tracks are scoped to the active WebRTC session. When that session ends, for example when the user clicks STOP, closes the page, or the connection drops, the cached object is stopped and removed from `st.session_state`. The next WebRTC session with the same `key` gets a fresh object.
 
 ```python
-import uuid
-
-import streamlit as st
 from streamlit_webrtc import create_video_source_track
-
-
-if "media_session_id" not in st.session_state:
-    st.session_state.media_session_id = str(uuid.uuid4())
-
-if st.button("Start new media session"):
-    st.session_state.media_session_id = str(uuid.uuid4())
 
 video_track = create_video_source_track(
     callback=video_source_callback,
     key="avatar-video",
-    reset_key=st.session_state.media_session_id,
 )
 ```
 
-Keep the `reset_key` stable while you want the same cached track reused across reruns. Change it only when you intentionally want a fresh track, for example before starting a new remote API session, after a Stop action, or when switching to a different media pipeline. Do not change it on every rerun.
-
-When multiple source/sink factories should share the same lifecycle, set a session-scoped default reset key:
+To keep a factory-created object alive across multiple WebRTC sessions in the same Streamlit session, opt out with `lifecycle_scope="streamlit-session"`:
 
 ```python
-from streamlit_webrtc import (
-    create_audio_source_track,
-    create_video_source_track,
-    set_default_factory_reset_key,
+video_track = create_video_source_track(
+    callback=video_source_callback,
+    key="avatar-video",
+    lifecycle_scope="streamlit-session",
 )
-
-set_default_factory_reset_key(st.session_state.media_session_id)
-
-video_track = create_video_source_track(video_source_callback, key="avatar-video")
-audio_track = create_audio_source_track(audio_source_callback, key="avatar-audio")
 ```
 
-The default applies to all source/sink factory calls whose per-call `reset_key` is `None`, including `create_pcm_audio_source_track()`. Changing the default can recreate live cached tracks on the next rerun. Use per-call `reset_key` values for tracks that have independent lifecycles.
-
-Passing `None` to `set_default_factory_reset_key(None)` clears the default; factories then cache only by their own `key` unless a per-call `reset_key` is supplied.
-
-`reset_key` does not affect `webrtc_streamer()` itself, `create_process_track()`, or `create_mix_track()`.
+`lifecycle_scope` applies to source/sink factory helpers and `create_pcm_audio_source_track()`. It does not affect `webrtc_streamer()` itself, `create_process_track()`, or `create_mix_track()`.
 
 ## Class-based callbacks
 The function-based callbacks (`video_frame_callback` / `audio_frame_callback`) shown above are the recommended API.
