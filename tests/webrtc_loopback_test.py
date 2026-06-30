@@ -70,9 +70,15 @@ def test_worker_stop_waits_for_peer_connection_close(monkeypatch) -> None:
     worker._relayed_source_video_track = None
     worker.source_video_track = None
 
-    close_future: concurrent.futures.Future = concurrent.futures.Future()
-    close_future.set_result(None)
     closed = {"submitted": False, "waited": False}
+
+    class CloseFuture(concurrent.futures.Future[None]):
+        def result(self, timeout=None) -> None:
+            closed["waited"] = True
+            return super().result(timeout=timeout)
+
+    close_future = CloseFuture()
+    close_future.set_result(None)
 
     class FakeLoop:
         def is_running(self) -> bool:
@@ -83,14 +89,6 @@ def test_worker_stop_waits_for_peer_connection_close(monkeypatch) -> None:
 
         async def close(self) -> None:
             pass
-
-    original_result = close_future.result
-
-    def result(timeout=None):
-        closed["waited"] = True
-        return original_result(timeout=timeout)
-
-    close_future.result = result
 
     def run_coroutine_threadsafe(coro, loop):
         coro.close()
@@ -105,7 +103,6 @@ def test_worker_stop_waits_for_peer_connection_close(monkeypatch) -> None:
     worker.stop(timeout=1.0)
 
     assert closed == {"submitted": True, "waited": True}
-    worker.pc = None
 
 
 def _wire_ice(client: RTCPeerConnection, worker: WebRtcWorker) -> None:
