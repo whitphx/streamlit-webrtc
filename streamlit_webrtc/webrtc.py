@@ -6,7 +6,6 @@ import logging
 import queue
 import threading
 from typing import (
-    TYPE_CHECKING,
     Callable,
     Dict,
     Generic,
