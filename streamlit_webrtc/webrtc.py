@@ -1,11 +1,11 @@
 import asyncio
+import concurrent.futures
 import enum
 import itertools
 import logging
 import queue
 import threading
 from typing import (
-    TYPE_CHECKING,
     Callable,
     Dict,
     Generic,
@@ -56,9 +56,6 @@ from .process import (
 from .receive import AudioReceiver, VideoReceiver
 from .relay import get_global_relay
 from .sink import MediaSink
-
-if TYPE_CHECKING:
-    import concurrent.futures
 
 __all__ = [
     "AudioProcessorBase",
@@ -832,7 +829,14 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         if self.pc and self.pc.connectionState != "closed":
             loop = self._loop
             if loop.is_running():
-                asyncio.run_coroutine_threadsafe(self.pc.close(), loop=loop)
+                close_future = asyncio.run_coroutine_threadsafe(
+                    self.pc.close(),
+                    loop=loop,
+                )
+                try:
+                    close_future.result(timeout=timeout)
+                except concurrent.futures.TimeoutError:
+                    logger.warning("Timed out while closing the peer connection")
             else:
                 loop.run_until_complete(self.pc.close())
 

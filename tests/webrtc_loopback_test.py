@@ -10,6 +10,7 @@ failures.
 """
 
 import asyncio
+import concurrent.futures
 import fractions
 from typing import Any, Dict, List, Set
 
@@ -51,6 +52,57 @@ _WORKER_DEFAULTS: Dict[str, Any] = dict(
 def _source_callback(pts: int, time_base: fractions.Fraction) -> av.VideoFrame:
     arr = np.zeros((32, 32, 3), dtype=np.uint8)
     return av.VideoFrame.from_ndarray(arr, format="bgr24")
+
+
+def test_worker_stop_waits_for_peer_connection_close(monkeypatch) -> None:
+    worker = object.__new__(WebRtcWorker)
+    worker._process_offer_thread = None
+    worker._session_shutdown_observer = None
+    worker._video_processor = None
+    worker._audio_processor = None
+    worker._video_receiver = None
+    worker._audio_receiver = None
+    worker.sink_video_track = None
+    worker.sink_audio_track = None
+    worker._player = None
+    worker._relayed_source_audio_track = None
+    worker.source_audio_track = None
+    worker._relayed_source_video_track = None
+    worker.source_video_track = None
+
+    closed = {"submitted": False, "waited": False}
+
+    class CloseFuture(concurrent.futures.Future[None]):
+        def result(self, timeout=None) -> None:
+            closed["waited"] = True
+            return super().result(timeout=timeout)
+
+    close_future = CloseFuture()
+    close_future.set_result(None)
+
+    class FakeLoop:
+        def is_running(self) -> bool:
+            return True
+
+    class FakePeerConnection:
+        connectionState = "connected"
+
+        async def close(self) -> None:
+            pass
+
+    def run_coroutine_threadsafe(coro, loop):
+        coro.close()
+        assert isinstance(loop, FakeLoop)
+        closed["submitted"] = True
+        return close_future
+
+    monkeypatch.setattr(asyncio, "run_coroutine_threadsafe", run_coroutine_threadsafe)
+    worker._loop = FakeLoop()  # type: ignore[assignment]
+    worker.pc = FakePeerConnection()  # type: ignore[assignment]
+
+    worker.stop(timeout=1.0)
+
+    assert closed == {"submitted": True, "waited": True}
 
 
 def _wire_ice(client: RTCPeerConnection, worker: WebRtcWorker) -> None:
