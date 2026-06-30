@@ -152,7 +152,7 @@ class RealtimeBridge:
             thread = self._thread
             is_bridge_thread = threading.current_thread() is thread
             if is_bridge_thread:
-                # Avoid deadlocking if a shutdown observer runs on the bridge thread.
+                # A thread cannot join itself; just signal the bridge loop to exit.
                 if self._stop_event is not None:
                     self._stop_event.set()
             elif loop is not None and not loop.is_closed():
