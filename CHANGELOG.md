@@ -2,6 +2,31 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.74.0'></a>
+## 0.74.0 — 2026-06-30
+
+### Added
+
+- Added `lifecycle_scope` support to source and sink track factory helpers,
+  with `lifecycle_scope="streamlit-session"` available for apps that need
+  Streamlit-session persistence.
+
+### Changed
+
+- Source and sink track factory helpers now default to
+  `lifecycle_scope="webrtc-session"`, stopping and evicting cached
+  factory-created objects when their WebRTC session ends.
+
+### Fixed
+
+- Reset `webrtc_streamer()` backend state when its frontend session ends, so
+  stale worker, signalling, and component snapshot state are not reused on the
+  next start with the same key.
+
+- Wait for the peer connection close coroutine when stopping a `WebRtcWorker`,
+  so subsequent starts with the same key do not race against asynchronous peer
+  connection teardown.
+
 <a id='changelog-0.73.0'></a>
 ## 0.73.0 — 2026-06-27
 
