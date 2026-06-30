@@ -46,6 +46,10 @@ LifecycleScope = Literal["webrtc-session", "streamlit-session"]
 
 
 def _get_current_session_state() -> Any:
+    # Capture the real session state while factory helpers run on the script
+    # thread. Factory reset callbacks may later run from WebRTC/shutdown
+    # threads where resolving st.session_state can point at the wrong backing
+    # store.
     ctx = get_script_run_ctx()
     if ctx is not None:
         session_state = getattr(ctx, "session_state", None)
