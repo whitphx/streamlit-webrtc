@@ -113,7 +113,7 @@ from streamlit_webrtc import create_video_source_track
 
 video_track = create_video_source_track(
     callback=video_source_callback,
-    key="avatar-video",
+    key="video-source",
 )
 ```
 
@@ -122,7 +122,7 @@ To keep a factory-created object alive across multiple WebRTC sessions in the sa
 ```python
 video_track = create_video_source_track(
     callback=video_source_callback,
-    key="avatar-video",
+    key="video-source",
     lifecycle_scope="streamlit-session",
 )
 ```
