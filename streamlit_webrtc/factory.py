@@ -1,7 +1,8 @@
-from typing import Callable, Literal, Optional, Type, Union, overload
+from typing import Any, Callable, Literal, Optional, Type, Union, cast, overload
 
 import streamlit as st
 
+from ._compat import get_script_run_ctx
 from .eventloop import get_global_event_loop, loop_context
 from .mix import MediaStreamMixTrack, MixerCallback
 from .models import (
@@ -41,6 +42,87 @@ from .source import (
 )
 
 _PROCESSOR_TRACK_CACHE_KEY_PREFIX = "__PROCESSOR_TRACK_CACHE__"
+LifecycleScope = Literal["webrtc-session", "streamlit-session"]
+
+
+def _get_current_session_state() -> Any:
+    # Capture the real session state while factory helpers run on the script
+    # thread. Factory reset callbacks may later run from WebRTC/shutdown
+    # threads where resolving st.session_state can point at the wrong backing
+    # store.
+    ctx = get_script_run_ctx()
+    if ctx is not None:
+        session_state = getattr(ctx, "session_state", None)
+        if session_state is not None:
+            return session_state
+    return st.session_state
+
+
+def _session_state_get(session_state: Any, key: str) -> Any:
+    if key in session_state:
+        return session_state[key]
+    return None
+
+
+def _session_state_pop(session_state: Any, key: str) -> Any:
+    if key in session_state:
+        value = session_state[key]
+        del session_state[key]
+        return value
+    return None
+
+
+def _validate_lifecycle_scope(lifecycle_scope: str) -> LifecycleScope:
+    if lifecycle_scope not in ("webrtc-session", "streamlit-session"):
+        raise ValueError(
+            "lifecycle_scope must be 'webrtc-session' or 'streamlit-session'; "
+            f"got {lifecycle_scope!r}"
+        )
+    return cast(LifecycleScope, lifecycle_scope)
+
+
+def _install_cached_with_shutdown_observer(
+    *,
+    session_state: Any,
+    cache_key: str,
+    observer_cache_key: str,
+    cached: Any,
+    shutdown_callback: Callable[[], None],
+) -> None:
+    # A prior observer for this exact cache slot is tied to a now-stale cached
+    # object. Stop it before replacing the object so its polling thread is not
+    # leaked for the rest of the Streamlit session.
+    old_observer = _session_state_get(session_state, observer_cache_key)
+    if isinstance(old_observer, SessionShutdownObserver):
+        old_observer.stop()
+
+    session_state[cache_key] = cached
+    session_state[observer_cache_key] = SessionShutdownObserver(shutdown_callback)
+
+
+def _attach_factory_lifecycle(
+    *,
+    session_state: Any,
+    cache_key: str,
+    observer_cache_key: str,
+    lifecycle_target: Any,
+    lifecycle_scope: LifecycleScope,
+    stop_cached: Callable[[], None],
+) -> Callable[[], None]:
+    def reset_on_webrtc_session_end() -> None:
+        observer = _session_state_pop(session_state, observer_cache_key)
+        if isinstance(observer, SessionShutdownObserver):
+            observer.stop()
+        _session_state_pop(session_state, cache_key)
+        stop_cached()
+
+    setattr(lifecycle_target, "_streamlit_webrtc_lifecycle_scope", lifecycle_scope)
+    setattr(
+        lifecycle_target,
+        "_streamlit_webrtc_reset_on_session_end",
+        reset_on_webrtc_session_end,
+    )
+    return reset_on_webrtc_session_end
 
 
 def _get_track_class(
@@ -206,35 +288,46 @@ def create_video_source_track(
     key: str,
     fps=30,
     on_ended: Optional[Callable[[], None]] = None,
+    lifecycle_scope: LifecycleScope = "webrtc-session",
 ) -> VideoSourceTrack:
+    lifecycle_scope = _validate_lifecycle_scope(lifecycle_scope)
+    session_state = _get_current_session_state()
     cache_key = _VIDEO_SOURCE_TRACK_CACHE_KEY_PREFIX + key
     observer_cache_key = _VIDEO_SOURCE_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    is_new_track = False
     if (
-        cache_key in st.session_state
-        and isinstance(st.session_state[cache_key], VideoSourceTrack)
-        and st.session_state[cache_key].kind == "video"
-        and st.session_state[cache_key].readyState == "live"
+        cache_key in session_state
+        and isinstance(session_state[cache_key], VideoSourceTrack)
+        and session_state[cache_key].kind == "video"
+        and session_state[cache_key].readyState == "live"
     ):
-        video_source_track: VideoSourceTrack = st.session_state[cache_key]
+        video_source_track: VideoSourceTrack = session_state[cache_key]
         video_source_track._callback = callback
         video_source_track._fps = fps
     else:
-        # The previous observer (if any) is bound to a now-stopped track; stop
-        # it before installing a fresh one so its polling thread isn't leaked
-        # for the rest of the session.
-        old_observer = st.session_state.get(observer_cache_key)
-        if isinstance(old_observer, SessionShutdownObserver):
-            old_observer.stop()
-
         video_source_track = VideoSourceTrack(callback=callback, fps=fps)
-        st.session_state[cache_key] = video_source_track
-        # Auto-stop on Streamlit session shutdown so the "ended" event (and
-        # any `on_ended` callback) fires deterministically even when the user
-        # closes the page without clicking the STOP button first.
-        st.session_state[observer_cache_key] = SessionShutdownObserver(
-            video_source_track.stop
-        )
+        is_new_track = True
     video_source_track._on_ended_callback = on_ended
+    reset_on_webrtc_session_end = _attach_factory_lifecycle(
+        session_state=session_state,
+        cache_key=cache_key,
+        observer_cache_key=observer_cache_key,
+        lifecycle_target=video_source_track,
+        lifecycle_scope=lifecycle_scope,
+        stop_cached=video_source_track.stop,
+    )
+    if is_new_track:
+        _install_cached_with_shutdown_observer(
+            session_state=session_state,
+            cache_key=cache_key,
+            observer_cache_key=observer_cache_key,
+            cached=video_source_track,
+            shutdown_callback=(
+                reset_on_webrtc_session_end
+                if lifecycle_scope == "webrtc-session"
+                else video_source_track.stop
+            ),
+        )
     return video_source_track
 
 
@@ -254,27 +347,44 @@ def create_video_sink_track(
     callback: VideoSinkCallback,
     key: str,
     on_ended: Optional[Callable[[], None]] = None,
+    lifecycle_scope: LifecycleScope = "webrtc-session",
 ) -> VideoSinkTrack:
+    lifecycle_scope = _validate_lifecycle_scope(lifecycle_scope)
+    session_state = _get_current_session_state()
     cache_key = _VIDEO_SINK_TRACK_CACHE_KEY_PREFIX + key
     observer_cache_key = _VIDEO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    is_new_track = False
     if (
-        cache_key in st.session_state
-        and isinstance(st.session_state[cache_key], VideoSinkTrack)
-        and st.session_state[cache_key].readyState != "ended"
+        cache_key in session_state
+        and isinstance(session_state[cache_key], VideoSinkTrack)
+        and session_state[cache_key].readyState != "ended"
     ):
-        video_sink_track: VideoSinkTrack = st.session_state[cache_key]
+        video_sink_track: VideoSinkTrack = session_state[cache_key]
         video_sink_track._callback = callback
     else:
-        old_observer = st.session_state.get(observer_cache_key)
-        if isinstance(old_observer, SessionShutdownObserver):
-            old_observer.stop()
-
         video_sink_track = VideoSinkTrack(callback=callback)
-        st.session_state[cache_key] = video_sink_track
-        st.session_state[observer_cache_key] = SessionShutdownObserver(
-            video_sink_track.stop
-        )
+        is_new_track = True
     video_sink_track._on_ended_callback = on_ended
+    reset_on_webrtc_session_end = _attach_factory_lifecycle(
+        session_state=session_state,
+        cache_key=cache_key,
+        observer_cache_key=observer_cache_key,
+        lifecycle_target=video_sink_track,
+        lifecycle_scope=lifecycle_scope,
+        stop_cached=video_sink_track.stop,
+    )
+    if is_new_track:
+        _install_cached_with_shutdown_observer(
+            session_state=session_state,
+            cache_key=cache_key,
+            observer_cache_key=observer_cache_key,
+            cached=video_sink_track,
+            shutdown_callback=(
+                reset_on_webrtc_session_end
+                if lifecycle_scope == "webrtc-session"
+                else video_sink_track.stop
+            ),
+        )
     return video_sink_track
 
 
@@ -288,27 +398,44 @@ def create_audio_sink_track(
     callback: AudioSinkCallback,
     key: str,
     on_ended: Optional[Callable[[], None]] = None,
+    lifecycle_scope: LifecycleScope = "webrtc-session",
 ) -> AudioSinkTrack:
+    lifecycle_scope = _validate_lifecycle_scope(lifecycle_scope)
+    session_state = _get_current_session_state()
     cache_key = _AUDIO_SINK_TRACK_CACHE_KEY_PREFIX + key
     observer_cache_key = _AUDIO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    is_new_track = False
     if (
-        cache_key in st.session_state
-        and isinstance(st.session_state[cache_key], AudioSinkTrack)
-        and st.session_state[cache_key].readyState != "ended"
+        cache_key in session_state
+        and isinstance(session_state[cache_key], AudioSinkTrack)
+        and session_state[cache_key].readyState != "ended"
     ):
-        audio_sink_track: AudioSinkTrack = st.session_state[cache_key]
+        audio_sink_track: AudioSinkTrack = session_state[cache_key]
         audio_sink_track._callback = callback
     else:
-        old_observer = st.session_state.get(observer_cache_key)
-        if isinstance(old_observer, SessionShutdownObserver):
-            old_observer.stop()
-
         audio_sink_track = AudioSinkTrack(callback=callback)
-        st.session_state[cache_key] = audio_sink_track
-        st.session_state[observer_cache_key] = SessionShutdownObserver(
-            audio_sink_track.stop
-        )
+        is_new_track = True
     audio_sink_track._on_ended_callback = on_ended
+    reset_on_webrtc_session_end = _attach_factory_lifecycle(
+        session_state=session_state,
+        cache_key=cache_key,
+        observer_cache_key=observer_cache_key,
+        lifecycle_target=audio_sink_track,
+        lifecycle_scope=lifecycle_scope,
+        stop_cached=audio_sink_track.stop,
+    )
+    if is_new_track:
+        _install_cached_with_shutdown_observer(
+            session_state=session_state,
+            cache_key=cache_key,
+            observer_cache_key=observer_cache_key,
+            cached=audio_sink_track,
+            shutdown_callback=(
+                reset_on_webrtc_session_end
+                if lifecycle_scope == "webrtc-session"
+                else audio_sink_track.stop
+            ),
+        )
     return audio_sink_track
 
 
@@ -323,6 +450,7 @@ def create_pcm_audio_source_track(
     key: str,
     sample_rate: int,
     ptime: float = 0.020,
+    lifecycle_scope: LifecycleScope = "webrtc-session",
 ) -> PcmAudioSource:
     """Create a source track that plays s16-mono PCM pushed from any thread.
 
@@ -334,20 +462,27 @@ def create_pcm_audio_source_track(
     (append PCM bytes / int16 ndarray, callable from any thread), and
     :meth:`PcmAudioSource.clear` (drop buffered samples, e.g. on barge-in).
     """
+    lifecycle_scope = _validate_lifecycle_scope(lifecycle_scope)
+    session_state = _get_current_session_state()
     cache_key = _PCM_AUDIO_SOURCE_CACHE_KEY_PREFIX + key
     observer_cache_key = _PCM_AUDIO_SOURCE_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
-    existing = st.session_state.get(cache_key)
+    existing = _session_state_get(session_state, cache_key)
     if (
         isinstance(existing, PcmAudioSource)
         and existing.track.readyState == "live"
         and existing.sample_rate == sample_rate
         and existing.ptime == ptime
     ):
+        _attach_factory_lifecycle(
+            session_state=session_state,
+            cache_key=cache_key,
+            observer_cache_key=observer_cache_key,
+            lifecycle_target=existing.track,
+            lifecycle_scope=lifecycle_scope,
+            stop_cached=existing.track.stop,
+        )
         return existing
 
-    old_observer = st.session_state.get(observer_cache_key)
-    if isinstance(old_observer, SessionShutdownObserver):
-        old_observer.stop()
     # Stopping the observer doesn't fire its callback, so if the cache held a
     # PcmAudioSource whose track is still live (param change between reruns),
     # stop it explicitly to avoid leaking the underlying media track.
@@ -355,9 +490,24 @@ def create_pcm_audio_source_track(
         existing.track.stop()
 
     pcm_source = PcmAudioSource(sample_rate=sample_rate, ptime=ptime)
-    st.session_state[cache_key] = pcm_source
-    st.session_state[observer_cache_key] = SessionShutdownObserver(
-        pcm_source.track.stop
+    reset_on_webrtc_session_end = _attach_factory_lifecycle(
+        session_state=session_state,
+        cache_key=cache_key,
+        observer_cache_key=observer_cache_key,
+        lifecycle_target=pcm_source.track,
+        lifecycle_scope=lifecycle_scope,
+        stop_cached=pcm_source.track.stop,
+    )
+    _install_cached_with_shutdown_observer(
+        session_state=session_state,
+        cache_key=cache_key,
+        observer_cache_key=observer_cache_key,
+        cached=pcm_source,
+        shutdown_callback=(
+            reset_on_webrtc_session_end
+            if lifecycle_scope == "webrtc-session"
+            else pcm_source.track.stop
+        ),
     )
     return pcm_source
 
@@ -368,31 +518,48 @@ def create_audio_source_track(
     sample_rate: int = 48000,
     ptime: float = 0.020,
     on_ended: Optional[Callable[[], None]] = None,
+    lifecycle_scope: LifecycleScope = "webrtc-session",
 ) -> AudioSourceTrack:
+    lifecycle_scope = _validate_lifecycle_scope(lifecycle_scope)
+    session_state = _get_current_session_state()
     cache_key = _AUDIO_SOURCE_TRACK_CACHE_KEY_PREFIX + key
     observer_cache_key = _AUDIO_SOURCE_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    is_new_track = False
     if (
-        cache_key in st.session_state
-        and isinstance(st.session_state[cache_key], AudioSourceTrack)
-        and st.session_state[cache_key].kind == "audio"
-        and st.session_state[cache_key].readyState == "live"
+        cache_key in session_state
+        and isinstance(session_state[cache_key], AudioSourceTrack)
+        and session_state[cache_key].kind == "audio"
+        and session_state[cache_key].readyState == "live"
     ):
-        audio_source_track: AudioSourceTrack = st.session_state[cache_key]
+        audio_source_track: AudioSourceTrack = session_state[cache_key]
         audio_source_track._callback = callback
         audio_source_track._sample_rate = sample_rate
         audio_source_track._ptime = ptime
         audio_source_track._samples_per_frame = int(sample_rate * ptime)
     else:
-        old_observer = st.session_state.get(observer_cache_key)
-        if isinstance(old_observer, SessionShutdownObserver):
-            old_observer.stop()
-
         audio_source_track = AudioSourceTrack(
             callback=callback, sample_rate=sample_rate, ptime=ptime
         )
-        st.session_state[cache_key] = audio_source_track
-        st.session_state[observer_cache_key] = SessionShutdownObserver(
-            audio_source_track.stop
-        )
+        is_new_track = True
     audio_source_track._on_ended_callback = on_ended
+    reset_on_webrtc_session_end = _attach_factory_lifecycle(
+        session_state=session_state,
+        cache_key=cache_key,
+        observer_cache_key=observer_cache_key,
+        lifecycle_target=audio_source_track,
+        lifecycle_scope=lifecycle_scope,
+        stop_cached=audio_source_track.stop,
+    )
+    if is_new_track:
+        _install_cached_with_shutdown_observer(
+            session_state=session_state,
+            cache_key=cache_key,
+            observer_cache_key=observer_cache_key,
+            cached=audio_source_track,
+            shutdown_callback=(
+                reset_on_webrtc_session_end
+                if lifecycle_scope == "webrtc-session"
+                else audio_source_track.stop
+            ),
+        )
     return audio_source_track

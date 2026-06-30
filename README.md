@@ -236,6 +236,33 @@ These callbacks run on `aiortc`'s asyncio loop — not Streamlit's main thread �
 
 When using the [class-based API](#class-based-callbacks), override `VideoProcessorBase.on_ended()` / `AudioProcessorBase.on_ended()` instead — they fire at the same lifecycle point.
 
+## Source/sink track lifecycle
+
+Factory helpers such as `create_video_source_track()`, `create_audio_source_track()`, `create_video_sink_track()`, `create_audio_sink_track()`, and `create_pcm_audio_source_track()` cache their returned objects in `st.session_state` by `key` so they survive Streamlit reruns. This is usually what you want: widget changes and reruns keep using the same media track.
+
+By default, factory-created source and sink tracks are scoped to the active WebRTC session. When that session ends, for example when the user clicks STOP, closes the page, or the connection drops, the cached object is stopped and removed from `st.session_state`. The next WebRTC session with the same `key` gets a fresh object.
+
+```python
+from streamlit_webrtc import create_video_source_track
+
+video_track = create_video_source_track(
+    callback=video_source_callback,
+    key="video-source",
+)
+```
+
+To keep a factory-created object alive across multiple WebRTC sessions in the same Streamlit session, opt out with `lifecycle_scope="streamlit-session"`:
+
+```python
+video_track = create_video_source_track(
+    callback=video_source_callback,
+    key="video-source",
+    lifecycle_scope="streamlit-session",
+)
+```
+
+`lifecycle_scope` applies to source/sink factory helpers and `create_pcm_audio_source_track()`. It does not affect `webrtc_streamer()` itself, `create_process_track()`, or `create_mix_track()`, whose lifecycles are tied to input tracks or explicit mixer reuse.
+
 ## Class-based callbacks
 The function-based callbacks (`video_frame_callback` / `audio_frame_callback`) shown above are the recommended API.
 

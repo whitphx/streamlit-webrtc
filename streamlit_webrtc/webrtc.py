@@ -123,6 +123,19 @@ def _notify_track_created(
         callback(cast(TrackType, f"{role}:{track.kind}"), track)
 
 
+def _reset_factory_cache_on_webrtc_session_end(obj: object) -> bool:
+    lifecycle_scope = getattr(obj, "_streamlit_webrtc_lifecycle_scope", None)
+    if lifecycle_scope != "webrtc-session":
+        return False
+
+    reset = getattr(obj, "_streamlit_webrtc_reset_on_session_end", None)
+    if callable(reset):
+        reset()
+        return True
+
+    return False
+
+
 async def _process_offer_coro(
     mode: WebRtcMode,
     pc: RTCPeerConnection,
@@ -267,9 +280,13 @@ async def _process_offer_coro(
                     video_receiver.stop()
                 if audio_receiver:
                     audio_receiver.stop()
-                if sink_video_track:
+                if sink_video_track and not (
+                    _reset_factory_cache_on_webrtc_session_end(sink_video_track)
+                ):
                     sink_video_track.stop()
-                if sink_audio_track:
+                if sink_audio_track and not (
+                    _reset_factory_cache_on_webrtc_session_end(sink_audio_track)
+                ):
                     sink_audio_track.stop()
                 if in_recorder:
                     await in_recorder.stop()
@@ -762,10 +779,14 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             self._audio_receiver.stop()
         self._audio_receiver = None
 
-        if self.sink_video_track is not None:
+        if self.sink_video_track is not None and not (
+            _reset_factory_cache_on_webrtc_session_end(self.sink_video_track)
+        ):
             self.sink_video_track.stop()
         self.sink_video_track = None
-        if self.sink_audio_track is not None:
+        if self.sink_audio_track is not None and not (
+            _reset_factory_cache_on_webrtc_session_end(self.sink_audio_track)
+        ):
             self.sink_audio_track.stop()
         self.sink_audio_track = None
 
@@ -787,11 +808,15 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         if self._relayed_source_audio_track:
             logger.debug("Stopping the relayed source audio track")
             self._relayed_source_audio_track.stop()
+        if self.source_audio_track:
+            _reset_factory_cache_on_webrtc_session_end(self.source_audio_track)
         self.source_audio_track = None
         self._relayed_source_audio_track = None
         if self._relayed_source_video_track:
             logger.debug("Stopping the relayed source video track")
             self._relayed_source_video_track.stop()
+        if self.source_video_track:
+            _reset_factory_cache_on_webrtc_session_end(self.source_video_track)
         self.source_video_track = None
         self._relayed_source_video_track = None
 
