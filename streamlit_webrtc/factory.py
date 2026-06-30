@@ -43,6 +43,7 @@ from .source import (
 _PROCESSOR_TRACK_CACHE_KEY_PREFIX = "__PROCESSOR_TRACK_CACHE__"
 ResetKey = Union[int, str]
 _DEFAULT_RESET_KEY_SESSION_STATE_KEY = "__FACTORY_DEFAULT_RESET_KEY__"
+_ACTIVE_RESET_CACHE_SESSION_STATE_KEY = "__FACTORY_ACTIVE_RESET_CACHE__"
 
 
 def set_default_factory_reset_key(
@@ -79,8 +80,12 @@ def _make_reset_cache_key(
     return prefix + key + f"__RESET_KEY__{type(reset_key).__name__}:" + str(reset_key)
 
 
-def _active_cache_key(prefix: str, key: str) -> str:
-    return prefix + "__ACTIVE_CACHE_KEY__" + key
+def _active_reset_cache_entries() -> dict[tuple[str, str], tuple[str, str]]:
+    entries = st.session_state.get(_ACTIVE_RESET_CACHE_SESSION_STATE_KEY)
+    if not isinstance(entries, dict):
+        entries = {}
+        st.session_state[_ACTIVE_RESET_CACHE_SESSION_STATE_KEY] = entries
+    return entries
 
 
 def _prepare_reset_cache(
@@ -95,11 +100,10 @@ def _prepare_reset_cache(
     cache_key = _make_reset_cache_key(cache_prefix, key, reset_key)
     observer_cache_key = _make_reset_cache_key(observer_prefix, key, reset_key)
 
-    active_cache_key = _active_cache_key(cache_prefix, key)
-    active_observer_cache_key = _active_cache_key(observer_prefix, key)
-    previous_cache_key = st.session_state.get(active_cache_key, cache_prefix + key)
-    previous_observer_cache_key = st.session_state.get(
-        active_observer_cache_key, observer_prefix + key
+    active_entries = _active_reset_cache_entries()
+    active_entry_key = (cache_prefix, key)
+    previous_cache_key, previous_observer_cache_key = active_entries.get(
+        active_entry_key, (cache_prefix + key, observer_prefix + key)
     )
 
     if previous_cache_key != cache_key:
@@ -111,8 +115,10 @@ def _prepare_reset_cache(
         if previous_cached is not None:
             stop_cached(previous_cached)
 
-    st.session_state[active_cache_key] = cache_key
-    st.session_state[active_observer_cache_key] = observer_cache_key
+    if reset_key is None:
+        active_entries.pop(active_entry_key, None)
+    else:
+        active_entries[active_entry_key] = (cache_key, observer_cache_key)
     return cache_key, observer_cache_key
 
 
