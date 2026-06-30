@@ -261,7 +261,7 @@ video_track = create_video_source_track(
 )
 ```
 
-`lifecycle_scope` applies to source/sink factory helpers and `create_pcm_audio_source_track()`. It does not affect `webrtc_streamer()` itself, `create_process_track()`, or `create_mix_track()`.
+`lifecycle_scope` applies to source/sink factory helpers and `create_pcm_audio_source_track()`. It does not affect `webrtc_streamer()` itself, `create_process_track()`, or `create_mix_track()`, whose lifecycles are tied to input tracks or explicit mixer reuse.
 
 ## Class-based callbacks
 The function-based callbacks (`video_frame_callback` / `audio_frame_callback`) shown above are the recommended API.
