@@ -95,13 +95,15 @@ def _make_reset_cache_key(
     prefix: str,
     key: str,
     reset_key: Optional[ResetKey],
-) -> Any:
+) -> str:
     if reset_key is None:
         return prefix + key
-    return (_RESET_CACHE_KEY_PREFIX, prefix, key, type(reset_key).__name__, reset_key)
+    return repr(
+        (_RESET_CACHE_KEY_PREFIX, prefix, key, type(reset_key).__name__, reset_key)
+    )
 
 
-def _active_reset_cache_entries() -> dict[tuple[str, str], tuple[Any, Any]]:
+def _active_reset_cache_entries() -> dict[tuple[str, str], tuple[str, str]]:
     entries = st.session_state.get(_ACTIVE_RESET_CACHE_SESSION_STATE_KEY)
     if not isinstance(entries, dict):
         entries = {}
