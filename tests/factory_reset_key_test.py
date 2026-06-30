@@ -150,6 +150,30 @@ def test_active_reset_metadata_does_not_collide_with_user_keys():
     assert reset_track.readyState == "ended"
 
 
+def test_reset_key_cache_entry_does_not_collide_with_user_keys():
+    collision_key = "video__RESET_KEY__int:1"
+
+    reset_track = create_video_source_track(
+        _video_callback,
+        key="video",
+        reset_key=1,
+    )
+    key_only_track1 = create_video_source_track(_video_callback, key=collision_key)
+    key_only_track2 = create_video_source_track(_video_callback, key=collision_key)
+
+    assert key_only_track1 is not reset_track
+    assert key_only_track2 is key_only_track1
+    assert reset_track.readyState == "live"
+
+
+def test_bool_reset_key_is_rejected():
+    with pytest.raises(TypeError, match="reset_key"):
+        set_default_factory_reset_key(True)
+
+    with pytest.raises(TypeError, match="reset_key"):
+        create_video_source_track(_video_callback, key="video", reset_key=True)
+
+
 def test_video_source_track_reset_key_creates_fresh_track():
     track1 = create_video_source_track(
         _video_callback,

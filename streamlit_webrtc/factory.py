@@ -44,6 +44,7 @@ _PROCESSOR_TRACK_CACHE_KEY_PREFIX = "__PROCESSOR_TRACK_CACHE__"
 ResetKey = Union[int, str]
 _DEFAULT_RESET_KEY_SESSION_STATE_KEY = "__FACTORY_DEFAULT_RESET_KEY__"
 _ACTIVE_RESET_CACHE_SESSION_STATE_KEY = "__FACTORY_ACTIVE_RESET_CACHE__"
+_RESET_CACHE_KEY_PREFIX = "__FACTORY_RESET_CACHE__"
 
 
 def set_default_factory_reset_key(
@@ -51,41 +52,79 @@ def set_default_factory_reset_key(
 ) -> None:
     """Set the default reset key for source/sink factory helpers.
 
-    The default is scoped to the current Streamlit session. Factory helpers use
-    it when their per-call ``reset_key`` argument is ``None``. Passing ``None``
-    to this function clears the default, so helpers cache only by their own
-    ``key`` unless a per-call ``reset_key`` is supplied.
+    The default is scoped to the current Streamlit session and applies to all
+    source/sink factory helper calls whose per-call ``reset_key`` argument is
+    ``None``. Changing or clearing the default changes the cache identity for
+    those helper calls and can recreate live cached tracks on the next rerun.
+    Use per-call ``reset_key`` values for independent lifecycles.
+
+    This setting applies to source/sink factory helpers and
+    ``create_pcm_audio_source_track()``. It does not affect
+    ``create_process_track()`` or ``create_mix_track()``.
+
+    Passing ``None`` to this function clears the default, so helpers cache only
+    by their own ``key`` unless a per-call ``reset_key`` is supplied.
     """
+    reset_key = _validate_reset_key(reset_key)
     if reset_key is None:
         st.session_state.pop(_DEFAULT_RESET_KEY_SESSION_STATE_KEY, None)
     else:
         st.session_state[_DEFAULT_RESET_KEY_SESSION_STATE_KEY] = reset_key
 
 
+def _validate_reset_key(reset_key: Optional[ResetKey]) -> Optional[ResetKey]:
+    if reset_key is None:
+        return None
+    if isinstance(reset_key, bool) or not isinstance(reset_key, (int, str)):
+        raise TypeError(
+            "reset_key must be a string, an integer, or None; "
+            f"got {type(reset_key).__name__}"
+        )
+    return reset_key
+
+
 def _resolve_reset_key(
     reset_key: Optional[ResetKey],
 ) -> Optional[ResetKey]:
     if reset_key is None:
-        return st.session_state.get(_DEFAULT_RESET_KEY_SESSION_STATE_KEY, None)
-    return reset_key
+        reset_key = st.session_state.get(_DEFAULT_RESET_KEY_SESSION_STATE_KEY, None)
+    return _validate_reset_key(reset_key)
 
 
 def _make_reset_cache_key(
     prefix: str,
     key: str,
     reset_key: Optional[ResetKey],
-) -> str:
+) -> Any:
     if reset_key is None:
         return prefix + key
-    return prefix + key + f"__RESET_KEY__{type(reset_key).__name__}:" + str(reset_key)
+    return (_RESET_CACHE_KEY_PREFIX, prefix, key, type(reset_key).__name__, reset_key)
 
 
-def _active_reset_cache_entries() -> dict[tuple[str, str], tuple[str, str]]:
+def _active_reset_cache_entries() -> dict[tuple[str, str], tuple[Any, Any]]:
     entries = st.session_state.get(_ACTIVE_RESET_CACHE_SESSION_STATE_KEY)
     if not isinstance(entries, dict):
         entries = {}
         st.session_state[_ACTIVE_RESET_CACHE_SESSION_STATE_KEY] = entries
     return entries
+
+
+def _install_cached_with_shutdown_observer(
+    *,
+    cache_key: Any,
+    observer_cache_key: Any,
+    cached: Any,
+    stop_cached: Callable[[], None],
+) -> None:
+    # A prior observer for this exact cache slot is tied to a now-stale cached
+    # object. Stop it before replacing the object so its polling thread is not
+    # leaked for the rest of the Streamlit session.
+    old_observer = st.session_state.get(observer_cache_key)
+    if isinstance(old_observer, SessionShutdownObserver):
+        old_observer.stop()
+
+    st.session_state[cache_key] = cached
+    st.session_state[observer_cache_key] = SessionShutdownObserver(stop_cached)
 
 
 def _prepare_reset_cache(
@@ -304,20 +343,12 @@ def create_video_source_track(
         video_source_track._callback = callback
         video_source_track._fps = fps
     else:
-        # The previous observer (if any) is bound to a now-stopped track; stop
-        # it before installing a fresh one so its polling thread isn't leaked
-        # for the rest of the session.
-        old_observer = st.session_state.get(observer_cache_key)
-        if isinstance(old_observer, SessionShutdownObserver):
-            old_observer.stop()
-
         video_source_track = VideoSourceTrack(callback=callback, fps=fps)
-        st.session_state[cache_key] = video_source_track
-        # Auto-stop on Streamlit session shutdown so the "ended" event (and
-        # any `on_ended` callback) fires deterministically even when the user
-        # closes the page without clicking the STOP button first.
-        st.session_state[observer_cache_key] = SessionShutdownObserver(
-            video_source_track.stop
+        _install_cached_with_shutdown_observer(
+            cache_key=cache_key,
+            observer_cache_key=observer_cache_key,
+            cached=video_source_track,
+            stop_cached=video_source_track.stop,
         )
     video_source_track._on_ended_callback = on_ended
     return video_source_track
@@ -356,14 +387,12 @@ def create_video_sink_track(
         video_sink_track: VideoSinkTrack = st.session_state[cache_key]
         video_sink_track._callback = callback
     else:
-        old_observer = st.session_state.get(observer_cache_key)
-        if isinstance(old_observer, SessionShutdownObserver):
-            old_observer.stop()
-
         video_sink_track = VideoSinkTrack(callback=callback)
-        st.session_state[cache_key] = video_sink_track
-        st.session_state[observer_cache_key] = SessionShutdownObserver(
-            video_sink_track.stop
+        _install_cached_with_shutdown_observer(
+            cache_key=cache_key,
+            observer_cache_key=observer_cache_key,
+            cached=video_sink_track,
+            stop_cached=video_sink_track.stop,
         )
     video_sink_track._on_ended_callback = on_ended
     return video_sink_track
@@ -396,14 +425,12 @@ def create_audio_sink_track(
         audio_sink_track: AudioSinkTrack = st.session_state[cache_key]
         audio_sink_track._callback = callback
     else:
-        old_observer = st.session_state.get(observer_cache_key)
-        if isinstance(old_observer, SessionShutdownObserver):
-            old_observer.stop()
-
         audio_sink_track = AudioSinkTrack(callback=callback)
-        st.session_state[cache_key] = audio_sink_track
-        st.session_state[observer_cache_key] = SessionShutdownObserver(
-            audio_sink_track.stop
+        _install_cached_with_shutdown_observer(
+            cache_key=cache_key,
+            observer_cache_key=observer_cache_key,
+            cached=audio_sink_track,
+            stop_cached=audio_sink_track.stop,
         )
     audio_sink_track._on_ended_callback = on_ended
     return audio_sink_track
@@ -448,9 +475,6 @@ def create_pcm_audio_source_track(
     ):
         return existing
 
-    old_observer = st.session_state.get(observer_cache_key)
-    if isinstance(old_observer, SessionShutdownObserver):
-        old_observer.stop()
     # Stopping the observer doesn't fire its callback, so if the cache held a
     # PcmAudioSource whose track is still live (param change between reruns),
     # stop it explicitly to avoid leaking the underlying media track.
@@ -458,9 +482,11 @@ def create_pcm_audio_source_track(
         existing.track.stop()
 
     pcm_source = PcmAudioSource(sample_rate=sample_rate, ptime=ptime)
-    st.session_state[cache_key] = pcm_source
-    st.session_state[observer_cache_key] = SessionShutdownObserver(
-        pcm_source.track.stop
+    _install_cached_with_shutdown_observer(
+        cache_key=cache_key,
+        observer_cache_key=observer_cache_key,
+        cached=pcm_source,
+        stop_cached=pcm_source.track.stop,
     )
     return pcm_source
 
@@ -492,16 +518,14 @@ def create_audio_source_track(
         audio_source_track._ptime = ptime
         audio_source_track._samples_per_frame = int(sample_rate * ptime)
     else:
-        old_observer = st.session_state.get(observer_cache_key)
-        if isinstance(old_observer, SessionShutdownObserver):
-            old_observer.stop()
-
         audio_source_track = AudioSourceTrack(
             callback=callback, sample_rate=sample_rate, ptime=ptime
         )
-        st.session_state[cache_key] = audio_source_track
-        st.session_state[observer_cache_key] = SessionShutdownObserver(
-            audio_source_track.stop
+        _install_cached_with_shutdown_observer(
+            cache_key=cache_key,
+            observer_cache_key=observer_cache_key,
+            cached=audio_source_track,
+            stop_cached=audio_source_track.stop,
         )
     audio_source_track._on_ended_callback = on_ended
     return audio_source_track
