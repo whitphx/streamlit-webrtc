@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import concurrent.futures
 import logging
 import os
 import threading
@@ -96,6 +97,7 @@ class RealtimeBridge:
 
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._input_queue: Optional["asyncio.Queue[bytes]"] = None
+        self._conn = None
         # av.AudioResampler buffers internally, so calling resample() on
         # each input frame yields zero-or-more output frames at the
         # target rate. The instance is stateful and must not be shared
@@ -106,6 +108,7 @@ class RealtimeBridge:
 
         self._thread: Optional[threading.Thread] = None
         self._stop_event: Optional[asyncio.Event] = None
+        self._stop_lock = threading.Lock()
         # Set when the session loop is ready to accept call_soon_threadsafe.
         self._ready_event = threading.Event()
 
@@ -126,10 +129,15 @@ class RealtimeBridge:
     def start(self) -> None:
         if self.is_running:
             return
+        if self._thread is not None and not self._thread.is_alive():
+            self._thread = None
         # A dead thread (e.g. after a session crash) is replaced; the
         # caller can then act on the `error` snapshot to decide whether
         # to retry.
         self._ready_event.clear()
+        with self._state_lock:
+            self._error = None
+            self._connected = False
         self._thread = threading.Thread(
             target=self._run, name="OpenAIRealtimeBridge", daemon=True
         )
@@ -139,13 +147,36 @@ class RealtimeBridge:
         self._ready_event.wait(timeout=3.0)
 
     def stop(self) -> None:
-        loop, stop_event = self._loop, self._stop_event
-        if loop is not None and stop_event is not None and not loop.is_closed():
-            loop.call_soon_threadsafe(stop_event.set)
-        thread = self._thread
-        if thread is not None:
-            thread.join(timeout=3.0)
-        self._thread = None
+        with self._stop_lock:
+            loop = self._loop
+            thread = self._thread
+            if threading.current_thread() is thread:
+                # Avoid deadlocking if a shutdown observer runs on the bridge thread.
+                if self._stop_event is not None:
+                    self._stop_event.set()
+            elif loop is not None and not loop.is_closed():
+                try:
+                    # The Realtime connection lives on the bridge loop, so close it
+                    # there instead of only setting a flag and hoping recv() wakes up.
+                    close_future = asyncio.run_coroutine_threadsafe(
+                        self._close_realtime_session(),
+                        loop,
+                    )
+                    close_future.result(timeout=3.0)
+                except concurrent.futures.TimeoutError:
+                    logger.warning("Timed out while closing Realtime API session")
+                except Exception:
+                    logger.debug("Failed to request Realtime API close", exc_info=True)
+            if thread is not None and threading.current_thread() is not thread:
+                thread.join(timeout=3.0)
+            if thread is None or not thread.is_alive():
+                self._thread = None
+            else:
+                # Keep the handle so a later stop call can retry and the app does
+                # not silently forget a still-live websocket thread.
+                logger.warning("Realtime API bridge thread did not stop cleanly")
+        with self._state_lock:
+            self._connected = False
         self._pcm_out.clear()
 
     # ------------------------------------------------------------------
@@ -201,7 +232,12 @@ class RealtimeBridge:
             try:
                 loop.close()
             finally:
+                # These objects are bound to the closed event loop and must not be
+                # reused by a later start() after a reconnect or configuration change.
                 self._loop = None
+                self._input_queue = None
+                self._stop_event = None
+                self._conn = None
 
     async def _session(self) -> None:
         try:
@@ -216,34 +252,51 @@ class RealtimeBridge:
         stop_event = self._stop_event
 
         client = AsyncOpenAI(api_key=self._api_key)
-        async with client.realtime.connect(model=self._model) as conn:
-            await conn.session.update(
-                session={
-                    "type": "realtime",
-                    "model": self._model,
-                    "instructions": self._instructions,
-                    "audio": {
-                        "input": {
-                            "turn_detection": {"type": "server_vad"},
+        try:
+            async with client.realtime.connect(model=self._model) as conn:
+                self._conn = conn
+                await conn.session.update(
+                    session={
+                        "type": "realtime",
+                        "model": self._model,
+                        "instructions": self._instructions,
+                        "audio": {
+                            "input": {
+                                "turn_detection": {"type": "server_vad"},
+                            },
+                            "output": {"voice": self._voice},
                         },
-                        "output": {"voice": self._voice},
-                    },
-                }
-            )
-            with self._state_lock:
-                self._connected = True
+                    }
+                )
+                with self._state_lock:
+                    self._connected = True
 
-            tasks = [
-                asyncio.create_task(self._send_loop(conn), name="realtime-send"),
-                asyncio.create_task(self._recv_loop(conn), name="realtime-recv"),
-                asyncio.create_task(stop_event.wait(), name="realtime-stop"),
-            ]
+                tasks = [
+                    asyncio.create_task(self._send_loop(conn), name="realtime-send"),
+                    asyncio.create_task(self._recv_loop(conn), name="realtime-recv"),
+                    asyncio.create_task(stop_event.wait(), name="realtime-stop"),
+                ]
+                try:
+                    await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+                finally:
+                    for t in tasks:
+                        t.cancel()
+                    await asyncio.gather(*tasks, return_exceptions=True)
+        finally:
+            # Exiting the context closes the websocket; closing the client releases
+            # any underlying HTTP/WebSocket resources held by the SDK.
+            self._conn = None
+            await client.close()
+
+    async def _close_realtime_session(self) -> None:
+        if self._stop_event is not None:
+            self._stop_event.set()
+        conn = self._conn
+        if conn is not None:
             try:
-                await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-            finally:
-                for t in tasks:
-                    t.cancel()
-                await asyncio.gather(*tasks, return_exceptions=True)
+                await conn.close()
+            except Exception:
+                logger.debug("Realtime API websocket close failed", exc_info=True)
 
     async def _send_loop(self, conn) -> None:
         if self._input_queue is None:
@@ -379,7 +432,9 @@ audio_sink_track = create_audio_sink_track(
 
 
 def on_change() -> None:
-    ctx = st.session_state["openai_realtime_chat"]
+    ctx = st.session_state.get("openai_realtime_chat")
+    if ctx is None:
+        return
     if ctx.state.playing and not bridge.is_running:
         bridge.start()
     stopped = not ctx.state.playing and not ctx.state.signalling
