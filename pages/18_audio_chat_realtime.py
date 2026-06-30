@@ -23,7 +23,7 @@ import concurrent.futures
 import logging
 import os
 import threading
-from typing import Optional
+from typing import Any, Optional
 
 import av
 import numpy as np
@@ -97,7 +97,7 @@ class RealtimeBridge:
 
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._input_queue: Optional["asyncio.Queue[bytes]"] = None
-        self._conn = None
+        self._conn: Any = None
         # av.AudioResampler buffers internally, so calling resample() on
         # each input frame yields zero-or-more output frames at the
         # target rate. The instance is stateful and must not be shared
