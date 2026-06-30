@@ -1,4 +1,7 @@
 import fractions
+import threading
+from types import SimpleNamespace
+from typing import Callable
 
 import av
 import numpy as np
@@ -53,6 +56,23 @@ def _audio_callback(pts: int, time_base: fractions.Fraction) -> av.AudioFrame:
 
 def _sink_callback(frame) -> None:
     pass
+
+
+def _run_in_thread(callback: Callable[[], object]) -> None:
+    errors: list[BaseException] = []
+
+    def run():
+        try:
+            callback()
+        except Exception as e:
+            errors.append(e)
+
+    thread = threading.Thread(target=run)
+    thread.start()
+    thread.join(timeout=3.0)
+
+    assert not thread.is_alive()
+    assert errors == []
 
 
 def test_video_source_track_cache_reuses_same_key_until_session_end():
@@ -154,6 +174,74 @@ def test_default_lifecycle_resets_sink_tracks_on_webrtc_session_end():
     assert video1.readyState == "new"
     assert audio1.readyState == "new"
     assert any(observer.stopped for observer in FakeSessionShutdownObserver.instances)
+
+
+def test_webrtc_session_reset_uses_captured_session_state_from_worker_thread(
+    monkeypatch,
+):
+    real_session_state = {}
+    monkeypatch.setattr(
+        factory,
+        "get_script_run_ctx",
+        lambda: SimpleNamespace(session_state=real_session_state),
+    )
+    sink1 = create_video_sink_track(_sink_callback, key="video-sink")
+    cache_key = factory._VIDEO_SINK_TRACK_CACHE_KEY_PREFIX + "video-sink"
+    observer_cache_key = (
+        factory._VIDEO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + "video-sink"
+    )
+
+    assert real_session_state[cache_key] is sink1
+    assert observer_cache_key in real_session_state
+
+    monkeypatch.setattr(factory, "get_script_run_ctx", lambda: None)
+
+    _run_in_thread(lambda: _reset_factory_cache_on_webrtc_session_end(sink1))
+
+    assert cache_key not in real_session_state
+    assert observer_cache_key not in real_session_state
+
+    monkeypatch.setattr(
+        factory,
+        "get_script_run_ctx",
+        lambda: SimpleNamespace(session_state=real_session_state),
+    )
+    sink2 = create_video_sink_track(_sink_callback, key="video-sink")
+
+    assert sink2 is not sink1
+
+
+def test_shutdown_observer_reset_uses_captured_session_state_from_polling_thread(
+    monkeypatch,
+):
+    real_session_state = {}
+    monkeypatch.setattr(
+        factory,
+        "get_script_run_ctx",
+        lambda: SimpleNamespace(session_state=real_session_state),
+    )
+    sink1 = create_video_sink_track(_sink_callback, key="video-sink")
+    cache_key = factory._VIDEO_SINK_TRACK_CACHE_KEY_PREFIX + "video-sink"
+    observer_cache_key = (
+        factory._VIDEO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + "video-sink"
+    )
+    observer = real_session_state[observer_cache_key]
+
+    monkeypatch.setattr(factory, "get_script_run_ctx", lambda: None)
+
+    _run_in_thread(observer.callback)
+
+    assert cache_key not in real_session_state
+    assert observer_cache_key not in real_session_state
+
+    monkeypatch.setattr(
+        factory,
+        "get_script_run_ctx",
+        lambda: SimpleNamespace(session_state=real_session_state),
+    )
+    sink2 = create_video_sink_track(_sink_callback, key="video-sink")
+
+    assert sink2 is not sink1
 
 
 def test_streamlit_session_lifecycle_opts_out_of_webrtc_session_reset():

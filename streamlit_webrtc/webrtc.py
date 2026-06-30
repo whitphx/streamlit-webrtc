@@ -133,11 +133,6 @@ def _reset_factory_cache_on_webrtc_session_end(obj: object) -> bool:
         reset()
         return True
 
-    stop = getattr(obj, "stop", None)
-    if callable(stop):
-        stop()
-        return True
-
     return False
 
 
