@@ -29,6 +29,7 @@ from .factory import (
     create_process_track,
     create_video_sink_track,
     create_video_source_track,
+    set_default_factory_reset_key,
 )
 from .mix import MediaStreamMixTrack, MixerCallback
 from .pcm_source import PcmAudioSource
@@ -100,6 +101,7 @@ __all__ = [
     "PcmAudioSource",
     "create_video_sink_track",
     "create_audio_sink_track",
+    "set_default_factory_reset_key",
     "WebRtcMode",
     "WebRtcWorker",
     "MediaStreamConstraints",

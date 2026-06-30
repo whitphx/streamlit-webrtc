@@ -12,6 +12,7 @@ from streamlit_webrtc.factory import (
     create_pcm_audio_source_track,
     create_video_sink_track,
     create_video_source_track,
+    set_default_factory_reset_key,
 )
 
 
@@ -57,21 +58,53 @@ def test_video_source_track_default_cache_behavior_is_unchanged():
     assert track2 is track1
 
 
-def test_video_source_track_cache_generation_creates_fresh_track():
+def test_video_source_track_uses_default_reset_key():
+    set_default_factory_reset_key(1)
+    track1 = create_video_source_track(_video_callback, key="video")
+    track2 = create_video_source_track(_video_callback, key="video")
+
+    set_default_factory_reset_key(2)
+    track3 = create_video_source_track(_video_callback, key="video")
+
+    assert track2 is track1
+    assert track3 is not track1
+    assert track1.readyState == "ended"
+    assert track3.readyState == "live"
+
+
+def test_clearing_default_reset_key_restores_legacy_cache_behavior():
+    set_default_factory_reset_key(1)
+    generated_track = create_video_source_track(_video_callback, key="video")
+
+    set_default_factory_reset_key(None)
+    track1 = create_video_source_track(_video_callback, key="video")
+    track2 = create_video_source_track(_video_callback, key="video")
+
+    set_default_factory_reset_key(2)
+    track3 = create_video_source_track(_video_callback, key="video")
+
+    assert track1 is not generated_track
+    assert generated_track.readyState == "ended"
+    assert track2 is track1
+    assert track3 is not track1
+    assert track1.readyState == "ended"
+
+
+def test_video_source_track_reset_key_creates_fresh_track():
     track1 = create_video_source_track(
         _video_callback,
         key="video",
-        cache_generation=1,
+        reset_key=1,
     )
     track2 = create_video_source_track(
         _video_callback,
         key="video",
-        cache_generation=1,
+        reset_key=1,
     )
     track3 = create_video_source_track(
         _video_callback,
         key="video",
-        cache_generation=2,
+        reset_key=2,
     )
 
     assert track2 is track1
@@ -80,21 +113,21 @@ def test_video_source_track_cache_generation_creates_fresh_track():
     assert track3.readyState == "live"
 
 
-def test_audio_source_track_cache_generation_creates_fresh_track():
+def test_audio_source_track_reset_key_creates_fresh_track():
     track1 = create_audio_source_track(
         _audio_callback,
         key="audio",
-        cache_generation="first",
+        reset_key="first",
     )
     track2 = create_audio_source_track(
         _audio_callback,
         key="audio",
-        cache_generation="first",
+        reset_key="first",
     )
     track3 = create_audio_source_track(
         _audio_callback,
         key="audio",
-        cache_generation="second",
+        reset_key="second",
     )
 
     assert track2 is track1
@@ -103,21 +136,21 @@ def test_audio_source_track_cache_generation_creates_fresh_track():
     assert track3.readyState == "live"
 
 
-def test_pcm_audio_source_cache_generation_creates_fresh_source():
+def test_pcm_audio_source_reset_key_creates_fresh_source():
     source1 = create_pcm_audio_source_track(
         key="pcm",
         sample_rate=48000,
-        cache_generation=1,
+        reset_key=1,
     )
     source2 = create_pcm_audio_source_track(
         key="pcm",
         sample_rate=48000,
-        cache_generation=1,
+        reset_key=1,
     )
     source3 = create_pcm_audio_source_track(
         key="pcm",
         sample_rate=48000,
-        cache_generation=2,
+        reset_key=2,
     )
 
     assert source2 is source1
@@ -126,37 +159,37 @@ def test_pcm_audio_source_cache_generation_creates_fresh_source():
     assert source3.track.readyState == "live"
 
 
-def test_sink_track_cache_generation_creates_fresh_tracks():
+def test_sink_track_reset_key_creates_fresh_tracks():
     video1 = create_video_sink_track(
         _sink_callback,
         key="video-sink",
-        cache_generation=1,
+        reset_key=1,
     )
     video2 = create_video_sink_track(
         _sink_callback,
         key="video-sink",
-        cache_generation=1,
+        reset_key=1,
     )
     video3 = create_video_sink_track(
         _sink_callback,
         key="video-sink",
-        cache_generation=2,
+        reset_key=2,
     )
 
     audio1 = create_audio_sink_track(
         _sink_callback,
         key="audio-sink",
-        cache_generation=1,
+        reset_key=1,
     )
     audio2 = create_audio_sink_track(
         _sink_callback,
         key="audio-sink",
-        cache_generation=1,
+        reset_key=1,
     )
     audio3 = create_audio_sink_track(
         _sink_callback,
         key="audio-sink",
-        cache_generation=2,
+        reset_key=2,
     )
 
     assert video2 is video1
