@@ -76,12 +76,7 @@ def _make_reset_cache_key(
 ) -> str:
     if reset_key is None:
         return prefix + key
-    return (
-        prefix
-        + key
-        + f"__RESET_KEY__{type(reset_key).__name__}:"
-        + str(reset_key)
-    )
+    return prefix + key + f"__RESET_KEY__{type(reset_key).__name__}:" + str(reset_key)
 
 
 def _active_cache_key(prefix: str, key: str) -> str:
