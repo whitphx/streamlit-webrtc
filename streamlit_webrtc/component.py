@@ -304,7 +304,7 @@ def _get_or_create_context(key: str) -> WebRtcStreamerContext:
                 key,
                 current_run_count - context._last_rendered_run_count - 1,
             )
-            _reset_orphaned_context(context)
+            _reset_context(context)
     else:
         context = WebRtcStreamerContext(
             worker=None, state=WebRtcStreamerState(playing=False, signalling=False)
@@ -323,13 +323,12 @@ def _get_or_create_context(key: str) -> WebRtcStreamerContext:
     return context
 
 
-def _reset_orphaned_context(context: WebRtcStreamerContext) -> None:
-    """Tear down any worker / signalling state on a context that survived a
-    page-away-and-back round-trip. The next `_handle_worker_lifecycle` call
-    will then treat the component as freshly mounted."""
+def _reset_context(context: WebRtcStreamerContext) -> None:
+    """Tear down worker / signalling state so the next lifecycle reconciliation
+    treats the component as freshly mounted."""
     worker = context._get_worker()
     if worker:
-        LOGGER.debug("Stopping orphaned worker.")
+        LOGGER.debug("Stopping worker during context reset.")
         worker.stop()
     context._set_worker(None)
     context._set_state(WebRtcStreamerState(playing=False, signalling=False))
@@ -442,11 +441,8 @@ def _handle_worker_lifecycle(
 
         worker_to_stop = context._get_worker()
         if worker_to_stop:
-            LOGGER.debug("Stop the worker (key=%s).", key)
-            worker_to_stop.stop()
-            context._set_worker(None)
-            context._is_sdp_answer_sent = False
-            context._sdp_answer_json = None
+            LOGGER.debug("Reset the stopped WebRTC context (key=%s).", key)
+            _reset_context(context)
             # Rerun to unset the SDP answer from the frontend args
             rerun()
 
