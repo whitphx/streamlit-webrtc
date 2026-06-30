@@ -1,4 +1,4 @@
-from typing import Callable, Literal, Optional, Type, Union, overload
+from typing import Any, Callable, Literal, Optional, Type, Union, overload
 
 import streamlit as st
 
@@ -41,6 +41,62 @@ from .source import (
 )
 
 _PROCESSOR_TRACK_CACHE_KEY_PREFIX = "__PROCESSOR_TRACK_CACHE__"
+CacheGeneration = Union[int, str]
+
+
+def _make_generated_cache_key(
+    prefix: str,
+    key: str,
+    cache_generation: Optional[CacheGeneration],
+) -> str:
+    if cache_generation is None:
+        return prefix + key
+    return (
+        prefix
+        + key
+        + f"__CACHE_GENERATION__{type(cache_generation).__name__}:"
+        + str(cache_generation)
+    )
+
+
+def _active_cache_key(prefix: str, key: str) -> str:
+    return prefix + "__ACTIVE_CACHE_KEY__" + key
+
+
+def _prepare_generated_cache(
+    *,
+    cache_prefix: str,
+    observer_prefix: str,
+    key: str,
+    cache_generation: Optional[CacheGeneration],
+    stop_cached: Callable[[Any], None],
+) -> tuple[str, str]:
+    cache_key = _make_generated_cache_key(cache_prefix, key, cache_generation)
+    observer_cache_key = _make_generated_cache_key(
+        observer_prefix, key, cache_generation
+    )
+    if cache_generation is None:
+        return cache_key, observer_cache_key
+
+    active_cache_key = _active_cache_key(cache_prefix, key)
+    active_observer_cache_key = _active_cache_key(observer_prefix, key)
+    previous_cache_key = st.session_state.get(active_cache_key, cache_prefix + key)
+    previous_observer_cache_key = st.session_state.get(
+        active_observer_cache_key, observer_prefix + key
+    )
+
+    if previous_cache_key != cache_key:
+        previous_observer = st.session_state.pop(previous_observer_cache_key, None)
+        if isinstance(previous_observer, SessionShutdownObserver):
+            previous_observer.stop()
+
+        previous_cached = st.session_state.pop(previous_cache_key, None)
+        if previous_cached is not None:
+            stop_cached(previous_cached)
+
+    st.session_state[active_cache_key] = cache_key
+    st.session_state[active_observer_cache_key] = observer_cache_key
+    return cache_key, observer_cache_key
 
 
 def _get_track_class(
@@ -206,9 +262,15 @@ def create_video_source_track(
     key: str,
     fps=30,
     on_ended: Optional[Callable[[], None]] = None,
+    cache_generation: Optional[CacheGeneration] = None,
 ) -> VideoSourceTrack:
-    cache_key = _VIDEO_SOURCE_TRACK_CACHE_KEY_PREFIX + key
-    observer_cache_key = _VIDEO_SOURCE_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    cache_key, observer_cache_key = _prepare_generated_cache(
+        cache_prefix=_VIDEO_SOURCE_TRACK_CACHE_KEY_PREFIX,
+        observer_prefix=_VIDEO_SOURCE_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX,
+        key=key,
+        cache_generation=cache_generation,
+        stop_cached=lambda track: track.stop(),
+    )
     if (
         cache_key in st.session_state
         and isinstance(st.session_state[cache_key], VideoSourceTrack)
@@ -254,9 +316,15 @@ def create_video_sink_track(
     callback: VideoSinkCallback,
     key: str,
     on_ended: Optional[Callable[[], None]] = None,
+    cache_generation: Optional[CacheGeneration] = None,
 ) -> VideoSinkTrack:
-    cache_key = _VIDEO_SINK_TRACK_CACHE_KEY_PREFIX + key
-    observer_cache_key = _VIDEO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    cache_key, observer_cache_key = _prepare_generated_cache(
+        cache_prefix=_VIDEO_SINK_TRACK_CACHE_KEY_PREFIX,
+        observer_prefix=_VIDEO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX,
+        key=key,
+        cache_generation=cache_generation,
+        stop_cached=lambda track: track.stop(),
+    )
     if (
         cache_key in st.session_state
         and isinstance(st.session_state[cache_key], VideoSinkTrack)
@@ -288,9 +356,15 @@ def create_audio_sink_track(
     callback: AudioSinkCallback,
     key: str,
     on_ended: Optional[Callable[[], None]] = None,
+    cache_generation: Optional[CacheGeneration] = None,
 ) -> AudioSinkTrack:
-    cache_key = _AUDIO_SINK_TRACK_CACHE_KEY_PREFIX + key
-    observer_cache_key = _AUDIO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    cache_key, observer_cache_key = _prepare_generated_cache(
+        cache_prefix=_AUDIO_SINK_TRACK_CACHE_KEY_PREFIX,
+        observer_prefix=_AUDIO_SINK_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX,
+        key=key,
+        cache_generation=cache_generation,
+        stop_cached=lambda track: track.stop(),
+    )
     if (
         cache_key in st.session_state
         and isinstance(st.session_state[cache_key], AudioSinkTrack)
@@ -323,6 +397,7 @@ def create_pcm_audio_source_track(
     key: str,
     sample_rate: int,
     ptime: float = 0.020,
+    cache_generation: Optional[CacheGeneration] = None,
 ) -> PcmAudioSource:
     """Create a source track that plays s16-mono PCM pushed from any thread.
 
@@ -334,8 +409,13 @@ def create_pcm_audio_source_track(
     (append PCM bytes / int16 ndarray, callable from any thread), and
     :meth:`PcmAudioSource.clear` (drop buffered samples, e.g. on barge-in).
     """
-    cache_key = _PCM_AUDIO_SOURCE_CACHE_KEY_PREFIX + key
-    observer_cache_key = _PCM_AUDIO_SOURCE_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    cache_key, observer_cache_key = _prepare_generated_cache(
+        cache_prefix=_PCM_AUDIO_SOURCE_CACHE_KEY_PREFIX,
+        observer_prefix=_PCM_AUDIO_SOURCE_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX,
+        key=key,
+        cache_generation=cache_generation,
+        stop_cached=lambda source: source.track.stop(),
+    )
     existing = st.session_state.get(cache_key)
     if (
         isinstance(existing, PcmAudioSource)
@@ -368,9 +448,15 @@ def create_audio_source_track(
     sample_rate: int = 48000,
     ptime: float = 0.020,
     on_ended: Optional[Callable[[], None]] = None,
+    cache_generation: Optional[CacheGeneration] = None,
 ) -> AudioSourceTrack:
-    cache_key = _AUDIO_SOURCE_TRACK_CACHE_KEY_PREFIX + key
-    observer_cache_key = _AUDIO_SOURCE_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
+    cache_key, observer_cache_key = _prepare_generated_cache(
+        cache_prefix=_AUDIO_SOURCE_TRACK_CACHE_KEY_PREFIX,
+        observer_prefix=_AUDIO_SOURCE_TRACK_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX,
+        key=key,
+        cache_generation=cache_generation,
+        stop_cached=lambda track: track.stop(),
+    )
     if (
         cache_key in st.session_state
         and isinstance(st.session_state[cache_key], AudioSourceTrack)
