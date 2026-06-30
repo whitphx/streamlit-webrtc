@@ -150,7 +150,8 @@ class RealtimeBridge:
         with self._stop_lock:
             loop = self._loop
             thread = self._thread
-            if threading.current_thread() is thread:
+            is_bridge_thread = threading.current_thread() is thread
+            if is_bridge_thread:
                 # Avoid deadlocking if a shutdown observer runs on the bridge thread.
                 if self._stop_event is not None:
                     self._stop_event.set()
@@ -167,9 +168,11 @@ class RealtimeBridge:
                     logger.warning("Timed out while closing Realtime API session")
                 except Exception:
                     logger.debug("Failed to request Realtime API close", exc_info=True)
-            if thread is not None and threading.current_thread() is not thread:
+            if thread is not None and not is_bridge_thread:
                 thread.join(timeout=3.0)
-            if thread is None or not thread.is_alive():
+            if is_bridge_thread:
+                pass
+            elif thread is None or not thread.is_alive():
                 self._thread = None
             else:
                 # Keep the handle so a later stop call can retry and the app does
@@ -271,13 +274,21 @@ class RealtimeBridge:
                 with self._state_lock:
                     self._connected = True
 
-                tasks = [
-                    asyncio.create_task(self._send_loop(conn), name="realtime-send"),
-                    asyncio.create_task(self._recv_loop(conn), name="realtime-recv"),
-                    asyncio.create_task(stop_event.wait(), name="realtime-stop"),
-                ]
+                send_task = asyncio.create_task(
+                    self._send_loop(conn), name="realtime-send"
+                )
+                recv_task = asyncio.create_task(
+                    self._recv_loop(conn), name="realtime-recv"
+                )
+                stop_task = asyncio.create_task(stop_event.wait(), name="realtime-stop")
+                tasks = [send_task, recv_task, stop_task]
                 try:
-                    await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+                    done, _ = await asyncio.wait(
+                        tasks, return_when=asyncio.FIRST_COMPLETED
+                    )
+                    for task in done:
+                        if task is not stop_task:
+                            task.result()
                 finally:
                     for t in tasks:
                         t.cancel()
