@@ -54,6 +54,20 @@ def _get_current_session_state() -> Any:
     return st.session_state
 
 
+def _session_state_get(session_state: Any, key: str) -> Any:
+    if key in session_state:
+        return session_state[key]
+    return None
+
+
+def _session_state_pop(session_state: Any, key: str) -> Any:
+    if key in session_state:
+        value = session_state[key]
+        del session_state[key]
+        return value
+    return None
+
+
 def _validate_lifecycle_scope(lifecycle_scope: str) -> LifecycleScope:
     if lifecycle_scope not in ("webrtc-session", "streamlit-session"):
         raise ValueError(
@@ -74,7 +88,7 @@ def _install_cached_with_shutdown_observer(
     # A prior observer for this exact cache slot is tied to a now-stale cached
     # object. Stop it before replacing the object so its polling thread is not
     # leaked for the rest of the Streamlit session.
-    old_observer = session_state.get(observer_cache_key)
+    old_observer = _session_state_get(session_state, observer_cache_key)
     if isinstance(old_observer, SessionShutdownObserver):
         old_observer.stop()
 
@@ -92,10 +106,10 @@ def _attach_factory_lifecycle(
     stop_cached: Callable[[], None],
 ) -> Callable[[], None]:
     def reset_on_webrtc_session_end() -> None:
-        observer = session_state.pop(observer_cache_key, None)
+        observer = _session_state_pop(session_state, observer_cache_key)
         if isinstance(observer, SessionShutdownObserver):
             observer.stop()
-        session_state.pop(cache_key, None)
+        _session_state_pop(session_state, cache_key)
         stop_cached()
 
     setattr(lifecycle_target, "_streamlit_webrtc_lifecycle_scope", lifecycle_scope)
@@ -448,7 +462,7 @@ def create_pcm_audio_source_track(
     session_state = _get_current_session_state()
     cache_key = _PCM_AUDIO_SOURCE_CACHE_KEY_PREFIX + key
     observer_cache_key = _PCM_AUDIO_SOURCE_SHUTDOWN_OBSERVER_CACHE_KEY_PREFIX + key
-    existing = session_state.get(cache_key)
+    existing = _session_state_get(session_state, cache_key)
     if (
         isinstance(existing, PcmAudioSource)
         and existing.track.readyState == "live"

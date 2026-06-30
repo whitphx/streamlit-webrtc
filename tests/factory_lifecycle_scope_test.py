@@ -31,6 +31,29 @@ class FakeSessionShutdownObserver:
         self.stopped = True
 
 
+class ItemOnlySessionState:
+    """SafeSessionState-like test double.
+
+    Streamlit's production ScriptRunContext exposes SafeSessionState, which
+    supports item access but not mapping helpers such as get() or pop().
+    """
+
+    def __init__(self):
+        self._items = {}
+
+    def __contains__(self, key):
+        return key in self._items
+
+    def __getitem__(self, key):
+        return self._items[key]
+
+    def __setitem__(self, key, value):
+        self._items[key] = value
+
+    def __delitem__(self, key):
+        del self._items[key]
+
+
 @pytest.fixture(autouse=True)
 def clear_session_state(monkeypatch):
     monkeypatch.setattr(factory, "SessionShutdownObserver", FakeSessionShutdownObserver)
@@ -179,7 +202,7 @@ def test_default_lifecycle_resets_sink_tracks_on_webrtc_session_end():
 def test_webrtc_session_reset_uses_captured_session_state_from_worker_thread(
     monkeypatch,
 ):
-    real_session_state = {}
+    real_session_state = ItemOnlySessionState()
     monkeypatch.setattr(
         factory,
         "get_script_run_ctx",
@@ -214,7 +237,7 @@ def test_webrtc_session_reset_uses_captured_session_state_from_worker_thread(
 def test_shutdown_observer_reset_uses_captured_session_state_from_polling_thread(
     monkeypatch,
 ):
-    real_session_state = {}
+    real_session_state = ItemOnlySessionState()
     monkeypatch.setattr(
         factory,
         "get_script_run_ctx",
