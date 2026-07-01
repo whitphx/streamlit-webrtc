@@ -2,6 +2,14 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.74.1'></a>
+## 0.74.1 — 2026-07-01
+
+### Fixed
+
+- Reset stale SDP answer state left in an idle WebRTC context so a stopped
+  session can start again without requiring an extra cancellation.
+
 <a id='changelog-0.74.0'></a>
 ## 0.74.0 — 2026-06-30
 
