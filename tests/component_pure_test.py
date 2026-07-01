@@ -1,14 +1,11 @@
 import pytest
 
 from streamlit_webrtc.component import (
-    _WEBRTC_STREAMER_OPTION_NAMES,
-    _normalize_webrtc_streamer_options,
     _validate_sink_conflicts,
     compile_state,
     generate_frontend_component_key,
 )
 from streamlit_webrtc.sink import VideoSinkTrack
-from streamlit_webrtc.webrtc import WebRtcMode
 
 
 class TestCompileState:
@@ -64,68 +61,6 @@ class TestGenerateFrontendComponentKey:
         assert generate_frontend_component_key(
             "x:frontend"
         ) != generate_frontend_component_key("x")
-
-
-class TestNormalizeWebRtcStreamerOptions:
-    def test_keyword_options_overlay_defaults(self) -> None:
-        options = _normalize_webrtc_streamer_options(
-            (),
-            {"mode": WebRtcMode.SENDONLY, "media_toggle_controls": False},
-        )
-
-        assert options["mode"] is WebRtcMode.SENDONLY
-        assert options["media_toggle_controls"] is False
-        assert options["async_processing"] is True
-
-    def test_legacy_positional_options_are_mapped_with_warning(self) -> None:
-        with pytest.warns(DeprecationWarning, match="keyword arguments"):
-            options = _normalize_webrtc_streamer_options(
-                (WebRtcMode.RECVONLY, {"iceServers": []}),
-                {},
-            )
-
-        assert options["mode"] is WebRtcMode.RECVONLY
-        assert options["rtc_configuration"] == {"iceServers": []}
-
-    def test_legacy_tail_positionals_keep_their_slots(self) -> None:
-        def on_change() -> None:
-            pass
-
-        def video_transformer_factory() -> object:
-            return object()
-
-        on_change_index = _WEBRTC_STREAMER_OPTION_NAMES.index("on_change")
-        args = (None,) * on_change_index + (
-            on_change,
-            video_transformer_factory,
-            False,
-            False,
-        )
-
-        with pytest.warns(DeprecationWarning, match="keyword arguments"):
-            options = _normalize_webrtc_streamer_options(args, {})
-
-        assert options["on_change"] is on_change
-        assert options["video_transformer_factory"] is video_transformer_factory
-        assert options["async_transform"] is False
-        assert options["media_toggle_controls"] is False
-
-    def test_duplicate_positional_and_keyword_option_is_rejected(self) -> None:
-        with pytest.raises(TypeError, match="multiple values.*mode"):
-            _normalize_webrtc_streamer_options(
-                (WebRtcMode.SENDONLY,),
-                {"mode": WebRtcMode.RECVONLY},
-            )
-
-    def test_unknown_keyword_option_is_rejected(self) -> None:
-        with pytest.raises(TypeError, match="unexpected keyword argument 'unknown'"):
-            _normalize_webrtc_streamer_options((), {"unknown": object()})
-
-    def test_too_many_positional_options_are_rejected(self) -> None:
-        args = (None,) * (len(_WEBRTC_STREAMER_OPTION_NAMES) + 1)
-
-        with pytest.raises(TypeError, match="takes at most"):
-            _normalize_webrtc_streamer_options(args, {})
 
 
 class TestValidateSinkConflicts:

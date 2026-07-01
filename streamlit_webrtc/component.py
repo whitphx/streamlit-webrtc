@@ -492,92 +492,6 @@ def _handle_worker_lifecycle(
         rerun()
 
 
-_WEBRTC_STREAMER_OPTION_DEFAULTS: tuple[tuple[str, Any], ...] = (
-    ("mode", WebRtcMode.SENDRECV),
-    ("rtc_configuration", None),
-    ("server_rtc_configuration", None),
-    ("frontend_rtc_configuration", None),
-    ("media_stream_constraints", None),
-    ("desired_playing_state", None),
-    ("player_factory", None),
-    ("in_recorder_factory", None),
-    ("out_recorder_factory", None),
-    ("video_frame_callback", None),
-    ("audio_frame_callback", None),
-    ("queued_video_frames_callback", None),
-    ("queued_audio_frames_callback", None),
-    ("on_video_ended", None),
-    ("on_audio_ended", None),
-    ("video_processor_factory", None),
-    ("audio_processor_factory", None),
-    ("async_processing", True),
-    ("video_receiver_size", 4),
-    ("audio_receiver_size", 4),
-    ("source_video_track", None),
-    ("source_audio_track", None),
-    ("sink_video_track", None),
-    ("sink_audio_track", None),
-    ("sendback_video", True),
-    ("sendback_audio", True),
-    ("video_html_attrs", None),
-    ("audio_html_attrs", None),
-    ("translations", None),
-    ("on_change", None),
-    ("video_transformer_factory", None),
-    ("async_transform", None),
-    ("media_toggle_controls", True),
-)
-_WEBRTC_STREAMER_OPTION_NAMES = tuple(
-    name for name, _ in _WEBRTC_STREAMER_OPTION_DEFAULTS
-)
-
-
-def _normalize_webrtc_streamer_options(
-    args: tuple[Any, ...], kwargs: Dict[str, Any]
-) -> Dict[str, Any]:
-    if len(args) > len(_WEBRTC_STREAMER_OPTION_NAMES):
-        raise TypeError(
-            "webrtc_streamer() takes at most "
-            f"{len(_WEBRTC_STREAMER_OPTION_NAMES) + 1} positional arguments "
-            f"({len(args) + 1} given)"
-        )
-
-    options = dict(_WEBRTC_STREAMER_OPTION_DEFAULTS)
-    passed_kwargs = dict(kwargs)
-
-    for name, value in zip(_WEBRTC_STREAMER_OPTION_NAMES, args):
-        if name in passed_kwargs:
-            raise TypeError(
-                f"webrtc_streamer() got multiple values for argument '{name}'"
-            )
-        passed_kwargs[name] = value
-
-    unexpected = [
-        name for name in passed_kwargs if name not in _WEBRTC_STREAMER_OPTION_NAMES
-    ]
-    if unexpected:
-        if len(unexpected) == 1:
-            raise TypeError(
-                "webrtc_streamer() got an unexpected keyword argument "
-                f"'{unexpected[0]}'"
-            )
-        unexpected_args = ", ".join(f"'{name}'" for name in unexpected)
-        raise TypeError(
-            f"webrtc_streamer() got unexpected keyword arguments {unexpected_args}"
-        )
-
-    if args:
-        warnings.warn(
-            "Passing arguments other than key positionally to webrtc_streamer() "
-            "is deprecated. Pass them as keyword arguments instead.",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-
-    options.update(passed_kwargs)
-    return options
-
-
 @overload
 def webrtc_streamer(
     key: str,
@@ -760,44 +674,44 @@ def webrtc_streamer(
 
 def webrtc_streamer(
     key: str,
-    *args: Any,
-    **kwargs: Any,
+    *,
+    mode: WebRtcMode = WebRtcMode.SENDRECV,
+    rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
+    frontend_rtc_configuration: Optional[
+        Union[Dict[str, Any], RTCConfiguration]
+    ] = None,
+    media_stream_constraints: Optional[Union[Dict, MediaStreamConstraints]] = None,
+    desired_playing_state: Optional[bool] = None,
+    player_factory: Optional[MediaPlayerFactory] = None,
+    in_recorder_factory: Optional[MediaRecorderFactory] = None,
+    out_recorder_factory: Optional[MediaRecorderFactory] = None,
+    video_frame_callback: Optional[VideoFrameCallback] = None,
+    audio_frame_callback: Optional[AudioFrameCallback] = None,
+    queued_video_frames_callback: Optional[QueuedVideoFramesCallback] = None,
+    queued_audio_frames_callback: Optional[QueuedAudioFramesCallback] = None,
+    on_video_ended: Optional[MediaEndedCallback] = None,
+    on_audio_ended: Optional[MediaEndedCallback] = None,
+    video_processor_factory=None,
+    audio_processor_factory=None,
+    async_processing: bool = True,
+    video_receiver_size: int = 4,
+    audio_receiver_size: int = 4,
+    source_video_track: Optional[MediaStreamTrack] = None,
+    source_audio_track: Optional[MediaStreamTrack] = None,
+    sink_video_track: Optional[MediaSink] = None,
+    sink_audio_track: Optional[MediaSink] = None,
+    sendback_video: bool = True,
+    sendback_audio: bool = True,
+    video_html_attrs: Optional[Union[VideoHTMLAttributes, Dict]] = None,
+    audio_html_attrs: Optional[Union[AudioHTMLAttributes, Dict]] = None,
+    translations: Optional[Translations] = None,
+    on_change: Optional[Callable] = None,
+    # Deprecated. Just for backward compatibility
+    video_transformer_factory=None,
+    async_transform: Optional[bool] = None,
+    media_toggle_controls: bool = True,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
-    options = _normalize_webrtc_streamer_options(args, kwargs)
-    mode = options["mode"]
-    rtc_configuration = options["rtc_configuration"]
-    server_rtc_configuration = options["server_rtc_configuration"]
-    frontend_rtc_configuration = options["frontend_rtc_configuration"]
-    media_stream_constraints = options["media_stream_constraints"]
-    desired_playing_state = options["desired_playing_state"]
-    player_factory = options["player_factory"]
-    in_recorder_factory = options["in_recorder_factory"]
-    out_recorder_factory = options["out_recorder_factory"]
-    video_frame_callback = options["video_frame_callback"]
-    audio_frame_callback = options["audio_frame_callback"]
-    queued_video_frames_callback = options["queued_video_frames_callback"]
-    queued_audio_frames_callback = options["queued_audio_frames_callback"]
-    on_video_ended = options["on_video_ended"]
-    on_audio_ended = options["on_audio_ended"]
-    video_processor_factory = options["video_processor_factory"]
-    audio_processor_factory = options["audio_processor_factory"]
-    async_processing = options["async_processing"]
-    video_receiver_size = options["video_receiver_size"]
-    audio_receiver_size = options["audio_receiver_size"]
-    source_video_track = options["source_video_track"]
-    source_audio_track = options["source_audio_track"]
-    sink_video_track = options["sink_video_track"]
-    sink_audio_track = options["sink_audio_track"]
-    sendback_video = options["sendback_video"]
-    sendback_audio = options["sendback_audio"]
-    video_html_attrs = options["video_html_attrs"]
-    audio_html_attrs = options["audio_html_attrs"]
-    translations = options["translations"]
-    on_change = options["on_change"]
-    video_transformer_factory = options["video_transformer_factory"]
-    async_transform = options["async_transform"]
-    media_toggle_controls = options["media_toggle_controls"]
-
     # Backward compatibility
     if video_transformer_factory is not None:
         warnings.warn(
