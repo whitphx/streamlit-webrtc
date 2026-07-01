@@ -1,6 +1,13 @@
+from typing import Any
+
 import pytest
 
+import streamlit_webrtc.component as component
 from streamlit_webrtc.component import (
+    ComponentValueSnapshot,
+    WebRtcStreamerContext,
+    WebRtcStreamerState,
+    _handle_worker_lifecycle,
     _validate_sink_conflicts,
     compile_state,
     generate_frontend_component_key,
@@ -61,6 +68,50 @@ class TestGenerateFrontendComponentKey:
         assert generate_frontend_component_key(
             "x:frontend"
         ) != generate_frontend_component_key("x")
+
+
+class TestHandleWorkerLifecycle:
+    def test_idle_stale_sdp_answer_resets_context_and_reruns(self, monkeypatch) -> None:
+        reruns: list[bool] = []
+        monkeypatch.setattr(component, "rerun", lambda: reruns.append(True))
+        context: WebRtcStreamerContext[Any, Any] = WebRtcStreamerContext(
+            worker=None, state=WebRtcStreamerState(playing=False, signalling=False)
+        )
+        context._sdp_answer_json = '{"sdp":"v=0\\r\\n","type":"answer"}'
+        context._is_sdp_answer_sent = True
+        context._component_value_snapshot = ComponentValueSnapshot(
+            component_value={"playing": False}, run_count=1
+        )
+
+        _handle_worker_lifecycle(
+            context,
+            key="k",
+            sdp_offer=None,
+            make_worker=lambda: pytest.fail("worker should not be created"),
+        )
+
+        assert context._get_worker() is None
+        assert context.state == WebRtcStreamerState(playing=False, signalling=False)
+        assert context._sdp_answer_json is None
+        assert context._is_sdp_answer_sent is False
+        assert context._component_value_snapshot is None
+        assert reruns == [True]
+
+    def test_idle_without_worker_or_stale_sdp_does_not_rerun(self, monkeypatch) -> None:
+        reruns: list[bool] = []
+        monkeypatch.setattr(component, "rerun", lambda: reruns.append(True))
+        context: WebRtcStreamerContext[Any, Any] = WebRtcStreamerContext(
+            worker=None, state=WebRtcStreamerState(playing=False, signalling=False)
+        )
+
+        _handle_worker_lifecycle(
+            context,
+            key="k",
+            sdp_offer=None,
+            make_worker=lambda: pytest.fail("worker should not be created"),
+        )
+
+        assert reruns == []
 
 
 class TestValidateSinkConflicts:
