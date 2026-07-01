@@ -451,8 +451,6 @@ def on_change() -> None:
     stopped = not ctx.state.playing and not ctx.state.signalling
     if stopped:
         bridge.stop()
-        audio_sink_track.stop()
-        pcm_out.track.stop()
 
 
 webrtc_streamer(
