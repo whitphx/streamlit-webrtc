@@ -440,7 +440,10 @@ def _handle_worker_lifecycle(
         )
 
         worker_to_stop = context._get_worker()
-        if worker_to_stop:
+        has_stale_sdp_answer = (
+            context._sdp_answer_json is not None or context._is_sdp_answer_sent
+        )
+        if worker_to_stop or has_stale_sdp_answer:
             LOGGER.debug("Reset the stopped WebRTC context (key=%s).", key)
             _reset_context(context)
             # Rerun to unset the SDP answer from the frontend args
