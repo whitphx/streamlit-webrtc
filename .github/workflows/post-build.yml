@@ -166,11 +166,13 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
         TAG_NAME: ${{ needs.get-build-info.outputs.tag }}
-      run: >-
-        gh release create
-        "$TAG_NAME"
-        --repo "$GITHUB_REPOSITORY"
-        --notes ""
+      run: |
+        gh release create \
+          "$TAG_NAME" \
+          --repo "$GITHUB_REPOSITORY" \
+          --title "${TAG_NAME#v}" \
+          --notes "" \
+          --verify-tag
     - name: Upload artifact signatures to GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
