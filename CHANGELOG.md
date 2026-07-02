@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.74.2'></a>
+## 0.74.2 — 2026-07-02
+
+### Chore
+
+- Set explicit GitHub Release titles from version tags.
+
 <a id='changelog-0.74.1'></a>
 ## 0.74.1 — 2026-07-01
 
