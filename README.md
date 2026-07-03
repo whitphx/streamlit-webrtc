@@ -290,12 +290,18 @@ If not, you will encounter an error when starting using the device. For example,
 
 [Streamlit Community Cloud](https://streamlit.io/cloud) is a recommended way for HTTPS serving. You can easily deploy Streamlit apps with it, and most importantly for this topic, it serves the apps via HTTPS automatically by default.
 
-For the development purpose, sometimes [`suyashkumar/ssl-proxy`](https://github.com/suyashkumar/ssl-proxy) is a convenient tool to serve your app via HTTPS.
+For development, [`streamlit-remote`](https://github.com/whitphx/streamlit-remote) provides the `st-remote` command as an easy way to serve your app via HTTPS.
+For remote HTTPS access, `st-remote` works as a wrapper that starts Streamlit and then runs a tunnel provider command such as `cloudflared` or `ngrok`.
+Install the provider command separately before running `st-remote`: use `cloudflared` with `--provider cloudflare`, or `ngrok` with `--provider ngrok`.
+`st-remote` defaults to `--provider cloudflare`; it does not automatically choose a provider based on which command is installed.
+The `--provider` option only affects the remote tunnel; if you only need HTTPS on your local machine, use local HTTPS mode instead.
+See [`streamlit-remote`'s README](https://github.com/whitphx/streamlit-remote#readme) for provider installation and option details.
 ```shell
-$ streamlit run your_app.py  # Assume your app is running on http://localhost:8501
-# Then, after downloading the binary from the GitHub page above to ./ssl-proxy,
-$ ./ssl-proxy -from 0.0.0.0:8000 -to 127.0.0.1:8501  # Proxy the HTTP page from port 8501 to port 8000 via HTTPS
-# Then access https://localhost:8000
+$ pip install streamlit-remote
+$ st-remote your_app.py --provider cloudflare  # Remote HTTPS URL via cloudflared.
+$ st-remote your_app.py --provider ngrok  # Remote HTTPS URL via ngrok.
+$ st-remote your_app.py --https self-signed --no-remote  # Local HTTPS only.
+# Then access the HTTPS URL printed by st-remote.
 ```
 
 ### Configure the STUN server
