@@ -43,7 +43,7 @@
     "globals": "^17.7.0",
     "jsdom": "^29.1.1",
     "npm-run-all2": "^9.0.2",
-    "prettier": "^3.8.4",
+    "prettier": "^3.8.5",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.61.1",
     "vite": "^8.0.16",
