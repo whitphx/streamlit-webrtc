@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.75.0'></a>
+## 0.75.0 — 2026-07-05
+
+### Changed
+
+- Updated the HTTPS development instructions in the README and deployment guide to recommend `streamlit-remote` for remote or local HTTPS serving.
+
 <a id='changelog-0.74.2'></a>
 ## 0.74.2 — 2026-07-02
 
