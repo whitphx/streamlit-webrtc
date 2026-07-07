@@ -31,7 +31,20 @@ class _FakeSessionInfo:
         self.session = session
 
 
+class _ImmediateLoop:
+    """Stands in for the runtime event loop, running callbacks inline."""
+
+    def call_soon_threadsafe(self, callback, *args) -> None:
+        callback(*args)
+
+
 class TestMakeIceCandidateRerunCallback:
+    @pytest.fixture(autouse=True)
+    def _fake_loop(self, monkeypatch) -> None:
+        monkeypatch.setattr(
+            component, "get_global_event_loop", lambda: _ImmediateLoop()
+        )
+
     def test_rerun_carries_the_session_client_state(self, monkeypatch) -> None:
         # The client state preserves the current page of a multi-page app;
         # `client_state=None` would send the app back to its main page.

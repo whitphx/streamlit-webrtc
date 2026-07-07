@@ -49,6 +49,7 @@ from .config import (
 from .credentials import (
     get_available_ice_servers,
 )
+from .eventloop import get_global_event_loop
 from .session_info import get_script_run_count, get_this_session_info
 from .webrtc import (
     AudioProcessorFactory,
@@ -429,18 +430,23 @@ def _make_ice_candidate_rerun_callback() -> Optional[Callable[[], None]]:
     # A weak reference, so the worker holding this callback does not keep the
     # session alive after it is closed.
     session_ref = weakref.ref(session_info.session)
+    loop = get_global_event_loop()
 
     def request_rerun() -> None:
         session = session_ref()
         if session is None:
             return
+        # Pass the session's own latest client state so the rerun
+        # preserves the current page and query string. With
+        # `client_state=None`, the session falls back to an empty
+        # `RerunData`, whose empty `page_script_hash` sends a
+        # multi-page app back to its main page.
+        client_state = getattr(session, "_client_state", None)
         try:
-            # Pass the session's own latest client state so the rerun
-            # preserves the current page and query string. With
-            # `client_state=None`, the session falls back to an empty
-            # `RerunData`, whose empty `page_script_hash` sends a
-            # multi-page app back to its main page.
-            session.request_rerun(getattr(session, "_client_state", None))
+            # `AppSession` is owned by the Streamlit runtime's event loop,
+            # so marshal the rerun request onto it instead of calling from
+            # whichever thread the worker invokes this callback on.
+            loop.call_soon_threadsafe(session.request_rerun, client_state)
         except Exception:
             LOGGER.warning(
                 "Failed to request a rerun to deliver ICE candidates.",
@@ -804,10 +810,8 @@ def webrtc_streamer(
     # was created in a previous run, and each new candidate triggers a rerun,
     # so they reach the frontend incrementally through this arg.
     existing_worker = context._get_worker()
-    answerer_ice_candidates_json = (
-        json.dumps(existing_worker.get_local_ice_candidates())
-        if existing_worker
-        else None
+    answerer_ice_candidates = (
+        existing_worker.get_local_ice_candidates() if existing_worker else None
     )
 
     component_value: Union[Dict, None] = _component_func(
@@ -818,7 +822,7 @@ def webrtc_streamer(
         # forward the original `key` instead.
         component_key=key,
         sdp_answer_json=context._sdp_answer_json,
-        answerer_ice_candidates_json=answerer_ice_candidates_json,
+        answerer_ice_candidates=answerer_ice_candidates,
         mode=mode.name,
         rtc_configuration=enhance_frontend_rtc_configuration(
             frontend_rtc_configuration
