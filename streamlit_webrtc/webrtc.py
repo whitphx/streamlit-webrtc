@@ -449,7 +449,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 if candidate is None:
                     self._local_ice_candidates_complete = True
                 else:
-                    candidate_id = str(next(self._local_ice_candidate_ids))
+                    candidate_id = f"answerer:{next(self._local_ice_candidate_ids)}"
                     self._local_ice_candidates[candidate_id] = {
                         # Browsers expect the `candidate:`-prefixed
                         # attribute-value form in `RTCIceCandidateInit`.

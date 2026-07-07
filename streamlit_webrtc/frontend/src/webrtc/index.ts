@@ -19,12 +19,17 @@ export const isReceivable = (mode: WebRtcMode): boolean =>
 export const isTransmittable = (mode: WebRtcMode): boolean =>
   mode === "SENDRECV" || mode === "SENDONLY";
 
+export interface AnswererIceCandidates {
+  candidates: Record<string, RTCIceCandidateInit>;
+  complete: boolean;
+}
+
 export const useWebRtc = (
   props: {
     mode: WebRtcMode;
     desiredPlayingState: boolean | undefined;
     sdpAnswerJson: string | undefined;
-    answererIceCandidatesJson: string | undefined;
+    answererIceCandidates: AnswererIceCandidates | undefined;
     rtcConfiguration: RTCConfiguration | undefined;
     mediaStreamConstraints: MediaStreamConstraints | undefined;
     sendbackVideo: boolean;
@@ -312,14 +317,10 @@ export const useWebRtc = (
     if (pc == null || !remoteSdpSet) {
       return;
     }
-    const answererIceCandidatesJson = props.answererIceCandidatesJson;
-    if (!answererIceCandidatesJson) {
+    const payload = props.answererIceCandidates;
+    if (payload == null) {
       return;
     }
-    const payload: {
-      candidates: Record<string, RTCIceCandidateInit>;
-      complete: boolean;
-    } = JSON.parse(answererIceCandidatesJson);
 
     const addedIds = addedAnswererIceCandidateIdsRef.current;
     Object.entries(payload.candidates).forEach(([id, candidate]) => {
@@ -346,7 +347,7 @@ export const useWebRtc = (
         console.debug("Failed to signal end-of-candidates", error);
       });
     }
-  }, [props.answererIceCandidatesJson, remoteSdpSet]);
+  }, [props.answererIceCandidates, remoteSdpSet]);
 
   // reconcilePlayingState
   useEffect(() => {

@@ -17,6 +17,7 @@ import {
   isWebRtcMode,
   isReceivable,
   isTransmittable,
+  AnswererIceCandidates,
 } from "./webrtc";
 import { useTimer } from "./use-timeout";
 import { getMediaUsage } from "./media-constraint";
@@ -38,7 +39,7 @@ interface WebRtcStreamerInnerProps {
   componentKey: string | undefined;
   desiredPlayingState: boolean | undefined;
   sdpAnswerJson: string | undefined;
-  answererIceCandidatesJson: string | undefined;
+  answererIceCandidates: AnswererIceCandidates | undefined;
   rtcConfiguration: RTCConfiguration | undefined;
   mediaStreamConstraints: MediaStreamConstraints | undefined;
   sendbackVideo: boolean;
@@ -206,8 +207,8 @@ function WebRtcStreamer() {
   const componentKey: string | undefined = renderData.args["component_key"];
   const desiredPlayingState = renderData.args["desired_playing_state"];
   const sdpAnswerJson = renderData.args["sdp_answer_json"];
-  const answererIceCandidatesJson =
-    renderData.args["answerer_ice_candidates_json"];
+  const answererIceCandidates: AnswererIceCandidates | undefined =
+    renderData.args["answerer_ice_candidates"];
   const rtcConfiguration: RTCConfiguration = renderData.args.rtc_configuration;
   const mediaStreamConstraints: MediaStreamConstraints =
     renderData.args.media_stream_constraints;
@@ -229,7 +230,7 @@ function WebRtcStreamer() {
       componentKey={componentKey}
       desiredPlayingState={desiredPlayingState}
       sdpAnswerJson={sdpAnswerJson}
-      answererIceCandidatesJson={answererIceCandidatesJson}
+      answererIceCandidates={answererIceCandidates}
       rtcConfiguration={rtcConfiguration}
       mediaStreamConstraints={mediaStreamConstraints}
       sendbackVideo={sendbackVideo}
