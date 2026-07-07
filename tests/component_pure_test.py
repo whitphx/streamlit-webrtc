@@ -1,3 +1,4 @@
+import gc
 from typing import Any
 
 import pytest
@@ -8,11 +9,69 @@ from streamlit_webrtc.component import (
     WebRtcStreamerContext,
     WebRtcStreamerState,
     _handle_worker_lifecycle,
+    _make_ice_candidate_rerun_callback,
     _validate_sink_conflicts,
     compile_state,
     generate_frontend_component_key,
 )
 from streamlit_webrtc.sink import VideoSinkTrack
+
+
+class _FakeSession:
+    def __init__(self) -> None:
+        self._client_state = object()
+        self.rerun_requests: list = []
+
+    def request_rerun(self, client_state) -> None:
+        self.rerun_requests.append(client_state)
+
+
+class _FakeSessionInfo:
+    def __init__(self, session: _FakeSession) -> None:
+        self.session = session
+
+
+class TestMakeIceCandidateRerunCallback:
+    def test_rerun_carries_the_session_client_state(self, monkeypatch) -> None:
+        # The client state preserves the current page of a multi-page app;
+        # `client_state=None` would send the app back to its main page.
+        session = _FakeSession()
+        monkeypatch.setattr(
+            component,
+            "get_this_session_info",
+            lambda: _FakeSessionInfo(session),
+        )
+
+        callback = _make_ice_candidate_rerun_callback()
+        assert callback is not None
+        callback()
+
+        assert session.rerun_requests == [session._client_state]
+
+    def test_no_session_yields_no_callback(self, monkeypatch) -> None:
+        monkeypatch.setattr(component, "get_this_session_info", lambda: None)
+        assert _make_ice_candidate_rerun_callback() is None
+
+    def test_dead_session_is_a_noop(self, monkeypatch) -> None:
+        session = _FakeSession()
+        # The holder lets us drop every strong reference to the session
+        # after the callback (which only keeps a weak one) is built.
+        holder = {"info": _FakeSessionInfo(session)}
+        monkeypatch.setattr(
+            component,
+            "get_this_session_info",
+            lambda: holder["info"],
+        )
+        callback = _make_ice_candidate_rerun_callback()
+        assert callback is not None
+
+        requests = session.rerun_requests
+        holder.clear()
+        del session
+        gc.collect()
+        callback()
+
+        assert requests == []
 
 
 class TestCompileState:

@@ -5,7 +5,9 @@ import itertools
 import logging
 import queue
 import threading
+from dataclasses import replace as dataclasses_replace
 from typing import (
+    Any,
     Callable,
     Dict,
     Generic,
@@ -24,7 +26,7 @@ from aiortc import (
 )
 from aiortc.contrib.media import MediaPlayer, MediaRecorder, MediaRelay
 from aiortc.mediastreams import MediaStreamTrack
-from aiortc.sdp import candidate_from_sdp
+from aiortc.sdp import candidate_from_sdp, candidate_to_sdp
 
 from streamlit_webrtc.shutdown import SessionShutdownObserver
 
@@ -413,6 +415,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         *,
         loop: Optional[asyncio.AbstractEventLoop] = None,
         relay: Optional[MediaRelay] = None,
+        on_local_ice_candidate: Optional[Callable[[], None]] = None,
     ) -> None:
         # Resolve runtime-bound dependencies once at construction so subsequent
         # methods can run without touching Streamlit's Runtime singleton.
@@ -422,8 +425,40 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._relay = relay if relay is not None else get_global_relay()
 
         self._process_offer_thread: Union[threading.Thread, None] = None
-        self.pc = RTCPeerConnection(rtc_configuration)
+
+        # Trickle ICE (RFC 8838): the answer SDP is created without waiting
+        # for ICE gathering to complete. Local candidates are collected below
+        # and exposed via `get_local_ice_candidates()` so they can be
+        # delivered to the frontend incrementally.
+        if rtc_configuration is None:
+            rtc_configuration = RTCConfiguration()
+        self.pc = RTCPeerConnection(
+            dataclasses_replace(rtc_configuration, trickleIce=True)
+        )
         self._answer_queue: queue.Queue = queue.Queue()
+
+        self._local_ice_candidate_ids = itertools.count()
+        self._local_ice_candidates: Dict[str, Dict[str, Any]] = {}
+        self._local_ice_candidates_complete = False
+        self._local_ice_candidates_lock = threading.Lock()
+        self._on_local_ice_candidate = on_local_ice_candidate
+
+        @self.pc.on("icecandidate")
+        def on_icecandidate(candidate: Optional[RTCIceCandidate]) -> None:
+            with self._local_ice_candidates_lock:
+                if candidate is None:
+                    self._local_ice_candidates_complete = True
+                else:
+                    candidate_id = str(next(self._local_ice_candidate_ids))
+                    self._local_ice_candidates[candidate_id] = {
+                        # Browsers expect the `candidate:`-prefixed
+                        # attribute-value form in `RTCIceCandidateInit`.
+                        "candidate": "candidate:" + candidate_to_sdp(candidate),
+                        "sdpMid": candidate.sdpMid,
+                        "sdpMLineIndex": candidate.sdpMLineIndex,
+                    }
+            if self._on_local_ice_candidate:
+                self._on_local_ice_candidate()
 
         with loop_context(self._loop):
             self._remote_description_set = asyncio.Event()
@@ -675,6 +710,15 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
             raise result
 
         return result
+
+    def get_local_ice_candidates(self) -> Dict[str, Any]:
+        """Return a JSON-serializable snapshot of the local ICE candidates
+        gathered so far, keyed by ID so the frontend can deduplicate."""
+        with self._local_ice_candidates_lock:
+            return {
+                "candidates": dict(self._local_ice_candidates),
+                "complete": self._local_ice_candidates_complete,
+            }
 
     def set_ice_candidates_from_offerer(self, candidates: Dict[str, Dict]):
         logger.info("Setting ICE candidates from offerer: %s", candidates)

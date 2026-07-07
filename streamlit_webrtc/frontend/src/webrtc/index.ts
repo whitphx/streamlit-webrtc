@@ -1,4 +1,11 @@
-import { useReducer, useCallback, useRef, useEffect, useMemo } from "react";
+import {
+  useReducer,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { compileMediaConstraints } from "../media-constraint";
 import { ComponentValue } from "../component-value";
 import { connectReducer, initialState } from "./reducer";
@@ -17,6 +24,7 @@ export const useWebRtc = (
     mode: WebRtcMode;
     desiredPlayingState: boolean | undefined;
     sdpAnswerJson: string | undefined;
+    answererIceCandidatesJson: string | undefined;
     rtcConfiguration: RTCConfiguration | undefined;
     mediaStreamConstraints: MediaStreamConstraints | undefined;
     sendbackVideo: boolean;
@@ -45,6 +53,13 @@ export const useWebRtc = (
     [onComponentValueChange],
   );
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  // Candidates trickled from the answerer (the Python server) can only be
+  // added after the answer SDP has been applied, so track that as state to
+  // re-fire the consuming effect below.
+  const [remoteSdpSet, setRemoteSdpSet] = useState(false);
+  const addedAnswererIceCandidateIdsRef = useRef<Set<string>>(new Set());
+  const answererIceCandidatesCompletedRef = useRef(false);
 
   const uniqueIdGenerator = useUniqueId();
 
@@ -110,6 +125,9 @@ export const useWebRtc = (
       dispatch({ type: "SIGNALLING_START" });
 
       uniqueIdGenerator.reset();
+      setRemoteSdpSet(false);
+      addedAnswererIceCandidateIdsRef.current = new Set();
+      answererIceCandidatesCompletedRef.current = false;
 
       const mode = props.mode;
 
@@ -274,13 +292,61 @@ export const useWebRtc = (
       if (sdpAnswerJson && state.webRtcState === "SIGNALLING") {
         const sdpAnswer = JSON.parse(sdpAnswerJson);
         console.debug("Receive answer SDP", sdpAnswer);
-        pc.setRemoteDescription(sdpAnswer).catch((error) => {
-          dispatch({ type: "PROCESS_ANSWER_ERROR", error });
-          stop();
-        });
+        pc.setRemoteDescription(sdpAnswer)
+          .then(() => {
+            setRemoteSdpSet(true);
+          })
+          .catch((error) => {
+            dispatch({ type: "PROCESS_ANSWER_ERROR", error });
+            stop();
+          });
       }
     }
   }, [props.sdpAnswerJson, state.webRtcState, stop]);
+
+  // processAnswererIceCandidates: add the ICE candidates trickled from the
+  // answerer (the Python server). They are keyed by ID and accumulate over
+  // reruns, so newly-arrived ones are picked out with the ID set.
+  useEffect(() => {
+    const pc = pcRef.current;
+    if (pc == null || !remoteSdpSet) {
+      return;
+    }
+    const answererIceCandidatesJson = props.answererIceCandidatesJson;
+    if (!answererIceCandidatesJson) {
+      return;
+    }
+    const payload: {
+      candidates: Record<string, RTCIceCandidateInit>;
+      complete: boolean;
+    } = JSON.parse(answererIceCandidatesJson);
+
+    const addedIds = addedAnswererIceCandidateIdsRef.current;
+    Object.entries(payload.candidates).forEach(([id, candidate]) => {
+      if (addedIds.has(id)) {
+        return;
+      }
+      addedIds.add(id);
+      console.debug("Add an ICE candidate from the answerer", candidate);
+      pc.addIceCandidate(candidate).catch((error) => {
+        console.error(
+          "Failed to add an ICE candidate from the answerer",
+          candidate,
+          error,
+        );
+      });
+    });
+
+    if (payload.complete && !answererIceCandidatesCompletedRef.current) {
+      answererIceCandidatesCompletedRef.current = true;
+      console.debug("End of the answerer's ICE candidates");
+      pc.addIceCandidate().catch((error) => {
+        // Some browsers may not support the no-argument end-of-candidates
+        // form; it is only an optimization, so just log and move on.
+        console.debug("Failed to signal end-of-candidates", error);
+      });
+    }
+  }, [props.answererIceCandidatesJson, remoteSdpSet]);
 
   // reconcilePlayingState
   useEffect(() => {

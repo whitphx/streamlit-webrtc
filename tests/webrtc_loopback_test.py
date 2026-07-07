@@ -192,6 +192,37 @@ async def test_sendonly_video_frame_callback_observes_frames() -> None:
         await _teardown_loopback(client, worker)
 
 
+@pytest.mark.asyncio
+async def test_trickle_ice_exposes_local_candidates() -> None:
+    """The worker answers before gathering completes, collects its local
+    candidates incrementally, and notifies via `on_local_ice_candidate`."""
+    loop = asyncio.get_running_loop()
+    notifications: List[int] = []
+
+    client, worker = await _setup_loopback(
+        mode=WebRtcMode.SENDONLY,
+        on_local_ice_candidate=lambda: notifications.append(1),
+    )
+    try:
+        assert await _drain_until(
+            lambda: worker.get_local_ice_candidates()["complete"], loop.time() + 15
+        )
+        payload = worker.get_local_ice_candidates()
+        assert len(payload["candidates"]) > 0
+        # One notification per candidate, plus one for the completion signal.
+        assert len(notifications) == len(payload["candidates"]) + 1
+        for candidate in payload["candidates"].values():
+            assert candidate["candidate"].startswith("candidate:")
+            assert candidate["sdpMid"] is not None
+            assert candidate["sdpMLineIndex"] is not None
+
+        assert await _drain_until(
+            lambda: client.connectionState == "connected", loop.time() + 15
+        )
+    finally:
+        await _teardown_loopback(client, worker)
+
+
 def _audio_source_callback(pts: int, time_base: fractions.Fraction) -> av.AudioFrame:
     samples = np.zeros((1, 960), dtype=np.int16)
     frame = av.AudioFrame.from_ndarray(samples, format="s16", layout="mono")
