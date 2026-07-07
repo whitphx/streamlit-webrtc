@@ -414,6 +414,42 @@ def _resolve_server_rtc_configuration(
     return config
 
 
+def _make_ice_candidate_rerun_callback() -> Optional[Callable[[], None]]:
+    """Build a callback which requests a rerun of the current session, used
+    to deliver server-side ICE candidates to the frontend as they are
+    gathered.
+
+    The callback is invoked from the WebRTC worker's event loop thread, where
+    `st.rerun()` is not usable, so it requests the rerun directly on the
+    `AppSession` object captured here in the script thread.
+    """
+    session_info = get_this_session_info()
+    if session_info is None:
+        return None
+    # A weak reference, so the worker holding this callback does not keep the
+    # session alive after it is closed.
+    session_ref = weakref.ref(session_info.session)
+
+    def request_rerun() -> None:
+        session = session_ref()
+        if session is None:
+            return
+        try:
+            # Pass the session's own latest client state so the rerun
+            # preserves the current page and query string. With
+            # `client_state=None`, the session falls back to an empty
+            # `RerunData`, whose empty `page_script_hash` sends a
+            # multi-page app back to its main page.
+            session.request_rerun(getattr(session, "_client_state", None))
+        except Exception:
+            LOGGER.warning(
+                "Failed to request a rerun to deliver ICE candidates.",
+                exc_info=True,
+            )
+
+    return request_rerun
+
+
 def _handle_worker_lifecycle(
     context: WebRtcStreamerContext,
     key: str,
@@ -463,9 +499,9 @@ def _handle_worker_lifecycle(
             worker.process_offer(
                 sdp_offer["sdp"],
                 sdp_offer["type"],
-                # aioice's internal method uses a 5s timeout
-                # (https://github.com/aiortc/aioice/blob/aaada959aa8de31b880822db36f1c0c0cef75c0e/src/aioice/ice.py#L973);
-                # give a bit more headroom here.
+                # With trickle ICE, the answer is created without waiting for
+                # ICE gathering, so this is normally near-instant; the timeout
+                # is just a safety net.
                 timeout=10,
             )
             context._set_worker(worker)
@@ -764,6 +800,16 @@ def webrtc_streamer(
     context = _get_or_create_context(key)
     frontend_key = generate_frontend_component_key(key)
 
+    # Server-side ICE candidates gathered so far; the worker producing them
+    # was created in a previous run, and each new candidate triggers a rerun,
+    # so they reach the frontend incrementally through this arg.
+    existing_worker = context._get_worker()
+    answerer_ice_candidates_json = (
+        json.dumps(existing_worker.get_local_ice_candidates())
+        if existing_worker
+        else None
+    )
+
     component_value: Union[Dict, None] = _component_func(
         key=frontend_key,
         # The user-supplied `key` scopes per-instance persistence (e.g.
@@ -772,6 +818,7 @@ def webrtc_streamer(
         # forward the original `key` instead.
         component_key=key,
         sdp_answer_json=context._sdp_answer_json,
+        answerer_ice_candidates_json=answerer_ice_candidates_json,
         mode=mode.name,
         rtc_configuration=enhance_frontend_rtc_configuration(
             frontend_rtc_configuration
@@ -793,12 +840,15 @@ def webrtc_streamer(
 
     sdp_offer = component_value.get("sdpOffer") if component_value else None
 
+    on_local_ice_candidate = _make_ice_candidate_rerun_callback()
+
     _handle_worker_lifecycle(
         context,
         key,
         sdp_offer,
         make_worker=lambda: WebRtcWorker(
             mode=mode,
+            on_local_ice_candidate=on_local_ice_candidate,
             rtc_configuration=_resolve_server_rtc_configuration(
                 server_rtc_configuration
             ),
