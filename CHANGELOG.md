@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.75.1'></a>
+## 0.75.1 — 2026-07-12
+
+### Fixed
+
+- Selecting a device in the device selection form now reliably switches the input device. The selected device ID was previously passed to `getUserMedia` as an "ideal" hint, which browsers could ignore and silently fall back to the default camera (e.g. the built-in camera instead of a selected Continuity Camera); it is now passed as an `exact` constraint, and the actually-opened device no longer overwrites an explicit user selection.
+
 <a id='changelog-0.75.0'></a>
 ## 0.75.0 — 2026-07-05
 
