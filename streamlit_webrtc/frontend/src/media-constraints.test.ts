@@ -9,13 +9,13 @@ describe("compileMediaConstraints()", () => {
       expect(compileMediaConstraints(src, undefined, undefined)).toEqual({});
     });
 
-    it("sets device IDs if provided", () => {
+    it("sets device IDs as exact constraints if provided", () => {
       expect(compileMediaConstraints(src, "videoid", "audioid")).toEqual({
         video: {
-          deviceId: "videoid",
+          deviceId: { exact: "videoid" },
         },
         audio: {
-          deviceId: "audioid",
+          deviceId: { exact: "audioid" },
         },
       });
     });
@@ -24,13 +24,13 @@ describe("compileMediaConstraints()", () => {
   describe("when the source object simply contains bool specs with true value", () => {
     const src: MediaStreamConstraints = { video: true, audio: true };
 
-    it("sets deviceIds if provided", () => {
+    it("sets deviceIds as exact constraints if provided", () => {
       expect(compileMediaConstraints(src, "videoid", "audioid")).toEqual({
         video: {
-          deviceId: "videoid",
+          deviceId: { exact: "videoid" },
         },
         audio: {
-          deviceId: "audioid",
+          deviceId: { exact: "audioid" },
         },
       });
     });
@@ -67,11 +67,26 @@ describe("compileMediaConstraints()", () => {
             min: 10,
             max: 20,
           },
-          deviceId: "videoid",
+          deviceId: { exact: "videoid" },
         },
         audio: {
           echoCancellation: true,
-          deviceId: "audioid",
+          deviceId: { exact: "audioid" },
+        },
+      });
+    });
+
+    it("does not mutate the source object", () => {
+      compileMediaConstraints(src, "videoid", "audioid");
+      expect(src).toEqual({
+        video: {
+          frameRate: {
+            min: 10,
+            max: 20,
+          },
+        },
+        audio: {
+          echoCancellation: true,
         },
       });
     });

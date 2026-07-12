@@ -16,7 +16,12 @@ function VideoPreview(props: VideoPreviewProps) {
     let stream: MediaStream | null = null;
     let unmounted = false;
     navigator.mediaDevices
-      .getUserMedia({ video: { deviceId: props.deviceId }, audio: false })
+      .getUserMedia({
+        // `exact` so the preview shows the selected device, not a browser
+        // fallback — a bare deviceId is only an "ideal" hint.
+        video: { deviceId: { exact: props.deviceId } },
+        audio: false,
+      })
       .then((_stream) => {
         stream = _stream;
 
