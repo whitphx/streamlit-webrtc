@@ -59,12 +59,29 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     if (deviceIds === initialDeviceIdsRef.current) return;
     persistDeviceIds(componentKey, deviceIds);
   }, [componentKey, deviceIds]);
+  // Record the devices that actually opened, but never overwrite an explicit
+  // selection — the opened device can be a browser-chosen fallback, and
+  // letting it replace the user's choice would silently revert (and persist)
+  // the wrong device.
+  const handleDevicesOpened = useCallback(
+    (openedDeviceIds: { video?: string; audio?: string }) => {
+      setDeviceIds((prev) => {
+        const video = prev.video ?? openedDeviceIds.video;
+        const audio = prev.audio ?? openedDeviceIds.audio;
+        if (video === prev.video && audio === prev.audio) {
+          return prev;
+        }
+        return { video, audio };
+      });
+    },
+    [],
+  );
   const { state, start, stop } = useWebRtc(
     props,
     deviceIds.video,
     deviceIds.audio,
     props.onComponentValueChange,
-    setDeviceIds,
+    handleDevicesOpened,
   );
 
   const {

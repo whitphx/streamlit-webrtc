@@ -3,12 +3,16 @@ export function compileMediaConstraints(
   videoDeviceId: string | undefined,
   audioDeviceId: string | undefined,
 ): MediaStreamConstraints {
-  const constraints = src || {};
+  const constraints: MediaStreamConstraints = { ...src };
 
+  // `exact` is required here: a bare deviceId is only an "ideal" hint that
+  // browsers may ignore, silently falling back to the default camera
+  // (observed with macOS Continuity Camera).
+  // Ref: https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints#deviceid
   if (videoDeviceId) {
     if (constraints.video === true) {
       constraints.video = {
-        deviceId: videoDeviceId,
+        deviceId: { exact: videoDeviceId },
       };
     } else if (
       typeof constraints.video === "object" ||
@@ -16,7 +20,7 @@ export function compileMediaConstraints(
     ) {
       constraints.video = {
         ...constraints.video,
-        deviceId: videoDeviceId,
+        deviceId: { exact: videoDeviceId },
       };
     }
   }
@@ -24,7 +28,7 @@ export function compileMediaConstraints(
   if (audioDeviceId) {
     if (constraints.audio === true) {
       constraints.audio = {
-        deviceId: audioDeviceId,
+        deviceId: { exact: audioDeviceId },
       };
     } else if (
       typeof constraints.audio === "object" ||
@@ -32,7 +36,7 @@ export function compileMediaConstraints(
     ) {
       constraints.audio = {
         ...constraints.audio,
-        deviceId: audioDeviceId,
+        deviceId: { exact: audioDeviceId },
       };
     }
   }
