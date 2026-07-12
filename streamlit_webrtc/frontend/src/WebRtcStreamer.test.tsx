@@ -45,6 +45,7 @@ function renderStreamer({
     },
     start: vi.fn(),
     stop: vi.fn(),
+    updateInputDevices: vi.fn(),
   });
 
   render(
@@ -87,5 +88,13 @@ describe("<WebRtcStreamerInner />", () => {
     expect(
       screen.queryByRole("button", { name: "Mute microphone" }),
     ).toBeNull();
+  });
+
+  it("shows the device selector while streaming", () => {
+    renderStreamer();
+
+    expect(
+      screen.getByRole("button", { name: "Select Device" }),
+    ).not.toBeNull();
   });
 });

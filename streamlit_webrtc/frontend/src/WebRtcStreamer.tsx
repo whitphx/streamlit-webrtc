@@ -76,7 +76,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     },
     [],
   );
-  const { state, start, stop } = useWebRtc(
+  const { state, start, stop, updateInputDevices } = useWebRtc(
     props,
     deviceIds.video,
     deviceIds.audio,
@@ -123,6 +123,27 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const closeDeviceSelect = useCallback(() => {
     setDeviceSelectOpen(false);
   }, []);
+  const selectDevices = useCallback(
+    (nextDeviceIds: {
+      video: MediaDeviceInfo["deviceId"] | undefined;
+      audio: MediaDeviceInfo["deviceId"] | undefined;
+    }) => {
+      const devicesChanged =
+        nextDeviceIds.video !== deviceIds.video ||
+        nextDeviceIds.audio !== deviceIds.audio;
+      if (
+        devicesChanged &&
+        (state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING")
+      ) {
+        void updateInputDevices(nextDeviceIds.video, nextDeviceIds.audio)
+          .then(() => setDeviceIds(nextDeviceIds))
+          .catch((error) => console.error("Failed to switch devices", error));
+      } else {
+        setDeviceIds(nextDeviceIds);
+      }
+    },
+    [deviceIds, state.webRtcState, updateInputDevices],
+  );
   if (deviceSelectOpen) {
     return (
       <Suspense fallback={null}>
@@ -131,7 +152,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
           audio={audioEnabled}
           defaultVideoDeviceId={deviceIds.video}
           defaultAudioDeviceId={deviceIds.audio}
-          onSelect={setDeviceIds}
+          onSelect={selectDevices}
           onClose={closeDeviceSelect}
         />
       </Suspense>
@@ -196,16 +217,15 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
               />
             )}
           </Box>
-          {userControlsPlayingState &&
-            transmittable &&
-            state.webRtcState === "STOPPED" && (
-              <TranslatedButton
-                color="inherit"
-                onClick={openDeviceSelect}
-                translationKey="select_device"
-                defaultText="Select Device"
-              />
-            )}
+          {userControlsPlayingState && transmittable && (
+            <TranslatedButton
+              color="inherit"
+              onClick={openDeviceSelect}
+              disabled={buttonDisabled}
+              translationKey="select_device"
+              defaultText="Select Device"
+            />
+          )}
         </Box>
       )}
     </Box>

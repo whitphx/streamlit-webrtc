@@ -96,6 +96,55 @@ export const useWebRtc = (
   const stopRef = useRef(stop);
   stopRef.current = stop;
 
+  const updateInputDevices = useCallback(
+    async (
+      videoDeviceId: MediaDeviceInfo["deviceId"] | undefined,
+      audioDeviceId: MediaDeviceInfo["deviceId"] | undefined,
+    ): Promise<void> => {
+      const pc = pcRef.current;
+      if (pc == null || state.inputMediaStream == null) {
+        return;
+      }
+
+      const constraints = compileMediaConstraints(
+        props.mediaStreamConstraints,
+        videoDeviceId,
+        audioDeviceId,
+      );
+      const nextStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const previousTracks = state.inputMediaStream.getTracks();
+
+      try {
+        await Promise.all(
+          nextStream.getTracks().map(async (nextTrack) => {
+            const sender = pc
+              .getSenders()
+              .find((candidate) => candidate.track?.kind === nextTrack.kind);
+            if (sender == null) {
+              throw new Error(`No sender found for ${nextTrack.kind} track`);
+            }
+
+            const previousTrack = sender.track;
+            if (previousTrack != null) {
+              nextTrack.enabled = previousTrack.enabled;
+            }
+            await sender.replaceTrack(nextTrack);
+          }),
+        );
+      } catch (error) {
+        nextStream.getTracks().forEach((track) => track.stop());
+        throw error;
+      }
+
+      previousTracks.forEach((track) => track.stop());
+      dispatch({
+        type: "SET_INPUT_MEDIA_STREAM",
+        inputMediaStream: nextStream,
+      });
+    },
+    [props.mediaStreamConstraints, state.inputMediaStream],
+  );
+
   const start = useCallback((): Promise<void> => {
     if (state.webRtcState !== "STOPPED") {
       return Promise.reject(new Error("WebRTC is already started"));
@@ -300,6 +349,7 @@ export const useWebRtc = (
   return {
     start,
     stop,
+    updateInputDevices,
     state,
   };
 };
