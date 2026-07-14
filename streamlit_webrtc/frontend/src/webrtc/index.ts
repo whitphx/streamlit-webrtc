@@ -3,6 +3,7 @@ import { compileMediaConstraints } from "../media-constraint";
 import { ComponentValue } from "../component-value";
 import { connectReducer, initialState } from "./reducer";
 import { useUniqueId } from "./use-unique-id";
+import { switchInputDevice, type InputDeviceKind } from "./switch-input-device";
 
 export type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 export const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -96,50 +97,25 @@ export const useWebRtc = (
   const stopRef = useRef(stop);
   stopRef.current = stop;
 
-  const updateInputDevices = useCallback(
+  const updateInputDevice = useCallback(
     async (
-      videoDeviceId: MediaDeviceInfo["deviceId"] | undefined,
-      audioDeviceId: MediaDeviceInfo["deviceId"] | undefined,
+      kind: InputDeviceKind,
+      deviceId: MediaDeviceInfo["deviceId"],
     ): Promise<void> => {
       const pc = pcRef.current;
       if (pc == null || state.inputMediaStream == null) {
         return;
       }
-
-      const constraints = compileMediaConstraints(
+      await switchInputDevice(
+        pc,
+        state.inputMediaStream,
         props.mediaStreamConstraints,
-        videoDeviceId,
-        audioDeviceId,
+        kind,
+        deviceId,
       );
-      const nextStream = await navigator.mediaDevices.getUserMedia(constraints);
-      const previousTracks = state.inputMediaStream.getTracks();
-
-      try {
-        await Promise.all(
-          nextStream.getTracks().map(async (nextTrack) => {
-            const sender = pc
-              .getSenders()
-              .find((candidate) => candidate.track?.kind === nextTrack.kind);
-            if (sender == null) {
-              throw new Error(`No sender found for ${nextTrack.kind} track`);
-            }
-
-            const previousTrack = sender.track;
-            if (previousTrack != null) {
-              nextTrack.enabled = previousTrack.enabled;
-            }
-            await sender.replaceTrack(nextTrack);
-          }),
-        );
-      } catch (error) {
-        nextStream.getTracks().forEach((track) => track.stop());
-        throw error;
-      }
-
-      previousTracks.forEach((track) => track.stop());
       dispatch({
         type: "SET_INPUT_MEDIA_STREAM",
-        inputMediaStream: nextStream,
+        inputMediaStream: state.inputMediaStream,
       });
     },
     [props.mediaStreamConstraints, state.inputMediaStream],
@@ -349,7 +325,7 @@ export const useWebRtc = (
   return {
     start,
     stop,
-    updateInputDevices,
+    updateInputDevice,
     state,
   };
 };

@@ -76,7 +76,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     },
     [],
   );
-  const { state, start, stop, updateInputDevices } = useWebRtc(
+  const { state, start, stop, updateInputDevice } = useWebRtc(
     props,
     deviceIds.video,
     deviceIds.audio,
@@ -117,32 +117,50 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   );
 
   const [deviceSelectOpen, setDeviceSelectOpen] = useState(false);
+  const [deviceSwitchError, setDeviceSwitchError] = useState<Error | null>(
+    null,
+  );
   const openDeviceSelect = useCallback(() => {
+    setDeviceSwitchError(null);
     setDeviceSelectOpen(true);
   }, []);
   const closeDeviceSelect = useCallback(() => {
     setDeviceSelectOpen(false);
   }, []);
   const selectDevices = useCallback(
-    (nextDeviceIds: {
-      video: MediaDeviceInfo["deviceId"] | undefined;
-      audio: MediaDeviceInfo["deviceId"] | undefined;
-    }) => {
+    (
+      nextDeviceIds: {
+        video?: MediaDeviceInfo["deviceId"];
+        audio?: MediaDeviceInfo["deviceId"];
+      },
+      changedKind?: "video" | "audio",
+    ) => {
       const devicesChanged =
         nextDeviceIds.video !== deviceIds.video ||
         nextDeviceIds.audio !== deviceIds.audio;
-      if (
-        devicesChanged &&
-        (state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING")
-      ) {
-        void updateInputDevices(nextDeviceIds.video, nextDeviceIds.audio)
+      if (!devicesChanged) {
+        return;
+      }
+      const isStreaming =
+        state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING";
+      if (isStreaming && changedKind != null) {
+        const deviceId = nextDeviceIds[changedKind];
+        if (deviceId == null) {
+          return;
+        }
+        setDeviceSwitchError(null);
+        void updateInputDevice(changedKind, deviceId)
           .then(() => setDeviceIds(nextDeviceIds))
-          .catch((error) => console.error("Failed to switch devices", error));
-      } else {
+          .catch((error: unknown) =>
+            setDeviceSwitchError(
+              error instanceof Error ? error : new Error(String(error)),
+            ),
+          );
+      } else if (!isStreaming) {
         setDeviceIds(nextDeviceIds);
       }
     },
-    [deviceIds, state.webRtcState, updateInputDevices],
+    [deviceIds, state.webRtcState, updateInputDevice],
   );
   if (deviceSelectOpen) {
     return (
@@ -154,6 +172,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
           defaultAudioDeviceId={deviceIds.audio}
           onSelect={selectDevices}
           onClose={closeDeviceSelect}
+          switchError={deviceSwitchError}
         />
       </Suspense>
     );

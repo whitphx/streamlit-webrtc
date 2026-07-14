@@ -123,10 +123,13 @@ export interface DeviceSelectProps {
   audio: boolean;
   defaultVideoDeviceId: MediaDeviceInfo["deviceId"] | undefined;
   defaultAudioDeviceId: MediaDeviceInfo["deviceId"] | undefined;
-  onSelect: (devices: {
-    video: MediaDeviceInfo["deviceId"] | undefined;
-    audio: MediaDeviceInfo["deviceId"] | undefined;
-  }) => void;
+  onSelect: (
+    devices: {
+      video?: MediaDeviceInfo["deviceId"];
+      audio?: MediaDeviceInfo["deviceId"];
+    },
+    changedKind?: "video" | "audio",
+  ) => void;
 }
 function DeviceSelect(props: DeviceSelectProps) {
   const {
@@ -232,25 +235,31 @@ function DeviceSelect(props: DeviceSelectProps) {
 
   const handleVideoInputChange = useCallback<
     NonNullable<NativeSelectProps["onChange"]>
-  >((e) => {
-    deviceSelectionDispatch({
-      type: "UPDATE_SELECTED_DEVICE_ID",
-      payload: {
-        selectedVideoInputDeviceId: e.target.value,
-      },
-    });
-  }, []);
+  >(
+    (e) => {
+      const video = e.target.value;
+      deviceSelectionDispatch({
+        type: "UPDATE_SELECTED_DEVICE_ID",
+        payload: { selectedVideoInputDeviceId: video },
+      });
+      onSelect({ video, audio: selectedAudioInputDeviceId }, "video");
+    },
+    [onSelect, selectedAudioInputDeviceId],
+  );
 
   const handleAudioInputChange = useCallback<
     NonNullable<NativeSelectProps["onChange"]>
-  >((e) => {
-    deviceSelectionDispatch({
-      type: "UPDATE_SELECTED_DEVICE_ID",
-      payload: {
-        selectedAudioInputDeviceId: e.target.value,
-      },
-    });
-  }, []);
+  >(
+    (e) => {
+      const audio = e.target.value;
+      deviceSelectionDispatch({
+        type: "UPDATE_SELECTED_DEVICE_ID",
+        payload: { selectedAudioInputDeviceId: audio },
+      });
+      onSelect({ video: selectedVideoInputDeviceId, audio }, "audio");
+    },
+    [onSelect, selectedVideoInputDeviceId],
+  );
 
   // Call onSelect
   useEffect(() => {
