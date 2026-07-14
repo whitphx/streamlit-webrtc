@@ -104,7 +104,9 @@ export const useWebRtc = (
     ): Promise<void> => {
       const pc = pcRef.current;
       if (pc == null || state.inputMediaStream == null) {
-        return;
+        throw new Error(
+          "Cannot switch input device without an active WebRTC input stream",
+        );
       }
       await switchInputDevice(
         pc,

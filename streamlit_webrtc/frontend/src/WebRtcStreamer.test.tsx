@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import { useEffect } from "react";
 import { WebRtcStreamerInner } from "./WebRtcStreamer";
@@ -34,17 +35,28 @@ vi.mock("./device-storage", () => ({
 vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
   default: function MockDeviceSelectForm(props: {
     onSelectionResolved: (devices: { video?: string; audio?: string }) => void;
-    onVideoSelect: (deviceId: string) => void;
+    onVideoSelect: (deviceId: string) => Promise<void> | void;
+    onAudioSelect: (deviceId: string) => Promise<void> | void;
     switchError?: Error | null;
   }) {
-    const { onSelectionResolved, onVideoSelect, switchError } = props;
+    const { onSelectionResolved, onVideoSelect, onAudioSelect, switchError } =
+      props;
     useEffect(() => {
       onSelectionResolved({ video: "old-video", audio: "old-audio" });
     }, [onSelectionResolved]);
+    const selectVideo = () => {
+      void Promise.resolve(onVideoSelect("new-video")).catch(() => undefined);
+    };
+    const selectAudio = () => {
+      void Promise.resolve(onAudioSelect("new-audio")).catch(() => undefined);
+    };
     return (
       <div>
-        <button type="button" onClick={() => onVideoSelect("new-video")}>
+        <button type="button" onClick={selectVideo}>
           Choose another camera
+        </button>
+        <button type="button" onClick={selectAudio}>
+          Choose another microphone
         </button>
         {switchError != null && <div role="alert">{switchError.message}</div>}
       </div>
@@ -193,5 +205,43 @@ describe("<WebRtcStreamerInner />", () => {
       "Device is busy",
     );
     expect(persistDeviceIds).not.toHaveBeenCalled();
+  });
+
+  it("preserves both confirmed IDs when video and audio switches overlap", async () => {
+    let finishVideoSwitch: (() => void) | undefined;
+    let finishAudioSwitch: (() => void) | undefined;
+    const updateInputDevice = vi.fn((kind: "video" | "audio") => {
+      return new Promise<void>((resolve) => {
+        if (kind === "video") {
+          finishVideoSwitch = resolve;
+        } else {
+          finishAudioSwitch = resolve;
+        }
+      });
+    });
+    renderStreamer({ updateInputDevice });
+    fireEvent.click(screen.getByRole("button", { name: "Select Device" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Choose another camera" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Choose another microphone" }),
+    );
+
+    await act(async () => finishAudioSwitch?.());
+    await waitFor(() =>
+      expect(persistDeviceIds).toHaveBeenLastCalledWith("test-key", {
+        video: "old-video",
+        audio: "new-audio",
+      }),
+    );
+
+    await act(async () => finishVideoSwitch?.());
+    await waitFor(() =>
+      expect(persistDeviceIds).toHaveBeenLastCalledWith("test-key", {
+        video: "new-video",
+        audio: "new-audio",
+      }),
+    );
   });
 });

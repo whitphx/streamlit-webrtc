@@ -144,27 +144,33 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     [deviceIds, state.webRtcState],
   );
   const selectInputDevice = useCallback(
-    (kind: "video" | "audio", deviceId: MediaDeviceInfo["deviceId"]) => {
-      if (deviceId === deviceIds[kind]) {
-        return;
-      }
-      const nextDeviceIds = { ...deviceIds, [kind]: deviceId };
+    async (
+      kind: "video" | "audio",
+      deviceId: MediaDeviceInfo["deviceId"],
+    ): Promise<void> => {
       const isStreaming =
         state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING";
       if (!isStreaming) {
-        setDeviceIds(nextDeviceIds);
+        setDeviceIds((prev) =>
+          prev[kind] === deviceId ? prev : { ...prev, [kind]: deviceId },
+        );
         return;
       }
       setDeviceSwitchError(null);
-      void updateInputDevice(kind, deviceId)
-        .then(() => setDeviceIds(nextDeviceIds))
-        .catch((error: unknown) =>
-          setDeviceSwitchError(
-            error instanceof Error ? error : new Error(String(error)),
-          ),
+      try {
+        await updateInputDevice(kind, deviceId);
+        setDeviceIds((prev) =>
+          prev[kind] === deviceId ? prev : { ...prev, [kind]: deviceId },
         );
+        setDeviceSwitchError(null);
+      } catch (error: unknown) {
+        const switchError =
+          error instanceof Error ? error : new Error(String(error));
+        setDeviceSwitchError(switchError);
+        throw switchError;
+      }
     },
-    [deviceIds, state.webRtcState, updateInputDevice],
+    [state.webRtcState, updateInputDevice],
   );
   if (deviceSelectOpen) {
     return (

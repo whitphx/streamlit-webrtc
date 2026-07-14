@@ -2,7 +2,12 @@ import { compileMediaConstraints } from "../media-constraint";
 
 export type InputDeviceKind = "video" | "audio";
 
-export async function switchInputDevice(
+const switchQueues = new WeakMap<
+  Pick<RTCPeerConnection, "getSenders">,
+  Partial<Record<InputDeviceKind, Promise<void>>>
+>();
+
+async function replaceInputDevice(
   peerConnection: Pick<RTCPeerConnection, "getSenders">,
   inputMediaStream: MediaStream,
   mediaStreamConstraints: MediaStreamConstraints | undefined,
@@ -51,4 +56,38 @@ export async function switchInputDevice(
     .getTracks()
     .filter((track) => track !== nextTrack)
     .forEach((track) => track.stop());
+}
+
+export function switchInputDevice(
+  peerConnection: Pick<RTCPeerConnection, "getSenders">,
+  inputMediaStream: MediaStream,
+  mediaStreamConstraints: MediaStreamConstraints | undefined,
+  kind: InputDeviceKind,
+  deviceId: MediaDeviceInfo["deviceId"],
+): Promise<void> {
+  const queues = switchQueues.get(peerConnection) ?? {};
+  switchQueues.set(peerConnection, queues);
+
+  const previousSwitch = queues[kind] ?? Promise.resolve();
+  const currentSwitch = previousSwitch
+    .catch(() => undefined)
+    .then(() =>
+      replaceInputDevice(
+        peerConnection,
+        inputMediaStream,
+        mediaStreamConstraints,
+        kind,
+        deviceId,
+      ),
+    );
+  queues[kind] = currentSwitch;
+
+  const removeCompletedSwitch = () => {
+    if (queues[kind] === currentSwitch) {
+      delete queues[kind];
+    }
+  };
+  void currentSwitch.then(removeCompletedSwitch, removeCompletedSwitch);
+
+  return currentSwitch;
 }

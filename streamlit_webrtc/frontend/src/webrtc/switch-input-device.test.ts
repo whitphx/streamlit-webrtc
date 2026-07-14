@@ -137,4 +137,111 @@ describe("switchInputDevice", () => {
     expect(inputMediaStream.removeTrack).not.toHaveBeenCalled();
     expect(inputMediaStream.addTrack).not.toHaveBeenCalled();
   });
+
+  it("stops acquired tracks when the requested kind is missing", async () => {
+    const acquiredTrack = makeTrack("audio");
+    vi.stubGlobal("navigator", {
+      mediaDevices: {
+        getUserMedia: vi.fn().mockResolvedValue(makeStream([acquiredTrack])),
+      },
+    });
+
+    await expect(
+      switchInputDevice(
+        { getSenders: () => [] },
+        makeStream([]),
+        { video: true, audio: true },
+        "video",
+        "next-video",
+      ),
+    ).rejects.toThrow("No video track acquired");
+
+    expect(acquiredTrack.stop).toHaveBeenCalledOnce();
+  });
+
+  it("stops the acquired track when no sender is available", async () => {
+    const nextTrack = makeTrack("video");
+    vi.stubGlobal("navigator", {
+      mediaDevices: {
+        getUserMedia: vi.fn().mockResolvedValue(makeStream([nextTrack])),
+      },
+    });
+
+    await expect(
+      switchInputDevice(
+        { getSenders: () => [] },
+        makeStream([]),
+        { video: true, audio: true },
+        "video",
+        "next-video",
+      ),
+    ).rejects.toThrow("No sender found for video track");
+
+    expect(nextTrack.stop).toHaveBeenCalledOnce();
+  });
+
+  it("serializes overlapping switches of the same kind", async () => {
+    const previousTrack = makeTrack("video");
+    const firstTrack = makeTrack("video");
+    const secondTrack = makeTrack("video");
+    const inputMediaStream = makeStream([previousTrack]);
+    let finishFirstReplacement: (() => void) | undefined;
+    const sender = {
+      track: previousTrack,
+      replaceTrack: vi.fn((nextTrack: MediaStreamTrack) => {
+        if (nextTrack === firstTrack) {
+          return new Promise<void>((resolve) => {
+            finishFirstReplacement = () => {
+              sender.track = firstTrack;
+              resolve();
+            };
+          });
+        }
+        sender.track = nextTrack;
+        return Promise.resolve();
+      }),
+    };
+    const getUserMedia = vi
+      .fn()
+      .mockResolvedValueOnce(makeStream([firstTrack]))
+      .mockResolvedValueOnce(makeStream([secondTrack]));
+    vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
+    const peerConnection = {
+      getSenders: () => [sender as unknown as RTCRtpSender],
+    };
+
+    const firstSwitch = switchInputDevice(
+      peerConnection,
+      inputMediaStream,
+      { video: true, audio: true },
+      "video",
+      "first-video",
+    );
+    const secondSwitch = switchInputDevice(
+      peerConnection,
+      inputMediaStream,
+      { video: true, audio: true },
+      "video",
+      "second-video",
+    );
+
+    await vi.waitFor(() => expect(sender.replaceTrack).toHaveBeenCalledOnce());
+    expect(getUserMedia).toHaveBeenCalledOnce();
+
+    finishFirstReplacement?.();
+    await firstSwitch;
+    await secondSwitch;
+
+    expect(getUserMedia).toHaveBeenCalledTimes(2);
+    expect(sender.replaceTrack).toHaveBeenNthCalledWith(1, firstTrack);
+    expect(sender.replaceTrack).toHaveBeenNthCalledWith(2, secondTrack);
+    expect(inputMediaStream.removeTrack).toHaveBeenNthCalledWith(
+      1,
+      previousTrack,
+    );
+    expect(inputMediaStream.removeTrack).toHaveBeenNthCalledWith(2, firstTrack);
+    expect(previousTrack.stop).toHaveBeenCalledOnce();
+    expect(firstTrack.stop).toHaveBeenCalledOnce();
+    expect(secondTrack.stop).not.toHaveBeenCalled();
+  });
 });
