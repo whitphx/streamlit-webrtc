@@ -5,6 +5,7 @@ import itertools
 import logging
 import queue
 import threading
+import weakref
 from typing import (
     Callable,
     Dict,
@@ -349,6 +350,79 @@ async def _process_offer_coro(
 process_offer_thread_id_generator = itertools.count()
 
 
+def _force_stop_decoder_threads(pc: RTCPeerConnection) -> None:
+    """Deliver the stop sentinel to aiortc's per-receiver decoder threads
+    without going through the event loop.
+
+    aiortc's ``RTCRtpReceiver`` runs a *non-daemon* decoder thread that exits
+    only when a ``None`` sentinel reaches its queue, normally sent by
+    ``pc.close()`` or a transport-level disconnect. When the event loop is
+    torn down before ``pc.close()`` could run (e.g. Streamlit's Ctrl-C
+    shutdown winning the race against this library's session-shutdown
+    observer), the sentinel never arrives and the thread blocks on its queue
+    forever — which blocks interpreter exit, since ``threading._shutdown``
+    joins non-daemon threads.
+
+    ``__stop_decoder`` is a plain ``queue.put`` + ``Thread.join``, safe to
+    call from any thread and idempotent, so we invoke it directly. It is a
+    private aiortc API (aiortc 1.14: ``src/aiortc/rtcrtpreceiver.py``); if it
+    disappears in a future version, this degrades to a no-op.
+    """
+    for transceiver in pc.getTransceivers():
+        stop_decoder = getattr(
+            transceiver.receiver, "_RTCRtpReceiver__stop_decoder", None
+        )
+        if not callable(stop_decoder):
+            logger.debug("RTCRtpReceiver.__stop_decoder is not available. Skip it.")
+            continue
+        try:
+            stop_decoder()
+        except Exception:
+            logger.exception("Failed to force-stop a decoder thread")
+
+
+# Workers whose decoder threads may still be alive. Entries are added at
+# construction and discarded at the end of `stop()`; anything left at
+# interpreter shutdown gets its decoder threads force-stopped so the process
+# can exit.
+_live_workers: "weakref.WeakSet[WebRtcWorker]" = weakref.WeakSet()
+
+_exit_hook_lock = threading.Lock()
+_exit_hook_registered = False
+
+
+def _stop_leaked_decoder_threads_at_interpreter_exit() -> None:
+    for worker in list(_live_workers):
+        logger.info(
+            "A WebRTC worker was still alive at interpreter shutdown. "
+            "Force-stopping its decoder threads so the process can exit."
+        )
+        _force_stop_decoder_threads(worker.pc)
+
+
+def _register_exit_hook() -> None:
+    global _exit_hook_registered
+    with _exit_hook_lock:
+        if _exit_hook_registered:
+            return
+        # `threading._register_atexit` callbacks run at interpreter shutdown
+        # *before* non-daemon threads are joined; regular `atexit` hooks run
+        # after, which would be too late to prevent the join from blocking.
+        # It is a private API, but stable since Python 3.9 and used by
+        # `concurrent.futures` for the same purpose.
+        register = getattr(threading, "_register_atexit", None)
+        if register is None:
+            logger.debug("threading._register_atexit is not available. Skip it.")
+            _exit_hook_registered = True
+            return
+        try:
+            register(_stop_leaked_decoder_threads_at_interpreter_exit)
+        except RuntimeError:
+            # The interpreter is already shutting down.
+            return
+        _exit_hook_registered = True
+
+
 class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     @property
     def video_processor(
@@ -471,6 +545,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._session_shutdown_observer: Optional[SessionShutdownObserver] = (
             SessionShutdownObserver(self.stop)
         )
+
+        _register_exit_hook()
+        _live_workers.add(self)
 
     def _run_process_offer_thread(
         self,
@@ -820,27 +897,59 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     def stop(self, timeout: Union[float, None] = 1.0):
         logger.debug("Stopping WebRTC worker")
 
-        self._unset_processors()
+        try:
+            self._unset_processors()
 
-        if self._process_offer_thread:
-            self._process_offer_thread.join(timeout=timeout)
-            self._process_offer_thread = None
+            if self._process_offer_thread:
+                self._process_offer_thread.join(timeout=timeout)
+                self._process_offer_thread = None
 
-        if self.pc and self.pc.connectionState != "closed":
-            loop = self._loop
-            if loop.is_running():
-                close_future = asyncio.run_coroutine_threadsafe(
-                    self.pc.close(),
-                    loop=loop,
-                )
-                try:
-                    close_future.result(timeout=timeout)
-                except concurrent.futures.TimeoutError:
-                    logger.warning("Timed out while closing the peer connection")
-            else:
-                loop.run_until_complete(self.pc.close())
+            if self.pc and self.pc.connectionState != "closed":
+                loop = self._loop
+                if loop.is_running():
+                    try:
+                        close_future = asyncio.run_coroutine_threadsafe(
+                            self.pc.close(),
+                            loop=loop,
+                        )
+                        close_future.result(timeout=timeout)
+                    except concurrent.futures.TimeoutError:
+                        logger.warning("Timed out while closing the peer connection")
+                    except concurrent.futures.CancelledError:
+                        # A `CancelledError` from a `concurrent.futures.Future`
+                        # is a `BaseException`; it means the loop's teardown
+                        # cancelled our close task — exactly the case the
+                        # fallback below is for.
+                        logger.warning("Cancelled while closing the peer connection")
+                    except Exception:
+                        logger.exception("Failed to close the peer connection")
+                else:
+                    try:
+                        loop.run_until_complete(self.pc.close())
+                    except asyncio.CancelledError:
+                        logger.warning("Cancelled while closing the peer connection")
+                    except Exception:
+                        # Typically `RuntimeError: Event loop is closed` when
+                        # the server has already shut down.
+                        logger.warning(
+                            "Failed to close the peer connection without the event loop"
+                        )
+        finally:
+            if self.pc:
+                # `pc.close()` is what stops aiortc's non-daemon decoder
+                # threads, but it cannot be relied upon here: the close
+                # attempt above may have failed, and — more subtly —
+                # `connectionState` turns "closed" at the *start* of
+                # `RTCPeerConnection.close()`, so a close interrupted
+                # mid-flight (event-loop teardown, a timed-out or cancelled
+                # close task) leaves an already-"closed" connection that
+                # still owns live decoder threads. This is a no-op for
+                # receivers whose decoder already stopped.
+                _force_stop_decoder_threads(self.pc)
 
-        session_shutdown_observer = self._session_shutdown_observer
-        self._session_shutdown_observer = None
-        if session_shutdown_observer:
-            session_shutdown_observer.stop()
+            session_shutdown_observer = self._session_shutdown_observer
+            self._session_shutdown_observer = None
+            if session_shutdown_observer:
+                session_shutdown_observer.stop()
+
+            _live_workers.discard(self)
