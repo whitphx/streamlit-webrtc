@@ -6,7 +6,7 @@ https://github.com/robmarkcole/object-detection-app
 import logging
 import queue
 from pathlib import Path
-from typing import List, NamedTuple, Optional
+from typing import List, NamedTuple
 
 import aiortc
 import av
@@ -156,11 +156,10 @@ if st.checkbox("Show the detected labels", value=True):
         # Then the rendered video frames and the labels displayed here
         # are not strictly synchronized.
         while webrtc_ctx.state.playing:
-            result: Optional[List[Detection]]
             try:
                 result = result_queue.get(timeout=1.0)
             except queue.Empty:
-                result = None
+                result = []
             # Render on every iteration, even when no result arrived:
             # a Streamlit call is where pending stop/rerun requests are
             # honored, and a script thread that keeps blocking without one
