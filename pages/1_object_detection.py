@@ -155,8 +155,15 @@ if st.checkbox("Show the detected labels", value=True):
         # in different threads asynchronously.
         # Then the rendered video frames and the labels displayed here
         # are not strictly synchronized.
-        while True:
-            result = result_queue.get()
+        while webrtc_ctx.state.playing:
+            try:
+                result = result_queue.get(timeout=1.0)
+            except queue.Empty:
+                result = []
+            # Render on every iteration, even when no result arrived:
+            # a Streamlit call is where pending stop/rerun requests are
+            # honored, and a script thread that keeps blocking without one
+            # prevents the server process from shutting down.
             labels_placeholder.table(result)
 
 st.markdown(
