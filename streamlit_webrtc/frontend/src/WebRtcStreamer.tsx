@@ -51,9 +51,6 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     audio?: MediaDeviceInfo["deviceId"] | undefined;
   }>(() => loadPersistedDeviceIds(componentKey));
 
-  // Persist whenever the selection changes — both the DeviceSelect form's
-  // `onSelect` and the WebRTC hook's `onDevicesOpened` route through
-  // `setDeviceIds`, so this single effect covers both paths.
   const initialDeviceIdsRef = useRef(deviceIds);
   useEffect(() => {
     if (deviceIds === initialDeviceIdsRef.current) return;
@@ -127,14 +124,11 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const closeDeviceSelect = useCallback(() => {
     setDeviceSelectOpen(false);
   }, []);
-  const selectDevices = useCallback(
-    (
-      nextDeviceIds: {
-        video?: MediaDeviceInfo["deviceId"];
-        audio?: MediaDeviceInfo["deviceId"];
-      },
-      changedKind?: "video" | "audio",
-    ) => {
+  const reconcileDeviceIds = useCallback(
+    (nextDeviceIds: {
+      video?: MediaDeviceInfo["deviceId"];
+      audio?: MediaDeviceInfo["deviceId"];
+    }) => {
       const devicesChanged =
         nextDeviceIds.video !== deviceIds.video ||
         nextDeviceIds.audio !== deviceIds.audio;
@@ -143,22 +137,32 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
       }
       const isStreaming =
         state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING";
-      if (isStreaming && changedKind != null) {
-        const deviceId = nextDeviceIds[changedKind];
-        if (deviceId == null) {
-          return;
-        }
-        setDeviceSwitchError(null);
-        void updateInputDevice(changedKind, deviceId)
-          .then(() => setDeviceIds(nextDeviceIds))
-          .catch((error: unknown) =>
-            setDeviceSwitchError(
-              error instanceof Error ? error : new Error(String(error)),
-            ),
-          );
-      } else if (!isStreaming) {
+      if (!isStreaming) {
         setDeviceIds(nextDeviceIds);
       }
+    },
+    [deviceIds, state.webRtcState],
+  );
+  const selectInputDevice = useCallback(
+    (kind: "video" | "audio", deviceId: MediaDeviceInfo["deviceId"]) => {
+      if (deviceId === deviceIds[kind]) {
+        return;
+      }
+      const nextDeviceIds = { ...deviceIds, [kind]: deviceId };
+      const isStreaming =
+        state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING";
+      if (!isStreaming) {
+        setDeviceIds(nextDeviceIds);
+        return;
+      }
+      setDeviceSwitchError(null);
+      void updateInputDevice(kind, deviceId)
+        .then(() => setDeviceIds(nextDeviceIds))
+        .catch((error: unknown) =>
+          setDeviceSwitchError(
+            error instanceof Error ? error : new Error(String(error)),
+          ),
+        );
     },
     [deviceIds, state.webRtcState, updateInputDevice],
   );
@@ -170,7 +174,9 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
           audio={audioEnabled}
           defaultVideoDeviceId={deviceIds.video}
           defaultAudioDeviceId={deviceIds.audio}
-          onSelect={selectDevices}
+          onSelectionResolved={reconcileDeviceIds}
+          onVideoSelect={(deviceId) => selectInputDevice("video", deviceId)}
+          onAudioSelect={(deviceId) => selectInputDevice("audio", deviceId)}
           onClose={closeDeviceSelect}
           switchError={deviceSwitchError}
         />

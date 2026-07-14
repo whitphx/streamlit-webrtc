@@ -123,13 +123,12 @@ export interface DeviceSelectProps {
   audio: boolean;
   defaultVideoDeviceId: MediaDeviceInfo["deviceId"] | undefined;
   defaultAudioDeviceId: MediaDeviceInfo["deviceId"] | undefined;
-  onSelect: (
-    devices: {
-      video?: MediaDeviceInfo["deviceId"];
-      audio?: MediaDeviceInfo["deviceId"];
-    },
-    changedKind?: "video" | "audio",
-  ) => void;
+  onSelectionResolved: (devices: {
+    video?: MediaDeviceInfo["deviceId"];
+    audio?: MediaDeviceInfo["deviceId"];
+  }) => void;
+  onVideoSelect: (deviceId: MediaDeviceInfo["deviceId"]) => void;
+  onAudioSelect: (deviceId: MediaDeviceInfo["deviceId"]) => void;
 }
 function DeviceSelect(props: DeviceSelectProps) {
   const {
@@ -137,7 +136,9 @@ function DeviceSelect(props: DeviceSelectProps) {
     audio: useAudio,
     defaultVideoDeviceId,
     defaultAudioDeviceId,
-    onSelect,
+    onSelectionResolved,
+    onVideoSelect,
+    onAudioSelect,
   } = props;
 
   const [permissionState, setPermissionState] =
@@ -242,9 +243,9 @@ function DeviceSelect(props: DeviceSelectProps) {
         type: "UPDATE_SELECTED_DEVICE_ID",
         payload: { selectedVideoInputDeviceId: video },
       });
-      onSelect({ video, audio: selectedAudioInputDeviceId }, "video");
+      onVideoSelect(video);
     },
-    [onSelect, selectedAudioInputDeviceId],
+    [onVideoSelect],
   );
 
   const handleAudioInputChange = useCallback<
@@ -256,12 +257,11 @@ function DeviceSelect(props: DeviceSelectProps) {
         type: "UPDATE_SELECTED_DEVICE_ID",
         payload: { selectedAudioInputDeviceId: audio },
       });
-      onSelect({ video: selectedVideoInputDeviceId, audio }, "audio");
+      onAudioSelect(audio);
     },
-    [onSelect, selectedVideoInputDeviceId],
+    [onAudioSelect],
   );
 
-  // Call onSelect
   useEffect(() => {
     const videoInput = useVideo
       ? videoInputs.find((d) => d.deviceId === selectedVideoInputDeviceId)
@@ -269,11 +269,14 @@ function DeviceSelect(props: DeviceSelectProps) {
     const audioInput = useAudio
       ? audioInputs.find((d) => d.deviceId === selectedAudioInputDeviceId)
       : null;
-    onSelect({ video: videoInput?.deviceId, audio: audioInput?.deviceId });
+    onSelectionResolved({
+      video: videoInput?.deviceId,
+      audio: audioInput?.deviceId,
+    });
   }, [
     useVideo,
     useAudio,
-    onSelect,
+    onSelectionResolved,
     videoInputs,
     audioInputs,
     selectedVideoInputDeviceId,

@@ -6,7 +6,9 @@ const Base: Story<DeviceSelectProps> = (props: DeviceSelectProps) => (
   <DeviceSelect {...props} />
 );
 Base.argTypes = {
-  onSelect: { action: "selected" },
+  onSelectionResolved: { action: "selection resolved" },
+  onVideoSelect: { action: "video selected" },
+  onAudioSelect: { action: "audio selected" },
 };
 
 export const Both = Base.bind({});
@@ -15,7 +17,9 @@ Both.args = {
   audio: true,
   defaultVideoDeviceId: undefined,
   defaultAudioDeviceId: undefined,
-  onSelect: () => {},
+  onSelectionResolved: () => {},
+  onVideoSelect: () => {},
+  onAudioSelect: () => {},
 };
 
 export const VideoOnly = Base.bind({});
@@ -24,7 +28,9 @@ VideoOnly.args = {
   audio: false,
   defaultVideoDeviceId: undefined,
   defaultAudioDeviceId: undefined,
-  onSelect: () => {},
+  onSelectionResolved: () => {},
+  onVideoSelect: () => {},
+  onAudioSelect: () => {},
 };
 
 export const AudioOnly = Base.bind({});
@@ -33,5 +39,7 @@ AudioOnly.args = {
   audio: true,
   defaultVideoDeviceId: undefined,
   defaultAudioDeviceId: undefined,
-  onSelect: () => {},
+  onSelectionResolved: () => {},
+  onVideoSelect: () => {},
+  onAudioSelect: () => {},
 };

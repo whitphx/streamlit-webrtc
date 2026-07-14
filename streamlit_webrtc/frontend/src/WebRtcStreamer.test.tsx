@@ -33,24 +33,17 @@ vi.mock("./device-storage", () => ({
 
 vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
   default: function MockDeviceSelectForm(props: {
-    onSelect: (
-      devices: { video?: string; audio?: string },
-      changedKind?: "video" | "audio",
-    ) => void;
+    onSelectionResolved: (devices: { video?: string; audio?: string }) => void;
+    onVideoSelect: (deviceId: string) => void;
     switchError?: Error | null;
   }) {
-    const { onSelect, switchError } = props;
+    const { onSelectionResolved, onVideoSelect, switchError } = props;
     useEffect(() => {
-      onSelect({ video: "old-video", audio: "old-audio" });
-    }, [onSelect]);
+      onSelectionResolved({ video: "old-video", audio: "old-audio" });
+    }, [onSelectionResolved]);
     return (
       <div>
-        <button
-          type="button"
-          onClick={() =>
-            onSelect({ video: "new-video", audio: "old-audio" }, "video")
-          }
-        >
+        <button type="button" onClick={() => onVideoSelect("new-video")}>
           Choose another camera
         </button>
         {switchError != null && <div role="alert">{switchError.message}</div>}
