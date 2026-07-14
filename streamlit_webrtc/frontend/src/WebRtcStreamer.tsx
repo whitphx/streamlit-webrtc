@@ -51,9 +51,6 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     audio?: MediaDeviceInfo["deviceId"] | undefined;
   }>(() => loadPersistedDeviceIds(componentKey));
 
-  // Persist whenever the selection changes — both the DeviceSelect form's
-  // `onSelect` and the WebRTC hook's `onDevicesOpened` route through
-  // `setDeviceIds`, so this single effect covers both paths.
   const initialDeviceIdsRef = useRef(deviceIds);
   useEffect(() => {
     if (deviceIds === initialDeviceIdsRef.current) return;
@@ -76,7 +73,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     },
     [],
   );
-  const { state, start, stop } = useWebRtc(
+  const { state, start, stop, updateInputDevice } = useWebRtc(
     props,
     deviceIds.video,
     deviceIds.audio,
@@ -117,12 +114,64 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   );
 
   const [deviceSelectOpen, setDeviceSelectOpen] = useState(false);
+  const [deviceSwitchError, setDeviceSwitchError] = useState<Error | null>(
+    null,
+  );
   const openDeviceSelect = useCallback(() => {
+    setDeviceSwitchError(null);
     setDeviceSelectOpen(true);
   }, []);
   const closeDeviceSelect = useCallback(() => {
     setDeviceSelectOpen(false);
   }, []);
+  const reconcileDeviceIds = useCallback(
+    (nextDeviceIds: {
+      video?: MediaDeviceInfo["deviceId"];
+      audio?: MediaDeviceInfo["deviceId"];
+    }) => {
+      const devicesChanged =
+        nextDeviceIds.video !== deviceIds.video ||
+        nextDeviceIds.audio !== deviceIds.audio;
+      if (!devicesChanged) {
+        return;
+      }
+      const isStreaming =
+        state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING";
+      if (!isStreaming) {
+        setDeviceIds(nextDeviceIds);
+      }
+    },
+    [deviceIds, state.webRtcState],
+  );
+  const selectInputDevice = useCallback(
+    async (
+      kind: "video" | "audio",
+      deviceId: MediaDeviceInfo["deviceId"],
+    ): Promise<void> => {
+      const isStreaming =
+        state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING";
+      if (!isStreaming) {
+        setDeviceIds((prev) =>
+          prev[kind] === deviceId ? prev : { ...prev, [kind]: deviceId },
+        );
+        return;
+      }
+      setDeviceSwitchError(null);
+      try {
+        await updateInputDevice(kind, deviceId);
+        setDeviceIds((prev) =>
+          prev[kind] === deviceId ? prev : { ...prev, [kind]: deviceId },
+        );
+        setDeviceSwitchError(null);
+      } catch (error: unknown) {
+        const switchError =
+          error instanceof Error ? error : new Error(String(error));
+        setDeviceSwitchError(switchError);
+        throw switchError;
+      }
+    },
+    [state.webRtcState, updateInputDevice],
+  );
   if (deviceSelectOpen) {
     return (
       <Suspense fallback={null}>
@@ -131,8 +180,11 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
           audio={audioEnabled}
           defaultVideoDeviceId={deviceIds.video}
           defaultAudioDeviceId={deviceIds.audio}
-          onSelect={setDeviceIds}
+          onSelectionResolved={reconcileDeviceIds}
+          onVideoSelect={(deviceId) => selectInputDevice("video", deviceId)}
+          onAudioSelect={(deviceId) => selectInputDevice("audio", deviceId)}
           onClose={closeDeviceSelect}
+          switchError={deviceSwitchError}
         />
       </Suspense>
     );
@@ -196,16 +248,15 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
               />
             )}
           </Box>
-          {userControlsPlayingState &&
-            transmittable &&
-            state.webRtcState === "STOPPED" && (
-              <TranslatedButton
-                color="inherit"
-                onClick={openDeviceSelect}
-                translationKey="select_device"
-                defaultText="Select Device"
-              />
-            )}
+          {userControlsPlayingState && transmittable && (
+            <TranslatedButton
+              color="inherit"
+              onClick={openDeviceSelect}
+              disabled={buttonDisabled}
+              translationKey="select_device"
+              defaultText="Select Device"
+            />
+          )}
         </Box>
       )}
     </Box>

@@ -123,10 +123,16 @@ export interface DeviceSelectProps {
   audio: boolean;
   defaultVideoDeviceId: MediaDeviceInfo["deviceId"] | undefined;
   defaultAudioDeviceId: MediaDeviceInfo["deviceId"] | undefined;
-  onSelect: (devices: {
-    video: MediaDeviceInfo["deviceId"] | undefined;
-    audio: MediaDeviceInfo["deviceId"] | undefined;
+  onSelectionResolved: (devices: {
+    video?: MediaDeviceInfo["deviceId"];
+    audio?: MediaDeviceInfo["deviceId"];
   }) => void;
+  onVideoSelect: (
+    deviceId: MediaDeviceInfo["deviceId"],
+  ) => Promise<void> | void;
+  onAudioSelect: (
+    deviceId: MediaDeviceInfo["deviceId"],
+  ) => Promise<void> | void;
 }
 function DeviceSelect(props: DeviceSelectProps) {
   const {
@@ -134,7 +140,9 @@ function DeviceSelect(props: DeviceSelectProps) {
     audio: useAudio,
     defaultVideoDeviceId,
     defaultAudioDeviceId,
-    onSelect,
+    onSelectionResolved,
+    onVideoSelect,
+    onAudioSelect,
   } = props;
 
   const [permissionState, setPermissionState] =
@@ -184,6 +192,7 @@ function DeviceSelect(props: DeviceSelectProps) {
     video: defaultVideoDeviceId,
     audio: defaultAudioDeviceId,
   };
+  const selectionRequestIdsRef = useRef({ video: 0, audio: 0 });
   // Call `getUserMedia()` to ask the user for the permission.
   useEffect(() => {
     if (typeof navigator?.mediaDevices?.getUserMedia !== "function") {
@@ -232,27 +241,58 @@ function DeviceSelect(props: DeviceSelectProps) {
 
   const handleVideoInputChange = useCallback<
     NonNullable<NativeSelectProps["onChange"]>
-  >((e) => {
-    deviceSelectionDispatch({
-      type: "UPDATE_SELECTED_DEVICE_ID",
-      payload: {
-        selectedVideoInputDeviceId: e.target.value,
-      },
-    });
-  }, []);
+  >(
+    (e) => {
+      const video = e.target.value;
+      const requestId = ++selectionRequestIdsRef.current.video;
+      deviceSelectionDispatch({
+        type: "UPDATE_SELECTED_DEVICE_ID",
+        payload: { selectedVideoInputDeviceId: video },
+      });
+      void Promise.resolve()
+        .then(() => onVideoSelect(video))
+        .catch(() => {
+          if (selectionRequestIdsRef.current.video !== requestId) {
+            return;
+          }
+          deviceSelectionDispatch({
+            type: "UPDATE_SELECTED_DEVICE_ID",
+            payload: {
+              selectedVideoInputDeviceId: defaultDeviceIdsRef.current.video,
+            },
+          });
+        });
+    },
+    [onVideoSelect],
+  );
 
   const handleAudioInputChange = useCallback<
     NonNullable<NativeSelectProps["onChange"]>
-  >((e) => {
-    deviceSelectionDispatch({
-      type: "UPDATE_SELECTED_DEVICE_ID",
-      payload: {
-        selectedAudioInputDeviceId: e.target.value,
-      },
-    });
-  }, []);
+  >(
+    (e) => {
+      const audio = e.target.value;
+      const requestId = ++selectionRequestIdsRef.current.audio;
+      deviceSelectionDispatch({
+        type: "UPDATE_SELECTED_DEVICE_ID",
+        payload: { selectedAudioInputDeviceId: audio },
+      });
+      void Promise.resolve()
+        .then(() => onAudioSelect(audio))
+        .catch(() => {
+          if (selectionRequestIdsRef.current.audio !== requestId) {
+            return;
+          }
+          deviceSelectionDispatch({
+            type: "UPDATE_SELECTED_DEVICE_ID",
+            payload: {
+              selectedAudioInputDeviceId: defaultDeviceIdsRef.current.audio,
+            },
+          });
+        });
+    },
+    [onAudioSelect],
+  );
 
-  // Call onSelect
   useEffect(() => {
     const videoInput = useVideo
       ? videoInputs.find((d) => d.deviceId === selectedVideoInputDeviceId)
@@ -260,11 +300,14 @@ function DeviceSelect(props: DeviceSelectProps) {
     const audioInput = useAudio
       ? audioInputs.find((d) => d.deviceId === selectedAudioInputDeviceId)
       : null;
-    onSelect({ video: videoInput?.deviceId, audio: audioInput?.deviceId });
+    onSelectionResolved({
+      video: videoInput?.deviceId,
+      audio: audioInput?.deviceId,
+    });
   }, [
     useVideo,
     useAudio,
-    onSelect,
+    onSelectionResolved,
     videoInputs,
     audioInputs,
     selectedVideoInputDeviceId,

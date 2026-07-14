@@ -3,6 +3,7 @@ import { compileMediaConstraints } from "../media-constraint";
 import { ComponentValue } from "../component-value";
 import { connectReducer, initialState } from "./reducer";
 import { useUniqueId } from "./use-unique-id";
+import { switchInputDevice, type InputDeviceKind } from "./switch-input-device";
 
 export type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 export const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -95,6 +96,32 @@ export const useWebRtc = (
 
   const stopRef = useRef(stop);
   stopRef.current = stop;
+
+  const updateInputDevice = useCallback(
+    async (
+      kind: InputDeviceKind,
+      deviceId: MediaDeviceInfo["deviceId"],
+    ): Promise<void> => {
+      const pc = pcRef.current;
+      if (pc == null || state.inputMediaStream == null) {
+        throw new Error(
+          "Cannot switch input device without an active WebRTC input stream",
+        );
+      }
+      await switchInputDevice(
+        pc,
+        state.inputMediaStream,
+        props.mediaStreamConstraints,
+        kind,
+        deviceId,
+      );
+      dispatch({
+        type: "SET_INPUT_MEDIA_STREAM",
+        inputMediaStream: state.inputMediaStream,
+      });
+    },
+    [props.mediaStreamConstraints, state.inputMediaStream],
+  );
 
   const start = useCallback((): Promise<void> => {
     if (state.webRtcState !== "STOPPED") {
@@ -300,6 +327,7 @@ export const useWebRtc = (
   return {
     start,
     stop,
+    updateInputDevice,
     state,
   };
 };
