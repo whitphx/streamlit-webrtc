@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.76.0'></a>
+## 0.76.0 — 2026-07-14
+
+### Added
+
+- Input cameras and microphones can now be changed while streaming.
+
 <a id='changelog-0.75.1'></a>
 ## 0.75.1 — 2026-07-12
 
