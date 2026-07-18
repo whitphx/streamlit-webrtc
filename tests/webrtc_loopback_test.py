@@ -90,6 +90,9 @@ def test_worker_stop_waits_for_peer_connection_close(monkeypatch) -> None:
         async def close(self) -> None:
             pass
 
+        def getTransceivers(self):
+            return []
+
     def run_coroutine_threadsafe(coro, loop):
         coro.close()
         assert isinstance(loop, FakeLoop)
