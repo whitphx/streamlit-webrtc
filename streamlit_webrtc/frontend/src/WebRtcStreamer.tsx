@@ -17,6 +17,7 @@ import {
   isWebRtcMode,
   isReceivable,
   isTransmittable,
+  AnswererIceCandidates,
 } from "./webrtc";
 import { useTimer } from "./use-timeout";
 import { getMediaUsage } from "./media-constraint";
@@ -27,7 +28,10 @@ import InfoHeader from "./InfoHeader";
 
 const DeviceSelectForm = lazy(() => import("./DeviceSelect/DeviceSelectForm"));
 
-const BACKEND_VANILLA_ICE_TIMEOUT = 10 * 1000; // `aiortc` runs ICE in the Vanilla manner and its timeout is set to 5 seconds: https://github.com/aiortc/aioice/blob/fc863fde4676e1f67dce981b7f9592ab02c6a09a/src/aioice/ice.py#L881. We set the timeout here to account for network latency and some additional delay.
+// How long a connection attempt may take before the "taking too long" hint
+// is shown. Signalling is trickle-ICE based and normally fast, but candidate
+// gathering and connectivity checks can still take a while on slow networks.
+const CONNECTION_ATTEMPT_TIMEOUT = 10 * 1000;
 
 interface WebRtcStreamerInnerProps {
   disabled: boolean;
@@ -35,6 +39,7 @@ interface WebRtcStreamerInnerProps {
   componentKey: string | undefined;
   desiredPlayingState: boolean | undefined;
   sdpAnswerJson: string | undefined;
+  answererIceCandidates: AnswererIceCandidates | undefined;
   rtcConfiguration: RTCConfiguration | undefined;
   mediaStreamConstraints: MediaStreamConstraints | undefined;
   sendbackVideo: boolean;
@@ -89,7 +94,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const startWithNotification = useCallback(() => {
     clearTakingTooLongTimeout();
     start().then(() => {
-      startTakingTooLongTimeout(BACKEND_VANILLA_ICE_TIMEOUT);
+      startTakingTooLongTimeout(CONNECTION_ATTEMPT_TIMEOUT);
     });
   }, [start, startTakingTooLongTimeout, clearTakingTooLongTimeout]);
 
@@ -270,6 +275,8 @@ function WebRtcStreamer() {
   const componentKey: string | undefined = renderData.args["component_key"];
   const desiredPlayingState = renderData.args["desired_playing_state"];
   const sdpAnswerJson = renderData.args["sdp_answer_json"];
+  const answererIceCandidates: AnswererIceCandidates | undefined =
+    renderData.args["answerer_ice_candidates"];
   const rtcConfiguration: RTCConfiguration = renderData.args.rtc_configuration;
   const mediaStreamConstraints: MediaStreamConstraints =
     renderData.args.media_stream_constraints;
@@ -291,6 +298,7 @@ function WebRtcStreamer() {
       componentKey={componentKey}
       desiredPlayingState={desiredPlayingState}
       sdpAnswerJson={sdpAnswerJson}
+      answererIceCandidates={answererIceCandidates}
       rtcConfiguration={rtcConfiguration}
       mediaStreamConstraints={mediaStreamConstraints}
       sendbackVideo={sendbackVideo}

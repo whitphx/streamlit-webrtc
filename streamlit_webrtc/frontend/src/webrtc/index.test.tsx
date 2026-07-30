@@ -14,6 +14,7 @@ describe("useWebRtc", () => {
           mode: "SENDRECV",
           desiredPlayingState: undefined,
           sdpAnswerJson: undefined,
+          answererIceCandidates: undefined,
           rtcConfiguration: undefined,
           mediaStreamConstraints: { video: true, audio: true },
           sendbackVideo: true,
