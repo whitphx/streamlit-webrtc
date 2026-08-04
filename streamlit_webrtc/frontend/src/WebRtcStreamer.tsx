@@ -17,6 +17,7 @@ import {
   isWebRtcMode,
   isReceivable,
   isTransmittable,
+  type InputDeviceKind,
 } from "./webrtc";
 import { useTimer } from "./use-timeout";
 import { getMediaUsage } from "./media-constraint";
@@ -59,12 +60,21 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   // Record the devices that actually opened, but never overwrite an explicit
   // selection — the opened device can be a browser-chosen fallback, and
   // letting it replace the user's choice would silently revert (and persist)
-  // the wrong device.
+  // the wrong device. A kind reported as unavailable is the exception: its
+  // stored ID names a device that no longer exists, so keeping it would fail
+  // every subsequent start and leave the picker pointing at a dead entry.
   const handleDevicesOpened = useCallback(
-    (openedDeviceIds: { video?: string; audio?: string }) => {
+    (
+      openedDeviceIds: { video?: string; audio?: string },
+      unavailableDeviceKinds: InputDeviceKind[],
+    ) => {
       setDeviceIds((prev) => {
-        const video = prev.video ?? openedDeviceIds.video;
-        const audio = prev.audio ?? openedDeviceIds.audio;
+        const resolve = (kind: InputDeviceKind) =>
+          unavailableDeviceKinds.includes(kind)
+            ? openedDeviceIds[kind]
+            : (prev[kind] ?? openedDeviceIds[kind]);
+        const video = resolve("video");
+        const audio = resolve("audio");
         if (video === prev.video && audio === prev.audio) {
           return prev;
         }

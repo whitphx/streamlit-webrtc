@@ -122,7 +122,9 @@ function renderStreamer({
     />,
   );
 
-  return { updateInputDevice };
+  const onDevicesOpened = vi.mocked(useWebRtc).mock.calls[0][4];
+
+  return { updateInputDevice, onDevicesOpened };
 }
 
 describe("<WebRtcStreamerInner />", () => {
@@ -185,6 +187,29 @@ describe("<WebRtcStreamerInner />", () => {
     await act(async () => finishSwitch?.());
     expect(persistDeviceIds).toHaveBeenCalledWith("test-key", {
       video: "new-video",
+      audio: "old-audio",
+    });
+  });
+
+  it("keeps the stored selection when a fallback device opens", async () => {
+    const { onDevicesOpened } = renderStreamer();
+
+    act(() => onDevicesOpened({ video: "fallback-video" }, []));
+
+    expect(persistDeviceIds).not.toHaveBeenCalled();
+  });
+
+  it("replaces a stored ID whose device no longer exists", async () => {
+    const { onDevicesOpened } = renderStreamer();
+
+    act(() =>
+      onDevicesOpened({ video: "fallback-video", audio: "old-audio" }, [
+        "video",
+      ]),
+    );
+
+    expect(persistDeviceIds).toHaveBeenCalledWith("test-key", {
+      video: "fallback-video",
       audio: "old-audio",
     });
   });
