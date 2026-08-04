@@ -6,14 +6,6 @@ const MEDIA_DEVICE_KINDS: Record<InputDeviceKind, MediaDeviceKind> = {
   audio: "audioinput",
 };
 
-export interface OpenedInputMedia {
-  stream: MediaStream;
-  // Kinds whose requested device ID no longer resolves, so the stream was
-  // opened without it. The caller owns the stored selection and is the one
-  // that can replace the dead ID.
-  unavailableDeviceKinds: InputDeviceKind[];
-}
-
 function isOverconstrainedError(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -87,11 +79,16 @@ async function findUnavailableDeviceKinds(
 
 // Returns null when the compiled constraints ask for no media at all, in which
 // case there is nothing to capture and no permission to request.
+// `onUnavailableDevices` reports the kinds whose remembered ID names a device
+// that no longer exists. It fires before the retry rather than with the result,
+// because that verdict holds whether or not the retry goes on to succeed, and
+// the caller owning the stored selection needs it either way.
 export async function openInputMediaStream(
   mediaStreamConstraints: MediaStreamConstraints | undefined,
   videoDeviceId: MediaDeviceInfo["deviceId"] | undefined,
   audioDeviceId: MediaDeviceInfo["deviceId"] | undefined,
-): Promise<OpenedInputMedia | null> {
+  onUnavailableDevices: (unavailableDeviceKinds: InputDeviceKind[]) => void,
+): Promise<MediaStream | null> {
   const constraints = compileMediaConstraints(
     mediaStreamConstraints,
     videoDeviceId,
@@ -115,10 +112,7 @@ export async function openInputMediaStream(
   }
 
   try {
-    return {
-      stream: await navigator.mediaDevices.getUserMedia(constraints),
-      unavailableDeviceKinds: [],
-    };
+    return await navigator.mediaDevices.getUserMedia(constraints);
   } catch (error: unknown) {
     if (!isOverconstrainedError(error)) {
       throw error;
@@ -139,6 +133,8 @@ export async function openInputMediaStream(
       throw error;
     }
 
+    onUnavailableDevices(unavailableDeviceKinds);
+
     // Only the dead IDs are dropped, so an unplugged camera does not also
     // discard a microphone selection that is still valid.
     const fallbackConstraints = compileMediaConstraints(
@@ -152,9 +148,6 @@ export async function openInputMediaStream(
       "unavailable devices:",
       unavailableDeviceKinds,
     );
-    return {
-      stream: await navigator.mediaDevices.getUserMedia(fallbackConstraints),
-      unavailableDeviceKinds,
-    };
+    return await navigator.mediaDevices.getUserMedia(fallbackConstraints);
   }
 }

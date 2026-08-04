@@ -73,30 +73,36 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   // Record the devices that actually opened, but never overwrite an explicit
   // selection — the opened device can be a browser-chosen fallback, and
   // letting it replace the user's choice would silently revert (and persist)
-  // the wrong device. A kind reported as unavailable is the exception: its
-  // stored ID names a device that no longer exists, so keeping it would fail
-  // every subsequent start and leave the picker pointing at a dead entry.
+  // the wrong device.
   const handleDevicesOpened = useCallback(
-    (
-      openedDeviceIds: { video?: string; audio?: string },
-      unavailableDeviceKinds: InputDeviceKind[],
-    ) => {
+    (openedDeviceIds: { video?: string; audio?: string }) => {
       setSelection((prev) => {
-        const resolve = (kind: InputDeviceKind) =>
-          unavailableDeviceKinds.includes(kind)
-            ? openedDeviceIds[kind]
-            : (prev.deviceIds[kind] ?? openedDeviceIds[kind]);
-        const video = resolve("video");
-        const audio = resolve("audio");
+        const video = prev.deviceIds.video ?? openedDeviceIds.video;
+        const audio = prev.deviceIds.audio ?? openedDeviceIds.audio;
         if (video === prev.deviceIds.video && audio === prev.deviceIds.audio) {
           return prev;
         }
-        return {
-          deviceIds: { video, audio },
-          clearing: unavailableDeviceKinds.some(
-            (kind) => openedDeviceIds[kind] == null,
-          ),
-        };
+        return { deviceIds: { video, audio }, clearing: false };
+      });
+    },
+    [],
+  );
+  // A remembered ID for one of these kinds names a device that no longer
+  // exists. Keeping it would reject every subsequent start and leave the
+  // picker pointing at a dead entry, so it goes even when the capture that
+  // discovered this went on to fail.
+  const handleDevicesUnavailable = useCallback(
+    (unavailableDeviceKinds: InputDeviceKind[]) => {
+      setSelection((prev) => {
+        const cleared = unavailableDeviceKinds.filter(
+          (kind) => prev.deviceIds[kind] != null,
+        );
+        if (cleared.length === 0) {
+          return prev;
+        }
+        const deviceIds = { ...prev.deviceIds };
+        cleared.forEach((kind) => delete deviceIds[kind]);
+        return { deviceIds, clearing: true };
       });
     },
     [],
@@ -107,6 +113,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     deviceIds.audio,
     props.onComponentValueChange,
     handleDevicesOpened,
+    handleDevicesUnavailable,
   );
 
   const {

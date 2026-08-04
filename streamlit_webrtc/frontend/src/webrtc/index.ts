@@ -28,10 +28,11 @@ export const useWebRtc = (
   videoDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
   audioDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
   onComponentValueChange: (newComponentValue: ComponentValue) => void,
-  onDevicesOpened: (
-    openedDeviceIds: { video?: string; audio?: string },
-    unavailableDeviceKinds: InputDeviceKind[],
-  ) => void,
+  onDevicesOpened: (openedDeviceIds: {
+    video?: string;
+    audio?: string;
+  }) => void,
+  onDevicesUnavailable: (unavailableDeviceKinds: InputDeviceKind[]) => void,
 ) => {
   // Initialize component value
   useEffect(() => {
@@ -156,15 +157,14 @@ export const useWebRtc = (
 
       // Set up transceivers
       if (mode === "SENDRECV" || mode === "SENDONLY") {
-        const opened = await openInputMediaStream(
+        const inputMediaStream = await openInputMediaStream(
           props.mediaStreamConstraints,
           videoDeviceIdRequest,
           audioDeviceIdRequest,
+          onDevicesUnavailable,
         );
 
-        if (opened != null) {
-          const { stream: inputMediaStream, unavailableDeviceKinds } = opened;
-
+        if (inputMediaStream != null) {
           const openedDeviceIds: {
             video?: MediaDeviceInfo["deviceId"];
             audio?: MediaDeviceInfo["deviceId"];
@@ -183,11 +183,8 @@ export const useWebRtc = (
             }
             openedDeviceIds[kind] = deviceId;
           });
-          if (
-            Object.keys(openedDeviceIds).length > 0 ||
-            unavailableDeviceKinds.length > 0
-          ) {
-            onDevicesOpened(openedDeviceIds, unavailableDeviceKinds);
+          if (Object.keys(openedDeviceIds).length > 0) {
+            onDevicesOpened(openedDeviceIds);
           }
         }
 
@@ -279,6 +276,7 @@ export const useWebRtc = (
     props.sendbackAudio,
     state.webRtcState,
     onDevicesOpened,
+    onDevicesUnavailable,
     uniqueIdGenerator,
   ]);
 

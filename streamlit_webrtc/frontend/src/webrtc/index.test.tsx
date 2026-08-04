@@ -23,6 +23,7 @@ describe("useWebRtc", () => {
         undefined,
         vi.fn(),
         vi.fn(),
+        vi.fn(),
       ),
     );
 

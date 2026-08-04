@@ -21,6 +21,7 @@ function overconstrainedError(): Error {
 
 const getUserMedia = vi.fn<() => Promise<MediaStream>>();
 const enumerateDevices = vi.fn<() => Promise<MediaDeviceInfo[]>>();
+const onUnavailableDevices = vi.fn();
 
 beforeEach(() => {
   vi.stubGlobal("navigator", {
@@ -40,6 +41,7 @@ describe("openInputMediaStream()", () => {
         { video: false, audio: false },
         undefined,
         undefined,
+        onUnavailableDevices,
       ),
     ).toBeNull();
     expect(getUserMedia).not.toHaveBeenCalled();
@@ -53,15 +55,17 @@ describe("openInputMediaStream()", () => {
       { video: true, audio: false },
       LIVE_VIDEO_ID,
       undefined,
+      onUnavailableDevices,
     );
 
-    expect(opened).toEqual({ stream, unavailableDeviceKinds: [] });
+    expect(opened).toBe(stream);
     expect(getUserMedia).toHaveBeenCalledTimes(1);
     expect(getUserMedia).toHaveBeenCalledWith({
       video: { deviceId: { exact: LIVE_VIDEO_ID } },
       audio: false,
     });
     expect(enumerateDevices).not.toHaveBeenCalled();
+    expect(onUnavailableDevices).not.toHaveBeenCalled();
   });
 
   it("retries without a device ID that no longer resolves", async () => {
@@ -77,13 +81,35 @@ describe("openInputMediaStream()", () => {
       { video: true, audio: false },
       STALE_VIDEO_ID,
       undefined,
+      onUnavailableDevices,
     );
 
-    expect(opened).toEqual({ stream, unavailableDeviceKinds: ["video"] });
+    expect(opened).toBe(stream);
+    expect(onUnavailableDevices).toHaveBeenCalledWith(["video"]);
     expect(getUserMedia).toHaveBeenLastCalledWith({
       video: true,
       audio: false,
     });
+  });
+
+  it("reports the dead device even when the retry fails too", async () => {
+    const fallbackError = new DOMException("No camera", "NotFoundError");
+    getUserMedia
+      .mockRejectedValueOnce(overconstrainedError())
+      .mockRejectedValueOnce(fallbackError);
+    enumerateDevices.mockResolvedValue([]);
+
+    await expect(
+      openInputMediaStream(
+        { video: true },
+        STALE_VIDEO_ID,
+        undefined,
+        onUnavailableDevices,
+      ),
+    ).rejects.toBe(fallbackError);
+    // Without this the dead ID stays in storage and every later start repeats
+    // the same rejected request.
+    expect(onUnavailableDevices).toHaveBeenCalledWith(["video"]);
   });
 
   it("keeps a device ID that still resolves while dropping the dead one", async () => {
@@ -95,13 +121,14 @@ describe("openInputMediaStream()", () => {
       makeDevice("audioinput", LIVE_AUDIO_ID),
     ]);
 
-    const opened = await openInputMediaStream(
+    await openInputMediaStream(
       { video: true, audio: true },
       STALE_VIDEO_ID,
       LIVE_AUDIO_ID,
+      onUnavailableDevices,
     );
 
-    expect(opened?.unavailableDeviceKinds).toEqual(["video"]);
+    expect(onUnavailableDevices).toHaveBeenCalledWith(["video"]);
     expect(getUserMedia).toHaveBeenLastCalledWith({
       video: true,
       audio: { deviceId: { exact: LIVE_AUDIO_ID } },
@@ -120,9 +147,11 @@ describe("openInputMediaStream()", () => {
         { video: { frameRate: { exact: 1000 } } },
         LIVE_VIDEO_ID,
         undefined,
+        onUnavailableDevices,
       ),
     ).rejects.toBe(error);
     expect(getUserMedia).toHaveBeenCalledTimes(1);
+    expect(onUnavailableDevices).not.toHaveBeenCalled();
   });
 
   it("ignores a stored ID for a kind the app disabled", async () => {
@@ -139,9 +168,11 @@ describe("openInputMediaStream()", () => {
         { video: true, audio: false },
         LIVE_VIDEO_ID,
         "stale-audio",
+        onUnavailableDevices,
       ),
     ).rejects.toBe(error);
     expect(getUserMedia).toHaveBeenCalledTimes(1);
+    expect(onUnavailableDevices).not.toHaveBeenCalled();
   });
 
   it("leaves a device ID that the app itself constrained", async () => {
@@ -154,9 +185,11 @@ describe("openInputMediaStream()", () => {
         { video: { deviceId: { exact: "app-chosen-video" } } },
         undefined,
         undefined,
+        onUnavailableDevices,
       ),
     ).rejects.toBe(error);
     expect(getUserMedia).toHaveBeenCalledTimes(1);
+    expect(onUnavailableDevices).not.toHaveBeenCalled();
   });
 
   it("does not retry errors other than OverconstrainedError", async () => {
@@ -164,7 +197,12 @@ describe("openInputMediaStream()", () => {
     getUserMedia.mockRejectedValue(error);
 
     await expect(
-      openInputMediaStream({ video: true }, STALE_VIDEO_ID, undefined),
+      openInputMediaStream(
+        { video: true },
+        STALE_VIDEO_ID,
+        undefined,
+        onUnavailableDevices,
+      ),
     ).rejects.toBe(error);
     expect(getUserMedia).toHaveBeenCalledTimes(1);
     expect(enumerateDevices).not.toHaveBeenCalled();
@@ -176,13 +214,14 @@ describe("openInputMediaStream()", () => {
       .mockResolvedValueOnce(makeStream());
     enumerateDevices.mockRejectedValue(new Error("enumeration failed"));
 
-    const opened = await openInputMediaStream(
+    await openInputMediaStream(
       { video: true, audio: true },
       STALE_VIDEO_ID,
       LIVE_AUDIO_ID,
+      onUnavailableDevices,
     );
 
-    expect(opened?.unavailableDeviceKinds).toEqual(["video", "audio"]);
+    expect(onUnavailableDevices).toHaveBeenCalledWith(["video", "audio"]);
     expect(getUserMedia).toHaveBeenLastCalledWith({
       video: true,
       audio: true,
@@ -194,7 +233,12 @@ describe("openInputMediaStream()", () => {
     getUserMedia.mockRejectedValue(error);
 
     await expect(
-      openInputMediaStream({ video: true }, undefined, undefined),
+      openInputMediaStream(
+        { video: true },
+        undefined,
+        undefined,
+        onUnavailableDevices,
+      ),
     ).rejects.toBe(error);
     expect(getUserMedia).toHaveBeenCalledTimes(1);
   });

@@ -130,9 +130,10 @@ function renderStreamer({
     />,
   );
 
-  const onDevicesOpened = vi.mocked(useWebRtc).mock.calls[0][4];
+  const [, , , , onDevicesOpened, onDevicesUnavailable] =
+    vi.mocked(useWebRtc).mock.calls[0];
 
-  return { updateInputDevice, onDevicesOpened };
+  return { updateInputDevice, onDevicesOpened, onDevicesUnavailable };
 }
 
 describe("<WebRtcStreamerInner />", () => {
@@ -203,24 +204,35 @@ describe("<WebRtcStreamerInner />", () => {
   it("keeps the stored selection when a fallback device opens", async () => {
     const { onDevicesOpened } = renderStreamer();
 
-    act(() => onDevicesOpened({ video: "fallback-video" }, []));
+    act(() => onDevicesOpened({ video: "fallback-video" }));
 
     expect(persistDeviceIds).not.toHaveBeenCalled();
   });
 
   it("replaces a stored ID whose device no longer exists", async () => {
-    const { onDevicesOpened } = renderStreamer();
+    const { onDevicesOpened, onDevicesUnavailable } = renderStreamer();
 
-    act(() =>
-      onDevicesOpened({ video: "fallback-video", audio: "old-audio" }, [
-        "video",
-      ]),
-    );
+    act(() => onDevicesUnavailable(["video"]));
+    act(() => onDevicesOpened({ video: "fallback-video" }));
 
-    expect(persistDeviceIds).toHaveBeenCalledWith(
+    expect(persistDeviceIds).toHaveBeenLastCalledWith(
       "test-key",
       { video: "fallback-video", audio: "old-audio" },
       { clearing: false },
+    );
+  });
+
+  it("drops a dead ID even when no replacement device opens", async () => {
+    const { onDevicesUnavailable } = renderStreamer();
+
+    // The capture that discovered this may still go on to fail; the ID has to
+    // go regardless, or every later start repeats the rejected request.
+    act(() => onDevicesUnavailable(["video"]));
+
+    expect(persistDeviceIds).toHaveBeenCalledWith(
+      "test-key",
+      { audio: "old-audio" },
+      { clearing: true },
     );
   });
 
@@ -241,10 +253,10 @@ describe("<WebRtcStreamerInner />", () => {
     );
   });
 
-  it("clears a stored ID when the retry opens no replacement", async () => {
-    const { onDevicesOpened } = renderStreamer();
+  it("removes the stored entry when every kind is gone", async () => {
+    const { onDevicesUnavailable } = renderStreamer();
 
-    act(() => onDevicesOpened({}, ["video", "audio"]));
+    act(() => onDevicesUnavailable(["video", "audio"]));
 
     // `clearing` is what carries this past the write guard, which would
     // otherwise read the empty selection as the not-opened-yet state and leave
