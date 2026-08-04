@@ -125,6 +125,40 @@ describe("openInputMediaStream()", () => {
     expect(getUserMedia).toHaveBeenCalledTimes(1);
   });
 
+  it("ignores a stored ID for a kind the app disabled", async () => {
+    const error = overconstrainedError();
+    getUserMedia.mockRejectedValue(error);
+    enumerateDevices.mockResolvedValue([
+      makeDevice("videoinput", LIVE_VIDEO_ID),
+    ]);
+
+    // `audio: false` means the stale audio ID never reached the constraints,
+    // so it cannot be what the browser rejected.
+    await expect(
+      openInputMediaStream(
+        { video: true, audio: false },
+        LIVE_VIDEO_ID,
+        "stale-audio",
+      ),
+    ).rejects.toBe(error);
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves a device ID that the app itself constrained", async () => {
+    const error = overconstrainedError();
+    getUserMedia.mockRejectedValue(error);
+    enumerateDevices.mockResolvedValue([]);
+
+    await expect(
+      openInputMediaStream(
+        { video: { deviceId: { exact: "app-chosen-video" } } },
+        undefined,
+        undefined,
+      ),
+    ).rejects.toBe(error);
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+  });
+
   it("does not retry errors other than OverconstrainedError", async () => {
     const error = new DOMException("Permission denied", "NotAllowedError");
     getUserMedia.mockRejectedValue(error);

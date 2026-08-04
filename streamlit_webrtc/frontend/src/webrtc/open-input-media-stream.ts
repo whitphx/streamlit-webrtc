@@ -22,13 +22,45 @@ function isOverconstrainedError(error: unknown): boolean {
   );
 }
 
+function getAppliedDeviceId(
+  spec: MediaStreamConstraints["video"],
+): string | undefined {
+  if (typeof spec !== "object" || spec == null) {
+    return undefined;
+  }
+  const deviceId = spec.deviceId;
+  // `compileMediaConstraints` applies a remembered ID as an `exact` object.
+  // Anything else is the app's own constraint and not ours to drop.
+  if (
+    typeof deviceId === "object" &&
+    deviceId != null &&
+    !Array.isArray(deviceId) &&
+    typeof deviceId.exact === "string"
+  ) {
+    return deviceId.exact;
+  }
+  return undefined;
+}
+
+// Only the remembered IDs that reached the compiled constraints are candidates
+// for dropping: a kind the app disabled never received one, so that ID cannot
+// be what the browser rejected, and an ID the app constrained itself is not
+// ours to discard.
 async function findUnavailableDeviceKinds(
-  requestedDeviceIds: Record<InputDeviceKind, string | undefined>,
+  constraints: MediaStreamConstraints,
+  rememberedDeviceIds: Record<InputDeviceKind, string | undefined>,
 ): Promise<InputDeviceKind[]> {
-  const requestedKinds = (
-    Object.keys(requestedDeviceIds) as InputDeviceKind[]
-  ).filter((kind) => requestedDeviceIds[kind] != null);
-  if (requestedKinds.length === 0) {
+  const requestedDeviceIds = new Map<InputDeviceKind, string>();
+  (Object.keys(MEDIA_DEVICE_KINDS) as InputDeviceKind[]).forEach((kind) => {
+    const deviceId = rememberedDeviceIds[kind];
+    if (
+      deviceId != null &&
+      getAppliedDeviceId(constraints[kind]) === deviceId
+    ) {
+      requestedDeviceIds.set(kind, deviceId);
+    }
+  });
+  if (requestedDeviceIds.size === 0) {
     return [];
   }
 
@@ -38,17 +70,19 @@ async function findUnavailableDeviceKinds(
   } catch {
     // Without a device list there is no way to tell which ID went stale, so
     // treat every requested one as suspect rather than failing the start.
-    return requestedKinds;
+    return [...requestedDeviceIds.keys()];
   }
 
-  return requestedKinds.filter(
-    (kind) =>
-      !devices.some(
-        (device) =>
-          device.kind === MEDIA_DEVICE_KINDS[kind] &&
-          device.deviceId === requestedDeviceIds[kind],
-      ),
-  );
+  return [...requestedDeviceIds]
+    .filter(
+      ([kind, deviceId]) =>
+        !devices.some(
+          (device) =>
+            device.kind === MEDIA_DEVICE_KINDS[kind] &&
+            device.deviceId === deviceId,
+        ),
+    )
+    .map(([kind]) => kind);
 }
 
 // Returns null when the compiled constraints ask for no media at all, in which
@@ -94,14 +128,14 @@ export async function openInputMediaStream(
     // IDs when site data or the camera permission is reset, and the device
     // itself can be unplugged. Those IDs go in as `exact` constraints, so a
     // dead one rejects the whole capture instead of degrading.
-    const unavailableDeviceKinds = await findUnavailableDeviceKinds({
-      video: videoDeviceId,
-      audio: audioDeviceId,
-    });
+    const unavailableDeviceKinds = await findUnavailableDeviceKinds(
+      constraints,
+      { video: videoDeviceId, audio: audioDeviceId },
+    );
     if (unavailableDeviceKinds.length === 0) {
-      // Every requested device is present, so something else in the
-      // constraints is unsatisfiable and dropping the IDs would open the
-      // wrong device rather than fix anything.
+      // No remembered ID is at fault, so something else in the constraints is
+      // unsatisfiable and retrying would open the wrong device rather than fix
+      // anything.
       throw error;
     }
 
