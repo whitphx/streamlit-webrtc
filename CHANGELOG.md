@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.76.3'></a>
+## 0.76.3 — 2026-08-04
+
+### Fixed
+
+- Starting a stream no longer fails with `OverconstrainedError` when the remembered input device is gone. Browsers reissue device IDs when site data or the camera permission is reset, and a device can be unplugged, so the capture is retried without the IDs that no longer resolve, and the stored selection is updated to the device that opened, or cleared when none is available.
+
 <a id='changelog-0.76.2'></a>
 ## 0.76.2 — 2026-07-18
 
