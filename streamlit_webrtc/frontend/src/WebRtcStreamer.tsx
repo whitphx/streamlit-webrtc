@@ -17,11 +17,16 @@ import {
   isWebRtcMode,
   isReceivable,
   isTransmittable,
+  type InputDeviceKind,
 } from "./webrtc";
 import { useTimer } from "./use-timeout";
 import { getMediaUsage } from "./media-constraint";
 import { ComponentValue, setComponentValue } from "./component-value";
-import { loadPersistedDeviceIds, persistDeviceIds } from "./device-storage";
+import {
+  loadPersistedDeviceIds,
+  persistDeviceIds,
+  type PersistedDeviceIds,
+} from "./device-storage";
 import TranslatedButton from "./translation/components/TranslatedButton";
 import InfoHeader from "./InfoHeader";
 
@@ -46,29 +51,58 @@ interface WebRtcStreamerInnerProps {
 }
 export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const { componentKey } = props;
-  const [deviceIds, setDeviceIds] = useState<{
-    video?: MediaDeviceInfo["deviceId"] | undefined;
-    audio?: MediaDeviceInfo["deviceId"] | undefined;
-  }>(() => loadPersistedDeviceIds(componentKey));
+  const [selection, setSelection] = useState<{
+    deviceIds: PersistedDeviceIds;
+    // Whether the latest change dropped an ID because its device is gone. The
+    // storage write needs that to tell a deliberate removal apart from the
+    // empty selection it sees before any device has opened.
+    clearing: boolean;
+  }>(() => ({
+    deviceIds: loadPersistedDeviceIds(componentKey),
+    clearing: false,
+  }));
+  const deviceIds = selection.deviceIds;
 
-  const initialDeviceIdsRef = useRef(deviceIds);
+  const initialSelectionRef = useRef(selection);
   useEffect(() => {
-    if (deviceIds === initialDeviceIdsRef.current) return;
-    persistDeviceIds(componentKey, deviceIds);
-  }, [componentKey, deviceIds]);
+    if (selection === initialSelectionRef.current) return;
+    persistDeviceIds(componentKey, selection.deviceIds, {
+      clearing: selection.clearing,
+    });
+  }, [componentKey, selection]);
   // Record the devices that actually opened, but never overwrite an explicit
   // selection — the opened device can be a browser-chosen fallback, and
   // letting it replace the user's choice would silently revert (and persist)
   // the wrong device.
   const handleDevicesOpened = useCallback(
     (openedDeviceIds: { video?: string; audio?: string }) => {
-      setDeviceIds((prev) => {
-        const video = prev.video ?? openedDeviceIds.video;
-        const audio = prev.audio ?? openedDeviceIds.audio;
-        if (video === prev.video && audio === prev.audio) {
+      setSelection((prev) => {
+        const video = prev.deviceIds.video ?? openedDeviceIds.video;
+        const audio = prev.deviceIds.audio ?? openedDeviceIds.audio;
+        if (video === prev.deviceIds.video && audio === prev.deviceIds.audio) {
           return prev;
         }
-        return { video, audio };
+        return { deviceIds: { video, audio }, clearing: false };
+      });
+    },
+    [],
+  );
+  // A remembered ID for one of these kinds names a device that no longer
+  // exists. Keeping it would reject every subsequent start and leave the
+  // picker pointing at a dead entry, so it goes even when the capture that
+  // discovered this went on to fail.
+  const handleDevicesUnavailable = useCallback(
+    (unavailableDeviceKinds: InputDeviceKind[]) => {
+      setSelection((prev) => {
+        const cleared = unavailableDeviceKinds.filter(
+          (kind) => prev.deviceIds[kind] != null,
+        );
+        if (cleared.length === 0) {
+          return prev;
+        }
+        const deviceIds = { ...prev.deviceIds };
+        cleared.forEach((kind) => delete deviceIds[kind]);
+        return { deviceIds, clearing: true };
       });
     },
     [],
@@ -79,6 +113,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     deviceIds.audio,
     props.onComponentValueChange,
     handleDevicesOpened,
+    handleDevicesUnavailable,
   );
 
   const {
@@ -138,7 +173,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
       const isStreaming =
         state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING";
       if (!isStreaming) {
-        setDeviceIds(nextDeviceIds);
+        setSelection({ deviceIds: nextDeviceIds, clearing: false });
       }
     },
     [deviceIds, state.webRtcState],
@@ -151,16 +186,26 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
       const isStreaming =
         state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING";
       if (!isStreaming) {
-        setDeviceIds((prev) =>
-          prev[kind] === deviceId ? prev : { ...prev, [kind]: deviceId },
+        setSelection((prev) =>
+          prev.deviceIds[kind] === deviceId
+            ? prev
+            : {
+                deviceIds: { ...prev.deviceIds, [kind]: deviceId },
+                clearing: false,
+              },
         );
         return;
       }
       setDeviceSwitchError(null);
       try {
         await updateInputDevice(kind, deviceId);
-        setDeviceIds((prev) =>
-          prev[kind] === deviceId ? prev : { ...prev, [kind]: deviceId },
+        setSelection((prev) =>
+          prev.deviceIds[kind] === deviceId
+            ? prev
+            : {
+                deviceIds: { ...prev.deviceIds, [kind]: deviceId },
+                clearing: false,
+              },
         );
         setDeviceSwitchError(null);
       } catch (error: unknown) {

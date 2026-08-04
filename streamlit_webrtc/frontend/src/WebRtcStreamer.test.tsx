@@ -32,6 +32,11 @@ vi.mock("./device-storage", () => ({
   persistDeviceIds: vi.fn(),
 }));
 
+let resolvedSelection: { video?: string; audio?: string } = {
+  video: "old-video",
+  audio: "old-audio",
+};
+
 vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
   default: function MockDeviceSelectForm(props: {
     onSelectionResolved: (devices: { video?: string; audio?: string }) => void;
@@ -42,7 +47,7 @@ vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
     const { onSelectionResolved, onVideoSelect, onAudioSelect, switchError } =
       props;
     useEffect(() => {
-      onSelectionResolved({ video: "old-video", audio: "old-audio" });
+      onSelectionResolved(resolvedSelection);
     }, [onSelectionResolved]);
     const selectVideo = () => {
       void Promise.resolve(onVideoSelect("new-video")).catch(() => undefined);
@@ -67,6 +72,7 @@ vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  resolvedSelection = { video: "old-video", audio: "old-audio" };
 });
 
 function makeStream() {
@@ -80,11 +86,13 @@ function makeStream() {
 
 function renderStreamer({
   mediaToggleControls = true,
+  webRtcState = "PLAYING",
   updateInputDevice = vi
     .fn<(kind: "video" | "audio", deviceId: string) => Promise<void>>()
     .mockResolvedValue(undefined),
 }: {
   mediaToggleControls?: boolean;
+  webRtcState?: "STOPPED" | "PLAYING";
   updateInputDevice?: (
     kind: "video" | "audio",
     deviceId: string,
@@ -92,7 +100,7 @@ function renderStreamer({
 } = {}) {
   vi.mocked(useWebRtc).mockReturnValue({
     state: {
-      webRtcState: "PLAYING",
+      webRtcState,
       sdpOffer: null,
       iceCandidates: {},
       outputMediaStream: null,
@@ -122,7 +130,10 @@ function renderStreamer({
     />,
   );
 
-  return { updateInputDevice };
+  const [, , , , onDevicesOpened, onDevicesUnavailable] =
+    vi.mocked(useWebRtc).mock.calls[0];
+
+  return { updateInputDevice, onDevicesOpened, onDevicesUnavailable };
 }
 
 describe("<WebRtcStreamerInner />", () => {
@@ -183,10 +194,78 @@ describe("<WebRtcStreamerInner />", () => {
     expect(persistDeviceIds).not.toHaveBeenCalled();
 
     await act(async () => finishSwitch?.());
-    expect(persistDeviceIds).toHaveBeenCalledWith("test-key", {
-      video: "new-video",
-      audio: "old-audio",
-    });
+    expect(persistDeviceIds).toHaveBeenCalledWith(
+      "test-key",
+      { video: "new-video", audio: "old-audio" },
+      { clearing: false },
+    );
+  });
+
+  it("keeps the stored selection when a fallback device opens", async () => {
+    const { onDevicesOpened } = renderStreamer();
+
+    act(() => onDevicesOpened({ video: "fallback-video" }));
+
+    expect(persistDeviceIds).not.toHaveBeenCalled();
+  });
+
+  it("replaces a stored ID whose device no longer exists", async () => {
+    const { onDevicesOpened, onDevicesUnavailable } = renderStreamer();
+
+    act(() => onDevicesUnavailable(["video"]));
+    act(() => onDevicesOpened({ video: "fallback-video" }));
+
+    expect(persistDeviceIds).toHaveBeenLastCalledWith(
+      "test-key",
+      { video: "fallback-video", audio: "old-audio" },
+      { clearing: false },
+    );
+  });
+
+  it("drops a dead ID even when no replacement device opens", async () => {
+    const { onDevicesUnavailable } = renderStreamer();
+
+    // The capture that discovered this may still go on to fail; the ID has to
+    // go regardless, or every later start repeats the rejected request.
+    act(() => onDevicesUnavailable(["video"]));
+
+    expect(persistDeviceIds).toHaveBeenCalledWith(
+      "test-key",
+      { audio: "old-audio" },
+      { clearing: true },
+    );
+  });
+
+  it("does not clear the stored selection when the picker resolves nothing", async () => {
+    // The picker resolves empty while its device list is still empty, which
+    // must not reach storage as a removal — the counterpart to the clearing
+    // case below.
+    resolvedSelection = {};
+    renderStreamer({ webRtcState: "STOPPED" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Device" }));
+    await screen.findByRole("button", { name: "Choose another camera" });
+
+    expect(persistDeviceIds).toHaveBeenCalledWith(
+      "test-key",
+      { video: undefined, audio: undefined },
+      { clearing: false },
+    );
+  });
+
+  it("removes the stored entry when every kind is gone", async () => {
+    const { onDevicesUnavailable } = renderStreamer();
+
+    act(() => onDevicesUnavailable(["video", "audio"]));
+
+    // `clearing` is what carries this past the write guard, which would
+    // otherwise read the empty selection as the not-opened-yet state and leave
+    // the dead IDs in storage for the next mount to retry.
+    expect(persistDeviceIds).toHaveBeenCalledWith(
+      "test-key",
+      { video: undefined, audio: undefined },
+      { clearing: true },
+    );
   });
 
   it("shows a switching error and keeps the previous selection", async () => {
@@ -230,18 +309,20 @@ describe("<WebRtcStreamerInner />", () => {
 
     await act(async () => finishAudioSwitch?.());
     await waitFor(() =>
-      expect(persistDeviceIds).toHaveBeenLastCalledWith("test-key", {
-        video: "old-video",
-        audio: "new-audio",
-      }),
+      expect(persistDeviceIds).toHaveBeenLastCalledWith(
+        "test-key",
+        { video: "old-video", audio: "new-audio" },
+        { clearing: false },
+      ),
     );
 
     await act(async () => finishVideoSwitch?.());
     await waitFor(() =>
-      expect(persistDeviceIds).toHaveBeenLastCalledWith("test-key", {
-        video: "new-video",
-        audio: "new-audio",
-      }),
+      expect(persistDeviceIds).toHaveBeenLastCalledWith(
+        "test-key",
+        { video: "new-video", audio: "new-audio" },
+        { clearing: false },
+      ),
     );
   });
 });

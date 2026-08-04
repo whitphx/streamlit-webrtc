@@ -69,15 +69,38 @@ export function loadPersistedDeviceIds(
   return read(GLOBAL_KEY) ?? {};
 }
 
+function remove(key: string): void {
+  const storage = safeLocalStorage();
+  if (storage == null) return;
+  try {
+    storage.removeItem(key);
+  } catch {
+    // SecurityError, etc. — persistence is best-effort.
+  }
+}
+
 export function persistDeviceIds(
   componentKey: string | undefined,
   deviceIds: PersistedDeviceIds,
+  { clearing }: { clearing: boolean } = { clearing: false },
 ): void {
-  // Skip writing an entry with no usable IDs to avoid clobbering an existing
-  // selection with `{}` during the brief window before devices are opened.
-  if (deviceIds.video == null && deviceIds.audio == null) return;
-  write(GLOBAL_KEY, deviceIds);
+  const keys = [GLOBAL_KEY];
   if (componentKey != null) {
-    write(PER_COMPONENT_PREFIX + componentKey, deviceIds);
+    keys.push(PER_COMPONENT_PREFIX + componentKey);
   }
+
+  if (deviceIds.video == null && deviceIds.audio == null) {
+    // An empty selection is normally the brief window before devices are
+    // opened, and writing it would clobber a stored choice that is still good.
+    // `clearing` marks the other case, where the IDs were dropped because
+    // their devices no longer exist.
+    if (!clearing) return;
+    // Removed rather than stored as an empty entry, which would count as a
+    // per-component selection and cut this component off from the global
+    // fallback for good.
+    keys.forEach(remove);
+    return;
+  }
+
+  keys.forEach((key) => write(key, deviceIds));
 }

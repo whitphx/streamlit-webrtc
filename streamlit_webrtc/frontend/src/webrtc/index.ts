@@ -1,9 +1,11 @@
 import { useReducer, useCallback, useRef, useEffect, useMemo } from "react";
-import { compileMediaConstraints } from "../media-constraint";
 import { ComponentValue } from "../component-value";
 import { connectReducer, initialState } from "./reducer";
 import { useUniqueId } from "./use-unique-id";
+import { openInputMediaStream } from "./open-input-media-stream";
 import { switchInputDevice, type InputDeviceKind } from "./switch-input-device";
+
+export type { InputDeviceKind };
 
 export type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 export const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -30,6 +32,7 @@ export const useWebRtc = (
     video?: string;
     audio?: string;
   }) => void,
+  onDevicesUnavailable: (unavailableDeviceKinds: InputDeviceKind[]) => void,
 ) => {
   // Initialize component value
   useEffect(() => {
@@ -154,31 +157,18 @@ export const useWebRtc = (
 
       // Set up transceivers
       if (mode === "SENDRECV" || mode === "SENDONLY") {
-        const constraints = compileMediaConstraints(
+        const inputMediaStream = await openInputMediaStream(
           props.mediaStreamConstraints,
           videoDeviceIdRequest,
           audioDeviceIdRequest,
+          onDevicesUnavailable,
         );
-        console.debug("MediaStreamConstraints:", constraints);
 
-        if (constraints.audio || constraints.video) {
-          if (navigator.mediaDevices == null) {
-            // Ref: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#privacy_and_security
-            // > A secure context is, in short, a page loaded using HTTPS or the file:/// URL scheme, or a page loaded from localhost.
-            throw new Error(
-              "navigator.mediaDevices is undefined. It seems the current document is not loaded securely.",
-            );
-          }
-          if (navigator.mediaDevices.getUserMedia == null) {
-            throw new Error("getUserMedia is not implemented in this browser");
-          }
-
+        if (inputMediaStream != null) {
           const openedDeviceIds: {
             video?: MediaDeviceInfo["deviceId"];
             audio?: MediaDeviceInfo["deviceId"];
           } = {};
-          const inputMediaStream =
-            await navigator.mediaDevices.getUserMedia(constraints);
           dispatch({ type: "SET_INPUT_MEDIA_STREAM", inputMediaStream });
           inputMediaStream.getTracks().forEach((track) => {
             pc.addTrack(track, inputMediaStream);
@@ -286,6 +276,7 @@ export const useWebRtc = (
     props.sendbackAudio,
     state.webRtcState,
     onDevicesOpened,
+    onDevicesUnavailable,
     uniqueIdGenerator,
   ]);
 
