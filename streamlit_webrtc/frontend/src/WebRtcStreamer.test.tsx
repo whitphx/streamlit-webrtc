@@ -185,10 +185,11 @@ describe("<WebRtcStreamerInner />", () => {
     expect(persistDeviceIds).not.toHaveBeenCalled();
 
     await act(async () => finishSwitch?.());
-    expect(persistDeviceIds).toHaveBeenCalledWith("test-key", {
-      video: "new-video",
-      audio: "old-audio",
-    });
+    expect(persistDeviceIds).toHaveBeenCalledWith(
+      "test-key",
+      { video: "new-video", audio: "old-audio" },
+      { clearing: false },
+    );
   });
 
   it("keeps the stored selection when a fallback device opens", async () => {
@@ -208,10 +209,26 @@ describe("<WebRtcStreamerInner />", () => {
       ]),
     );
 
-    expect(persistDeviceIds).toHaveBeenCalledWith("test-key", {
-      video: "fallback-video",
-      audio: "old-audio",
-    });
+    expect(persistDeviceIds).toHaveBeenCalledWith(
+      "test-key",
+      { video: "fallback-video", audio: "old-audio" },
+      { clearing: true },
+    );
+  });
+
+  it("clears a stored ID when the retry opens no replacement", async () => {
+    const { onDevicesOpened } = renderStreamer();
+
+    act(() => onDevicesOpened({}, ["video", "audio"]));
+
+    // `clearing` is what carries this past the write guard, which would
+    // otherwise read the empty selection as the not-opened-yet state and leave
+    // the dead IDs in storage for the next mount to retry.
+    expect(persistDeviceIds).toHaveBeenCalledWith(
+      "test-key",
+      { video: undefined, audio: undefined },
+      { clearing: true },
+    );
   });
 
   it("shows a switching error and keeps the previous selection", async () => {
@@ -255,18 +272,20 @@ describe("<WebRtcStreamerInner />", () => {
 
     await act(async () => finishAudioSwitch?.());
     await waitFor(() =>
-      expect(persistDeviceIds).toHaveBeenLastCalledWith("test-key", {
-        video: "old-video",
-        audio: "new-audio",
-      }),
+      expect(persistDeviceIds).toHaveBeenLastCalledWith(
+        "test-key",
+        { video: "old-video", audio: "new-audio" },
+        { clearing: false },
+      ),
     );
 
     await act(async () => finishVideoSwitch?.());
     await waitFor(() =>
-      expect(persistDeviceIds).toHaveBeenLastCalledWith("test-key", {
-        video: "new-video",
-        audio: "new-audio",
-      }),
+      expect(persistDeviceIds).toHaveBeenLastCalledWith(
+        "test-key",
+        { video: "new-video", audio: "new-audio" },
+        { clearing: false },
+      ),
     );
   });
 });

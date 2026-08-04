@@ -22,7 +22,11 @@ import {
 import { useTimer } from "./use-timeout";
 import { getMediaUsage } from "./media-constraint";
 import { ComponentValue, setComponentValue } from "./component-value";
-import { loadPersistedDeviceIds, persistDeviceIds } from "./device-storage";
+import {
+  loadPersistedDeviceIds,
+  persistDeviceIds,
+  type PersistedDeviceIds,
+} from "./device-storage";
 import TranslatedButton from "./translation/components/TranslatedButton";
 import InfoHeader from "./InfoHeader";
 
@@ -47,16 +51,25 @@ interface WebRtcStreamerInnerProps {
 }
 export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const { componentKey } = props;
-  const [deviceIds, setDeviceIds] = useState<{
-    video?: MediaDeviceInfo["deviceId"] | undefined;
-    audio?: MediaDeviceInfo["deviceId"] | undefined;
-  }>(() => loadPersistedDeviceIds(componentKey));
+  const [selection, setSelection] = useState<{
+    deviceIds: PersistedDeviceIds;
+    // Whether the latest change dropped an ID because its device is gone. The
+    // storage write needs that to tell a deliberate removal apart from the
+    // empty selection it sees before any device has opened.
+    clearing: boolean;
+  }>(() => ({
+    deviceIds: loadPersistedDeviceIds(componentKey),
+    clearing: false,
+  }));
+  const deviceIds = selection.deviceIds;
 
-  const initialDeviceIdsRef = useRef(deviceIds);
+  const initialSelectionRef = useRef(selection);
   useEffect(() => {
-    if (deviceIds === initialDeviceIdsRef.current) return;
-    persistDeviceIds(componentKey, deviceIds);
-  }, [componentKey, deviceIds]);
+    if (selection === initialSelectionRef.current) return;
+    persistDeviceIds(componentKey, selection.deviceIds, {
+      clearing: selection.clearing,
+    });
+  }, [componentKey, selection]);
   // Record the devices that actually opened, but never overwrite an explicit
   // selection — the opened device can be a browser-chosen fallback, and
   // letting it replace the user's choice would silently revert (and persist)
@@ -68,17 +81,20 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
       openedDeviceIds: { video?: string; audio?: string },
       unavailableDeviceKinds: InputDeviceKind[],
     ) => {
-      setDeviceIds((prev) => {
+      setSelection((prev) => {
         const resolve = (kind: InputDeviceKind) =>
           unavailableDeviceKinds.includes(kind)
             ? openedDeviceIds[kind]
-            : (prev[kind] ?? openedDeviceIds[kind]);
+            : (prev.deviceIds[kind] ?? openedDeviceIds[kind]);
         const video = resolve("video");
         const audio = resolve("audio");
-        if (video === prev.video && audio === prev.audio) {
+        if (video === prev.deviceIds.video && audio === prev.deviceIds.audio) {
           return prev;
         }
-        return { video, audio };
+        return {
+          deviceIds: { video, audio },
+          clearing: unavailableDeviceKinds.length > 0,
+        };
       });
     },
     [],
@@ -148,7 +164,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
       const isStreaming =
         state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING";
       if (!isStreaming) {
-        setDeviceIds(nextDeviceIds);
+        setSelection({ deviceIds: nextDeviceIds, clearing: false });
       }
     },
     [deviceIds, state.webRtcState],
@@ -161,16 +177,26 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
       const isStreaming =
         state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING";
       if (!isStreaming) {
-        setDeviceIds((prev) =>
-          prev[kind] === deviceId ? prev : { ...prev, [kind]: deviceId },
+        setSelection((prev) =>
+          prev.deviceIds[kind] === deviceId
+            ? prev
+            : {
+                deviceIds: { ...prev.deviceIds, [kind]: deviceId },
+                clearing: false,
+              },
         );
         return;
       }
       setDeviceSwitchError(null);
       try {
         await updateInputDevice(kind, deviceId);
-        setDeviceIds((prev) =>
-          prev[kind] === deviceId ? prev : { ...prev, [kind]: deviceId },
+        setSelection((prev) =>
+          prev.deviceIds[kind] === deviceId
+            ? prev
+            : {
+                deviceIds: { ...prev.deviceIds, [kind]: deviceId },
+                clearing: false,
+              },
         );
         setDeviceSwitchError(null);
       } catch (error: unknown) {

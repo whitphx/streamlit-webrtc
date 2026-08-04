@@ -72,10 +72,13 @@ export function loadPersistedDeviceIds(
 export function persistDeviceIds(
   componentKey: string | undefined,
   deviceIds: PersistedDeviceIds,
+  { clearing }: { clearing: boolean } = { clearing: false },
 ): void {
-  // Skip writing an entry with no usable IDs to avoid clobbering an existing
-  // selection with `{}` during the brief window before devices are opened.
-  if (deviceIds.video == null && deviceIds.audio == null) return;
+  // A selection with no usable IDs is normally the brief window before devices
+  // are opened, and writing it would clobber a stored choice that is still
+  // good. `clearing` marks the other case, where the IDs were dropped because
+  // their devices no longer exist, which does have to reach storage.
+  if (!clearing && deviceIds.video == null && deviceIds.audio == null) return;
   write(GLOBAL_KEY, deviceIds);
   if (componentKey != null) {
     write(PER_COMPONENT_PREFIX + componentKey, deviceIds);

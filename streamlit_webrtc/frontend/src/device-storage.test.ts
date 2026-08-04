@@ -108,6 +108,22 @@ describe("device-storage", () => {
       ).toEqual({ video: "vid", audio: "aud" });
     });
 
+    it("writes an empty selection when it clears devices that are gone", () => {
+      window.localStorage.setItem(
+        perComponentKey("myKey"),
+        JSON.stringify({ video: "vid", audio: "aud" }),
+      );
+      window.localStorage.setItem(
+        GLOBAL_KEY,
+        JSON.stringify({ video: "vid", audio: "aud" }),
+      );
+      persistDeviceIds("myKey", {}, { clearing: true });
+      expect(JSON.parse(window.localStorage.getItem(GLOBAL_KEY)!)).toEqual({});
+      expect(
+        JSON.parse(window.localStorage.getItem(perComponentKey("myKey"))!),
+      ).toEqual({});
+    });
+
     it("swallows storage errors", () => {
       const setItem = vi
         .spyOn(Storage.prototype, "setItem")
