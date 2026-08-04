@@ -32,6 +32,11 @@ vi.mock("./device-storage", () => ({
   persistDeviceIds: vi.fn(),
 }));
 
+let resolvedSelection: { video?: string; audio?: string } = {
+  video: "old-video",
+  audio: "old-audio",
+};
+
 vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
   default: function MockDeviceSelectForm(props: {
     onSelectionResolved: (devices: { video?: string; audio?: string }) => void;
@@ -42,7 +47,7 @@ vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
     const { onSelectionResolved, onVideoSelect, onAudioSelect, switchError } =
       props;
     useEffect(() => {
-      onSelectionResolved({ video: "old-video", audio: "old-audio" });
+      onSelectionResolved(resolvedSelection);
     }, [onSelectionResolved]);
     const selectVideo = () => {
       void Promise.resolve(onVideoSelect("new-video")).catch(() => undefined);
@@ -67,6 +72,7 @@ vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  resolvedSelection = { video: "old-video", audio: "old-audio" };
 });
 
 function makeStream() {
@@ -80,11 +86,13 @@ function makeStream() {
 
 function renderStreamer({
   mediaToggleControls = true,
+  webRtcState = "PLAYING",
   updateInputDevice = vi
     .fn<(kind: "video" | "audio", deviceId: string) => Promise<void>>()
     .mockResolvedValue(undefined),
 }: {
   mediaToggleControls?: boolean;
+  webRtcState?: "STOPPED" | "PLAYING";
   updateInputDevice?: (
     kind: "video" | "audio",
     deviceId: string,
@@ -92,7 +100,7 @@ function renderStreamer({
 } = {}) {
   vi.mocked(useWebRtc).mockReturnValue({
     state: {
-      webRtcState: "PLAYING",
+      webRtcState,
       sdpOffer: null,
       iceCandidates: {},
       outputMediaStream: null,
@@ -212,7 +220,24 @@ describe("<WebRtcStreamerInner />", () => {
     expect(persistDeviceIds).toHaveBeenCalledWith(
       "test-key",
       { video: "fallback-video", audio: "old-audio" },
-      { clearing: true },
+      { clearing: false },
+    );
+  });
+
+  it("does not clear the stored selection when the picker resolves nothing", async () => {
+    // The picker resolves empty while its device list is still empty, which
+    // must not reach storage as a removal — the counterpart to the clearing
+    // case below.
+    resolvedSelection = {};
+    renderStreamer({ webRtcState: "STOPPED" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Device" }));
+    await screen.findByRole("button", { name: "Choose another camera" });
+
+    expect(persistDeviceIds).toHaveBeenCalledWith(
+      "test-key",
+      { video: undefined, audio: undefined },
+      { clearing: false },
     );
   });
 

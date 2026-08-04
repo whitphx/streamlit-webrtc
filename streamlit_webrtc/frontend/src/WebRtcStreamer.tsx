@@ -93,7 +93,9 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
         }
         return {
           deviceIds: { video, audio },
-          clearing: unavailableDeviceKinds.length > 0,
+          clearing: unavailableDeviceKinds.some(
+            (kind) => openedDeviceIds[kind] == null,
+          ),
         };
       });
     },
