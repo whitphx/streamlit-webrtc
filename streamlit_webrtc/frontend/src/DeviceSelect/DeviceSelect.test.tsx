@@ -7,6 +7,10 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import DeviceSelect from "./DeviceSelect";
+import {
+  makeDevice as makeMediaDevice,
+  stubMediaDevices,
+} from "../media-devices-test-utils";
 
 vi.mock("streamlit-component-lib", () => ({
   Streamlit: { setFrameHeight: vi.fn() },
@@ -17,14 +21,14 @@ vi.mock("./VideoPreview", () => ({
 }));
 
 function makeDevice(deviceId: string): MediaDeviceInfo {
-  return {
-    deviceId,
-    groupId: "video-group",
-    kind: "videoinput",
-    label: deviceId,
-    toJSON: () => ({}),
-  };
+  return makeMediaDevice(deviceId, "videoinput", deviceId);
 }
+
+const RESOLVED_STREAM = {
+  getTracks: () => [],
+  getVideoTracks: () => [],
+  getAudioTracks: () => [],
+};
 
 afterEach(() => {
   cleanup();
@@ -49,22 +53,15 @@ describe("<DeviceSelect />", () => {
             rejectSecondSelection = reject;
           }),
       );
-    vi.stubGlobal("navigator", {
-      mediaDevices: {
-        getUserMedia: vi.fn().mockResolvedValue({
-          getTracks: () => [],
-          getVideoTracks: () => [],
-          getAudioTracks: () => [],
-        }),
-        enumerateDevices: vi
-          .fn()
-          .mockResolvedValue([
-            makeDevice("old-video"),
-            makeDevice("first-video"),
-            makeDevice("second-video"),
-          ]),
-        ondevicechange: null,
-      },
+    stubMediaDevices({
+      getUserMedia: vi.fn().mockResolvedValue(RESOLVED_STREAM),
+      enumerateDevices: vi
+        .fn()
+        .mockResolvedValue([
+          makeDevice("old-video"),
+          makeDevice("first-video"),
+          makeDevice("second-video"),
+        ]),
     });
 
     render(
@@ -94,6 +91,129 @@ describe("<DeviceSelect />", () => {
     await act(async () =>
       rejectSecondSelection?.(new Error("Second switch failed")),
     );
+    expect(select.value).toBe("old-video");
+  });
+
+  // Permission is granted per kind, so the enumeration that runs before the
+  // prompt is answered can carry every microphone and no camera at all. The
+  // caller persists what it is told, and half an answer erases the other half.
+  it("resolves nothing until permission is granted", async () => {
+    const onSelectionResolved = vi.fn();
+    stubMediaDevices({
+      getUserMedia: vi.fn().mockReturnValue(new Promise(() => undefined)),
+      enumerateDevices: vi.fn().mockResolvedValue([
+        // The camera is known to exist and nothing more, the microphone was
+        // permitted on an earlier visit.
+        makeMediaDevice("", "videoinput", ""),
+        makeMediaDevice("old-audio", "audioinput"),
+      ]),
+    });
+
+    render(
+      <DeviceSelect
+        video
+        audio
+        defaultVideoDeviceId="old-video"
+        defaultAudioDeviceId="old-audio"
+        onSelectionResolved={onSelectionResolved}
+        onVideoSelect={vi.fn()}
+        onAudioSelect={vi.fn()}
+      />,
+    );
+
+    await act(async () => undefined);
+    expect(onSelectionResolved).not.toHaveBeenCalled();
+  });
+
+  // The permission refresh can be superseded by a `devicechange` that granting
+  // permission itself sets off. Treating its resolution as "the list is ready"
+  // would report a selection built from the pre-permission list.
+  it("resolves nothing while the permission refresh is still outstanding", async () => {
+    const onSelectionResolved = vi.fn();
+    const pending: Array<(devices: MediaDeviceInfo[]) => void> = [];
+    const listeners: Array<() => void> = [];
+    stubMediaDevices({
+      getUserMedia: vi.fn().mockResolvedValue(RESOLVED_STREAM),
+      enumerateDevices: vi.fn(
+        () =>
+          new Promise<MediaDeviceInfo[]>((resolve) => pending.push(resolve)),
+      ),
+      addEventListener: vi.fn((_type: string, listener: EventListener) =>
+        listeners.push(listener as () => void),
+      ),
+    });
+
+    render(
+      <DeviceSelect
+        video
+        audio
+        defaultVideoDeviceId="old-video"
+        defaultAudioDeviceId="old-audio"
+        onSelectionResolved={onSelectionResolved}
+        onVideoSelect={vi.fn()}
+        onAudioSelect={vi.fn()}
+      />,
+    );
+
+    // The enumeration on mount lands first, carrying the microphone permitted
+    // on an earlier visit and nothing usable for the camera.
+    await act(async () =>
+      pending[0]?.([
+        makeMediaDevice("", "videoinput", ""),
+        makeMediaDevice("old-audio", "audioinput"),
+      ]),
+    );
+    await act(async () => listeners.forEach((listener) => listener()));
+    // The permission refresh settles after that newer enumeration started, so
+    // its result is dropped and the list is still the one from mount.
+    await act(async () =>
+      pending[1]?.([
+        makeMediaDevice("old-video", "videoinput"),
+        makeMediaDevice("old-audio", "audioinput"),
+      ]),
+    );
+
+    expect(onSelectionResolved).not.toHaveBeenCalled();
+  });
+
+  it("returns to the requested device when it comes back", async () => {
+    let attached = [makeDevice("old-video"), makeDevice("spare")];
+    const listeners: Array<() => void> = [];
+    stubMediaDevices({
+      getUserMedia: vi.fn().mockResolvedValue(RESOLVED_STREAM),
+      enumerateDevices: vi.fn(() => Promise.resolve(attached)),
+      addEventListener: vi.fn((_type: string, listener: EventListener) =>
+        listeners.push(listener as () => void),
+      ),
+    });
+    const emitDeviceChange = async (devices: MediaDeviceInfo[]) => {
+      attached = devices;
+      await act(async () => listeners.forEach((listener) => listener()));
+    };
+
+    render(
+      <DeviceSelect
+        video
+        audio={false}
+        defaultVideoDeviceId="old-video"
+        defaultAudioDeviceId={undefined}
+        onSelectionResolved={vi.fn()}
+        onVideoSelect={vi.fn()}
+        onAudioSelect={vi.fn()}
+      />,
+    );
+
+    const select = (await screen.findByLabelText(
+      "Video Input",
+    )) as HTMLSelectElement;
+    expect(select.value).toBe("old-video");
+
+    // Unplugged: the only device left is the one the picker falls back to.
+    await emitDeviceChange([makeDevice("spare")]);
+    expect(select.value).toBe("spare");
+
+    // Plugged back in: the request was never withdrawn, so it applies again.
+    await emitDeviceChange([makeDevice("old-video"), makeDevice("spare")]);
     expect(select.value).toBe("old-video");
   });
 });
