@@ -148,6 +148,29 @@ describe("<InputMediaControls />", () => {
     ).toBeNull();
   });
 
+  it("still offers a picker once the live device is unplugged", async () => {
+    // Only the survivor is enumerated, while the selection still names the
+    // camera that went away.
+    stubDevices([makeDevice("cam-2", "videoinput")]);
+    const onSelectDevice = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <InputMediaControls
+        stream={makeStream({ videoTrack: { enabled: true } })}
+        selectedDeviceIds={{ video: "cam-1" }}
+        onSelectDevice={onSelectDevice}
+      />,
+    );
+
+    const cameraSelect = (await screen.findByRole("combobox", {
+      name: "Select camera",
+    })) as HTMLSelectElement;
+    expect(cameraSelect.value).toBe("");
+
+    fireEvent.change(cameraSelect, { target: { value: "cam-2" } });
+    expect(onSelectDevice).toHaveBeenCalledWith("video", "cam-2");
+  });
+
   it("holds the pending device until the switch settles, then reverts if it fails", async () => {
     stubDevices(TWO_OF_EACH);
     let rejectSwitch: ((error: Error) => void) | undefined;

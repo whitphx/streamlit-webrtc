@@ -139,6 +139,10 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const receivable = isWebRtcMode(mode) && isReceivable(mode);
   const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
   const inputMediaStream = state.inputMediaStream;
+  // Read by switches in flight, which need the stream that is current when
+  // they settle rather than the one captured when they started.
+  const inputMediaStreamRef = useRef(inputMediaStream);
+  inputMediaStreamRef.current = inputMediaStream;
   const showMediaToggleControls =
     props.mediaToggleControls &&
     transmittable &&
@@ -202,9 +206,18 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
         );
         return;
       }
+      // A switch outlives the stream it started on: `getUserMedia` can sit on
+      // a permission prompt for as long as the user takes, and the stream can
+      // be stopped and started again underneath it. Whatever it reports then
+      // describes a stream that is gone, not the one on screen.
+      const requestedStream = inputMediaStreamRef.current;
+      const isStale = () => inputMediaStreamRef.current !== requestedStream;
       setDeviceSwitchError(null);
       try {
         await updateInputDevice(kind, deviceId);
+        if (isStale()) {
+          return;
+        }
         setSelection((prev) =>
           prev.deviceIds[kind] === deviceId
             ? prev
@@ -217,7 +230,11 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
       } catch (error: unknown) {
         const switchError =
           error instanceof Error ? error : new Error(String(error));
-        setDeviceSwitchError(switchError);
+        if (!isStale()) {
+          setDeviceSwitchError(switchError);
+        }
+        // Rejected either way, so the caller that made the request can settle
+        // whatever it was showing while it was in flight.
         throw switchError;
       }
     },

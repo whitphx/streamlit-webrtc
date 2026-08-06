@@ -89,17 +89,22 @@ function InputDeviceSelect({
   disabled,
   onSelect,
 }: InputDeviceSelectProps) {
-  // Without a second device there is nothing to pick, and without knowing which
-  // device is live the picker would misreport the current one.
   const currentDevice = devices.find(
     (device) => device.deviceId === selectedDeviceId,
   );
-  if (devices.length < 2 || currentDevice == null) {
+  // Only the absence of anything to switch to hides the picker. The live
+  // device going missing does not qualify: an unplugged camera is when the
+  // picker matters most, and where playback is driven by the app rather than
+  // the user it is the only control left to recover through.
+  const hasAlternative = devices.some(
+    (device) => device.deviceId !== selectedDeviceId,
+  );
+  if (!hasAlternative) {
     return null;
   }
 
   return (
-    <Tooltip title={currentDevice.label || label}>
+    <Tooltip title={currentDevice?.label || label}>
       <Box
         sx={{
           position: "relative",
@@ -127,10 +132,20 @@ function InputDeviceSelect({
         <ArrowDropDownIcon fontSize="small" />
         <DeviceSelectOverlay
           aria-label={label}
-          value={currentDevice.deviceId}
+          // Empty once the live device is gone, so the native picker marks
+          // none of the survivors as the one in use.
+          value={currentDevice?.deviceId ?? ""}
           disabled={disabled}
           onChange={(e) => onSelect(e.target.value)}
         >
+          {currentDevice == null && (
+            // Something has to hold the empty value: a select with no option
+            // selected falls back to the first one it can, which would name a
+            // device that is not the one in use.
+            <option value="" disabled>
+              {label}
+            </option>
+          )}
           {devices.map((device, index) => (
             <option key={device.deviceId} value={device.deviceId}>
               {device.label || fallbackDeviceLabel(kind, index)}

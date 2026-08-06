@@ -374,6 +374,54 @@ describe("<WebRtcStreamerInner />", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it("ignores a switch that settles after its stream is gone", async () => {
+    stubDevices();
+    let rejectSwitch: ((error: Error) => void) | undefined;
+    const updateInputDevice = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectSwitch = reject;
+        }),
+    );
+    const { openAnotherStream } = renderStreamer({ updateInputDevice });
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+
+    // Stopping and starting again replaces the stream the switch was asked
+    // for, so its verdict describes something that no longer exists.
+    await openAnotherStream();
+    await act(async () =>
+      rejectSwitch?.(new DOMException("Device is busy", "NotReadableError")),
+    );
+
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("does not record a device from a switch whose stream was replaced", async () => {
+    stubDevices();
+    let finishSwitch: (() => void) | undefined;
+    const updateInputDevice = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishSwitch = resolve;
+        }),
+    );
+    const { openAnotherStream } = renderStreamer({ updateInputDevice });
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+
+    await openAnotherStream();
+    await act(async () => finishSwitch?.());
+
+    // The switch landed on a track that has since been thrown away; storing
+    // its device would outlive the only stream it was ever true of.
+    expect(persistDeviceIds).not.toHaveBeenCalled();
+  });
+
   it("preserves both confirmed IDs when video and audio switches overlap", async () => {
     let finishVideoSwitch: (() => void) | undefined;
     let finishAudioSwitch: (() => void) | undefined;
