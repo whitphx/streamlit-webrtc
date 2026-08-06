@@ -161,6 +161,13 @@ function DeviceSelect(props: DeviceSelectProps) {
   );
 
   useEffect(() => {
+    // Permission is granted per kind, so before the prompt is answered a
+    // browser can name every microphone while withholding every camera. The
+    // caller stores what it is told, and an absent kind reads there as "forget
+    // the device you had" rather than "nothing to say about it yet".
+    if (permissionState !== "ALLOWED") {
+      return;
+    }
     const videoInput = useVideo
       ? videoInputs.find((d) => d.deviceId === selectedVideoInputDeviceId)
       : null;
@@ -172,6 +179,7 @@ function DeviceSelect(props: DeviceSelectProps) {
       audio: audioInput?.deviceId,
     });
   }, [
+    permissionState,
     useVideo,
     useAudio,
     onSelectionResolved,

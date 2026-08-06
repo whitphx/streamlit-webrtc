@@ -94,24 +94,27 @@ describe("<DeviceSelect />", () => {
     expect(select.value).toBe("old-video");
   });
 
-  // The enumeration on mount runs before the permission prompt is answered.
-  // Resolving a selection from what it reports would hand the caller an ID that
-  // names no device, and the caller persists what it is given.
-  it("resolves nothing while the device list is still unlabelled", async () => {
+  // Permission is granted per kind, so the enumeration that runs before the
+  // prompt is answered can carry every microphone and no camera at all. The
+  // caller persists what it is told, and half an answer erases the other half.
+  it("resolves nothing until permission is granted", async () => {
     const onSelectionResolved = vi.fn();
     stubMediaDevices({
       getUserMedia: vi.fn().mockReturnValue(new Promise(() => undefined)),
-      enumerateDevices: vi
-        .fn()
-        .mockResolvedValue([makeMediaDevice("", "videoinput", "")]),
+      enumerateDevices: vi.fn().mockResolvedValue([
+        // The camera is known to exist and nothing more, the microphone was
+        // permitted on an earlier visit.
+        makeMediaDevice("", "videoinput", ""),
+        makeMediaDevice("old-audio", "audioinput"),
+      ]),
     });
 
     render(
       <DeviceSelect
         video
-        audio={false}
+        audio
         defaultVideoDeviceId="old-video"
-        defaultAudioDeviceId={undefined}
+        defaultAudioDeviceId="old-audio"
         onSelectionResolved={onSelectionResolved}
         onVideoSelect={vi.fn()}
         onAudioSelect={vi.fn()}
@@ -119,9 +122,7 @@ describe("<DeviceSelect />", () => {
     );
 
     await act(async () => undefined);
-    expect(onSelectionResolved).not.toHaveBeenCalledWith(
-      expect.objectContaining({ video: "" }),
-    );
+    expect(onSelectionResolved).not.toHaveBeenCalled();
   });
 
   it("returns to the requested device when it comes back", async () => {
