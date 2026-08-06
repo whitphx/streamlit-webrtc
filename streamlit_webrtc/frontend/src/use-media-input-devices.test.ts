@@ -111,6 +111,40 @@ describe("useMediaInputDevices()", () => {
     ]);
   });
 
+  it("does not settle an awaited refresh on a result it discarded", async () => {
+    const pending: Array<(devices: MediaDeviceInfo[]) => void> = [];
+    stubMediaDevices({
+      enumerateDevices: vi.fn(
+        () =>
+          new Promise<MediaDeviceInfo[]>((resolve) => pending.push(resolve)),
+      ),
+    });
+
+    const { result } = renderHook(() => useMediaInputDevices());
+
+    let awaitedRefreshSettled = false;
+    await act(async () => {
+      void result.current.refresh().then(() => {
+        awaitedRefreshSettled = true;
+      });
+    });
+    // A `devicechange` between the refresh and its result supersedes it.
+    await act(async () => {
+      void result.current.refresh();
+    });
+
+    await act(async () =>
+      pending[1]?.([makeDevice("discarded", "videoinput")]),
+    );
+    expect(awaitedRefreshSettled).toBe(false);
+
+    await act(async () => pending[2]?.([makeDevice("newest", "videoinput")]));
+    expect(awaitedRefreshSettled).toBe(true);
+    expect(result.current.devices.video.map((d) => d.deviceId)).toEqual([
+      "newest",
+    ]);
+  });
+
   // `navigator.mediaDevices` is undefined outside a secure context, so every
   // access has to tolerate it being missing rather than throwing on mount.
   it("reports the media API as unavailable when devices cannot be enumerated", () => {

@@ -125,6 +125,57 @@ describe("<DeviceSelect />", () => {
     expect(onSelectionResolved).not.toHaveBeenCalled();
   });
 
+  // The permission refresh can be superseded by a `devicechange` that granting
+  // permission itself sets off. Treating its resolution as "the list is ready"
+  // would report a selection built from the pre-permission list.
+  it("resolves nothing while the permission refresh is still outstanding", async () => {
+    const onSelectionResolved = vi.fn();
+    const pending: Array<(devices: MediaDeviceInfo[]) => void> = [];
+    const listeners: Array<() => void> = [];
+    stubMediaDevices({
+      getUserMedia: vi.fn().mockResolvedValue(RESOLVED_STREAM),
+      enumerateDevices: vi.fn(
+        () =>
+          new Promise<MediaDeviceInfo[]>((resolve) => pending.push(resolve)),
+      ),
+      addEventListener: vi.fn((_type: string, listener: EventListener) =>
+        listeners.push(listener as () => void),
+      ),
+    });
+
+    render(
+      <DeviceSelect
+        video
+        audio
+        defaultVideoDeviceId="old-video"
+        defaultAudioDeviceId="old-audio"
+        onSelectionResolved={onSelectionResolved}
+        onVideoSelect={vi.fn()}
+        onAudioSelect={vi.fn()}
+      />,
+    );
+
+    // The enumeration on mount lands first, carrying the microphone permitted
+    // on an earlier visit and nothing usable for the camera.
+    await act(async () =>
+      pending[0]?.([
+        makeMediaDevice("", "videoinput", ""),
+        makeMediaDevice("old-audio", "audioinput"),
+      ]),
+    );
+    await act(async () => listeners.forEach((listener) => listener()));
+    // The permission refresh settles after that newer enumeration started, so
+    // its result is dropped and the list is still the one from mount.
+    await act(async () =>
+      pending[1]?.([
+        makeMediaDevice("old-video", "videoinput"),
+        makeMediaDevice("old-audio", "audioinput"),
+      ]),
+    );
+
+    expect(onSelectionResolved).not.toHaveBeenCalled();
+  });
+
   it("returns to the requested device when it comes back", async () => {
     let attached = [makeDevice("old-video"), makeDevice("spare")];
     const listeners: Array<() => void> = [];
