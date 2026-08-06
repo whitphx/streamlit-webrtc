@@ -27,15 +27,24 @@ export function useMediaInputDevices() {
     if (latestRequestIdRef.current !== requestId) {
       return;
     }
+    // Before permission is granted browsers report one placeholder entry per
+    // kind, carrying no ID and no label. Those name no device that can be
+    // opened, selected or remembered, so they are not devices as far as
+    // callers are concerned.
+    const devices = allDevices.filter((device) => device.deviceId !== "");
     setDevices({
-      video: allDevices.filter((device) => device.kind === "videoinput"),
-      audio: allDevices.filter((device) => device.kind === "audioinput"),
+      video: devices.filter((device) => device.kind === "videoinput"),
+      audio: devices.filter((device) => device.kind === "audioinput"),
     });
   }, []);
 
   useEffect(() => {
     const enumerate = () => {
-      refresh().catch(() => undefined);
+      // Nothing awaits these two, unlike the caller-driven `refresh()`, so a
+      // failure would otherwise disappear.
+      refresh().catch((error) =>
+        console.error("Failed to enumerate media devices", error),
+      );
     };
 
     enumerate();

@@ -33,6 +33,9 @@ function ensureValidSelection(
   return undefined;
 }
 
+// `MEDIA_API_UNAVAILABLE` covers the half of the media API this component needs
+// that the device list does not: a browser exposing `enumerateDevices` but no
+// `getUserMedia` leaves nothing to wait for, and there is no permission to ask.
 type PermissionState = "WAITING" | "ALLOWED" | "MEDIA_API_UNAVAILABLE" | Error;
 
 export interface DeviceSelectProps {

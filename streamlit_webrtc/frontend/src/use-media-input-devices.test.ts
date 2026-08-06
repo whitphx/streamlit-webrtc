@@ -1,20 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useMediaInputDevices } from "./use-media-input-devices";
-
-function makeDevice(deviceId: string, kind: MediaDeviceKind): MediaDeviceInfo {
-  return {
-    deviceId,
-    groupId: `${deviceId}-group`,
-    kind,
-    label: deviceId,
-    toJSON: () => ({}),
-  };
-}
-
-function stubMediaDevices(mediaDevices: Partial<MediaDevices>) {
-  vi.stubGlobal("navigator", { mediaDevices });
-}
+import { makeDevice, stubMediaDevices } from "./media-devices-test-utils";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -30,8 +17,6 @@ describe("useMediaInputDevices()", () => {
           makeDevice("microphone", "audioinput"),
           makeDevice("speaker", "audiooutput"),
         ]),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
     });
 
     const { result } = renderHook(() => useMediaInputDevices());
@@ -45,6 +30,24 @@ describe("useMediaInputDevices()", () => {
       "microphone",
     ]);
     expect(result.current.unavailable).toBe(false);
+  });
+
+  // Reporting these as devices would let a caller resolve a selection to the
+  // empty ID and store it over the one the user actually chose.
+  it("ignores the placeholder entries reported before permission is granted", async () => {
+    stubMediaDevices({
+      enumerateDevices: vi
+        .fn()
+        .mockResolvedValue([
+          makeDevice("", "videoinput", ""),
+          makeDevice("", "audioinput", ""),
+        ]),
+    });
+
+    const { result } = renderHook(() => useMediaInputDevices());
+
+    await act(async () => undefined);
+    expect(result.current.devices).toEqual({ video: [], audio: [] });
   });
 
   it("re-enumerates when the device list changes", async () => {
@@ -61,7 +64,6 @@ describe("useMediaInputDevices()", () => {
       addEventListener: vi.fn((_type: string, listener: EventListener) =>
         listeners.push(listener as () => void),
       ),
-      removeEventListener: vi.fn(),
     });
 
     const { result } = renderHook(() => useMediaInputDevices());
@@ -87,8 +89,6 @@ describe("useMediaInputDevices()", () => {
         .mockImplementationOnce(
           () => new Promise((resolve) => (resolveRefresh = resolve)),
         ),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
     });
 
     const { result } = renderHook(() => useMediaInputDevices());
@@ -102,7 +102,9 @@ describe("useMediaInputDevices()", () => {
     await act(async () =>
       resolveRefresh?.([makeDevice("labeled", "videoinput")]),
     );
-    await act(async () => resolveOnMount?.([makeDevice("", "videoinput")]));
+    await act(async () =>
+      resolveOnMount?.([makeDevice("stale", "videoinput")]),
+    );
 
     expect(result.current.devices.video.map((d) => d.deviceId)).toEqual([
       "labeled",
