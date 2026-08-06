@@ -181,12 +181,22 @@ function InputMediaControls({
     video: areTracksEnabled(stream, "video"),
     audio: areTracksEnabled(stream, "audio"),
   }));
+  // A switch only reaches the track it is opening when it succeeds, so until
+  // then the picker shows the device being waited on rather than the one still
+  // live.
+  const [pendingDeviceIds, setPendingDeviceIds] = useState<DeviceIds>({});
+  const selectionRequestIdsRef = useRef({ video: 0, audio: 0 });
 
   useEffect(() => {
     setEnabled({
       video: areTracksEnabled(stream, "video"),
       audio: areTracksEnabled(stream, "audio"),
     });
+    // A switch in flight was asked for on the stream being replaced, so the
+    // device it is waiting on describes nothing here. Its own completion is
+    // already ignored once a later request exists, so dropping the display
+    // value is all this needs.
+    setPendingDeviceIds({});
   }, [stream]);
 
   const labels = {
@@ -210,11 +220,6 @@ function InputMediaControls({
   // from here happens with media permission granted, which is what makes the
   // browser hand over device labels at all.
   const { devices } = useMediaInputDevices();
-  // The parent only confirms a device once the switch to it succeeds, so until
-  // then the picker shows the pending one rather than snapping back to the
-  // device that is still live.
-  const [pendingDeviceIds, setPendingDeviceIds] = useState<DeviceIds>({});
-  const selectionRequestIdsRef = useRef({ video: 0, audio: 0 });
   const selectDevice = (
     kind: InputDeviceKind,
     deviceId: MediaDeviceInfo["deviceId"],

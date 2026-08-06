@@ -120,10 +120,13 @@ function renderStreamer({
     deviceId: string,
   ) => Promise<void>;
 } = {}) {
-  const mockWebRtc = (inputMediaStream: MediaStream) =>
+  const mockWebRtc = (
+    inputMediaStream: MediaStream,
+    currentState: string = webRtcState,
+  ) =>
     vi.mocked(useWebRtc).mockReturnValue({
       state: {
-        webRtcState,
+        webRtcState: currentState as typeof webRtcState,
         sdpOffer: null,
         iceCandidates: {},
         outputMediaStream: null,
@@ -134,7 +137,8 @@ function renderStreamer({
       stop: vi.fn(),
       updateInputDevice,
     });
-  mockWebRtc(makeStream());
+  const stream = makeStream();
+  mockWebRtc(stream);
 
   const streamer = () => (
     <WebRtcStreamerInner
@@ -164,6 +168,11 @@ function renderStreamer({
     onDevicesUnavailable,
     openAnotherStream: async () => {
       mockWebRtc(makeStream());
+      await act(async () => rerender(streamer()));
+    },
+    // Stopping keeps the stream in state while it tears the connection down.
+    enterStopping: async () => {
+      mockWebRtc(stream, "STOPPING");
       await act(async () => rerender(streamer()));
     },
   };
@@ -427,6 +436,33 @@ describe("<WebRtcStreamerInner />", () => {
     // The switch landed on a track that has since been thrown away; storing
     // its device would outlive the only stream it was ever true of.
     expect(persistDeviceIds).not.toHaveBeenCalled();
+  });
+
+  it("does not report a switch that fails while the stream is being stopped", async () => {
+    stubDevices();
+    let rejectSwitch: ((error: Error) => void) | undefined;
+    const updateInputDevice = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectSwitch = reject;
+        }),
+    );
+    const { enterStopping } = renderStreamer({ updateInputDevice });
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+
+    // Stopping stops the transceivers straight away, which is what the switch
+    // rejects against, while the stream it was made on is still in state.
+    await enterStopping();
+    await act(async () =>
+      rejectSwitch?.(
+        new DOMException("Sender is stopped", "InvalidStateError"),
+      ),
+    );
+
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("preserves both confirmed IDs when video and audio switches overlap", async () => {

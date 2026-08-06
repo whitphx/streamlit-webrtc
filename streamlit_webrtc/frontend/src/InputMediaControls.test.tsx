@@ -241,6 +241,42 @@ describe("<InputMediaControls />", () => {
     expect(cameraSelect.value).toBe("cam-1");
   });
 
+  it("drops a pending device when the stream it was asked for is replaced", async () => {
+    stubDevices(TWO_OF_EACH);
+    let finishSwitch: (() => void) | undefined;
+    const onSelectDevice = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishSwitch = resolve;
+        }),
+    );
+    const streamer = (stream: MediaStream) => (
+      <InputMediaControls stream={stream} onSelectDevice={onSelectDevice} />
+    );
+
+    const { rerender } = render(
+      streamer(makeStream({ videoTrack: makeTrack({ deviceId: "cam-1" }) })),
+    );
+
+    const cameraSelect = (await screen.findByRole("combobox", {
+      name: "Select camera",
+    })) as HTMLSelectElement;
+    fireEvent.change(cameraSelect, { target: { value: "cam-2" } });
+    expect(cameraSelect.value).toBe("cam-2");
+
+    // The switch was asked for on a stream that is no longer here, so the
+    // device it is waiting on describes nothing about the one that replaced it.
+    await act(async () =>
+      rerender(
+        streamer(makeStream({ videoTrack: makeTrack({ deviceId: "cam-1" }) })),
+      ),
+    );
+    expect(cameraSelect.value).toBe("cam-1");
+
+    await act(async () => finishSwitch?.());
+    expect(cameraSelect.value).toBe("cam-1");
+  });
+
   it("holds the picker inert while its kind is turned off", async () => {
     stubDevices(TWO_OF_EACH);
 

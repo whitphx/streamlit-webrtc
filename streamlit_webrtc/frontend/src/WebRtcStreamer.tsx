@@ -139,10 +139,13 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const receivable = isWebRtcMode(mode) && isReceivable(mode);
   const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
   const inputMediaStream = state.inputMediaStream;
-  // Read by switches in flight, which need the stream that is current when
-  // they settle rather than the one captured when they started.
+  // Read by switches in flight, which need what is current when they settle
+  // rather than what was captured when they started.
   const inputMediaStreamRef = useRef(inputMediaStream);
   inputMediaStreamRef.current = inputMediaStream;
+  const isStreamingRef = useRef(false);
+  isStreamingRef.current =
+    state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING";
   const showMediaToggleControls =
     props.mediaToggleControls &&
     transmittable &&
@@ -207,11 +210,16 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
         return;
       }
       // A switch outlives the stream it started on: `getUserMedia` can sit on
-      // a permission prompt for as long as the user takes, and the stream can
-      // be stopped and started again underneath it. Whatever it reports then
-      // describes a stream that is gone, not the one on screen.
+      // a permission prompt for as long as the user takes, and the connection
+      // can be stopped and started again underneath it. Whatever it reports
+      // then describes a stream that is gone, not the one on screen. Stopping
+      // alone is enough: it stops the transceivers straight away, which is
+      // what a switch landing during those moments rejects against, while the
+      // stream it was made on is still the one in state.
       const requestedStream = inputMediaStreamRef.current;
-      const isStale = () => inputMediaStreamRef.current !== requestedStream;
+      const isStale = () =>
+        inputMediaStreamRef.current !== requestedStream ||
+        !isStreamingRef.current;
       setDeviceSwitchError(null);
       try {
         await updateInputDevice(kind, deviceId);
