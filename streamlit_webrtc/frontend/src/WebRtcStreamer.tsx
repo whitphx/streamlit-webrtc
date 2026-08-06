@@ -238,7 +238,9 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   return (
     <Box>
       <InfoHeader
-        error={state.error}
+        // A switch started from the controls below has no form to report into,
+        // so its failure surfaces here.
+        error={state.error ?? deviceSwitchError}
         shouldShowTakingTooLongWarning={
           state.webRtcState === "SIGNALLING" && isTakingTooLong
         }
@@ -290,6 +292,8 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
               <InputMediaControls
                 disabled={buttonDisabled}
                 stream={inputMediaStream}
+                selectedDeviceIds={deviceIds}
+                onSelectDevice={selectInputDevice}
               />
             )}
           </Box>

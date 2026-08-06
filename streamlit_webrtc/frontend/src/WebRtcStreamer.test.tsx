@@ -72,8 +72,31 @@ vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
   resolvedSelection = { video: "old-video", audio: "old-audio" };
 });
+
+function stubDevices() {
+  const devices = [
+    ["old-video", "videoinput"],
+    ["other-video", "videoinput"],
+    ["old-audio", "audioinput"],
+    ["other-audio", "audioinput"],
+  ].map(([deviceId, kind]) => ({
+    deviceId,
+    groupId: `${deviceId}-group`,
+    kind,
+    label: `${deviceId} label`,
+    toJSON: () => ({}),
+  }));
+  vi.stubGlobal("navigator", {
+    mediaDevices: {
+      enumerateDevices: vi.fn().mockResolvedValue(devices),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    },
+  });
+}
 
 function makeStream() {
   const videoTrack = { enabled: true };
@@ -280,6 +303,47 @@ describe("<WebRtcStreamerInner />", () => {
       await screen.findByRole("button", { name: "Choose another camera" }),
     );
 
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Device is busy",
+    );
+    expect(persistDeviceIds).not.toHaveBeenCalled();
+  });
+
+  it("switches the input device from the control row while streaming", async () => {
+    stubDevices();
+    const { updateInputDevice } = renderStreamer();
+
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+
+    expect(updateInputDevice).toHaveBeenCalledWith("video", "other-video");
+    await waitFor(() =>
+      expect(persistDeviceIds).toHaveBeenCalledWith(
+        "test-key",
+        { video: "other-video", audio: "old-audio" },
+        { clearing: false },
+      ),
+    );
+  });
+
+  it("shows a failure of a switch made from the control row", async () => {
+    stubDevices();
+    const updateInputDevice = vi
+      .fn()
+      .mockRejectedValue(
+        new DOMException("Device is busy", "NotReadableError"),
+      );
+    renderStreamer({ updateInputDevice });
+
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+
+    // The form that reports a switch error is never opened from the control
+    // row, so the failure has to surface in the main view instead.
     expect((await screen.findByRole("alert")).textContent).toContain(
       "Device is busy",
     );

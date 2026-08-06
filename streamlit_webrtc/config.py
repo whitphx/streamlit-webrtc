@@ -179,6 +179,8 @@ class Translations(TypedDict, total=False):
     turn_camera_off: str
     mute_microphone: str
     unmute_microphone: str
+    select_camera: str
+    select_microphone: str
 
 
 DEFAULT_MEDIA_STREAM_CONSTRAINTS = MediaStreamConstraints(audio=True, video=True)

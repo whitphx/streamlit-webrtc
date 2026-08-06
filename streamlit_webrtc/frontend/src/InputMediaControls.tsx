@@ -1,32 +1,42 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
+import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
+import { styled } from "@mui/material/styles";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import VideocamIcon from "@mui/icons-material/Videocam";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 import MicIcon from "@mui/icons-material/Mic";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import { useTranslation } from "./translation/useTranslation";
+import { useMediaInputDevices } from "./use-media-input-devices";
+import type { InputDeviceKind } from "./webrtc";
 
-type TrackKind = "video" | "audio";
+type DeviceIds = Partial<Record<InputDeviceKind, MediaDeviceInfo["deviceId"]>>;
 
 interface InputMediaControlsProps {
   stream: MediaStream;
   disabled?: boolean;
+  selectedDeviceIds?: DeviceIds;
+  onSelectDevice?: (
+    kind: InputDeviceKind,
+    deviceId: MediaDeviceInfo["deviceId"],
+  ) => Promise<void>;
 }
 
-function getTracks(stream: MediaStream, kind: TrackKind) {
+function getTracks(stream: MediaStream, kind: InputDeviceKind) {
   return kind === "video" ? stream.getVideoTracks() : stream.getAudioTracks();
 }
 
-function areTracksEnabled(stream: MediaStream, kind: TrackKind) {
+function areTracksEnabled(stream: MediaStream, kind: InputDeviceKind) {
   const tracks = getTracks(stream, kind);
   return tracks.length > 0 && tracks.every((track) => track.enabled);
 }
 
 function setTracksEnabled(
   stream: MediaStream,
-  kind: TrackKind,
+  kind: InputDeviceKind,
   enabled: boolean,
 ) {
   getTracks(stream, kind).forEach((track) => {
@@ -34,22 +44,119 @@ function setTracksEnabled(
   });
 }
 
+// Device labels are only populated once media permission is granted, which it
+// is whenever these controls are on screen, so this is a safety net.
+function fallbackDeviceLabel(kind: InputDeviceKind, index: number) {
+  return `${kind === "video" ? "Camera" : "Microphone"} ${index + 1}`;
+}
+
+// The picker is a transparent native `<select>` covering the arrow icon.
+// Streamlit pins this iframe's height to its content, so a dropdown drawn in
+// the document would be clipped by the frame, while a native one is drawn by
+// the browser outside it (and opens as a native picker on mobile).
+const DeviceSelectOverlay = styled("select")({
+  position: "absolute",
+  inset: 0,
+  width: "100%",
+  height: "100%",
+  margin: 0,
+  padding: 0,
+  border: "none",
+  appearance: "none",
+  opacity: 0,
+  cursor: "pointer",
+  "&:disabled": {
+    cursor: "default",
+  },
+});
+
+interface InputDeviceSelectProps {
+  kind: InputDeviceKind;
+  label: string;
+  devices: MediaDeviceInfo[];
+  selectedDeviceId: MediaDeviceInfo["deviceId"] | undefined;
+  disabled: boolean;
+  onSelect: (deviceId: MediaDeviceInfo["deviceId"]) => void;
+}
+function InputDeviceSelect({
+  kind,
+  label,
+  devices,
+  selectedDeviceId,
+  disabled,
+  onSelect,
+}: InputDeviceSelectProps) {
+  // Without a second device there is nothing to pick, and without knowing which
+  // device is live the picker would misreport the current one.
+  const currentDevice = devices.find(
+    (device) => device.deviceId === selectedDeviceId,
+  );
+  if (devices.length < 2 || currentDevice == null) {
+    return null;
+  }
+
+  return (
+    <Tooltip title={currentDevice.label || label}>
+      <Box
+        sx={{
+          position: "relative",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          // WCAG 2.2 SC 2.5.8 sets the minimum pointer target at 24 by 24.
+          width: 24,
+          height: 30,
+          borderRadius: 1,
+          // The same palette entries `IconButton` uses, so the arrow and the
+          // toggle it sits against read as one control.
+          color: disabled ? "action.disabled" : "action.active",
+          "&:focus-within": {
+            outline: "2px solid",
+            outlineColor: "primary.main",
+          },
+          "@media (hover: hover)": {
+            "&:hover": {
+              backgroundColor: disabled ? undefined : "action.hover",
+            },
+          },
+        }}
+      >
+        <ArrowDropDownIcon fontSize="small" />
+        <DeviceSelectOverlay
+          aria-label={label}
+          value={currentDevice.deviceId}
+          disabled={disabled}
+          onChange={(e) => onSelect(e.target.value)}
+        >
+          {devices.map((device, index) => (
+            <option key={device.deviceId} value={device.deviceId}>
+              {device.label || fallbackDeviceLabel(kind, index)}
+            </option>
+          ))}
+        </DeviceSelectOverlay>
+      </Box>
+    </Tooltip>
+  );
+}
+
 function InputMediaControls({
   disabled = false,
   stream,
+  selectedDeviceIds,
+  onSelectDevice,
 }: InputMediaControlsProps) {
   const hasVideo = stream.getVideoTracks().length > 0;
   const hasAudio = stream.getAudioTracks().length > 0;
-  const [videoEnabled, setVideoEnabled] = useState(() =>
-    areTracksEnabled(stream, "video"),
-  );
-  const [audioEnabled, setAudioEnabled] = useState(() =>
-    areTracksEnabled(stream, "audio"),
-  );
+  const [enabled, setEnabled] = useState(() => ({
+    video: areTracksEnabled(stream, "video"),
+    audio: areTracksEnabled(stream, "audio"),
+  }));
 
   useEffect(() => {
-    setVideoEnabled(areTracksEnabled(stream, "video"));
-    setAudioEnabled(areTracksEnabled(stream, "audio"));
+    setEnabled({
+      video: areTracksEnabled(stream, "video"),
+      audio: areTracksEnabled(stream, "audio"),
+    });
   }, [stream]);
 
   const labels = {
@@ -58,85 +165,110 @@ function InputMediaControls({
     muteMicrophone: useTranslation("mute_microphone") || "Mute microphone",
     unmuteMicrophone:
       useTranslation("unmute_microphone") || "Unmute microphone",
+    selectCamera: useTranslation("select_camera") || "Select camera",
+    selectMicrophone:
+      useTranslation("select_microphone") || "Select microphone",
   };
 
-  const toggleVideo = useCallback(() => {
-    const nextEnabled = !videoEnabled;
-    setTracksEnabled(stream, "video", nextEnabled);
-    setVideoEnabled(nextEnabled);
-  }, [stream, videoEnabled]);
+  const toggle = (kind: InputDeviceKind) => {
+    const nextEnabled = !enabled[kind];
+    setTracksEnabled(stream, kind, nextEnabled);
+    setEnabled((prev) => ({ ...prev, [kind]: nextEnabled }));
+  };
 
-  const toggleAudio = useCallback(() => {
-    const nextEnabled = !audioEnabled;
-    setTracksEnabled(stream, "audio", nextEnabled);
-    setAudioEnabled(nextEnabled);
-  }, [stream, audioEnabled]);
+  // These controls only exist while the input stream is live, so enumerating
+  // from here happens with media permission granted, which is what makes the
+  // browser hand over device labels at all.
+  const { devices } = useMediaInputDevices();
+  // The parent only confirms a device once the switch to it succeeds, so until
+  // then the picker shows the pending one rather than snapping back to the
+  // device that is still live.
+  const [pendingDeviceIds, setPendingDeviceIds] = useState<DeviceIds>({});
+  const selectDevice = (
+    kind: InputDeviceKind,
+    deviceId: MediaDeviceInfo["deviceId"],
+  ) => {
+    if (onSelectDevice == null) {
+      return;
+    }
+    setPendingDeviceIds((prev) => ({ ...prev, [kind]: deviceId }));
+    const settle = () =>
+      setPendingDeviceIds((prev) => {
+        // A later pick is already in flight and owns the displayed value.
+        if (prev[kind] !== deviceId) {
+          return prev;
+        }
+        const next = { ...prev };
+        delete next[kind];
+        return next;
+      });
+    onSelectDevice(kind, deviceId).then(settle, settle);
+  };
 
-  const controls = useMemo(
-    () => [
-      hasVideo && (
-        <Tooltip
-          key="video"
-          title={videoEnabled ? labels.turnCameraOff : labels.turnCameraOn}
-        >
-          <IconButton
-            aria-label={
-              videoEnabled ? labels.turnCameraOff : labels.turnCameraOn
-            }
-            aria-pressed={!videoEnabled}
-            color={videoEnabled ? "default" : "error"}
-            disabled={disabled}
-            onClick={toggleVideo}
-            size="small"
-            type="button"
-          >
-            {videoEnabled ? <VideocamIcon /> : <VideocamOffIcon />}
-          </IconButton>
-        </Tooltip>
-      ),
-      hasAudio && (
-        <Tooltip
-          key="audio"
-          title={audioEnabled ? labels.muteMicrophone : labels.unmuteMicrophone}
-        >
-          <IconButton
-            aria-label={
-              audioEnabled ? labels.muteMicrophone : labels.unmuteMicrophone
-            }
-            aria-pressed={!audioEnabled}
-            color={audioEnabled ? "default" : "error"}
-            disabled={disabled}
-            onClick={toggleAudio}
-            size="small"
-            type="button"
-          >
-            {audioEnabled ? <MicIcon /> : <MicOffIcon />}
-          </IconButton>
-        </Tooltip>
-      ),
-    ],
-    [
-      audioEnabled,
-      disabled,
-      hasAudio,
-      hasVideo,
-      labels.muteMicrophone,
-      labels.turnCameraOff,
-      labels.turnCameraOn,
-      labels.unmuteMicrophone,
-      toggleAudio,
-      toggleVideo,
-      videoEnabled,
-    ],
-  ).filter(Boolean);
+  const controls = [
+    {
+      kind: "video" as const,
+      present: hasVideo,
+      onIcon: <VideocamIcon />,
+      offIcon: <VideocamOffIcon />,
+      enableLabel: labels.turnCameraOn,
+      disableLabel: labels.turnCameraOff,
+      selectLabel: labels.selectCamera,
+      devices: devices.video,
+      selectedDeviceId: pendingDeviceIds.video ?? selectedDeviceIds?.video,
+    },
+    {
+      kind: "audio" as const,
+      present: hasAudio,
+      onIcon: <MicIcon />,
+      offIcon: <MicOffIcon />,
+      enableLabel: labels.unmuteMicrophone,
+      disableLabel: labels.muteMicrophone,
+      selectLabel: labels.selectMicrophone,
+      devices: devices.audio,
+      selectedDeviceId: pendingDeviceIds.audio ?? selectedDeviceIds?.audio,
+    },
+  ].filter((control) => control.present);
 
   if (controls.length === 0) {
     return null;
   }
 
   return (
-    <Stack direction="row" spacing={0.5}>
-      {controls}
+    <Stack direction="row" spacing={1}>
+      {controls.map((control) => {
+        const isEnabled = enabled[control.kind];
+        const toggleLabel = isEnabled
+          ? control.disableLabel
+          : control.enableLabel;
+        return (
+          <Box key={control.kind} display="inline-flex" alignItems="center">
+            <Tooltip title={toggleLabel}>
+              <IconButton
+                aria-label={toggleLabel}
+                aria-pressed={!isEnabled}
+                color={isEnabled ? "default" : "error"}
+                disabled={disabled}
+                onClick={() => toggle(control.kind)}
+                size="small"
+                type="button"
+              >
+                {isEnabled ? control.onIcon : control.offIcon}
+              </IconButton>
+            </Tooltip>
+            {onSelectDevice != null && (
+              <InputDeviceSelect
+                kind={control.kind}
+                label={control.selectLabel}
+                devices={control.devices}
+                selectedDeviceId={control.selectedDeviceId}
+                disabled={disabled}
+                onSelect={(deviceId) => selectDevice(control.kind, deviceId)}
+              />
+            )}
+          </Box>
+        );
+      })}
     </Stack>
   );
 }

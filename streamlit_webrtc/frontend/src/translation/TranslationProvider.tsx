@@ -20,6 +20,8 @@ function TranslationProvider(props: TranslationProviderProps) {
     turn_camera_off,
     mute_microphone,
     unmute_microphone,
+    select_camera,
+    select_microphone,
   } = renderData.args["translations"] || {};
   const value: Translations = useMemo(
     () => ({
@@ -34,6 +36,8 @@ function TranslationProvider(props: TranslationProviderProps) {
       turn_camera_off,
       mute_microphone,
       unmute_microphone,
+      select_camera,
+      select_microphone,
     }),
     [
       start,
@@ -47,6 +51,8 @@ function TranslationProvider(props: TranslationProviderProps) {
       turn_camera_off,
       mute_microphone,
       unmute_microphone,
+      select_camera,
+      select_microphone,
     ],
   );
   return (
