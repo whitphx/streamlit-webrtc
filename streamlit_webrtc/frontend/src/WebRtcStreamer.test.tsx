@@ -91,8 +91,15 @@ function stubDevices() {
 }
 
 function makeStream() {
-  const videoTrack = { enabled: true };
-  const audioTrack = { enabled: true };
+  // The picker reads the device it is showing off the live track, not off the
+  // remembered selection.
+  const makeTrack = (deviceId: string) => ({
+    enabled: true,
+    readyState: "live",
+    getSettings: () => ({ deviceId }),
+  });
+  const videoTrack = makeTrack("old-video");
+  const audioTrack = makeTrack("old-audio");
   return {
     getVideoTracks: () => [videoTrack],
     getAudioTracks: () => [audioTrack],

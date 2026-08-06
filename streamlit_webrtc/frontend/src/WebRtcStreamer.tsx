@@ -315,7 +315,6 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
               <InputMediaControls
                 disabled={buttonDisabled}
                 stream={inputMediaStream}
-                selectedDeviceIds={deviceIds}
                 onSelectDevice={selectInputDevice}
               />
             )}

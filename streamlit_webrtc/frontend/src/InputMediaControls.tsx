@@ -18,7 +18,6 @@ type DeviceIds = Partial<Record<InputDeviceKind, MediaDeviceInfo["deviceId"]>>;
 interface InputMediaControlsProps {
   stream: MediaStream;
   disabled?: boolean;
-  selectedDeviceIds: DeviceIds;
   onSelectDevice: (
     kind: InputDeviceKind,
     deviceId: MediaDeviceInfo["deviceId"],
@@ -27,6 +26,20 @@ interface InputMediaControlsProps {
 
 function getTracks(stream: MediaStream, kind: InputDeviceKind) {
   return kind === "video" ? stream.getVideoTracks() : stream.getAudioTracks();
+}
+
+// The device behind the track that is actually feeding the connection. A
+// remembered selection cannot answer this: a track ends when its device is
+// unplugged and stays ended when the same device is plugged back in, ID and
+// all, so an ID that appears in the device list again still names nothing live.
+function getLiveDeviceId(
+  stream: MediaStream,
+  kind: InputDeviceKind,
+): MediaDeviceInfo["deviceId"] | undefined {
+  const track = getTracks(stream, kind).find(
+    (candidate) => candidate.readyState === "live",
+  );
+  return track?.getSettings?.().deviceId;
 }
 
 function areTracksEnabled(stream: MediaStream, kind: InputDeviceKind) {
@@ -160,7 +173,6 @@ function InputDeviceSelect({
 function InputMediaControls({
   disabled = false,
   stream,
-  selectedDeviceIds,
   onSelectDevice,
 }: InputMediaControlsProps) {
   const hasVideo = stream.getVideoTracks().length > 0;
@@ -233,7 +245,8 @@ function InputMediaControls({
       disableLabel: labels.turnCameraOff,
       selectLabel: labels.selectCamera,
       devices: devices.video,
-      selectedDeviceId: pendingDeviceIds.video ?? selectedDeviceIds.video,
+      selectedDeviceId:
+        pendingDeviceIds.video ?? getLiveDeviceId(stream, "video"),
     },
     {
       kind: "audio" as const,
@@ -244,7 +257,8 @@ function InputMediaControls({
       disableLabel: labels.muteMicrophone,
       selectLabel: labels.selectMicrophone,
       devices: devices.audio,
-      selectedDeviceId: pendingDeviceIds.audio ?? selectedDeviceIds.audio,
+      selectedDeviceId:
+        pendingDeviceIds.audio ?? getLiveDeviceId(stream, "audio"),
     },
   ].filter((control) => control.present);
 

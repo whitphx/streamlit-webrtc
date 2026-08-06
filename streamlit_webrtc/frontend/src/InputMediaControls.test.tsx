@@ -14,12 +14,30 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+interface FakeTrack {
+  enabled: boolean;
+}
+
+function makeTrack({
+  deviceId,
+  readyState = "live",
+}: {
+  deviceId?: string;
+  readyState?: MediaStreamTrackState;
+} = {}): FakeTrack {
+  return {
+    enabled: true,
+    readyState,
+    getSettings: () => ({ deviceId }),
+  } as unknown as FakeTrack;
+}
+
 function makeStream({
   videoTrack,
   audioTrack,
 }: {
-  videoTrack?: Pick<MediaStreamTrack, "enabled">;
-  audioTrack?: Pick<MediaStreamTrack, "enabled">;
+  videoTrack?: FakeTrack;
+  audioTrack?: FakeTrack;
 }) {
   return {
     getVideoTracks: () => (videoTrack ? [videoTrack] : []),
@@ -40,14 +58,13 @@ const TWO_OF_EACH = [
 
 describe("<InputMediaControls />", () => {
   it("toggles camera and microphone tracks", () => {
-    const videoTrack = { enabled: true };
-    const audioTrack = { enabled: true };
+    const videoTrack = makeTrack({ deviceId: "cam-1" });
+    const audioTrack = makeTrack({ deviceId: "mic-1" });
     const stream = makeStream({ videoTrack, audioTrack });
 
     render(
       <InputMediaControls
         stream={stream}
-        selectedDeviceIds={{}}
         onSelectDevice={vi.fn().mockResolvedValue(undefined)}
       />,
     );
@@ -80,12 +97,11 @@ describe("<InputMediaControls />", () => {
   });
 
   it("renders only controls for existing tracks", () => {
-    const stream = makeStream({ audioTrack: { enabled: true } });
+    const stream = makeStream({ audioTrack: makeTrack({ deviceId: "mic-1" }) });
 
     render(
       <InputMediaControls
         stream={stream}
-        selectedDeviceIds={{}}
         onSelectDevice={vi.fn().mockResolvedValue(undefined)}
       />,
     );
@@ -103,10 +119,9 @@ describe("<InputMediaControls />", () => {
     render(
       <InputMediaControls
         stream={makeStream({
-          videoTrack: { enabled: true },
-          audioTrack: { enabled: true },
+          videoTrack: makeTrack({ deviceId: "cam-1" }),
+          audioTrack: makeTrack({ deviceId: "mic-1" }),
         })}
-        selectedDeviceIds={{ video: "cam-1", audio: "mic-1" }}
         onSelectDevice={onSelectDevice}
       />,
     );
@@ -134,10 +149,9 @@ describe("<InputMediaControls />", () => {
     render(
       <InputMediaControls
         stream={makeStream({
-          videoTrack: { enabled: true },
-          audioTrack: { enabled: true },
+          videoTrack: makeTrack({ deviceId: "cam-1" }),
+          audioTrack: makeTrack({ deviceId: "mic-1" }),
         })}
-        selectedDeviceIds={{ video: "cam-1", audio: "mic-1" }}
         onSelectDevice={vi.fn().mockResolvedValue(undefined)}
       />,
     );
@@ -149,15 +163,16 @@ describe("<InputMediaControls />", () => {
   });
 
   it("still offers a picker once the live device is unplugged", async () => {
-    // Only the survivor is enumerated, while the selection still names the
-    // camera that went away.
+    // Only the survivor is enumerated, and the track of the camera that went
+    // away has ended.
     stubDevices([makeDevice("cam-2", "videoinput")]);
     const onSelectDevice = vi.fn().mockResolvedValue(undefined);
 
     render(
       <InputMediaControls
-        stream={makeStream({ videoTrack: { enabled: true } })}
-        selectedDeviceIds={{ video: "cam-1" }}
+        stream={makeStream({
+          videoTrack: makeTrack({ deviceId: "cam-1", readyState: "ended" }),
+        })}
         onSelectDevice={onSelectDevice}
       />,
     );
@@ -169,6 +184,31 @@ describe("<InputMediaControls />", () => {
 
     fireEvent.change(cameraSelect, { target: { value: "cam-2" } });
     expect(onSelectDevice).toHaveBeenCalledWith("video", "cam-2");
+  });
+
+  it("can pick the same camera again once it is plugged back in", async () => {
+    // The camera is back under the ID it had before, but the track that ended
+    // when it was unplugged stays ended, so nothing is feeding the connection
+    // and that ID has to remain selectable.
+    stubDevices([makeDevice("cam-1", "videoinput")]);
+    const onSelectDevice = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <InputMediaControls
+        stream={makeStream({
+          videoTrack: makeTrack({ deviceId: "cam-1", readyState: "ended" }),
+        })}
+        onSelectDevice={onSelectDevice}
+      />,
+    );
+
+    const cameraSelect = (await screen.findByRole("combobox", {
+      name: "Select camera",
+    })) as HTMLSelectElement;
+    expect(cameraSelect.value).toBe("");
+
+    fireEvent.change(cameraSelect, { target: { value: "cam-1" } });
+    expect(onSelectDevice).toHaveBeenCalledWith("video", "cam-1");
   });
 
   it("holds the pending device until the switch settles, then reverts if it fails", async () => {
@@ -183,8 +223,7 @@ describe("<InputMediaControls />", () => {
 
     render(
       <InputMediaControls
-        stream={makeStream({ videoTrack: { enabled: true } })}
-        selectedDeviceIds={{ video: "cam-1" }}
+        stream={makeStream({ videoTrack: makeTrack({ deviceId: "cam-1" }) })}
         onSelectDevice={onSelectDevice}
       />,
     );
@@ -193,8 +232,8 @@ describe("<InputMediaControls />", () => {
       name: "Select camera",
     })) as HTMLSelectElement;
     fireEvent.change(cameraSelect, { target: { value: "cam-2" } });
-    // The parent confirms the new device only once the switch succeeds, so the
-    // picker holds the pending one meanwhile instead of snapping back.
+    // The switch has not reached a track yet, so the picker holds the pending
+    // device rather than snapping back to the one still live.
     expect(cameraSelect.value).toBe("cam-2");
 
     await act(async () => rejectSwitch?.(new Error("Device is busy")));
@@ -204,12 +243,10 @@ describe("<InputMediaControls />", () => {
 
   it("holds the picker inert while its kind is turned off", async () => {
     stubDevices(TWO_OF_EACH);
-    const videoTrack = { enabled: true };
 
     render(
       <InputMediaControls
-        stream={makeStream({ videoTrack })}
-        selectedDeviceIds={{ video: "cam-1" }}
+        stream={makeStream({ videoTrack: makeTrack({ deviceId: "cam-1" }) })}
         onSelectDevice={vi.fn().mockResolvedValue(undefined)}
       />,
     );
