@@ -63,7 +63,8 @@ describe("<DeviceSelect />", () => {
             makeDevice("first-video"),
             makeDevice("second-video"),
           ]),
-        ondevicechange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
       },
     });
 

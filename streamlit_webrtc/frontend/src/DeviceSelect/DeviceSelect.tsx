@@ -1,13 +1,6 @@
 import { Streamlit } from "streamlit-component-lib";
-import {
-  useReducer,
-  Reducer,
-  useCallback,
-  useState,
-  useEffect,
-  useRef,
-} from "react";
-import NativeSelect, { NativeSelectProps } from "@mui/material/NativeSelect";
+import { useCallback, useState, useEffect, useRef } from "react";
+import NativeSelect from "@mui/material/NativeSelect";
 import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
 import InputLabel from "@mui/material/InputLabel";
@@ -23,6 +16,8 @@ import VoidVideoPreview from "./components/VoidVideoPreview";
 import Defer from "./components/Defer";
 import VideoPreview from "./VideoPreview";
 import { stopAllTracks } from "./utils";
+import { useMediaInputDevices } from "../use-media-input-devices";
+import type { InputDeviceKind } from "../webrtc";
 
 function ensureValidSelection(
   devices: MediaDeviceInfo[],
@@ -38,85 +33,7 @@ function ensureValidSelection(
   return undefined;
 }
 
-interface DeviceSelectionState {
-  unavailable: boolean;
-  videoInputs: MediaDeviceInfo[];
-  audioInputs: MediaDeviceInfo[];
-  audioOutputs: MediaDeviceInfo[];
-  // TODO: Add selectedAudioOutputDeviceId
-  selectedVideoInputDeviceId: MediaDeviceInfo["deviceId"] | undefined;
-  selectedAudioInputDeviceId: MediaDeviceInfo["deviceId"] | undefined;
-}
-interface DeviceSelectionActionBase {
-  type: string;
-}
-interface DeviceSelectionSetUnavailableAction extends DeviceSelectionActionBase {
-  type: "SET_UNAVAILABLE";
-}
-interface DeviceSelectionUpdateDevicesAction extends DeviceSelectionActionBase {
-  type: "UPDATE_DEVICES";
-  devices: MediaDeviceInfo[];
-}
-interface DeviceSelectionUpdateSelectedDeviceIdAction extends DeviceSelectionActionBase {
-  type: "UPDATE_SELECTED_DEVICE_ID";
-  payload: {
-    selectedVideoInputDeviceId?: MediaDeviceInfo["deviceId"] | undefined;
-    selectedAudioInputDeviceId?: MediaDeviceInfo["deviceId"] | undefined;
-  };
-}
-type DeviceSelectionAction =
-  | DeviceSelectionSetUnavailableAction
-  | DeviceSelectionUpdateDevicesAction
-  | DeviceSelectionUpdateSelectedDeviceIdAction;
-const deviceSelectionReducer: Reducer<
-  DeviceSelectionState,
-  DeviceSelectionAction
-> = (state, action) => {
-  switch (action.type) {
-    case "SET_UNAVAILABLE": {
-      return {
-        unavailable: true,
-        videoInputs: [],
-        audioInputs: [],
-        audioOutputs: [],
-        selectedVideoInputDeviceId: undefined,
-        selectedAudioInputDeviceId: undefined,
-      };
-    }
-    case "UPDATE_DEVICES": {
-      const devices = action.devices;
-      const videoInputs = devices.filter((d) => d.kind === "videoinput");
-      const audioInputs = devices.filter((d) => d.kind === "audioinput");
-      const audioOutputs = devices.filter((d) => d.kind === "audiooutput");
-
-      const selectedVideoInputDeviceId = ensureValidSelection(
-        videoInputs,
-        state.selectedVideoInputDeviceId,
-      );
-      const selectedAudioInputDeviceId = ensureValidSelection(
-        audioInputs,
-        state.selectedAudioInputDeviceId,
-      );
-
-      return {
-        ...state,
-        videoInputs,
-        audioInputs,
-        audioOutputs,
-        selectedVideoInputDeviceId,
-        selectedAudioInputDeviceId,
-      };
-    }
-    case "UPDATE_SELECTED_DEVICE_ID": {
-      return {
-        ...state,
-        ...action.payload,
-      };
-    }
-  }
-};
-
-type PermissionState = "WAITING" | "ALLOWED" | Error;
+type PermissionState = "WAITING" | "ALLOWED" | "MEDIA_API_UNAVAILABLE" | Error;
 
 export interface DeviceSelectProps {
   video: boolean;
@@ -148,38 +65,26 @@ function DeviceSelect(props: DeviceSelectProps) {
   const [permissionState, setPermissionState] =
     useState<PermissionState>("WAITING");
 
-  const [
-    {
-      unavailable,
-      videoInputs,
-      selectedVideoInputDeviceId,
-      audioInputs,
-      selectedAudioInputDeviceId,
-    },
-    deviceSelectionDispatch,
-  ] = useReducer(deviceSelectionReducer, {
-    unavailable: false,
-    videoInputs: [],
-    audioInputs: [],
-    audioOutputs: [],
-    selectedVideoInputDeviceId: defaultVideoDeviceId,
-    selectedAudioInputDeviceId: defaultAudioDeviceId,
+  const {
+    devices: { video: videoInputs, audio: audioInputs },
+    unavailable,
+    refresh: refreshDeviceList,
+  } = useMediaInputDevices();
+
+  const [requestedDeviceIds, setRequestedDeviceIds] = useState<
+    Partial<Record<InputDeviceKind, MediaDeviceInfo["deviceId"]>>
+  >({
+    video: defaultVideoDeviceId,
+    audio: defaultAudioDeviceId,
   });
-
-  // Ref: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/ondevicechange#example
-  const updateDeviceList = useCallback(() => {
-    if (typeof navigator?.mediaDevices?.enumerateDevices !== "function") {
-      deviceSelectionDispatch({ type: "SET_UNAVAILABLE" });
-      return;
-    }
-
-    return navigator.mediaDevices.enumerateDevices().then((devices) => {
-      deviceSelectionDispatch({
-        type: "UPDATE_DEVICES",
-        devices,
-      });
-    });
-  }, []);
+  const selectedVideoInputDeviceId = ensureValidSelection(
+    videoInputs,
+    requestedDeviceIds.video,
+  );
+  const selectedAudioInputDeviceId = ensureValidSelection(
+    audioInputs,
+    requestedDeviceIds.audio,
+  );
 
   // These values are passed to inside the useEffect below via a ref
   // because they are used there only for UX improvement
@@ -196,7 +101,7 @@ function DeviceSelect(props: DeviceSelectProps) {
   // Call `getUserMedia()` to ask the user for the permission.
   useEffect(() => {
     if (typeof navigator?.mediaDevices?.getUserMedia !== "function") {
-      deviceSelectionDispatch({ type: "SET_UNAVAILABLE" });
+      setPermissionState("MEDIA_API_UNAVAILABLE");
       return;
     }
 
@@ -218,79 +123,38 @@ function DeviceSelect(props: DeviceSelectProps) {
       .then(async (stream) => {
         stopAllTracks(stream);
 
-        await updateDeviceList();
+        // Device labels are only populated once the permission is granted, so
+        // the list this component renders comes from an enumeration made here
+        // rather than the one on mount.
+        await refreshDeviceList();
 
         setPermissionState("ALLOWED");
       })
       .catch((err) => {
         setPermissionState(err);
       });
-  }, [useVideo, useAudio, updateDeviceList]);
+  }, [useVideo, useAudio, refreshDeviceList]);
 
-  // Set up the ondevicechange event handler
-  useEffect(() => {
-    const handleDeviceChange = () => updateDeviceList();
-    navigator.mediaDevices.ondevicechange = handleDeviceChange;
-
-    return () => {
-      if (navigator.mediaDevices.ondevicechange === handleDeviceChange) {
-        navigator.mediaDevices.ondevicechange = null;
-      }
-    };
-  }, [updateDeviceList]);
-
-  const handleVideoInputChange = useCallback<
-    NonNullable<NativeSelectProps["onChange"]>
-  >(
-    (e) => {
-      const video = e.target.value;
-      const requestId = ++selectionRequestIdsRef.current.video;
-      deviceSelectionDispatch({
-        type: "UPDATE_SELECTED_DEVICE_ID",
-        payload: { selectedVideoInputDeviceId: video },
-      });
+  const handleInputChange = useCallback(
+    (kind: InputDeviceKind, deviceId: MediaDeviceInfo["deviceId"]) => {
+      const requestId = ++selectionRequestIdsRef.current[kind];
+      setRequestedDeviceIds((prev) => ({ ...prev, [kind]: deviceId }));
+      const onSelect = kind === "video" ? onVideoSelect : onAudioSelect;
       void Promise.resolve()
-        .then(() => onVideoSelect(video))
+        .then(() => onSelect(deviceId))
         .catch(() => {
-          if (selectionRequestIdsRef.current.video !== requestId) {
+          // Only the latest request may roll the selection back; an older one
+          // failing after it would drop a choice the user has already made.
+          if (selectionRequestIdsRef.current[kind] !== requestId) {
             return;
           }
-          deviceSelectionDispatch({
-            type: "UPDATE_SELECTED_DEVICE_ID",
-            payload: {
-              selectedVideoInputDeviceId: defaultDeviceIdsRef.current.video,
-            },
-          });
+          setRequestedDeviceIds((prev) => ({
+            ...prev,
+            [kind]: defaultDeviceIdsRef.current[kind],
+          }));
         });
     },
-    [onVideoSelect],
-  );
-
-  const handleAudioInputChange = useCallback<
-    NonNullable<NativeSelectProps["onChange"]>
-  >(
-    (e) => {
-      const audio = e.target.value;
-      const requestId = ++selectionRequestIdsRef.current.audio;
-      deviceSelectionDispatch({
-        type: "UPDATE_SELECTED_DEVICE_ID",
-        payload: { selectedAudioInputDeviceId: audio },
-      });
-      void Promise.resolve()
-        .then(() => onAudioSelect(audio))
-        .catch(() => {
-          if (selectionRequestIdsRef.current.audio !== requestId) {
-            return;
-          }
-          deviceSelectionDispatch({
-            type: "UPDATE_SELECTED_DEVICE_ID",
-            payload: {
-              selectedAudioInputDeviceId: defaultDeviceIdsRef.current.audio,
-            },
-          });
-        });
-    },
-    [onAudioSelect],
+    [onVideoSelect, onAudioSelect],
   );
 
   useEffect(() => {
@@ -318,7 +182,7 @@ function DeviceSelect(props: DeviceSelectProps) {
     setTimeout(() => Streamlit.setFrameHeight());
   });
 
-  if (unavailable) {
+  if (unavailable || permissionState === "MEDIA_API_UNAVAILABLE") {
     return <MediaApiNotAvailableMessage />;
   }
 
@@ -374,7 +238,7 @@ function DeviceSelect(props: DeviceSelectProps) {
                 id: "device-select-video-input",
               }}
               value={selectedVideoInputDeviceId}
-              onChange={handleVideoInputChange}
+              onChange={(e) => handleInputChange("video", e.target.value)}
             >
               {videoInputs.map((device) => (
                 <option key={device.deviceId} value={device.deviceId}>
@@ -395,7 +259,7 @@ function DeviceSelect(props: DeviceSelectProps) {
                 id: "device-select-audio-input",
               }}
               value={selectedAudioInputDeviceId}
-              onChange={handleAudioInputChange}
+              onChange={(e) => handleInputChange("audio", e.target.value)}
             >
               {audioInputs.map((device) => (
                 <option key={device.deviceId} value={device.deviceId}>
