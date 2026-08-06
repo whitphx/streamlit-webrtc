@@ -263,6 +263,9 @@ describe("<InputMediaControls />", () => {
     })) as HTMLSelectElement;
     fireEvent.change(cameraSelect, { target: { value: "cam-2" } });
     expect(cameraSelect.value).toBe("cam-2");
+    // The displayed device is set before the switch is asked for, so without
+    // this the switch could never be made and the rest would still hold.
+    expect(onSelectDevice).toHaveBeenCalledWith("video", "cam-2");
 
     // The switch was asked for on a stream that is no longer here, so the
     // device it is waiting on describes nothing about the one that replaced it.
