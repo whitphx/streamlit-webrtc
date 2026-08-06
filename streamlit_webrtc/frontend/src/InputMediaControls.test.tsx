@@ -7,6 +7,7 @@ import {
   screen,
 } from "@testing-library/react";
 import InputMediaControls from "./InputMediaControls";
+import { makeDevice, stubMediaDevices } from "./media-devices-test-utils";
 
 afterEach(() => {
   cleanup();
@@ -26,24 +27,8 @@ function makeStream({
   } as unknown as MediaStream;
 }
 
-function makeDevice(deviceId: string, kind: MediaDeviceKind): MediaDeviceInfo {
-  return {
-    deviceId,
-    groupId: `${deviceId}-group`,
-    kind,
-    label: `${deviceId} label`,
-    toJSON: () => ({}),
-  };
-}
-
 function stubDevices(devices: MediaDeviceInfo[]) {
-  vi.stubGlobal("navigator", {
-    mediaDevices: {
-      enumerateDevices: vi.fn().mockResolvedValue(devices),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    },
-  });
+  stubMediaDevices({ enumerateDevices: vi.fn().mockResolvedValue(devices) });
 }
 
 const TWO_OF_EACH = [
@@ -59,7 +44,13 @@ describe("<InputMediaControls />", () => {
     const audioTrack = { enabled: true };
     const stream = makeStream({ videoTrack, audioTrack });
 
-    render(<InputMediaControls stream={stream} />);
+    render(
+      <InputMediaControls
+        stream={stream}
+        selectedDeviceIds={{}}
+        onSelectDevice={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
 
     const cameraButton = screen.getByRole("button", {
       name: "Turn camera off",
@@ -91,7 +82,13 @@ describe("<InputMediaControls />", () => {
   it("renders only controls for existing tracks", () => {
     const stream = makeStream({ audioTrack: { enabled: true } });
 
-    render(<InputMediaControls stream={stream} />);
+    render(
+      <InputMediaControls
+        stream={stream}
+        selectedDeviceIds={{}}
+        onSelectDevice={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
 
     expect(screen.queryByRole("button", { name: /camera/i })).toBeNull();
     expect(
@@ -182,20 +179,26 @@ describe("<InputMediaControls />", () => {
     expect(cameraSelect.value).toBe("cam-1");
   });
 
-  it("offers no picker when the stream cannot switch devices", async () => {
+  it("holds the picker inert while its kind is turned off", async () => {
     stubDevices(TWO_OF_EACH);
+    const videoTrack = { enabled: true };
 
     render(
       <InputMediaControls
-        stream={makeStream({
-          videoTrack: { enabled: true },
-          audioTrack: { enabled: true },
-        })}
-        selectedDeviceIds={{ video: "cam-1", audio: "mic-1" }}
+        stream={makeStream({ videoTrack })}
+        selectedDeviceIds={{ video: "cam-1" }}
+        onSelectDevice={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
-    await screen.findByRole("button", { name: "Turn camera off" });
-    expect(screen.queryAllByRole("combobox")).toHaveLength(0);
+    const cameraSelect = (await screen.findByRole("combobox", {
+      name: "Select camera",
+    })) as HTMLSelectElement;
+    expect(cameraSelect.disabled).toBe(false);
+
+    // Switching opens the chosen device, so offering it under a camera the
+    // user has turned off would light the indicator of a camera shown as off.
+    fireEvent.click(screen.getByRole("button", { name: "Turn camera off" }));
+    expect(cameraSelect.disabled).toBe(true);
   });
 });

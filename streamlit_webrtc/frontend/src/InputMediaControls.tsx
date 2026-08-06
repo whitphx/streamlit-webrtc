@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
@@ -18,8 +18,8 @@ type DeviceIds = Partial<Record<InputDeviceKind, MediaDeviceInfo["deviceId"]>>;
 interface InputMediaControlsProps {
   stream: MediaStream;
   disabled?: boolean;
-  selectedDeviceIds?: DeviceIds;
-  onSelectDevice?: (
+  selectedDeviceIds: DeviceIds;
+  onSelectDevice: (
     kind: InputDeviceKind,
     deviceId: MediaDeviceInfo["deviceId"],
   ) => Promise<void>;
@@ -64,6 +64,9 @@ const DeviceSelectOverlay = styled("select")({
   border: "none",
   appearance: "none",
   opacity: 0,
+  // Native controls do not inherit the page font, and iOS Safari zooms the
+  // page when a focused one is under 16px.
+  fontSize: 16,
   cursor: "pointer",
   "&:disabled": {
     cursor: "default",
@@ -184,24 +187,24 @@ function InputMediaControls({
   // then the picker shows the pending one rather than snapping back to the
   // device that is still live.
   const [pendingDeviceIds, setPendingDeviceIds] = useState<DeviceIds>({});
+  const selectionRequestIdsRef = useRef({ video: 0, audio: 0 });
   const selectDevice = (
     kind: InputDeviceKind,
     deviceId: MediaDeviceInfo["deviceId"],
   ) => {
-    if (onSelectDevice == null) {
-      return;
-    }
+    const requestId = ++selectionRequestIdsRef.current[kind];
     setPendingDeviceIds((prev) => ({ ...prev, [kind]: deviceId }));
-    const settle = () =>
+    const settle = () => {
+      // A later pick is already in flight and owns the displayed value.
+      if (selectionRequestIdsRef.current[kind] !== requestId) {
+        return;
+      }
       setPendingDeviceIds((prev) => {
-        // A later pick is already in flight and owns the displayed value.
-        if (prev[kind] !== deviceId) {
-          return prev;
-        }
         const next = { ...prev };
         delete next[kind];
         return next;
       });
+    };
     onSelectDevice(kind, deviceId).then(settle, settle);
   };
 
@@ -215,7 +218,7 @@ function InputMediaControls({
       disableLabel: labels.turnCameraOff,
       selectLabel: labels.selectCamera,
       devices: devices.video,
-      selectedDeviceId: pendingDeviceIds.video ?? selectedDeviceIds?.video,
+      selectedDeviceId: pendingDeviceIds.video ?? selectedDeviceIds.video,
     },
     {
       kind: "audio" as const,
@@ -226,7 +229,7 @@ function InputMediaControls({
       disableLabel: labels.muteMicrophone,
       selectLabel: labels.selectMicrophone,
       devices: devices.audio,
-      selectedDeviceId: pendingDeviceIds.audio ?? selectedDeviceIds?.audio,
+      selectedDeviceId: pendingDeviceIds.audio ?? selectedDeviceIds.audio,
     },
   ].filter((control) => control.present);
 
@@ -256,16 +259,17 @@ function InputMediaControls({
                 {isEnabled ? control.onIcon : control.offIcon}
               </IconButton>
             </Tooltip>
-            {onSelectDevice != null && (
-              <InputDeviceSelect
-                kind={control.kind}
-                label={control.selectLabel}
-                devices={control.devices}
-                selectedDeviceId={control.selectedDeviceId}
-                disabled={disabled}
-                onSelect={(deviceId) => selectDevice(control.kind, deviceId)}
-              />
-            )}
+            <InputDeviceSelect
+              kind={control.kind}
+              label={control.selectLabel}
+              devices={control.devices}
+              selectedDeviceId={control.selectedDeviceId}
+              // Switching opens the device, which lights its indicator. Doing
+              // that under a control the user has just turned off would say
+              // the opposite of what the screen says.
+              disabled={disabled || !isEnabled}
+              onSelect={(deviceId) => selectDevice(control.kind, deviceId)}
+            />
           </Box>
         );
       })}

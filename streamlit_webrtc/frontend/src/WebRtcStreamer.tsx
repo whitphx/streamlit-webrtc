@@ -157,8 +157,14 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     setDeviceSelectOpen(true);
   }, []);
   const closeDeviceSelect = useCallback(() => {
+    setDeviceSwitchError(null);
     setDeviceSelectOpen(false);
   }, []);
+  // A switch error describes the stream it happened on. Opening another one
+  // leaves it stale, and it is displayed above that new stream.
+  useEffect(() => {
+    setDeviceSwitchError(null);
+  }, [inputMediaStream]);
   const reconcileDeviceIds = useCallback(
     (nextDeviceIds: {
       video?: MediaDeviceInfo["deviceId"];

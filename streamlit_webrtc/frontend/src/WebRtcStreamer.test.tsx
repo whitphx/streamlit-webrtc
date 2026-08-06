@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import { WebRtcStreamerInner } from "./WebRtcStreamer";
 import { useWebRtc } from "./webrtc";
 import { persistDeviceIds } from "./device-storage";
+import { makeDevice, stubMediaDevices } from "./media-devices-test-utils";
 
 vi.mock("streamlit-component-lib-react-hooks", () => ({
   useRenderData: vi.fn(),
@@ -77,24 +78,15 @@ afterEach(() => {
 });
 
 function stubDevices() {
-  const devices = [
-    ["old-video", "videoinput"],
-    ["other-video", "videoinput"],
-    ["old-audio", "audioinput"],
-    ["other-audio", "audioinput"],
-  ].map(([deviceId, kind]) => ({
-    deviceId,
-    groupId: `${deviceId}-group`,
-    kind,
-    label: `${deviceId} label`,
-    toJSON: () => ({}),
-  }));
-  vi.stubGlobal("navigator", {
-    mediaDevices: {
-      enumerateDevices: vi.fn().mockResolvedValue(devices),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    },
+  stubMediaDevices({
+    enumerateDevices: vi
+      .fn()
+      .mockResolvedValue([
+        makeDevice("old-video", "videoinput"),
+        makeDevice("other-video", "videoinput"),
+        makeDevice("old-audio", "audioinput"),
+        makeDevice("other-audio", "audioinput"),
+      ]),
   });
 }
 
@@ -121,21 +113,23 @@ function renderStreamer({
     deviceId: string,
   ) => Promise<void>;
 } = {}) {
-  vi.mocked(useWebRtc).mockReturnValue({
-    state: {
-      webRtcState,
-      sdpOffer: null,
-      iceCandidates: {},
-      outputMediaStream: null,
-      inputMediaStream: makeStream(),
-      error: null,
-    },
-    start: vi.fn(),
-    stop: vi.fn(),
-    updateInputDevice,
-  });
+  const mockWebRtc = (inputMediaStream: MediaStream) =>
+    vi.mocked(useWebRtc).mockReturnValue({
+      state: {
+        webRtcState,
+        sdpOffer: null,
+        iceCandidates: {},
+        outputMediaStream: null,
+        inputMediaStream,
+        error: null,
+      },
+      start: vi.fn(),
+      stop: vi.fn(),
+      updateInputDevice,
+    });
+  mockWebRtc(makeStream());
 
-  render(
+  const streamer = () => (
     <WebRtcStreamerInner
       disabled={false}
       mode="SENDRECV"
@@ -150,13 +144,22 @@ function renderStreamer({
       audioHtmlAttrs={{}}
       mediaToggleControls={mediaToggleControls}
       onComponentValueChange={vi.fn()}
-    />,
+    />
   );
+  const { rerender } = render(streamer());
 
   const [, , , , onDevicesOpened, onDevicesUnavailable] =
     vi.mocked(useWebRtc).mock.calls[0];
 
-  return { updateInputDevice, onDevicesOpened, onDevicesUnavailable };
+  return {
+    updateInputDevice,
+    onDevicesOpened,
+    onDevicesUnavailable,
+    openAnotherStream: async () => {
+      mockWebRtc(makeStream());
+      await act(async () => rerender(streamer()));
+    },
+  };
 }
 
 describe("<WebRtcStreamerInner />", () => {
@@ -348,6 +351,27 @@ describe("<WebRtcStreamerInner />", () => {
       "Device is busy",
     );
     expect(persistDeviceIds).not.toHaveBeenCalled();
+  });
+
+  it("drops a switch error once another stream opens", async () => {
+    stubDevices();
+    const updateInputDevice = vi
+      .fn()
+      .mockRejectedValue(
+        new DOMException("Device is busy", "NotReadableError"),
+      );
+    const { openAnotherStream } = renderStreamer({ updateInputDevice });
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+    await screen.findByRole("alert");
+
+    // The error described the stream it happened on; a restart replaces that
+    // one, and the alert sits above whatever is playing now.
+    await openAnotherStream();
+
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("preserves both confirmed IDs when video and audio switches overlap", async () => {
