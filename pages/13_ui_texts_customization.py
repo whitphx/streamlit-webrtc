@@ -14,5 +14,7 @@ webrtc_streamer(
         "turn_camera_off": "カメラをオフにする",
         "mute_microphone": "マイクをミュートする",
         "unmute_microphone": "マイクのミュートを解除する",
+        "select_camera": "カメラを選択する",
+        "select_microphone": "マイクを選択する",
     },
 )

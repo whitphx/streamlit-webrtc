@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import { WebRtcStreamerInner } from "./WebRtcStreamer";
 import { useWebRtc } from "./webrtc";
 import { persistDeviceIds } from "./device-storage";
+import { makeDevice, stubMediaDevices } from "./media-devices-test-utils";
 
 vi.mock("streamlit-component-lib-react-hooks", () => ({
   useRenderData: vi.fn(),
@@ -72,12 +73,33 @@ vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
   resolvedSelection = { video: "old-video", audio: "old-audio" };
 });
 
+function stubDevices() {
+  stubMediaDevices({
+    enumerateDevices: vi
+      .fn()
+      .mockResolvedValue([
+        makeDevice("old-video", "videoinput"),
+        makeDevice("other-video", "videoinput"),
+        makeDevice("old-audio", "audioinput"),
+        makeDevice("other-audio", "audioinput"),
+      ]),
+  });
+}
+
 function makeStream() {
-  const videoTrack = { enabled: true };
-  const audioTrack = { enabled: true };
+  // The picker reads the device it is showing off the live track, not off the
+  // remembered selection.
+  const makeTrack = (deviceId: string) => ({
+    enabled: true,
+    readyState: "live",
+    getSettings: () => ({ deviceId }),
+  });
+  const videoTrack = makeTrack("old-video");
+  const audioTrack = makeTrack("old-audio");
   return {
     getVideoTracks: () => [videoTrack],
     getAudioTracks: () => [audioTrack],
@@ -98,21 +120,27 @@ function renderStreamer({
     deviceId: string,
   ) => Promise<void>;
 } = {}) {
-  vi.mocked(useWebRtc).mockReturnValue({
-    state: {
-      webRtcState,
-      sdpOffer: null,
-      iceCandidates: {},
-      outputMediaStream: null,
-      inputMediaStream: makeStream(),
-      error: null,
-    },
-    start: vi.fn(),
-    stop: vi.fn(),
-    updateInputDevice,
-  });
+  const mockWebRtc = (
+    inputMediaStream: MediaStream,
+    currentState: string = webRtcState,
+  ) =>
+    vi.mocked(useWebRtc).mockReturnValue({
+      state: {
+        webRtcState: currentState as typeof webRtcState,
+        sdpOffer: null,
+        iceCandidates: {},
+        outputMediaStream: null,
+        inputMediaStream,
+        error: null,
+      },
+      start: vi.fn(),
+      stop: vi.fn(),
+      updateInputDevice,
+    });
+  const stream = makeStream();
+  mockWebRtc(stream);
 
-  render(
+  const streamer = () => (
     <WebRtcStreamerInner
       disabled={false}
       mode="SENDRECV"
@@ -127,13 +155,27 @@ function renderStreamer({
       audioHtmlAttrs={{}}
       mediaToggleControls={mediaToggleControls}
       onComponentValueChange={vi.fn()}
-    />,
+    />
   );
+  const { rerender } = render(streamer());
 
   const [, , , , onDevicesOpened, onDevicesUnavailable] =
     vi.mocked(useWebRtc).mock.calls[0];
 
-  return { updateInputDevice, onDevicesOpened, onDevicesUnavailable };
+  return {
+    updateInputDevice,
+    onDevicesOpened,
+    onDevicesUnavailable,
+    openAnotherStream: async () => {
+      mockWebRtc(makeStream());
+      await act(async () => rerender(streamer()));
+    },
+    // Stopping keeps the stream in state while it tears the connection down.
+    enterStopping: async () => {
+      mockWebRtc(stream, "STOPPING");
+      await act(async () => rerender(streamer()));
+    },
+  };
 }
 
 describe("<WebRtcStreamerInner />", () => {
@@ -284,6 +326,216 @@ describe("<WebRtcStreamerInner />", () => {
       "Device is busy",
     );
     expect(persistDeviceIds).not.toHaveBeenCalled();
+  });
+
+  it("switches the input device from the control row while streaming", async () => {
+    stubDevices();
+    const { updateInputDevice } = renderStreamer();
+
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+
+    expect(updateInputDevice).toHaveBeenCalledWith("video", "other-video");
+    await waitFor(() =>
+      expect(persistDeviceIds).toHaveBeenCalledWith(
+        "test-key",
+        { video: "other-video", audio: "old-audio" },
+        { clearing: false },
+      ),
+    );
+  });
+
+  it("shows a failure of a switch made from the control row", async () => {
+    stubDevices();
+    const updateInputDevice = vi
+      .fn()
+      .mockRejectedValue(
+        new DOMException("Device is busy", "NotReadableError"),
+      );
+    renderStreamer({ updateInputDevice });
+
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+
+    // The form that reports a switch error is never opened from the control
+    // row, so the failure has to surface in the main view instead.
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Device is busy",
+    );
+    expect(persistDeviceIds).not.toHaveBeenCalled();
+  });
+
+  it("drops a switch error once another stream opens", async () => {
+    stubDevices();
+    const updateInputDevice = vi
+      .fn()
+      .mockRejectedValue(
+        new DOMException("Device is busy", "NotReadableError"),
+      );
+    const { openAnotherStream } = renderStreamer({ updateInputDevice });
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+    await screen.findByRole("alert");
+
+    // The error described the stream it happened on; a restart replaces that
+    // one, and the alert sits above whatever is playing now.
+    await openAnotherStream();
+
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("ignores a switch that settles after its stream is gone", async () => {
+    stubDevices();
+    let rejectSwitch: ((error: Error) => void) | undefined;
+    const updateInputDevice = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectSwitch = reject;
+        }),
+    );
+    const { openAnotherStream } = renderStreamer({ updateInputDevice });
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+
+    // Stopping and starting again replaces the stream the switch was asked
+    // for, so its verdict describes something that no longer exists.
+    await openAnotherStream();
+    await act(async () =>
+      rejectSwitch?.(new DOMException("Device is busy", "NotReadableError")),
+    );
+
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("does not record a device from a switch whose stream was replaced", async () => {
+    stubDevices();
+    let finishSwitch: (() => void) | undefined;
+    const updateInputDevice = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishSwitch = resolve;
+        }),
+    );
+    const { openAnotherStream } = renderStreamer({ updateInputDevice });
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+
+    await openAnotherStream();
+    await act(async () => finishSwitch?.());
+
+    // The switch landed on a track that has since been thrown away; storing
+    // its device would outlive the only stream it was ever true of.
+    expect(persistDeviceIds).not.toHaveBeenCalled();
+  });
+
+  it("does not report a switch that fails while the stream is being stopped", async () => {
+    stubDevices();
+    let rejectSwitch: ((error: Error) => void) | undefined;
+    const updateInputDevice = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectSwitch = reject;
+        }),
+    );
+    const { enterStopping } = renderStreamer({ updateInputDevice });
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+
+    // Stopping stops the transceivers straight away, which is what the switch
+    // rejects against, while the stream it was made on is still in state.
+    await enterStopping();
+    await act(async () =>
+      rejectSwitch?.(
+        new DOMException("Sender is stopped", "InvalidStateError"),
+      ),
+    );
+
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("does not report a switch that a later pick for the same kind replaced", async () => {
+    stubDevices();
+    const rejections: Array<(error: Error) => void> = [];
+    const updateInputDevice = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejections.push(reject);
+        }),
+    );
+    renderStreamer({ updateInputDevice });
+    const cameraSelect = await screen.findByRole("combobox", {
+      name: "Select camera",
+    });
+    fireEvent.change(cameraSelect, { target: { value: "other-video" } });
+    fireEvent.change(cameraSelect, { target: { value: "old-video" } });
+    expect(updateInputDevice.mock.calls).toEqual([
+      ["video", "other-video"],
+      ["video", "old-video"],
+    ]);
+
+    // The first pick is no longer what the user is waiting on, and the one
+    // that replaced it can sit on a permission prompt indefinitely.
+    await act(async () =>
+      rejections[0](new DOMException("Device is busy", "NotReadableError")),
+    );
+
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("keeps a camera failure visible when a microphone switch succeeds", async () => {
+    stubDevices();
+    let rejectCamera: ((error: Error) => void) | undefined;
+    let finishMicrophone: (() => void) | undefined;
+    const updateInputDevice = vi.fn(
+      (kind: "video" | "audio") =>
+        new Promise<void>((resolve, reject) => {
+          if (kind === "video") {
+            rejectCamera = reject;
+          } else {
+            finishMicrophone = resolve;
+          }
+        }),
+    );
+    renderStreamer({ updateInputDevice });
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select microphone" }),
+      { target: { value: "other-audio" } },
+    );
+    expect(updateInputDevice.mock.calls).toEqual([
+      ["video", "other-video"],
+      ["audio", "other-audio"],
+    ]);
+
+    await act(async () =>
+      rejectCamera!(new DOMException("Device is busy", "NotReadableError")),
+    );
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Device is busy",
+    );
+
+    // The camera is still on the device it failed to leave, whatever the
+    // microphone went on to do.
+    await act(async () => finishMicrophone!());
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Device is busy",
+    );
   });
 
   it("preserves both confirmed IDs when video and audio switches overlap", async () => {

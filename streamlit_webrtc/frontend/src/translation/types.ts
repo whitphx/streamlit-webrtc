@@ -10,5 +10,7 @@ export interface Translations {
   turn_camera_off: string | null;
   mute_microphone: string | null;
   unmute_microphone: string | null;
+  select_camera: string | null;
+  select_microphone: string | null;
 }
 export type TranslationKey = keyof Translations;

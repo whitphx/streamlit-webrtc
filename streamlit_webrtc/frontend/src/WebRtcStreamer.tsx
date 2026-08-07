@@ -32,6 +32,20 @@ import InfoHeader from "./InfoHeader";
 
 const DeviceSelectForm = lazy(() => import("./DeviceSelect/DeviceSelectForm"));
 
+type DeviceSwitchErrors = Partial<Record<InputDeviceKind, Error>>;
+
+function withoutKind(
+  errors: DeviceSwitchErrors,
+  kind: InputDeviceKind,
+): DeviceSwitchErrors {
+  if (errors[kind] == null) {
+    return errors;
+  }
+  const next = { ...errors };
+  delete next[kind];
+  return next;
+}
+
 const BACKEND_VANILLA_ICE_TIMEOUT = 10 * 1000; // `aiortc` runs ICE in the Vanilla manner and its timeout is set to 5 seconds: https://github.com/aiortc/aioice/blob/fc863fde4676e1f67dce981b7f9592ab02c6a09a/src/aioice/ice.py#L881. We set the timeout here to account for network latency and some additional delay.
 
 interface WebRtcStreamerInnerProps {
@@ -139,6 +153,13 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   const receivable = isWebRtcMode(mode) && isReceivable(mode);
   const transmittable = isWebRtcMode(mode) && isTransmittable(mode);
   const inputMediaStream = state.inputMediaStream;
+  // Read by switches in flight, which need what is current when they settle
+  // rather than what was captured when they started.
+  const inputMediaStreamRef = useRef(inputMediaStream);
+  inputMediaStreamRef.current = inputMediaStream;
+  const isStreamingRef = useRef(false);
+  isStreamingRef.current =
+    state.webRtcState === "SIGNALLING" || state.webRtcState === "PLAYING";
   const showMediaToggleControls =
     props.mediaToggleControls &&
     transmittable &&
@@ -149,16 +170,27 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   );
 
   const [deviceSelectOpen, setDeviceSelectOpen] = useState(false);
-  const [deviceSwitchError, setDeviceSwitchError] = useState<Error | null>(
-    null,
-  );
+  // Kept per kind: a camera that failed to switch is still on the wrong device
+  // after a microphone switch succeeds, so one kind's outcome cannot answer for
+  // the other's.
+  const [deviceSwitchErrors, setDeviceSwitchErrors] =
+    useState<DeviceSwitchErrors>({});
+  const deviceSwitchError =
+    deviceSwitchErrors.video ?? deviceSwitchErrors.audio ?? null;
+  const switchRequestIdsRef = useRef({ video: 0, audio: 0 });
   const openDeviceSelect = useCallback(() => {
-    setDeviceSwitchError(null);
+    setDeviceSwitchErrors({});
     setDeviceSelectOpen(true);
   }, []);
   const closeDeviceSelect = useCallback(() => {
+    setDeviceSwitchErrors({});
     setDeviceSelectOpen(false);
   }, []);
+  // A switch error describes the stream it happened on. Opening another one
+  // leaves it stale, and it is displayed above that new stream.
+  useEffect(() => {
+    setDeviceSwitchErrors({});
+  }, [inputMediaStream]);
   const reconcileDeviceIds = useCallback(
     (nextDeviceIds: {
       video?: MediaDeviceInfo["deviceId"];
@@ -196,9 +228,27 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
         );
         return;
       }
-      setDeviceSwitchError(null);
+      // A switch outlives the stream it started on: `getUserMedia` can sit on
+      // a permission prompt for as long as the user takes, and the connection
+      // can be stopped and started again underneath it. Whatever it reports
+      // then describes a stream that is gone, not the one on screen. Stopping
+      // alone is enough: it stops the transceivers straight away, which is
+      // what a switch landing during those moments rejects against, while the
+      // stream it was made on is still the one in state. A later pick for the
+      // same kind supersedes this one just as completely, and owns what is
+      // displayed for it.
+      const requestedStream = inputMediaStreamRef.current;
+      const requestId = ++switchRequestIdsRef.current[kind];
+      const isStale = () =>
+        switchRequestIdsRef.current[kind] !== requestId ||
+        inputMediaStreamRef.current !== requestedStream ||
+        !isStreamingRef.current;
+      setDeviceSwitchErrors((prev) => withoutKind(prev, kind));
       try {
         await updateInputDevice(kind, deviceId);
+        if (isStale()) {
+          return;
+        }
         setSelection((prev) =>
           prev.deviceIds[kind] === deviceId
             ? prev
@@ -207,11 +257,15 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
                 clearing: false,
               },
         );
-        setDeviceSwitchError(null);
+        setDeviceSwitchErrors((prev) => withoutKind(prev, kind));
       } catch (error: unknown) {
         const switchError =
           error instanceof Error ? error : new Error(String(error));
-        setDeviceSwitchError(switchError);
+        if (!isStale()) {
+          setDeviceSwitchErrors((prev) => ({ ...prev, [kind]: switchError }));
+        }
+        // Rejected either way, so the caller that made the request can settle
+        // whatever it was showing while it was in flight.
         throw switchError;
       }
     },
@@ -238,7 +292,9 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   return (
     <Box>
       <InfoHeader
-        error={state.error}
+        // A switch started from the controls below has no form to report into,
+        // so its failure surfaces here.
+        error={state.error ?? deviceSwitchError}
         shouldShowTakingTooLongWarning={
           state.webRtcState === "SIGNALLING" && isTakingTooLong
         }
@@ -290,6 +346,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
               <InputMediaControls
                 disabled={buttonDisabled}
                 stream={inputMediaStream}
+                onSelectDevice={selectInputDevice}
               />
             )}
           </Box>

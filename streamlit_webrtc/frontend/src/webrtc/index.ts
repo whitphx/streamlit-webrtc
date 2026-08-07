@@ -100,27 +100,41 @@ export const useWebRtc = (
   const stopRef = useRef(stop);
   stopRef.current = stop;
 
+  const inputMediaStreamRef = useRef(state.inputMediaStream);
+  inputMediaStreamRef.current = state.inputMediaStream;
+
   const updateInputDevice = useCallback(
     async (
       kind: InputDeviceKind,
       deviceId: MediaDeviceInfo["deviceId"],
     ): Promise<void> => {
       const pc = pcRef.current;
-      if (pc == null || state.inputMediaStream == null) {
+      const inputMediaStream = state.inputMediaStream;
+      if (pc == null || inputMediaStream == null) {
         throw new Error(
           "Cannot switch input device without an active WebRTC input stream",
         );
       }
       await switchInputDevice(
         pc,
-        state.inputMediaStream,
+        inputMediaStream,
         props.mediaStreamConstraints,
         kind,
         deviceId,
       );
+      // `getUserMedia` can sit on a permission prompt for as long as the user
+      // takes, long enough for the connection to be stopped and started again.
+      // Publishing the stream this switch was made against would then put a
+      // stopped one back in place of the one now playing.
+      if (
+        pcRef.current !== pc ||
+        inputMediaStreamRef.current !== inputMediaStream
+      ) {
+        return;
+      }
       dispatch({
         type: "SET_INPUT_MEDIA_STREAM",
-        inputMediaStream: state.inputMediaStream,
+        inputMediaStream,
       });
     },
     [props.mediaStreamConstraints, state.inputMediaStream],
