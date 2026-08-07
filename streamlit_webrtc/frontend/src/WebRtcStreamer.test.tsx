@@ -479,12 +479,16 @@ describe("<WebRtcStreamerInner />", () => {
       name: "Select camera",
     });
     fireEvent.change(cameraSelect, { target: { value: "other-video" } });
-    fireEvent.change(cameraSelect, { target: { value: "third-video" } });
+    fireEvent.change(cameraSelect, { target: { value: "old-video" } });
+    expect(updateInputDevice.mock.calls).toEqual([
+      ["video", "other-video"],
+      ["video", "old-video"],
+    ]);
 
     // The first pick is no longer what the user is waiting on, and the one
     // that replaced it can sit on a permission prompt indefinitely.
     await act(async () =>
-      rejections[0]?.(new DOMException("Device is busy", "NotReadableError")),
+      rejections[0](new DOMException("Device is busy", "NotReadableError")),
     );
 
     expect(screen.queryByRole("alert")).toBeNull();
@@ -513,9 +517,13 @@ describe("<WebRtcStreamerInner />", () => {
       screen.getByRole("combobox", { name: "Select microphone" }),
       { target: { value: "other-audio" } },
     );
+    expect(updateInputDevice.mock.calls).toEqual([
+      ["video", "other-video"],
+      ["audio", "other-audio"],
+    ]);
 
     await act(async () =>
-      rejectCamera?.(new DOMException("Device is busy", "NotReadableError")),
+      rejectCamera!(new DOMException("Device is busy", "NotReadableError")),
     );
     expect((await screen.findByRole("alert")).textContent).toContain(
       "Device is busy",
@@ -523,7 +531,7 @@ describe("<WebRtcStreamerInner />", () => {
 
     // The camera is still on the device it failed to leave, whatever the
     // microphone went on to do.
-    await act(async () => finishMicrophone?.());
+    await act(async () => finishMicrophone!());
 
     expect((await screen.findByRole("alert")).textContent).toContain(
       "Device is busy",
