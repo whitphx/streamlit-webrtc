@@ -465,6 +465,71 @@ describe("<WebRtcStreamerInner />", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it("does not report a switch that a later pick for the same kind replaced", async () => {
+    stubDevices();
+    const rejections: Array<(error: Error) => void> = [];
+    const updateInputDevice = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejections.push(reject);
+        }),
+    );
+    renderStreamer({ updateInputDevice });
+    const cameraSelect = await screen.findByRole("combobox", {
+      name: "Select camera",
+    });
+    fireEvent.change(cameraSelect, { target: { value: "other-video" } });
+    fireEvent.change(cameraSelect, { target: { value: "third-video" } });
+
+    // The first pick is no longer what the user is waiting on, and the one
+    // that replaced it can sit on a permission prompt indefinitely.
+    await act(async () =>
+      rejections[0]?.(new DOMException("Device is busy", "NotReadableError")),
+    );
+
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("keeps a camera failure visible when a microphone switch succeeds", async () => {
+    stubDevices();
+    let rejectCamera: ((error: Error) => void) | undefined;
+    let finishMicrophone: (() => void) | undefined;
+    const updateInputDevice = vi.fn(
+      (kind: "video" | "audio") =>
+        new Promise<void>((resolve, reject) => {
+          if (kind === "video") {
+            rejectCamera = reject;
+          } else {
+            finishMicrophone = resolve;
+          }
+        }),
+    );
+    renderStreamer({ updateInputDevice });
+    fireEvent.change(
+      await screen.findByRole("combobox", { name: "Select camera" }),
+      { target: { value: "other-video" } },
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select microphone" }),
+      { target: { value: "other-audio" } },
+    );
+
+    await act(async () =>
+      rejectCamera?.(new DOMException("Device is busy", "NotReadableError")),
+    );
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Device is busy",
+    );
+
+    // The camera is still on the device it failed to leave, whatever the
+    // microphone went on to do.
+    await act(async () => finishMicrophone?.());
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Device is busy",
+    );
+  });
+
   it("preserves both confirmed IDs when video and audio switches overlap", async () => {
     let finishVideoSwitch: (() => void) | undefined;
     let finishAudioSwitch: (() => void) | undefined;
