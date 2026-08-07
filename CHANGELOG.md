@@ -2,6 +2,21 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.77.0'></a>
+## 0.77.0 — 2026-08-07
+
+### Added
+
+- The camera and microphone buttons shown while streaming now each carry a dropdown for picking another input device, so switching cameras or microphones mid-stream no longer means opening the device selector. A dropdown appears whenever the browser reports another device of that kind to switch to, and its label can be customized through the new `select_camera` and `select_microphone` entries of `translations`.
+
+### Fixed
+
+- The device selection dialog no longer crashes when the page is served outside a secure context, where `navigator.mediaDevices` is undefined.
+
+### Chore
+
+- The media device enumeration behind the device selection dialog moved into a reusable `useMediaInputDevices()` hook.
+
 <a id='changelog-0.76.3'></a>
 ## 0.76.3 — 2026-08-04
 
