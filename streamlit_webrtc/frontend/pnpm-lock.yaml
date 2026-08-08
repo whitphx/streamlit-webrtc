@@ -61,8 +61,8 @@ importers:
         specifier: ^18.3.0
         version: 18.3.5(@types/react@18.3.18)
       '@vitejs/plugin-react':
-        specifier: ^6.0.4
-        version: 6.0.4(vite@8.2.0(@types/node@26.1.2)(esbuild@0.27.7))
+        specifier: ^6.0.5
+        version: 6.0.5(vite@8.2.0(@types/node@26.1.2)(esbuild@0.27.7))
       eslint:
         specifier: ^9.36.0
         version: 9.36.0
@@ -1529,8 +1529,8 @@ packages:
     peerDependencies:
       vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
 
-  '@vitejs/plugin-react@6.0.4':
-    resolution: {integrity: sha512-XcCQz0TBpBgljhj0gMuuDj49i6Ytqh5q1osT/Gp5uAVJUCTWxyskk/l1jwYYiu2xcNHHipdMz40EGfM1VdamVg==}
+  '@vitejs/plugin-react@6.0.5':
+    resolution: {integrity: sha512-BOVzne/NL162sMdResB25mUv+vWMF5NoAjNf09TeGlE7ZpszZWSD3winycicLJw72yeVsoCn/2kOhEuCvEShMA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@rolldown/plugin-babel': ^0.1.7 || ^0.2.0
@@ -5384,7 +5384,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@vitejs/plugin-react@6.0.4(vite@8.2.0(@types/node@26.1.2)(esbuild@0.27.7))':
+  '@vitejs/plugin-react@6.0.5(vite@8.2.0(@types/node@26.1.2)(esbuild@0.27.7))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
       vite: 8.2.0(@types/node@26.1.2)(esbuild@0.27.7)
