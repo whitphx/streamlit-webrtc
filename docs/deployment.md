@@ -72,9 +72,9 @@ In such environments, a [TURN server](https://webrtc.org/getting-started/turn-se
 
 #### Cloudflare Realtime TURN (Recommended)
 
-[Cloudflare Realtime TURN](https://developers.cloudflare.com/realtime/turn/) is the quickest way to get started. It has a [free monthly allowance of relayed traffic](https://developers.cloudflare.com/realtime/turn/faq/), so you can get an app working before paying for anything, and generating credentials is a single HTTPS request, with no SDK to install beyond the `requests` package Streamlit already depends on.
+[Cloudflare Realtime TURN](https://developers.cloudflare.com/realtime/turn/) is the quickest way to get started. It has a [free monthly allowance of relayed traffic](https://developers.cloudflare.com/realtime/turn/faq/), so you can get an app working before paying for anything, and `streamlit-webrtc` can fetch the credentials for you.
 
-Create a TURN key in the Cloudflare dashboard and keep it on the server side. Expose it as the `CLOUDFLARE_TURN_KEY_ID` and `CLOUDFLARE_TURN_KEY_API_TOKEN` environment variables and `webrtc_streamer()` fetches short-lived credentials by itself, so you can leave `rtc_configuration` unset:
+Create a TURN key in the Cloudflare dashboard and keep it on the server side. Expose it as the `CLOUDFLARE_TURN_KEY_ID` and `CLOUDFLARE_TURN_KEY_API_TOKEN` environment variables and `webrtc_streamer()` fetches short-lived credentials by itself, so you can leave `rtc_configuration` unset. Cloudflare takes precedence when Twilio or Hugging Face credentials are present in the environment too.
 
 ```python
 webrtc_streamer(key="example")  # Reads the Cloudflare credentials from the environment.
@@ -97,7 +97,7 @@ def get_ice_servers():
     response = requests.post(
         f"https://rtc.live.cloudflare.com/v1/turn/keys/{TURN_KEY_ID}/credentials/generate-ice-servers",
         headers={"Authorization": f"Bearer {TURN_KEY_API_TOKEN}"},
-        json={"ttl": 3600},
+        json={"ttl": 7200},  # Longer than the cache TTL above.
         timeout=10,
     )
     response.raise_for_status()

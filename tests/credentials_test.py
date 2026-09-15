@@ -1,7 +1,6 @@
 import io
 import json
 import urllib.error
-from typing import Optional
 from unittest.mock import patch
 
 import pytest
@@ -89,6 +88,19 @@ def test_get_cloudflare_ice_servers_raises_on_a_failed_request():
             get_cloudflare_ice_servers("key-id", "api-token")
 
 
+def test_get_cloudflare_ice_servers_raises_on_a_read_timeout():
+    # A read that times out inside the `with` raises TimeoutError, not URLError.
+    with patch("urllib.request.urlopen", side_effect=TimeoutError("timed out")):
+        with pytest.raises(ValueError):
+            get_cloudflare_ice_servers("key-id", "api-token")
+
+
+def test_get_cloudflare_ice_servers_raises_on_a_response_without_ice_servers():
+    with patch("urllib.request.urlopen", return_value=FakeResponse({"errors": []})):
+        with pytest.raises(ValueError):
+            get_cloudflare_ice_servers("key-id", "api-token")
+
+
 @pytest.mark.parametrize("turn_key_id, api_token", [("", "token"), ("key-id", "")])
 def test_get_cloudflare_ice_servers_rejects_incomplete_credentials(
     turn_key_id: str, api_token: str
@@ -139,22 +151,40 @@ def test_get_available_ice_servers_falls_back_to_twilio_when_cloudflare_fails(
 
 
 @pytest.mark.parametrize(
-    "turn_key_id, api_token",
-    [("key-id", None), (None, "api-token")],
+    "set_var, expected_warning",
+    [
+        (
+            "CLOUDFLARE_TURN_KEY_ID",
+            "CLOUDFLARE_TURN_KEY_ID is set but CLOUDFLARE_TURN_KEY_API_TOKEN is not. "
+            "Cloudflare's STUN/TURN servers will not be used.",
+        ),
+        (
+            "CLOUDFLARE_TURN_KEY_API_TOKEN",
+            "CLOUDFLARE_TURN_KEY_API_TOKEN is set but CLOUDFLARE_TURN_KEY_ID is not. "
+            "Cloudflare's STUN/TURN servers will not be used.",
+        ),
+        (
+            "TWILIO_ACCOUNT_SID",
+            "TWILIO_ACCOUNT_SID is set but TWILIO_AUTH_TOKEN is not. "
+            "Twilio's STUN/TURN servers will not be used.",
+        ),
+        (
+            "TWILIO_AUTH_TOKEN",
+            "TWILIO_AUTH_TOKEN is set but TWILIO_ACCOUNT_SID is not. "
+            "Twilio's STUN/TURN servers will not be used.",
+        ),
+    ],
 )
-def test_get_available_ice_servers_warns_on_half_configured_cloudflare(
+def test_get_available_ice_servers_warns_on_a_half_configured_provider(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
-    turn_key_id: Optional[str],
-    api_token: Optional[str],
+    set_var: str,
+    expected_warning: str,
 ):
-    if turn_key_id:
-        monkeypatch.setenv("CLOUDFLARE_TURN_KEY_ID", turn_key_id)
-    if api_token:
-        monkeypatch.setenv("CLOUDFLARE_TURN_KEY_API_TOKEN", api_token)
+    monkeypatch.setenv(set_var, "value")
 
     with caplog.at_level("WARNING", logger="streamlit_webrtc.credentials"):
         ice_servers = get_available_ice_servers()
 
-    assert "Cloudflare's STUN/TURN servers will not be used." in caplog.text
+    assert expected_warning in caplog.text
     assert ice_servers == [{"urls": "stun:stun.l.google.com:19302"}]

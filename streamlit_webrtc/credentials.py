@@ -39,6 +39,10 @@ LOGGER = logging.getLogger(__name__)
 
 HF_ICE_SERVER_TTL = 3600  # 1 hour. Not sure if this is the best value.
 
+# These requests run on the Streamlit script thread, so a hung connection would
+# stall the whole rerun without a timeout.
+CRED_REQUEST_TIMEOUT = 10
+
 
 @cache_data(ttl=HF_ICE_SERVER_TTL)
 def get_hf_ice_servers(token: str) -> List[RTCIceServer]:
@@ -50,7 +54,7 @@ def get_hf_ice_servers(token: str) -> List[RTCIceServer]:
         headers={"X-HF-Access-Token": token},
     )
     try:
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, timeout=CRED_REQUEST_TIMEOUT) as response:
             if response.status != 200:
                 raise ValueError("Failed to get credentials from HF turn server")
             credentials = json.loads(response.read())
@@ -64,10 +68,14 @@ def get_hf_ice_servers(token: str) -> List[RTCIceServer]:
         raise ValueError("Failed to get credentials from HF turn server")
 
 
-CLOUDFLARE_CRED_TTL = 3600  # 1 hour. Cloudflare allows up to 48 hours. Shorter TTL should be ok for this library's use case.
+CLOUDFLARE_CRED_CACHE_TTL = 3600  # 1 hour.
+# Ask for twice the cache lifetime so that credentials served from the cache
+# just before it expires still have an hour of validity left.
+# Cloudflare's own ceiling is 48 hours.
+CLOUDFLARE_CRED_TTL = CLOUDFLARE_CRED_CACHE_TTL * 2
 
 
-@cache_data(ttl=CLOUDFLARE_CRED_TTL)
+@cache_data(ttl=CLOUDFLARE_CRED_CACHE_TTL)
 def get_cloudflare_ice_servers(
     turn_key_id: str, turn_key_api_token: str
 ) -> List[RTCIceServer]:
@@ -85,16 +93,21 @@ def get_cloudflare_ice_servers(
         method="POST",
     )
     try:
-        # This runs on the Streamlit script thread, so a hung connection would
-        # stall the whole rerun without a timeout.
-        with urllib.request.urlopen(req, timeout=10) as response:
+        with urllib.request.urlopen(req, timeout=CRED_REQUEST_TIMEOUT) as response:
             if response.status not in (200, 201):
                 raise ValueError(
                     "Failed to get credentials from Cloudflare Realtime TURN"
                 )
-            return json.loads(response.read())["iceServers"]
-    except urllib.error.URLError:
+            body = json.loads(response.read())
+    # A read that times out inside the `with` raises TimeoutError, not URLError.
+    except (urllib.error.URLError, TimeoutError):
         raise ValueError("Failed to get credentials from Cloudflare Realtime TURN")
+
+    if "iceServers" not in body:
+        raise ValueError(
+            "Cloudflare Realtime TURN response does not contain iceServers"
+        )
+    return body["iceServers"]
 
 
 TWILIO_CRED_TTL = 3600  # 1 hour. Twilio's default is 1 day. Shorter TTL should be ok for this library's use case.
@@ -140,8 +153,10 @@ def _get_credential_pair(
     return None
 
 
-@cache_data(ttl=min(HF_ICE_SERVER_TTL, TWILIO_CRED_TTL, CLOUDFLARE_CRED_TTL))
+@cache_data(ttl=min(HF_ICE_SERVER_TTL, TWILIO_CRED_TTL, CLOUDFLARE_CRED_CACHE_TTL))
 def get_available_ice_servers() -> List[RTCIceServer]:
+    # These variable names are the ones fastrtc reads, so a deployment already
+    # configured for it works here unchanged.
     cloudflare_creds = _get_credential_pair(
         "CLOUDFLARE_TURN_KEY_ID", "CLOUDFLARE_TURN_KEY_API_TOKEN", "Cloudflare"
     )
