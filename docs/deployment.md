@@ -74,7 +74,13 @@ In such environments, a [TURN server](https://webrtc.org/getting-started/turn-se
 
 [Cloudflare Realtime TURN](https://developers.cloudflare.com/realtime/turn/) is the quickest way to get started. It has a [free monthly allowance of relayed traffic](https://developers.cloudflare.com/realtime/turn/faq/), so you can get an app working before paying for anything, and generating credentials is a single HTTPS request, with no SDK to install beyond the `requests` package Streamlit already depends on.
 
-Create a TURN key in the Cloudflare dashboard, keep it on the server side, and exchange it for short-lived credentials that you pass to `webrtc_streamer()`.
+Create a TURN key in the Cloudflare dashboard and keep it on the server side. Expose it as the `CLOUDFLARE_TURN_KEY_ID` and `CLOUDFLARE_TURN_KEY_API_TOKEN` environment variables and `webrtc_streamer()` fetches short-lived credentials by itself, so you can leave `rtc_configuration` unset:
+
+```python
+webrtc_streamer(key="example")  # Reads the Cloudflare credentials from the environment.
+```
+
+To fetch the credentials yourself, for instance to choose the TTL or the key at runtime, call the API and pass the result in:
 
 ```python
 import os
