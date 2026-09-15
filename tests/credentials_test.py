@@ -110,9 +110,7 @@ def test_get_available_ice_servers_uses_cloudflare_when_configured(
         "streamlit_webrtc.credentials.get_cloudflare_ice_servers",
         return_value=CLOUDFLARE_RESPONSE["iceServers"],
     ) as get_cloudflare:
-        with patch(
-            "streamlit_webrtc.credentials.get_twilio_ice_servers"
-        ) as get_twilio:
+        with patch("streamlit_webrtc.credentials.get_twilio_ice_servers") as get_twilio:
             ice_servers = get_available_ice_servers()
 
     assert ice_servers == CLOUDFLARE_RESPONSE["iceServers"]
