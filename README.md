@@ -338,7 +338,7 @@ For example, if the server is hosted behind a proxy, or if the client is on an o
 In such environments, [TURN server](https://webrtc.org/getting-started/turn-server) is required.
 
 There are several options for setting up a TURN server:
-* [Cloudflare Realtime TURN](https://developers.cloudflare.com/realtime/turn/) (_recommended_) is the quickest way to get started. It has a [free monthly allowance of relayed traffic](https://developers.cloudflare.com/realtime/turn/faq/), so you can run an app without registering a credit card, and generating credentials is a single HTTPS request, with no SDK to install beyond the `requests` package Streamlit already depends on.
+* [Cloudflare Realtime TURN](https://developers.cloudflare.com/realtime/turn/) (_recommended_) is the quickest way to get started. It has a [free monthly allowance of relayed traffic](https://developers.cloudflare.com/realtime/turn/faq/), so you can get an app working before paying for anything, and generating credentials is a single HTTPS request, with no SDK to install beyond the `requests` package Streamlit already depends on.
   Create a TURN key in the Cloudflare dashboard, keep it on the server side, and exchange it for short-lived credentials that you pass to `webrtc_streamer()`.
   ```python
   import os
@@ -355,7 +355,8 @@ There are several options for setting up a TURN server:
       response = requests.post(
           f"https://rtc.live.cloudflare.com/v1/turn/keys/{TURN_KEY_ID}/credentials/generate-ice-servers",
           headers={"Authorization": f"Bearer {TURN_KEY_API_TOKEN}"},
-          json={"ttl": 86400},
+          json={"ttl": 3600},
+          timeout=10,
       )
       response.raise_for_status()
       return response.json()["iceServers"]
@@ -370,7 +371,7 @@ There are several options for setting up a TURN server:
   )
   ```
   See [Generate Credentials](https://developers.cloudflare.com/realtime/turn/generate-credentials/) for the details of the API, including how to revoke a credential before it expires.
-* [Twilio Network Traversal Service](https://www.twilio.com/docs/stun-turn) is a stable, long-established solution, and the one this project's sample app has been using. It is [priced per relayed gigabyte](https://www.twilio.com/en-us/stun-turn/pricing) with no free allowance, so beyond the initial trial credit you need a funded Twilio account.
+* [Twilio Network Traversal Service](https://www.twilio.com/docs/stun-turn) is a stable, long-established solution. It is [priced per relayed gigabyte](https://www.twilio.com/en-us/stun-turn/pricing) with no free allowance, so beyond the initial trial credit you need a funded Twilio account.
   You can simply pass the `ice_servers` field of the [Network Traversal Service Tokens API](https://www.twilio.com/docs/api/2010-04-01/rest/token) response to the `iceServers` field of the `rtc_configuration` argument of `webrtc_streamer()`.
   ```python
   ## This sample code is from https://www.twilio.com/docs/stun-turn/api
