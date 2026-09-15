@@ -81,7 +81,7 @@ The frontend dev server runs on a different port than the production build.
 
 - STUN/TURN servers are configured via the `rtc_configuration` argument to `webrtc_streamer()`.
 - The default is Google's public STUN server.
-- Production deployments may need a TURN server (e.g., Twilio).
+- Production deployments may need a TURN server (e.g., Cloudflare Realtime TURN or Twilio).
 
 ## Changelog fragments (required for every PR)
 
