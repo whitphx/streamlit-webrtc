@@ -161,11 +161,14 @@ def get_available_ice_servers() -> List[RTCIceServer]:
         "CLOUDFLARE_TURN_KEY_ID", "CLOUDFLARE_TURN_KEY_API_TOKEN", "Cloudflare"
     )
     if cloudflare_creds:
+        turn_key_id, turn_key_api_token = cloudflare_creds
         LOGGER.info(
             "Cloudflare credentials found, using Cloudflare's STUN/TURN servers."
         )
         try:
-            return get_cloudflare_ice_servers(*cloudflare_creds)
+            return get_cloudflare_ice_servers(
+                turn_key_id=turn_key_id, turn_key_api_token=turn_key_api_token
+            )
         except Exception as e:
             LOGGER.warning("Failed to get TURN credentials from Cloudflare: %s", e)
 
@@ -173,9 +176,12 @@ def get_available_ice_servers() -> List[RTCIceServer]:
         "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "Twilio"
     )
     if twilio_creds:
+        twilio_sid, twilio_token = twilio_creds
         LOGGER.info("Twilio credentials found, using Twilio's STUN/TURN servers.")
         try:
-            return get_twilio_ice_servers(*twilio_creds)
+            return get_twilio_ice_servers(
+                twilio_sid=twilio_sid, twilio_token=twilio_token
+            )
         except Exception as e:
             LOGGER.warning("Failed to get TURN credentials from Twilio: %s", e)
 

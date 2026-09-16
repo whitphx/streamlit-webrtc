@@ -126,7 +126,9 @@ def test_get_available_ice_servers_uses_cloudflare_when_configured(
             ice_servers = get_available_ice_servers()
 
     assert ice_servers == CLOUDFLARE_RESPONSE["iceServers"]
-    get_cloudflare.assert_called_once_with("key-id", "api-token")
+    get_cloudflare.assert_called_once_with(
+        turn_key_id="key-id", turn_key_api_token="api-token"
+    )
     get_twilio.assert_not_called()
 
 
