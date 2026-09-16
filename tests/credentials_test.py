@@ -8,6 +8,7 @@ import pytest
 from streamlit_webrtc.credentials import (
     get_available_ice_servers,
     get_cloudflare_ice_servers,
+    get_hf_ice_servers,
 )
 
 CLOUDFLARE_RESPONSE = {
@@ -37,6 +38,7 @@ class FakeResponse(io.BytesIO):
 @pytest.fixture(autouse=True)
 def clear_caches():
     get_cloudflare_ice_servers.clear()
+    get_hf_ice_servers.clear()
     get_available_ice_servers.clear()
     yield
 
@@ -99,6 +101,17 @@ def test_get_cloudflare_ice_servers_raises_on_a_response_without_ice_servers():
     with patch("urllib.request.urlopen", return_value=FakeResponse({"errors": []})):
         with pytest.raises(ValueError):
             get_cloudflare_ice_servers("key-id", "api-token")
+
+
+@pytest.mark.parametrize(
+    "error", [urllib.error.URLError("boom"), TimeoutError("timed out")]
+)
+def test_get_hf_ice_servers_raises_value_error_on_a_failed_request(
+    error: Exception,
+):
+    with patch("urllib.request.urlopen", side_effect=error):
+        with pytest.raises(ValueError):
+            get_hf_ice_servers("hf-token")
 
 
 @pytest.mark.parametrize("turn_key_id, api_token", [("", "token"), ("key-id", "")])

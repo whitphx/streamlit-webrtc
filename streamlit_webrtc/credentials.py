@@ -64,7 +64,8 @@ def get_hf_ice_servers(token: str) -> List[RTCIceServer]:
                     **credentials,
                 },
             ]
-    except urllib.error.URLError:
+    # A read that times out inside the `with` raises TimeoutError, not URLError.
+    except (urllib.error.URLError, TimeoutError):
         raise ValueError("Failed to get credentials from HF turn server")
 
 
@@ -99,7 +100,6 @@ def get_cloudflare_ice_servers(
                     "Failed to get credentials from Cloudflare Realtime TURN"
                 )
             body = json.loads(response.read())
-    # A read that times out inside the `with` raises TimeoutError, not URLError.
     except (urllib.error.URLError, TimeoutError):
         raise ValueError("Failed to get credentials from Cloudflare Realtime TURN")
 
