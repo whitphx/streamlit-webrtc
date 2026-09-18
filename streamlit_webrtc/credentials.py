@@ -43,6 +43,10 @@ HF_ICE_SERVER_TTL = 3600  # 1 hour. Not sure if this is the best value.
 # stall the whole rerun without a timeout.
 CRED_REQUEST_TIMEOUT = 10
 
+# Cloudflare's edge rejects urllib's default agent ("Python-urllib/x.y") with a
+# 403 (error 1010), which reads exactly like a refused key.
+USER_AGENT = "streamlit-webrtc"
+
 
 @cache_data(ttl=HF_ICE_SERVER_TTL)
 def get_hf_ice_servers(token: str) -> List[RTCIceServer]:
@@ -51,7 +55,7 @@ def get_hf_ice_servers(token: str) -> List[RTCIceServer]:
 
     req = urllib.request.Request(
         "https://fastrtc-turn-server-login.hf.space/credentials",
-        headers={"X-HF-Access-Token": token},
+        headers={"X-HF-Access-Token": token, "User-Agent": USER_AGENT},
     )
     try:
         with urllib.request.urlopen(req, timeout=CRED_REQUEST_TIMEOUT) as response:
@@ -90,6 +94,7 @@ def get_cloudflare_ice_servers(
         headers={
             "Authorization": f"Bearer {turn_key_api_token}",
             "Content-Type": "application/json",
+            "User-Agent": USER_AGENT,
         },
         method="POST",
     )

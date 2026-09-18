@@ -70,6 +70,8 @@ def test_get_cloudflare_ice_servers_posts_to_the_turn_key_endpoint():
         "/credentials/generate-ice-servers"
     )
     assert request.get_header("Authorization") == "Bearer api-token"
+    # Cloudflare's edge answers urllib's default agent with a 403.
+    assert request.get_header("User-agent") == "streamlit-webrtc"
     assert json.loads(request.data)["ttl"] > 0
     # Without a timeout a hung connection would stall the Streamlit script thread.
     assert urlopen.call_args.kwargs["timeout"] > 0
@@ -101,6 +103,18 @@ def test_get_cloudflare_ice_servers_raises_on_a_response_without_ice_servers():
     with patch("urllib.request.urlopen", return_value=FakeResponse({"errors": []})):
         with pytest.raises(ValueError):
             get_cloudflare_ice_servers("key-id", "api-token")
+
+
+def test_get_hf_ice_servers_sends_the_token_and_a_user_agent():
+    with patch(
+        "urllib.request.urlopen",
+        return_value=FakeResponse({"username": "user", "credential": "secret"}, 200),
+    ) as urlopen:
+        get_hf_ice_servers("hf-token")
+
+    request = urlopen.call_args.args[0]
+    assert request.get_header("X-hf-access-token") == "hf-token"
+    assert request.get_header("User-agent") == "streamlit-webrtc"
 
 
 @pytest.mark.parametrize(
