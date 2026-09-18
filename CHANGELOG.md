@@ -2,6 +2,21 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.78.0'></a>
+## 0.78.0 — 2026-09-18
+
+### Added
+
+- `streamlit_webrtc.credentials.get_cloudflare_ice_servers()` for getting TURN/STUN credentials from [Cloudflare Realtime TURN](https://developers.cloudflare.com/realtime/turn/). `webrtc_streamer()` picks up `CLOUDFLARE_TURN_KEY_ID` and `CLOUDFLARE_TURN_KEY_API_TOKEN` from the environment automatically when `rtc_configuration` does not set `iceServers`, taking precedence over the Twilio and Hugging Face credentials.
+
+### Changed
+
+- Recommend [Cloudflare Realtime TURN](https://developers.cloudflare.com/realtime/turn/) as the first TURN option in the README and the deployment guide, with Twilio kept as an alternative. Cloudflare has a free monthly allowance of relayed traffic and needs no extra SDK, so new users can get a TURN server working without a paid account.
+
+### Chore
+
+- Auto-merge Dependabot PRs that bump a dependency by a patch or minor version, once the required checks on `main` pass. Major bumps still need a manual merge, as do PRs whose Dependabot metadata carries no update type at all (grouped lockfile updates, for example).
+
 <a id='changelog-0.77.0'></a>
 ## 0.77.0 — 2026-08-07
 
