@@ -27,8 +27,9 @@ import json
 import logging
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
-from typing import List
+from typing import List, Optional, Tuple
 
 from ._compat import cache_data
 from .config import RTCIceServer
@@ -37,6 +38,10 @@ LOGGER = logging.getLogger(__name__)
 
 
 HF_ICE_SERVER_TTL = 3600  # 1 hour. Not sure if this is the best value.
+
+# These requests run on the Streamlit script thread, so a hung connection would
+# stall the whole rerun without a timeout.
+CRED_REQUEST_TIMEOUT = 10
 
 
 @cache_data(ttl=HF_ICE_SERVER_TTL)
@@ -49,7 +54,7 @@ def get_hf_ice_servers(token: str) -> List[RTCIceServer]:
         headers={"X-HF-Access-Token": token},
     )
     try:
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, timeout=CRED_REQUEST_TIMEOUT) as response:
             if response.status != 200:
                 raise ValueError("Failed to get credentials from HF turn server")
             credentials = json.loads(response.read())
@@ -59,8 +64,50 @@ def get_hf_ice_servers(token: str) -> List[RTCIceServer]:
                     **credentials,
                 },
             ]
-    except urllib.error.URLError:
+    # A read that times out inside the `with` raises TimeoutError, not URLError.
+    except (urllib.error.URLError, TimeoutError):
         raise ValueError("Failed to get credentials from HF turn server")
+
+
+CLOUDFLARE_CRED_CACHE_TTL = 3600  # 1 hour.
+# Ask for twice the cache lifetime so that credentials served from the cache
+# just before it expires still have an hour of validity left.
+# Cloudflare's own ceiling is 48 hours.
+CLOUDFLARE_CRED_TTL = CLOUDFLARE_CRED_CACHE_TTL * 2
+
+
+@cache_data(ttl=CLOUDFLARE_CRED_CACHE_TTL)
+def get_cloudflare_ice_servers(
+    turn_key_id: str, turn_key_api_token: str
+) -> List[RTCIceServer]:
+    if not turn_key_id or not turn_key_api_token:
+        raise ValueError("Cloudflare TURN key ID or API token is not set")
+
+    req = urllib.request.Request(
+        "https://rtc.live.cloudflare.com/v1/turn/keys/"
+        f"{urllib.parse.quote(turn_key_id, safe='')}/credentials/generate-ice-servers",
+        data=json.dumps({"ttl": CLOUDFLARE_CRED_TTL}).encode(),
+        headers={
+            "Authorization": f"Bearer {turn_key_api_token}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=CRED_REQUEST_TIMEOUT) as response:
+            if response.status not in (200, 201):
+                raise ValueError(
+                    "Failed to get credentials from Cloudflare Realtime TURN"
+                )
+            body = json.loads(response.read())
+    except (urllib.error.URLError, TimeoutError):
+        raise ValueError("Failed to get credentials from Cloudflare Realtime TURN")
+
+    if "iceServers" not in body:
+        raise ValueError(
+            "Cloudflare Realtime TURN response does not contain iceServers"
+        )
+    return body["iceServers"]
 
 
 TWILIO_CRED_TTL = 3600  # 1 hour. Twilio's default is 1 day. Shorter TTL should be ok for this library's use case.
@@ -82,24 +129,59 @@ def get_twilio_ice_servers(twilio_sid: str, twilio_token: str) -> List[RTCIceSer
     return token.ice_servers
 
 
-@cache_data(ttl=min(HF_ICE_SERVER_TTL, TWILIO_CRED_TTL))
+def _get_credential_pair(
+    first_env_var: str, second_env_var: str, provider: str
+) -> Optional[Tuple[str, str]]:
+    first = os.getenv(first_env_var)
+    second = os.getenv(second_env_var)
+    if first and second:
+        return first, second
+    # Half-configured is almost always a typo or a forgotten secret rather than
+    # a deliberate opt-out, so say so instead of silently skipping the provider.
+    if first or second:
+        set_var, unset_var = (
+            (first_env_var, second_env_var)
+            if first
+            else (second_env_var, first_env_var)
+        )
+        LOGGER.warning(
+            "%s is set but %s is not. %s's STUN/TURN servers will not be used.",
+            set_var,
+            unset_var,
+            provider,
+        )
+    return None
+
+
+@cache_data(ttl=min(HF_ICE_SERVER_TTL, TWILIO_CRED_TTL, CLOUDFLARE_CRED_CACHE_TTL))
 def get_available_ice_servers() -> List[RTCIceServer]:
-    twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
-    twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
-    if twilio_sid and not twilio_token:
-        LOGGER.warning(
-            "TWILIO_ACCOUNT_SID is set but TWILIO_AUTH_TOKEN is not. "
-            "Twilio's STUN/TURN servers will not be used."
+    # These variable names are the ones fastrtc reads, so a deployment already
+    # configured for it works here unchanged.
+    cloudflare_creds = _get_credential_pair(
+        "CLOUDFLARE_TURN_KEY_ID", "CLOUDFLARE_TURN_KEY_API_TOKEN", "Cloudflare"
+    )
+    if cloudflare_creds:
+        turn_key_id, turn_key_api_token = cloudflare_creds
+        LOGGER.info(
+            "Cloudflare credentials found, using Cloudflare's STUN/TURN servers."
         )
-    elif twilio_token and not twilio_sid:
-        LOGGER.warning(
-            "TWILIO_AUTH_TOKEN is set but TWILIO_ACCOUNT_SID is not. "
-            "Twilio's STUN/TURN servers will not be used."
-        )
-    if twilio_sid and twilio_token:
+        try:
+            return get_cloudflare_ice_servers(
+                turn_key_id=turn_key_id, turn_key_api_token=turn_key_api_token
+            )
+        except Exception as e:
+            LOGGER.warning("Failed to get TURN credentials from Cloudflare: %s", e)
+
+    twilio_creds = _get_credential_pair(
+        "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "Twilio"
+    )
+    if twilio_creds:
+        twilio_sid, twilio_token = twilio_creds
         LOGGER.info("Twilio credentials found, using Twilio's STUN/TURN servers.")
         try:
-            return get_twilio_ice_servers(twilio_sid, twilio_token)
+            return get_twilio_ice_servers(
+                twilio_sid=twilio_sid, twilio_token=twilio_token
+            )
         except Exception as e:
             LOGGER.warning("Failed to get TURN credentials from Twilio: %s", e)
 

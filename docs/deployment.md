@@ -70,9 +70,54 @@ In such environments, a [TURN server](https://webrtc.org/getting-started/turn-se
 
 ### TURN Server Options
 
-#### Twilio Network Traversal Service (Recommended)
+#### Cloudflare Realtime TURN (Recommended)
 
-[Twilio Network Traversal Service](https://www.twilio.com/docs/stun-turn) is a stable and easy-to-use solution. It's a paid service, but you can start with a free trial.
+[Cloudflare Realtime TURN](https://developers.cloudflare.com/realtime/turn/) is the quickest way to get started. It has a [free monthly allowance of relayed traffic](https://developers.cloudflare.com/realtime/turn/faq/), so you can get an app working before paying for anything, and `streamlit-webrtc` can fetch the credentials for you.
+
+Create a TURN key in the Cloudflare dashboard and keep it on the server side. Expose it as the `CLOUDFLARE_TURN_KEY_ID` and `CLOUDFLARE_TURN_KEY_API_TOKEN` environment variables and `webrtc_streamer()` fetches short-lived credentials by itself, so you can leave `rtc_configuration` unset. Cloudflare takes precedence when Twilio or Hugging Face credentials are present in the environment too.
+
+```python
+webrtc_streamer(key="example")  # Reads the Cloudflare credentials from the environment.
+```
+
+To fetch the credentials yourself, for instance to choose the TTL or the key at runtime, call the API and pass the result in:
+
+```python
+import os
+
+import requests
+import streamlit as st
+
+TURN_KEY_ID = os.environ["CLOUDFLARE_TURN_KEY_ID"]
+TURN_KEY_API_TOKEN = os.environ["CLOUDFLARE_TURN_KEY_API_TOKEN"]
+
+
+@st.cache_data(ttl=3600)
+def get_ice_servers():
+    response = requests.post(
+        f"https://rtc.live.cloudflare.com/v1/turn/keys/{TURN_KEY_ID}/credentials/generate-ice-servers",
+        headers={"Authorization": f"Bearer {TURN_KEY_API_TOKEN}"},
+        json={"ttl": 7200},  # Longer than the cache TTL above.
+        timeout=10,
+    )
+    response.raise_for_status()
+    return response.json()["iceServers"]
+
+
+webrtc_streamer(
+    # ...
+    rtc_configuration={
+        "iceServers": get_ice_servers()
+    }
+    # ...
+)
+```
+
+See [Generate Credentials](https://developers.cloudflare.com/realtime/turn/generate-credentials/) for the details of the API, including how to revoke a credential before it expires.
+
+#### Twilio Network Traversal Service
+
+[Twilio Network Traversal Service](https://www.twilio.com/docs/stun-turn) is a stable, long-established solution. It is [priced per relayed gigabyte](https://www.twilio.com/en-us/stun-turn/pricing) with no free allowance, so beyond the initial trial credit you need a funded Twilio account.
 
 ```python
 ## This sample code is from https://www.twilio.com/docs/stun-turn/api

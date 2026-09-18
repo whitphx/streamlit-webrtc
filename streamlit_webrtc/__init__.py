@@ -18,6 +18,7 @@ from .config import (
     VideoHTMLAttributes,
 )
 from .credentials import (
+    get_cloudflare_ice_servers,
     get_hf_ice_servers,
     get_twilio_ice_servers,
 )
@@ -116,6 +117,7 @@ __all__ = [
     "DEFAULT_AUDIO_HTML_ATTRS",
     "DEFAULT_MEDIA_STREAM_CONSTRAINTS",
     "DEFAULT_VIDEO_HTML_ATTRS",
+    "get_cloudflare_ice_servers",
     "get_hf_ice_servers",
     "get_twilio_ice_servers",
 ]
