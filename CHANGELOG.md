@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.78.1'></a>
+## 0.78.1 — 2026-09-18
+
+### Fixed
+
+- `get_cloudflare_ice_servers()` reaches Cloudflare's credential endpoint again. Cloudflare's edge rejects urllib's default user agent with a 403 (`error code: 1010`), which made a valid TURN key look refused; it and `get_hf_ice_servers()` now identify themselves as `streamlit-webrtc`.
+
 <a id='changelog-0.78.0'></a>
 ## 0.78.0 — 2026-09-18
 
