@@ -1,0 +1,37 @@
+name: Dependabot auto-merge
+
+# Dependabot's `pull_request` events run with a read-only `GITHUB_TOKEN` that the
+# `permissions` key cannot raise, so enabling auto-merge needs `pull_request_target`
+# and its base-branch context. Nothing here checks out or executes the PR's code,
+# which is what keeps that write-capable context out of the branch's reach.
+# Ref: https://github.com/dependabot/fetch-metadata#enabling-auto-merge
+on:
+  pull_request_target:
+    branches: ["main"]
+
+permissions: {}
+
+jobs:
+  auto-merge:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+
+      # Match the update types to merge rather than the ones to skip. Dependabot omits
+      # `update-type` from the commit trailer on multi-dependency and transitive-only
+      # PRs, and those have carried majors here before, so an unknown type has to fall
+      # through to a manual merge instead of being treated as non-major.
+      - name: Enable auto-merge
+        if: >-
+          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
