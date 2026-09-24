@@ -29,6 +29,7 @@ nav:
   - index.md
   - tutorial.md
   - deployment.md
+  - native-audio.md
 
 markdown_extensions:
   - pymdownx.highlight:

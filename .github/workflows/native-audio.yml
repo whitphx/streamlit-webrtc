@@ -55,3 +55,11 @@ jobs:
         run: uv run --no-sync python scripts/build_wheel.py
       - name: Test installed wheel without build tools
         run: uv run --no-sync python scripts/check_wheel.py dist/*.whl
+      - name: Test Streamlit integration with the native wheel
+        working-directory: .
+        run: |
+          uv sync --locked --all-extras --dev --python 3.12
+          uv pip install --no-deps packages/streamlit-webrtc-native/dist/*.whl
+          mkdir -p streamlit_webrtc/frontend/dist
+          uv run --no-sync python -c 'from streamlit_webrtc_native import AudioPeer'
+          uv run --no-sync pytest tests/native_component_test.py tests/native_webrtc_test.py tests/native_loopback_test.py

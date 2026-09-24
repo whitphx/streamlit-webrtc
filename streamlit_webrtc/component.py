@@ -11,6 +11,7 @@ from typing import (
     Dict,
     Generic,
     List,
+    Literal,
     NamedTuple,
     Optional,
     TypeVar,
@@ -49,6 +50,7 @@ from .config import (
 from .credentials import (
     get_available_ice_servers,
 )
+from .native_webrtc import NativeAudioWorker, load_native_peer
 from .session_info import get_script_run_count, get_this_session_info
 from .webrtc import (
     AudioProcessorFactory,
@@ -120,7 +122,7 @@ class _WorkerForwarded(Generic[_T]):
 
 class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _state: WebRtcStreamerState
-    _worker_ref: "Optional[weakref.ReferenceType[WebRtcWorker[VideoProcessorT, AudioProcessorT]]]"  # noqa
+    _worker_ref: "Optional[weakref.ReferenceType[Union[WebRtcWorker[VideoProcessorT, AudioProcessorT], NativeAudioWorker]]]"  # noqa
 
     _component_value_snapshot: Union[ComponentValueSnapshot, None]
     _worker_creation_lock: threading.Lock
@@ -143,7 +145,9 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
 
     def __init__(
         self,
-        worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]],
+        worker: Optional[
+            Union[WebRtcWorker[VideoProcessorT, AudioProcessorT], NativeAudioWorker]
+        ],
         state: WebRtcStreamerState,
     ) -> None:
         self._set_worker(worker)
@@ -155,15 +159,35 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._last_rendered_run_count = None
 
     def _set_worker(
-        self, worker: Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]
+        self,
+        worker: Optional[
+            Union[WebRtcWorker[VideoProcessorT, AudioProcessorT], NativeAudioWorker]
+        ],
     ):
         self._worker_ref = weakref.ref(worker) if worker else None
 
-    def _get_worker(self) -> Optional[WebRtcWorker[VideoProcessorT, AudioProcessorT]]:
+    def _get_worker(
+        self,
+    ) -> Optional[
+        Union[WebRtcWorker[VideoProcessorT, AudioProcessorT], NativeAudioWorker]
+    ]:
         return self._worker_ref() if self._worker_ref else None
 
     def _set_state(self, state: WebRtcStreamerState):
         self._state = state
+
+    def clear_audio_output(self, timeout: float = 1.0) -> None:
+        """Discard queued native audio and an in-flight callback's output.
+
+        This cannot retract audio already sent to the browser. Call from the
+        Streamlit script or a callback thread, outside the WebRTC event loop.
+        """
+        worker = self._get_worker()
+        if worker is None:
+            return
+        if not isinstance(worker, NativeAudioWorker):
+            raise NotImplementedError('clear_audio_output() requires backend="native"')
+        worker.clear_audio_output(timeout=timeout)
 
     @property
     def state(self) -> WebRtcStreamerState:
@@ -419,7 +443,7 @@ def _handle_worker_lifecycle(
     key: str,
     sdp_offer: Optional[Dict],
     *,
-    make_worker: Callable[[], "WebRtcWorker"],
+    make_worker: Callable[[], Union[WebRtcWorker, NativeAudioWorker]],
 ) -> None:
     """Reconcile the worker against the frontend's current state.
 
@@ -474,13 +498,13 @@ def _handle_worker_lifecycle(
     running_worker = context._get_worker()
     if (
         running_worker
-        and running_worker.pc.localDescription
+        and running_worker.local_description
         and not context._is_sdp_answer_sent
     ):
         context._sdp_answer_json = json.dumps(
             {
-                "sdp": running_worker.pc.localDescription.sdp,
-                "type": running_worker.pc.localDescription.type,
+                "sdp": running_worker.local_description.sdp,
+                "type": running_worker.local_description.type,
             }
         )
         LOGGER.debug("Rerun to send the SDP answer to frontend")
@@ -534,6 +558,7 @@ def webrtc_streamer(
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
     media_toggle_controls: bool = True,
+    backend: Literal["aiortc", "native"] = "aiortc",
 ) -> WebRtcStreamerContext:
     # XXX: We wanted something like `WebRtcStreamerContext[None, None]`
     # as the return value, but could not find a good solution
@@ -581,6 +606,7 @@ def webrtc_streamer(
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
     media_toggle_controls: bool = True,
+    backend: Literal["aiortc", "native"] = "aiortc",
 ) -> WebRtcStreamerContext[VideoProcessorT, Any]:
     pass
 
@@ -624,6 +650,7 @@ def webrtc_streamer(
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
     media_toggle_controls: bool = True,
+    backend: Literal["aiortc", "native"] = "aiortc",
 ) -> WebRtcStreamerContext[Any, AudioProcessorT]:
     pass
 
@@ -667,6 +694,7 @@ def webrtc_streamer(
     video_transformer_factory: None = None,
     async_transform: Optional[bool] = None,
     media_toggle_controls: bool = True,
+    backend: Literal["aiortc", "native"] = "aiortc",
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     pass
 
@@ -709,6 +737,7 @@ def webrtc_streamer(
     video_transformer_factory=None,
     async_transform: Optional[bool] = None,
     media_toggle_controls: bool = True,
+    backend: Literal["aiortc", "native"] = "aiortc",
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     # Backward compatibility
     if video_transformer_factory is not None:
@@ -729,6 +758,43 @@ def webrtc_streamer(
             stacklevel=2,
         )
         async_processing = async_transform
+
+    if backend not in ("aiortc", "native"):
+        raise ValueError(f"Unknown WebRTC backend: {backend!r}")
+    if backend == "native":
+        if mode != WebRtcMode.SENDRECV:
+            raise ValueError('backend="native" currently supports only SENDRECV')
+        unsupported = {
+            "player_factory": player_factory,
+            "in_recorder_factory": in_recorder_factory,
+            "out_recorder_factory": out_recorder_factory,
+            "video_frame_callback": video_frame_callback,
+            "queued_video_frames_callback": queued_video_frames_callback,
+            "queued_audio_frames_callback": queued_audio_frames_callback,
+            "on_video_ended": on_video_ended,
+            "video_processor_factory": video_processor_factory,
+            "audio_processor_factory": audio_processor_factory,
+            "source_video_track": source_video_track,
+            "source_audio_track": source_audio_track,
+            "sink_video_track": sink_video_track,
+            "sink_audio_track": sink_audio_track,
+        }
+        for name, value in unsupported.items():
+            if value is not None:
+                raise ValueError(f'backend="native" does not support {name}')
+        if not sendback_audio:
+            raise ValueError('backend="native" requires sendback_audio=True')
+        if media_stream_constraints is None:
+            media_stream_constraints = {"audio": True, "video": False}
+        audio_constraint = media_stream_constraints.get("audio", False)
+        video_constraint = media_stream_constraints.get("video", False)
+        if video_constraint is not False or not (
+            audio_constraint is True or isinstance(audio_constraint, dict)
+        ):
+            raise ValueError('backend="native" requires audio-only media constraints')
+        # SENDRECV otherwise adds a video receive transceiver even without a camera.
+        sendback_video = False
+        load_native_peer()
 
     # `rtc_configuration` is a shorthand to configure both frontend and server.
     # `frontend_rtc_configuration` or `server_rtc_configuration` are prioritized.
@@ -762,6 +828,13 @@ def webrtc_streamer(
     )
 
     context = _get_or_create_context(key)
+    active_worker = context._get_worker()
+    if active_worker is not None and active_worker.backend != backend:
+        if context.state.playing or context.state.signalling:
+            raise ValueError(
+                "Stop the active stream before changing backend, or use a new key"
+            )
+        _reset_context(context)
     frontend_key = generate_frontend_component_key(key)
 
     component_value: Union[Dict, None] = _component_func(
@@ -797,7 +870,16 @@ def webrtc_streamer(
         context,
         key,
         sdp_offer,
-        make_worker=lambda: WebRtcWorker(
+        make_worker=lambda: NativeAudioWorker(
+            rtc_configuration=_resolve_server_rtc_configuration(
+                server_rtc_configuration
+            ),
+            audio_frame_callback=audio_frame_callback,
+            on_audio_ended=on_audio_ended,
+            async_processing=async_processing,
+        )
+        if backend == "native"
+        else WebRtcWorker(
             mode=mode,
             rtc_configuration=_resolve_server_rtc_configuration(
                 server_rtc_configuration
@@ -830,13 +912,20 @@ def webrtc_streamer(
         if component_value and component_value.get("iceCandidates"):
             worker.set_ice_candidates_from_offerer(component_value["iceCandidates"])
 
-        if video_frame_callback or queued_video_frames_callback or on_video_ended:
+        if isinstance(worker, WebRtcWorker) and (
+            video_frame_callback or queued_video_frames_callback or on_video_ended
+        ):
             worker.update_video_callbacks(
                 frame_callback=video_frame_callback,
                 queued_frames_callback=queued_video_frames_callback,
                 on_ended=on_video_ended,
             )
-        if audio_frame_callback or queued_audio_frames_callback or on_audio_ended:
+        if (
+            backend == "native"
+            or audio_frame_callback
+            or queued_audio_frames_callback
+            or on_audio_ended
+        ):
             worker.update_audio_callbacks(
                 frame_callback=audio_frame_callback,
                 queued_frames_callback=queued_audio_frames_callback,
