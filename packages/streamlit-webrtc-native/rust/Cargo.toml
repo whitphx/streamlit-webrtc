@@ -1,0 +1,18 @@
+[package]
+name = "streamlit-webrtc-native"
+version = "0.1.0"
+edition = "2024"
+
+license = "MIT"
+[lib]
+name = "_native"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.29.0", features = ["abi3-py310"] }
+pyo3-async-runtimes = { version = "0.29.0", features = ["tokio-runtime"] }
+libwebrtc = { git = "https://github.com/livekit/rust-sdks", rev = "c9445106eec8fe437d8e8d0ff4ba6158698c6bb4" }
+tokio = { version = "1", features = ["sync", "time", "rt-multi-thread", "macros"] }
+tokio-stream = "0.1"
+tokio-util = "0.7"
+parking_lot = "0.12"
