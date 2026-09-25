@@ -1,0 +1,7 @@
+.venv/
+.cache/
+dist/
+rust/target/
+__pycache__/
+.pytest_cache/
+.ruff_cache/

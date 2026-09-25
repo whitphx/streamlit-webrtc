@@ -1,0 +1,57 @@
+name: Native Audio Wheels
+
+on:
+  pull_request:
+    branches: [main, 'develop/**']
+  push:
+    branches: [main, 'develop/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wheel:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: packages/streamlit-webrtc-native
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        # Repository and signing key: https://apt.llvm.org/#install_stable
+        run: |
+          curl --fail --location --retry 3 https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /usr/share/keyrings/llvm.asc > /dev/null
+          echo 'deb [signed-by=/usr/share/keyrings/llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-21 main' | sudo tee /etc/apt/sources.list.d/llvm.list
+          sudo apt-get update
+          sudo apt-get install -y clang-21 pkg-config libglib2.0-dev libjpeg-turbo8-dev
+          echo 'CC=clang-21' >> "$GITHUB_ENV"
+          echo 'CXX=clang++-21' >> "$GITHUB_ENV"
+      - name: Install build and test dependencies
+        run: |
+          rustup show
+          rustup component add rustfmt
+          uv sync --locked --no-install-project --python 3.12
+      - name: Check source formatting
+        run: |
+          cargo fmt --manifest-path rust/Cargo.toml --check
+          uv run --no-sync ruff check .
+          uv run --no-sync ruff format --check .
+      - name: Check Rust dependency notices
+        run: |
+          cargo install --locked cargo-about --version 0.9.2 --features cli
+          cargo about generate --locked --fail --manifest-path rust/Cargo.toml about.hbs --output-file "$RUNNER_TEMP/native-notices.md"
+          diff -u licenses/RUST-DEPENDENCIES.md "$RUNNER_TEMP/native-notices.md"
+      - name: Build wheel with bundled WebRTC
+        run: uv run --no-sync python scripts/build_wheel.py
+      - name: Test installed wheel without build tools
+        run: uv run --no-sync python scripts/check_wheel.py dist/*.whl
