@@ -1,0 +1,3 @@
+accepted = ["MIT", "Apache-2.0", "Apache-2.0 WITH LLVM-exception", "BSD-2-Clause", "BSD-3-Clause", "ISC", "Unicode-3.0", "Zlib", "OpenSSL"]
+targets = ["aarch64-apple-darwin", "x86_64-unknown-linux-gnu"]
+ignore-dev-dependencies = true

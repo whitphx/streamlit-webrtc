@@ -1,0 +1,14 @@
+# Rust dependency notices
+
+Generated from the locked Cargo dependency graph with cargo-about.
+{{#each licenses}}
+## {{name}}
+
+{{#each used_by}}
+- {{crate.name}} {{crate.version}}
+{{/each}}
+
+```text
+{{{text}}}
+```
+{{/each}}
