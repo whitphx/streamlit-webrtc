@@ -498,6 +498,7 @@ def _handle_worker_lifecycle(
 @overload
 def webrtc_streamer(
     key: str,
+    *,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
@@ -545,6 +546,7 @@ def webrtc_streamer(
 @overload
 def webrtc_streamer(
     key: str,
+    *,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
@@ -588,6 +590,7 @@ def webrtc_streamer(
 @overload
 def webrtc_streamer(
     key: str,
+    *,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
@@ -631,6 +634,7 @@ def webrtc_streamer(
 @overload
 def webrtc_streamer(
     key: str,
+    *,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
@@ -673,6 +677,7 @@ def webrtc_streamer(
 
 def webrtc_streamer(
     key: str,
+    *,
     mode: WebRtcMode = WebRtcMode.SENDRECV,
     rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
     server_rtc_configuration: Optional[Union[Dict[str, Any], RTCConfiguration]] = None,
