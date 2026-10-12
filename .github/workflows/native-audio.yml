@@ -15,9 +15,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-14]
+        os: [ubuntu-24.04, macos-15]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
+    env:
+      # Cargo's embedded Git client can fail fetching the upstream submodules on macOS.
+      # https://doc.rust-lang.org/cargo/reference/config.html#netgit-fetch-with-cli
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
     defaults:
       run:
         working-directory: packages/streamlit-webrtc-native
@@ -26,6 +30,10 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      - name: Select the native macOS toolchain
+        if: runner.os == 'macOS'
+        # Match the Xcode build used by the prebuilt WebRTC archive.
+        run: echo 'DEVELOPER_DIR=/Applications/Xcode_26.0.1.app/Contents/Developer' >> "$GITHUB_ENV"
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
         # Repository and signing key: https://apt.llvm.org/#install_stable
