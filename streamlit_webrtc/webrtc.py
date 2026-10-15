@@ -10,6 +10,7 @@ from typing import (
     Callable,
     Dict,
     Generic,
+    List,
     Literal,
     Optional,
     Set,
@@ -29,6 +30,12 @@ from aiortc.sdp import candidate_from_sdp
 
 from streamlit_webrtc.shutdown import SessionShutdownObserver
 
+from .datachannel import (
+    DataChannel,
+    DataChannelMessageCallback,
+    DataChannelSpec,
+    create_data_channels,
+)
 from .eventloop import get_global_event_loop, loop_context
 from .models import (
     AudioFrameCallback,
@@ -154,6 +161,7 @@ async def _process_offer_coro(
     sendback_audio: bool,
     on_track_created: Callable[[TrackType, MediaStreamTrack], None],
     remote_description_set_event: asyncio.Event,
+    on_remote_description_set: Callable[[], None],
 ):
     def _source_for(kind: str) -> Optional[MediaStreamTrack]:
         return source_audio_track if kind == "audio" else source_video_track
@@ -291,6 +299,7 @@ async def _process_offer_coro(
 
     await pc.setRemoteDescription(offer)
     remote_description_set_event.set()
+    on_remote_description_set()
 
     if mode == WebRtcMode.RECVONLY:
         for t in pc.getTransceivers():
@@ -466,6 +475,10 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     def output_audio_track(self) -> Optional[MediaStreamTrack]:
         return self._output_audio_track
 
+    @property
+    def data_channels(self) -> Dict[str, DataChannel]:
+        return self._data_channels
+
     def __init__(
         self,
         mode: WebRtcMode,
@@ -493,6 +506,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         *,
         loop: Optional[asyncio.AbstractEventLoop] = None,
         relay: Optional[MediaRelay] = None,
+        data_channel_specs: Optional[List[DataChannelSpec]] = None,
+        on_data_channel_message: Optional[DataChannelMessageCallback] = None,
     ) -> None:
         # Resolve runtime-bound dependencies once at construction so subsequent
         # methods can run without touching Streamlit's Runtime singleton.
@@ -529,6 +544,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self.audio_receiver_size = audio_receiver_size
         self.sendback_video = sendback_video
         self.sendback_audio = sendback_audio
+        self.data_channel_specs = data_channel_specs or []
+        self.on_data_channel_message = on_data_channel_message
+        self._data_channels: Dict[str, DataChannel] = {}
 
         self._video_processor: Optional[
             Union[VideoProcessorT, CallbackAttachableProcessor]
@@ -692,6 +710,22 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                         )
                 self.stop()
 
+        def on_remote_description_set():
+            if not self.data_channel_specs:
+                return
+            if self.pc.sctp is None:
+                logger.warning(
+                    "Data channels are configured, "
+                    "but the offer does not negotiate an SCTP transport for them."
+                )
+                return
+            self._data_channels = create_data_channels(
+                self.pc,
+                self.data_channel_specs,
+                loop,
+                lambda: self.on_data_channel_message,
+            )
+
         process_offer_task = asyncio.run_coroutine_threadsafe(
             _process_offer_coro(
                 self.mode,
@@ -713,6 +747,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 sendback_audio=self.sendback_audio,
                 on_track_created=on_track_created,
                 remote_description_set_event=self._remote_description_set,
+                on_remote_description_set=on_remote_description_set,
             ),
             loop=loop,
         )

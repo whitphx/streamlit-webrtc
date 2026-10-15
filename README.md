@@ -263,6 +263,57 @@ video_track = create_video_source_track(
 
 `lifecycle_scope` applies to source/sink factory helpers and `create_pcm_audio_source_track()`. It does not affect `webrtc_streamer()` itself, `create_process_track()`, or `create_mix_track()`, whose lifecycles are tied to input tracks or explicit mixer reuse.
 
+## Data channels
+
+A `webrtc_streamer()` connection can also carry [data channels](https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel) for application data: detections to draw over the video in the browser, captions, input events sent to the server without a script rerun, or binary data for a client-side renderer. Declare the channels with `data_channels`, receive browser messages with `on_data_channel_message`, and consume them in the browser with your own JavaScript passed as `frontend_script`.
+
+```python
+import json
+
+from streamlit_webrtc import webrtc_streamer
+
+FRONTEND_SCRIPT = """
+export default function ({ channels, root, pc }) {
+  root.style.cssText = "position: absolute; inset: 0";  // Overlay the video.
+  const label = document.createElement("div");
+  root.appendChild(label);
+  channels.events.addEventListener("message", (event) => {
+    label.textContent = JSON.parse(event.data).text;
+  });
+  root.addEventListener("click", () => channels.events.send("clicked"));
+  return () => { /* Cleanup when the session ends. */ };
+}
+"""
+
+
+def on_data_channel_message(channel, message):
+    channel.send(json.dumps({"text": f"server got {message!r}"}))
+
+
+ctx = webrtc_streamer(
+    key="example",
+    data_channels={"events": {}},
+    on_data_channel_message=on_data_channel_message,
+    frontend_script=FRONTEND_SCRIPT,
+)
+```
+
+On the server, `ctx.data_channels` maps each label to a `DataChannel` whose `send()` takes `str` or bytes-like data and can be called from any thread, including the frame callbacks. A message sent while the channel is not open is dropped. Check `buffered_amount` before sending to skip messages that a slow link cannot keep up with. `on_data_channel_message` runs on the event loop that drives every WebRTC connection, so keep it short and hand heavy work off to another thread.
+
+Each channel takes the [`RTCDataChannelInit`](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createDataChannel#options) delivery options `ordered`, `maxRetransmits`, `maxPacketLifeTime`, and `protocol`. Data that the next message supersedes, such as per-frame detections or pointer positions, is better sent with `{"ordered": False, "maxRetransmits": 0}` so a lost message is skipped rather than delaying the ones behind it.
+
+`frontend_script` is the source of a JavaScript module whose default export is called at the start of each WebRTC session, inside the component's iframe. It receives:
+
+* `channels`: the browser's [`RTCDataChannel`](https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel) objects, keyed by label. Binary messages arrive as `ArrayBuffer`s.
+* `root`: a `<div>` the script owns. It sits below the media element inside a positioned box, so `position: absolute; inset: 0` turns it into an overlay of the video. The component's height follows its size. It is emptied when the session ends.
+* `pc`: the [`RTCPeerConnection`](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection), e.g. to read statistics.
+
+It may return a cleanup function, called when the session ends. Changes to `frontend_script` take effect from the next session. The script runs with the page's privileges like the rest of your app's code, so never build it from user input.
+
+To line data up with the audio or video it belongs to, keep in mind that a message is handled as soon as it arrives, while media first waits in the receiver's jitter buffer. Holding messages back by the receiver's current `jitterBufferDelay` per emitted sample (from `pc.getStats()`) matches them to the audio well enough for visualizations; see `pages/20_data_channel_binary.py`.
+
+See `pages/19_data_channel_overlay.py`, `pages/20_data_channel_binary.py`, and `pages/21_data_channel_controls.py` for complete examples.
+
 ## Class-based callbacks
 The function-based callbacks (`video_frame_callback` / `audio_frame_callback`) shown above are the recommended API.
 

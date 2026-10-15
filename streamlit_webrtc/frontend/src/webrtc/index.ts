@@ -4,8 +4,21 @@ import { connectReducer, initialState } from "./reducer";
 import { useUniqueId } from "./use-unique-id";
 import { openInputMediaStream } from "./open-input-media-stream";
 import { switchInputDevice, type InputDeviceKind } from "./switch-input-device";
+import {
+  loadFrontendScript,
+  type FrontendScriptCleanup,
+} from "./frontend-script";
 
 export type { InputDeviceKind };
+
+export interface DataChannelSpec {
+  label: string;
+  id: number;
+  ordered?: boolean;
+  maxPacketLifeTime?: number;
+  maxRetransmits?: number;
+  protocol?: string;
+}
 
 export type WebRtcMode = "RECVONLY" | "SENDONLY" | "SENDRECV";
 export const isWebRtcMode = (val: unknown): val is WebRtcMode =>
@@ -24,6 +37,9 @@ export const useWebRtc = (
     mediaStreamConstraints: MediaStreamConstraints | undefined;
     sendbackVideo: boolean;
     sendbackAudio: boolean;
+    dataChannels?: DataChannelSpec[];
+    frontendScript?: string | null;
+    frontendScriptRoot?: HTMLDivElement;
   },
   videoDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
   audioDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
@@ -44,6 +60,7 @@ export const useWebRtc = (
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pcRef = useRef<RTCPeerConnection>();
+  const frontendScriptCleanupRef = useRef<FrontendScriptCleanup>();
   const reducer = useMemo(
     () => connectReducer(onComponentValueChange),
     [onComponentValueChange],
@@ -66,6 +83,15 @@ export const useWebRtc = (
       if (pc == null) {
         return;
       }
+
+      const frontendScriptCleanup = frontendScriptCleanupRef.current;
+      frontendScriptCleanupRef.current = undefined;
+      try {
+        frontendScriptCleanup?.();
+      } catch (error) {
+        console.error("frontend_script cleanup failed", error);
+      }
+      props.frontendScriptRoot?.replaceChildren();
 
       // close transceivers
       if (pc.getTransceivers) {
@@ -95,7 +121,7 @@ export const useWebRtc = (
       .finally(() => {
         dispatch({ type: "STOPPED" });
       });
-  }, [state.webRtcState]);
+  }, [state.webRtcState, props.frontendScriptRoot]);
 
   const stopRef = useRef(stop);
   stopRef.current = stop;
@@ -150,6 +176,10 @@ export const useWebRtc = (
       // `getUserMedia` call below. The import is dynamic so the polyfill is
       // split into its own chunk and not paid for on initial render.
       await import("webrtc-adapter");
+
+      const frontendScriptSetup = props.frontendScript
+        ? await loadFrontendScript(props.frontendScript)
+        : undefined;
 
       dispatch({ type: "SIGNALLING_START" });
 
@@ -235,6 +265,33 @@ export const useWebRtc = (
       }
       console.debug("transceivers", pc.getTransceivers());
 
+      // Created before the offer so that it negotiates the SCTP transport.
+      // See `compile_data_channel_specs()` for why they are `negotiated`.
+      const channels = Object.fromEntries(
+        (props.dataChannels ?? []).map(({ label, ...init }) => [
+          label,
+          pc.createDataChannel(label, { ...init, negotiated: true }),
+        ]),
+      );
+
+      if (frontendScriptSetup) {
+        const root = props.frontendScriptRoot;
+        if (root == null) {
+          throw new Error("No root element for frontend_script");
+        }
+        try {
+          const cleanup = await frontendScriptSetup({ pc, channels, root });
+          if (typeof cleanup === "function") {
+            frontendScriptCleanupRef.current = cleanup;
+          }
+        } catch (error) {
+          pc.getSenders().forEach((sender) => sender.track?.stop());
+          pc.close();
+          root.replaceChildren();
+          throw error;
+        }
+      }
+
       pc.addEventListener("connectionstatechange", () => {
         console.debug("connectionstatechange", pc.connectionState);
         if (pc.connectionState === "connected") {
@@ -288,6 +345,9 @@ export const useWebRtc = (
     props.rtcConfiguration,
     props.sendbackVideo,
     props.sendbackAudio,
+    props.dataChannels,
+    props.frontendScript,
+    props.frontendScriptRoot,
     state.webRtcState,
     onDevicesOpened,
     onDevicesUnavailable,

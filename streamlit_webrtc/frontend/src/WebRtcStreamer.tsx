@@ -11,8 +11,10 @@ import InputMediaControls from "./InputMediaControls";
 import MediaStreamPlayer from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
 import { useRenderData } from "streamlit-component-lib-react-hooks";
+import { Streamlit } from "streamlit-component-lib";
 import {
   useWebRtc,
+  type DataChannelSpec,
   WebRtcMode,
   isWebRtcMode,
   isReceivable,
@@ -61,6 +63,8 @@ interface WebRtcStreamerInnerProps {
   videoHtmlAttrs: Record<string, string>;
   audioHtmlAttrs: Record<string, string>;
   mediaToggleControls: boolean;
+  dataChannels?: DataChannelSpec[];
+  frontendScript?: string | null;
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
 export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
@@ -121,8 +125,27 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     },
     [],
   );
+  // Created outside React so that it, and whatever the script put in it,
+  // survives the media view being unmounted, e.g. while the device picker
+  // replaces it mid-session.
+  const [frontendScriptRoot] = useState(() => document.createElement("div"));
+  const attachFrontendScriptRoot = useCallback(
+    (container: HTMLDivElement | null) => {
+      container?.appendChild(frontendScriptRoot);
+    },
+    [frontendScriptRoot],
+  );
+  const hasFrontendScript = props.frontendScript != null;
+  // The script can change the root's size at any time, which none of the
+  // renders that otherwise refresh the frame height would notice.
+  useEffect(() => {
+    if (!hasFrontendScript) return;
+    const observer = new ResizeObserver(() => Streamlit.setFrameHeight());
+    observer.observe(frontendScriptRoot);
+    return () => observer.disconnect();
+  }, [hasFrontendScript, frontendScriptRoot]);
   const { state, start, stop, updateInputDevice } = useWebRtc(
-    props,
+    { ...props, frontendScriptRoot },
     deviceIds.video,
     deviceIds.audio,
     props.onComponentValueChange,
@@ -289,6 +312,16 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     );
   }
 
+  const media = state.outputMediaStream ? (
+    <MediaStreamPlayer
+      stream={state.outputMediaStream}
+      userDefinedVideoAttrs={props.videoHtmlAttrs}
+      userDefinedAudioAttrs={props.audioHtmlAttrs}
+    />
+  ) : (
+    receivable && <Placeholder loading={state.webRtcState === "SIGNALLING"} />
+  );
+
   return (
     <Box>
       <InfoHeader
@@ -299,19 +332,20 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
           state.webRtcState === "SIGNALLING" && isTakingTooLong
         }
       />
-      <Box py={1} display="flex">
-        {state.outputMediaStream ? (
-          <MediaStreamPlayer
-            stream={state.outputMediaStream}
-            userDefinedVideoAttrs={props.videoHtmlAttrs}
-            userDefinedAudioAttrs={props.audioHtmlAttrs}
-          />
-        ) : (
-          receivable && (
-            <Placeholder loading={state.webRtcState === "SIGNALLING"} />
-          )
-        )}
-      </Box>
+      {hasFrontendScript ? (
+        <Box py={1}>
+          {/* A script can overlay the media by making its root
+              `position: absolute; inset: 0` inside this box. */}
+          <Box position="relative">
+            <Box display="flex">{media}</Box>
+            <div ref={attachFrontendScriptRoot} />
+          </Box>
+        </Box>
+      ) : (
+        <Box py={1} display="flex">
+          {media}
+        </Box>
+      )}
       {(userControlsPlayingState || showMediaToggleControls) && (
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Box display="flex" alignItems="center" gap={1}>
@@ -381,6 +415,8 @@ function WebRtcStreamer() {
   const audioHtmlAttrs = renderData.args.audio_html_attrs;
   const mediaToggleControls: boolean =
     renderData.args.media_toggle_controls ?? true;
+  const dataChannels: DataChannelSpec[] = renderData.args.data_channels ?? [];
+  const frontendScript: string | null = renderData.args.frontend_script ?? null;
 
   if (!isWebRtcMode(mode)) {
     throw new Error(`Invalid mode ${mode}`);
@@ -400,6 +436,8 @@ function WebRtcStreamer() {
       videoHtmlAttrs={videoHtmlAttrs}
       audioHtmlAttrs={audioHtmlAttrs}
       mediaToggleControls={mediaToggleControls}
+      dataChannels={dataChannels}
+      frontendScript={frontendScript}
       onComponentValueChange={setComponentValue}
     />
   );

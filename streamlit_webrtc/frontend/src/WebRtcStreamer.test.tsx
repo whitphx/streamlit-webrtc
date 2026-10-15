@@ -43,10 +43,16 @@ vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
     onSelectionResolved: (devices: { video?: string; audio?: string }) => void;
     onVideoSelect: (deviceId: string) => Promise<void> | void;
     onAudioSelect: (deviceId: string) => Promise<void> | void;
+    onClose: () => void;
     switchError?: Error | null;
   }) {
-    const { onSelectionResolved, onVideoSelect, onAudioSelect, switchError } =
-      props;
+    const {
+      onSelectionResolved,
+      onVideoSelect,
+      onAudioSelect,
+      onClose,
+      switchError,
+    } = props;
     useEffect(() => {
       onSelectionResolved(resolvedSelection);
     }, [onSelectionResolved]);
@@ -63,6 +69,9 @@ vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
         </button>
         <button type="button" onClick={selectAudio}>
           Choose another microphone
+        </button>
+        <button type="button" onClick={onClose}>
+          Close
         </button>
         {switchError != null && <div role="alert">{switchError.message}</div>}
       </div>
@@ -108,12 +117,14 @@ function makeStream() {
 
 function renderStreamer({
   mediaToggleControls = true,
+  frontendScript = undefined,
   webRtcState = "PLAYING",
   updateInputDevice = vi
     .fn<(kind: "video" | "audio", deviceId: string) => Promise<void>>()
     .mockResolvedValue(undefined),
 }: {
   mediaToggleControls?: boolean;
+  frontendScript?: string;
   webRtcState?: "STOPPED" | "PLAYING";
   updateInputDevice?: (
     kind: "video" | "audio",
@@ -154,15 +165,17 @@ function renderStreamer({
       videoHtmlAttrs={{}}
       audioHtmlAttrs={{}}
       mediaToggleControls={mediaToggleControls}
+      frontendScript={frontendScript}
       onComponentValueChange={vi.fn()}
     />
   );
   const { rerender } = render(streamer());
 
-  const [, , , , onDevicesOpened, onDevicesUnavailable] =
+  const [webRtcProps, , , , onDevicesOpened, onDevicesUnavailable] =
     vi.mocked(useWebRtc).mock.calls[0];
 
   return {
+    frontendScriptRoot: webRtcProps.frontendScriptRoot,
     updateInputDevice,
     onDevicesOpened,
     onDevicesUnavailable,
@@ -576,5 +589,28 @@ describe("<WebRtcStreamerInner />", () => {
         { clearing: false },
       ),
     );
+  });
+
+  it("keeps the frontend script's root, and its content, across the device picker", async () => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+    stubDevices();
+    const { frontendScriptRoot } = renderStreamer({
+      frontendScript: "export default () => {}",
+    });
+    expect(frontendScriptRoot?.isConnected).toBe(true);
+    const canvas = document.createElement("canvas");
+    frontendScriptRoot?.appendChild(canvas);
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Device" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Close" }));
+
+    expect(frontendScriptRoot?.isConnected).toBe(true);
+    expect(canvas.isConnected).toBe(true);
   });
 });
