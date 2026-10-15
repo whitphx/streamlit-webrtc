@@ -792,6 +792,8 @@ def webrtc_streamer(
             audio_constraint is True or isinstance(audio_constraint, dict)
         ):
             raise ValueError('backend="native" requires audio-only media constraints')
+        # Remembered camera selections can re-enable video if this key is omitted.
+        media_stream_constraints = {**media_stream_constraints, "video": False}
         # SENDRECV otherwise adds a video receive transceiver even without a camera.
         sendback_video = False
         load_native_peer()

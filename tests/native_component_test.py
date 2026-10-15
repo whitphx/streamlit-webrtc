@@ -46,6 +46,21 @@ def test_native_default_negotiates_only_audio(native_component):
     assert args["mode"] == "SENDRECV"
 
 
+@pytest.mark.parametrize("audio", [True, {}, {"echoCancellation": False}])
+def test_native_disables_omitted_video_without_mutating_constraints(
+    native_component, audio
+):
+    constraints = {"audio": audio}
+    component.webrtc_streamer(
+        key="native", backend="native", media_stream_constraints=constraints
+    )
+
+    args = native_component.render.call_args.kwargs
+    assert args["media_stream_constraints"] == {"audio": audio, "video": False}
+    assert args["sendback_video"] is False
+    assert constraints == {"audio": audio}
+
+
 def test_native_accepts_audio_constraint_dictionary(native_component):
     constraints = {"audio": {}, "video": False}
     component.webrtc_streamer(
