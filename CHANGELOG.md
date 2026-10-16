@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.78.2'></a>
+## 0.78.2 — 2026-10-12
+
+### Chore
+
+- Add an experimental native audio companion package with bundled WebRTC wheel builds and transport tests.
+
 <a id='changelog-0.78.1'></a>
 ## 0.78.1 — 2026-09-18
 
