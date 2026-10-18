@@ -33,17 +33,17 @@ class TestCompileDataChannelSpecs:
 class TestDataChannelSend:
     @pytest.mark.asyncio
     async def test_sends_on_the_loop_from_another_thread(self) -> None:
-        raw = Mock(readyState="open")
+        raw = Mock(readyState="open", bufferedAmount=0)
         channel = DataChannel(raw, asyncio.get_running_loop())
 
-        await asyncio.to_thread(channel.send, "hello")
+        assert await asyncio.to_thread(channel.send, "hello") is True
         await asyncio.sleep(0)
 
         raw.send.assert_called_once_with("hello")
 
     @pytest.mark.asyncio
     async def test_copies_bytes_like_data(self) -> None:
-        raw = Mock(readyState="open")
+        raw = Mock(readyState="open", bufferedAmount=0)
         channel = DataChannel(raw, asyncio.get_running_loop())
         buffer = bytearray(b"abc")
 
@@ -54,20 +54,44 @@ class TestDataChannelSend:
         raw.send.assert_called_once_with(b"abc")
 
     @pytest.mark.asyncio
-    async def test_drops_messages_unless_open(self) -> None:
-        raw = Mock(readyState="connecting")
+    async def test_returns_false_unless_open(self) -> None:
+        raw = Mock(readyState="connecting", bufferedAmount=0)
         channel = DataChannel(raw, asyncio.get_running_loop())
 
-        channel.send(b"early")
+        assert channel.send(b"early") is False
         await asyncio.sleep(0)
 
         raw.send.assert_not_called()
 
-    def test_drops_messages_after_the_loop_closed(self) -> None:
+    @pytest.mark.asyncio
+    async def test_drops_a_queued_message_if_the_channel_closed_meanwhile(
+        self,
+    ) -> None:
+        raw = Mock(readyState="open", bufferedAmount=0)
+        channel = DataChannel(raw, asyncio.get_running_loop())
+
+        assert channel.send(b"late") is True
+        raw.readyState = "closed"
+        await asyncio.sleep(0)
+
+        raw.send.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_returns_false_above_max_buffered(self) -> None:
+        raw = Mock(readyState="open", bufferedAmount=1000)
+        channel = DataChannel(raw, asyncio.get_running_loop())
+
+        assert channel.send(b"skipped", max_buffered=999) is False
+        assert channel.send(b"sent", max_buffered=1000) is True
+        await asyncio.sleep(0)
+
+        raw.send.assert_called_once_with(b"sent")
+
+    def test_returns_false_after_the_loop_closed(self) -> None:
         loop = asyncio.new_event_loop()
         loop.close()
-        raw = Mock(readyState="open")
+        raw = Mock(readyState="open", bufferedAmount=0)
 
-        DataChannel(raw, loop).send("late")
+        assert DataChannel(raw, loop).send("late") is False
 
         raw.send.assert_not_called()

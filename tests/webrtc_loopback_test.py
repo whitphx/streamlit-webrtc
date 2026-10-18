@@ -452,7 +452,7 @@ async def test_data_channels_carry_messages_both_ways() -> None:
             lambda: worker.data_channels["frames"].ready_state == "open",
             loop.time() + 15,
         )
-        await asyncio.to_thread(worker.data_channels["frames"].send, b"\x00\x01")
+        assert await asyncio.to_thread(worker.data_channels["frames"].send, b"\x00\x01")
         assert await _drain_until(
             lambda: b"\x00\x01" in received_by_client, loop.time() + 5
         )

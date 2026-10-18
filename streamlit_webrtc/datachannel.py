@@ -80,18 +80,31 @@ class DataChannel:
     def buffered_amount(self) -> int:
         """Bytes queued for sending but not yet handed to the network.
 
-        Check this before sending to skip messages a slow link can't keep up
-        with, instead of letting the queue (and the latency) grow.
+        ``send(data, max_buffered=...)`` checks it to skip messages a slow
+        link can't keep up with, instead of letting the queue (and the
+        latency) grow.
         """
         return self._channel.bufferedAmount
 
-    def send(self, data: Union[str, bytes, bytearray, memoryview]) -> None:
+    def send(
+        self,
+        data: Union[str, bytes, bytearray, memoryview],
+        max_buffered: Optional[int] = None,
+    ) -> bool:
         """Send ``data`` to the browser.
 
         A ``str`` arrives as a string message and anything bytes-like as a
-        binary ``ArrayBuffer``. The message is dropped if the channel is not
-        open when it is sent.
+        binary ``ArrayBuffer``.
+
+        Returns ``True`` when the message was queued for sending, and
+        ``False`` when it was not sent because the channel is not open or
+        because more than ``max_buffered`` bytes are already waiting in
+        ``buffered_amount``.
         """
+        if self._channel.readyState != "open":
+            return False
+        if max_buffered is not None and self._channel.bufferedAmount > max_buffered:
+            return False
         if not isinstance(data, (str, bytes)):
             # Copy now: the send happens later on the event loop thread,
             # and the caller may reuse the buffer in the meantime.
@@ -99,14 +112,16 @@ class DataChannel:
         try:
             self._loop.call_soon_threadsafe(self._send, data)
         except RuntimeError:
-            logger.debug("The event loop is closed. Drop a message to %s", self.label)
+            return False
+        return True
 
     def _send(self, data: DataChannelMessage) -> None:
+        # The channel can close between the check in `send()`
+        # and this call on the event loop thread.
         if self._channel.readyState != "open":
             logger.debug(
-                "Data channel %s is %s. Drop a message.",
+                "Data channel %s closed before a queued message was sent.",
                 self.label,
-                self._channel.readyState,
             )
             return
         self._channel.send(data)

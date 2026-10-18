@@ -298,7 +298,7 @@ ctx = webrtc_streamer(
 )
 ```
 
-On the server, `ctx.data_channels` maps each label to a `DataChannel` whose `send()` takes `str` or bytes-like data and can be called from any thread, including the frame callbacks. A message sent while the channel is not open is dropped. Check `buffered_amount` before sending to skip messages that a slow link cannot keep up with. `on_data_channel_message` runs on the event loop that drives every WebRTC connection, so keep it short and hand heavy work off to another thread.
+On the server, `ctx.data_channels` maps each label to a `DataChannel` whose `send()` takes `str` or bytes-like data and can be called from any thread, including the frame callbacks. It returns `False` instead of sending when the channel is not open, and `True` once the message is queued. Pass `max_buffered` (in bytes) to also skip the message when more than that is already waiting in `buffered_amount`, so that a slow link drops messages instead of falling further behind. `on_data_channel_message` runs on the event loop that drives every WebRTC connection, so keep it short and hand heavy work off to another thread.
 
 Each channel takes the [`RTCDataChannelInit`](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createDataChannel#options) delivery options `ordered`, `maxRetransmits`, `maxPacketLifeTime`, and `protocol`. Data that the next message supersedes, such as per-frame detections or pointer positions, is better sent with `{"ordered": False, "maxRetransmits": 0}` so a lost message is skipped rather than delaying the ones behind it.
 
