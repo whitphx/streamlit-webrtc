@@ -3,7 +3,8 @@
 The server detects moving regions in the camera stream and sends their boxes
 over a data channel; `frontend_script` draws them on a canvas laid over the
 video. The video itself goes back unmodified, so the overlay stays sharp and
-costs no re-encoding.
+costs no re-encoding. The colour and the area threshold are applied in the
+browser and updated through `frontend_data`.
 """
 
 import json
@@ -17,37 +18,59 @@ from streamlit_webrtc import WebRtcMode, WebRtcStreamerContext, webrtc_streamer
 
 st.title("Client-side detection overlay")
 
-min_area = st.slider("Minimum box area (% of the frame)", 0.1, 10.0, 0.5, 0.1)
+# These reach the running overlay through `frontend_data`, so changing them
+# restyles and refilters the boxes without restarting the stream.
+color = st.color_picker("Box colour", "#ff4081")
+MIN_AREA_LOWER_BOUND = 0.1
+min_area = st.slider(
+    "Minimum box area (% of the frame)", MIN_AREA_LOWER_BOUND, 10.0, 0.5, 0.1
+)
 
 FRONTEND_SCRIPT = """
-export default function ({ channels, root }) {
+export default function ({ channels, root, data }) {
   root.style.cssText = "position: absolute; inset: 0; pointer-events: none";
   const canvas = document.createElement("canvas");
   canvas.style.cssText = "width: 100%; height: 100%";
   root.appendChild(canvas);
   const ctx = canvas.getContext("2d");
 
+  let { color, minArea } = data;
+  let boxes = [];
+  const draw = () => {
+    const { width, height } = canvas;
+    ctx.clearRect(0, 0, width, height);
+    ctx.lineWidth = 2 * devicePixelRatio;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.font = `${12 * devicePixelRatio}px sans-serif`;
+    for (const { x, y, w, h, area } of boxes) {
+      if (area < minArea) continue;
+      ctx.strokeRect(x * width, y * height, w * width, h * height);
+      ctx.fillText(`motion ${area.toFixed(1)}%`, x * width, y * height - 4 * devicePixelRatio);
+    }
+  };
+
   const resizeObserver = new ResizeObserver(() => {
     canvas.width = root.clientWidth * devicePixelRatio;
     canvas.height = root.clientHeight * devicePixelRatio;
+    draw();
   });
   resizeObserver.observe(root);
 
   channels.detections.addEventListener("message", (event) => {
-    const { boxes } = JSON.parse(event.data);
-    const { width, height } = canvas;
-    ctx.clearRect(0, 0, width, height);
-    ctx.lineWidth = 2 * devicePixelRatio;
-    ctx.strokeStyle = "#ff4081";
-    ctx.fillStyle = "#ff4081";
-    ctx.font = `${12 * devicePixelRatio}px sans-serif`;
-    for (const { x, y, w, h, label } of boxes) {
-      ctx.strokeRect(x * width, y * height, w * width, h * height);
-      ctx.fillText(label, x * width, y * height - 4 * devicePixelRatio);
-    }
+    boxes = JSON.parse(event.data).boxes;
+    draw();
   });
 
-  return () => resizeObserver.disconnect();
+  return {
+    update(newData) {
+      ({ color, minArea } = newData);
+      draw();
+    },
+    cleanup() {
+      resizeObserver.disconnect();
+    },
+  };
 }
 """
 
@@ -70,7 +93,8 @@ def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
         area_percent = 100 * w * h / (width * height)
-        if area_percent < min_area:
+        # No setting of the slider shows these, so they are not worth sending.
+        if area_percent < MIN_AREA_LOWER_BOUND:
             continue
         boxes.append(
             {
@@ -78,13 +102,17 @@ def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
                 "y": y / height,
                 "w": w / width,
                 "h": h / height,
-                "label": f"motion {area_percent:.1f}%",
+                "area": area_percent,
             }
         )
 
     channels = ctx.data_channels if ctx else None
     if channels and "detections" in channels:
-        channels["detections"].send(json.dumps({"boxes": boxes}))
+        # Skip this frame's boxes rather than queue them behind older ones
+        # that a slow link has not delivered yet.
+        channels["detections"].send(
+            json.dumps({"boxes": boxes}), max_buffered=64 * 1024
+        )
 
     return frame
 
@@ -98,4 +126,5 @@ ctx = webrtc_streamer(
     # skipped than retransmitted.
     data_channels={"detections": {"ordered": False, "maxRetransmits": 0}},
     frontend_script=FRONTEND_SCRIPT,
+    frontend_data={"color": color, "minArea": min_area},
 )

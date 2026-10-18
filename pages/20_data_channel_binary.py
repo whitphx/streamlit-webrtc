@@ -33,7 +33,7 @@ SPECTRUM_STRUCT = struct.Struct(f"<I{NUM_BANDS}f")
 FRONTEND_SCRIPT = """
 const NUM_BANDS = __NUM_BANDS__;
 
-export default function ({ pc, channels, root }) {
+export default function ({ pc, channels, root, media }) {
   const canvas = document.createElement("canvas");
   canvas.width = 640;
   canvas.height = 200;
@@ -78,6 +78,13 @@ export default function ({ pc, channels, root }) {
   let animationFrame;
   const draw = () => {
     animationFrame = requestAnimationFrame(draw);
+    // A paused live stream resumes at the live edge, so the spectra of the
+    // audio missed meanwhile are never due.
+    if (media.audio.srcObject && media.audio.paused) {
+      queue.length = 0;
+      status.textContent = "paused";
+      return;
+    }
     let frame;
     while (queue.length > 0 && queue[0].dueAt <= performance.now()) {
       frame = queue.shift();
