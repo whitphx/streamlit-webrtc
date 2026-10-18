@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   act,
   cleanup,
@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import { WebRtcStreamerInner } from "./WebRtcStreamer";
 import { useWebRtc } from "./webrtc";
 import { persistDeviceIds } from "./device-storage";
+import { FrontendScriptError } from "./webrtc/frontend-script";
 import { makeDevice, stubMediaDevices } from "./media-devices-test-utils";
 
 vi.mock("streamlit-component-lib-react-hooks", () => ({
@@ -119,6 +120,8 @@ function renderStreamer({
   mediaToggleControls = true,
   frontendScript = undefined,
   webRtcState = "PLAYING",
+  outputMediaStream = null,
+  error = null,
   updateInputDevice = vi
     .fn<(kind: "video" | "audio", deviceId: string) => Promise<void>>()
     .mockResolvedValue(undefined),
@@ -126,6 +129,8 @@ function renderStreamer({
   mediaToggleControls?: boolean;
   frontendScript?: string;
   webRtcState?: "STOPPED" | "PLAYING";
+  outputMediaStream?: MediaStream | null;
+  error?: Error | null;
   updateInputDevice?: (
     kind: "video" | "audio",
     deviceId: string,
@@ -140,9 +145,9 @@ function renderStreamer({
         webRtcState: currentState as typeof webRtcState,
         sdpOffer: null,
         iceCandidates: {},
-        outputMediaStream: null,
+        outputMediaStream,
         inputMediaStream,
-        error: null,
+        error,
       },
       start: vi.fn(),
       stop: vi.fn(),
@@ -175,7 +180,11 @@ function renderStreamer({
     vi.mocked(useWebRtc).mock.calls[0];
 
   return {
-    frontendScriptRoot: webRtcProps.frontendScriptRoot,
+    frontendScriptRootRef: webRtcProps.frontendScriptRootRef,
+    frontendScriptMediaRef: webRtcProps.frontendScriptMediaRef,
+    rerender: async () => {
+      await act(async () => rerender(streamer()));
+    },
     updateInputDevice,
     onDevicesOpened,
     onDevicesUnavailable,
@@ -591,26 +600,84 @@ describe("<WebRtcStreamerInner />", () => {
     );
   });
 
-  it("keeps the frontend script's root, and its content, across the device picker", async () => {
-    vi.stubGlobal(
-      "ResizeObserver",
-      class {
-        observe() {}
-        disconnect() {}
-      },
-    );
-    stubDevices();
-    const { frontendScriptRoot } = renderStreamer({
-      frontendScript: "export default () => {}",
+  describe("with a frontend script", () => {
+    beforeEach(() => {
+      vi.stubGlobal(
+        "ResizeObserver",
+        class {
+          observe() {}
+          disconnect() {}
+        },
+      );
     });
-    expect(frontendScriptRoot?.isConnected).toBe(true);
-    const canvas = document.createElement("canvas");
-    frontendScriptRoot?.appendChild(canvas);
 
-    fireEvent.click(screen.getByRole("button", { name: "Select Device" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Close" }));
+    const isShown = (element: Element) => {
+      for (let e: Element | null = element; e != null; e = e.parentElement) {
+        if (getComputedStyle(e).display === "none") return false;
+      }
+      return true;
+    };
 
-    expect(frontendScriptRoot?.isConnected).toBe(true);
-    expect(canvas.isConnected).toBe(true);
+    it("keeps the script's root and media elements across the device picker", async () => {
+      stubDevices();
+      const { frontendScriptRootRef, frontendScriptMediaRef } = renderStreamer({
+        frontendScript: "export default () => {}",
+      });
+      const root = frontendScriptRootRef?.current;
+      const video = frontendScriptMediaRef?.current?.video;
+      expect(root?.isConnected).toBe(true);
+      expect(video?.isConnected).toBe(true);
+      const canvas = document.createElement("canvas");
+      root?.appendChild(canvas);
+
+      fireEvent.click(screen.getByRole("button", { name: "Select Device" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Close" }));
+
+      expect(frontendScriptRootRef?.current).toBe(root);
+      expect(frontendScriptMediaRef?.current?.video).toBe(video);
+      expect(canvas.isConnected).toBe(true);
+      expect(isShown(canvas)).toBe(true);
+    });
+
+    it("plays an audio-only stream in the audio element, leaving the root free for the app's own visuals", async () => {
+      const audioOnlyStream = {
+        getVideoTracks: () => [],
+        getAudioTracks: () => [{}],
+      } as unknown as MediaStream;
+      const { frontendScriptRootRef, frontendScriptMediaRef, rerender } =
+        renderStreamer({
+          frontendScript: "export default () => {}",
+          outputMediaStream: audioOnlyStream,
+        });
+      const { video, audio } = frontendScriptMediaRef?.current ?? {};
+      const canvas = document.createElement("canvas");
+      frontendScriptRootRef?.current?.appendChild(canvas);
+
+      expect(audio?.srcObject).toBe(audioOnlyStream);
+      expect(isShown(audio as HTMLAudioElement)).toBe(true);
+      expect(video?.srcObject).toBeNull();
+      expect(isShown(video as HTMLVideoElement)).toBe(false);
+      expect(isShown(canvas)).toBe(true);
+      expect(screen.queryByTestId("VideoLabelIcon")).toBeNull();
+
+      // An app drawing its own player hides the component's one, and a
+      // rerun leaves it hidden.
+      (audio as HTMLAudioElement).hidden = true;
+      await rerender();
+      expect(audio?.hidden).toBe(true);
+      expect(audio?.srcObject).toBe(audioOnlyStream);
+    });
+
+    it("shows a script error in the component", () => {
+      renderStreamer({
+        frontendScript: "export default () => {}",
+        webRtcState: "STOPPED",
+        error: new FrontendScriptError(new Error("script bug")),
+      });
+
+      expect(screen.getByRole("alert").textContent).toBe(
+        "FrontendScriptError: script bug",
+      );
+    });
   });
 });

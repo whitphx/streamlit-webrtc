@@ -570,6 +570,7 @@ def webrtc_streamer(
     data_channels: Optional[Mapping[str, DataChannelOptions]] = None,
     on_data_channel_message: Optional[DataChannelMessageCallback] = None,
     frontend_script: Optional[str] = None,
+    frontend_data: Any = None,
 ) -> WebRtcStreamerContext:
     # XXX: We wanted something like `WebRtcStreamerContext[None, None]`
     # as the return value, but could not find a good solution
@@ -621,6 +622,7 @@ def webrtc_streamer(
     data_channels: Optional[Mapping[str, DataChannelOptions]] = None,
     on_data_channel_message: Optional[DataChannelMessageCallback] = None,
     frontend_script: Optional[str] = None,
+    frontend_data: Any = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, Any]:
     pass
 
@@ -668,6 +670,7 @@ def webrtc_streamer(
     data_channels: Optional[Mapping[str, DataChannelOptions]] = None,
     on_data_channel_message: Optional[DataChannelMessageCallback] = None,
     frontend_script: Optional[str] = None,
+    frontend_data: Any = None,
 ) -> WebRtcStreamerContext[Any, AudioProcessorT]:
     pass
 
@@ -715,6 +718,7 @@ def webrtc_streamer(
     data_channels: Optional[Mapping[str, DataChannelOptions]] = None,
     on_data_channel_message: Optional[DataChannelMessageCallback] = None,
     frontend_script: Optional[str] = None,
+    frontend_data: Any = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     pass
 
@@ -761,6 +765,7 @@ def webrtc_streamer(
     data_channels: Optional[Mapping[str, DataChannelOptions]] = None,
     on_data_channel_message: Optional[DataChannelMessageCallback] = None,
     frontend_script: Optional[str] = None,
+    frontend_data: Any = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     # Backward compatibility
     if video_transformer_factory is not None:
@@ -889,6 +894,7 @@ def webrtc_streamer(
         sendback_audio=sendback_audio,
         data_channels=data_channel_specs,
         frontend_script=frontend_script,
+        frontend_data=frontend_data,
         on_change=_make_state_change_callback(key, frontend_key, on_change),
     )
     component_value = _restore_snapshot_if_needed(context, component_value)

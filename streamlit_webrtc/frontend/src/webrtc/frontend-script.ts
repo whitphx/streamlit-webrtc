@@ -1,14 +1,35 @@
+export interface FrontendScriptMedia {
+  video?: HTMLVideoElement;
+  audio?: HTMLAudioElement;
+}
+
 export interface FrontendScriptContext {
   pc: RTCPeerConnection;
   channels: Record<string, RTCDataChannel>;
   root: HTMLDivElement;
+  media: FrontendScriptMedia;
+  data: unknown;
 }
 
-export type FrontendScriptCleanup = () => void;
+export interface FrontendScriptHandle {
+  update?: (data: unknown) => void;
+  cleanup?: () => void;
+}
 
 export type FrontendScriptSetup = (
   context: FrontendScriptContext,
-) => void | FrontendScriptCleanup | Promise<void | FrontendScriptCleanup>;
+) =>
+  | void
+  | (() => void)
+  | FrontendScriptHandle
+  | Promise<void | (() => void) | FrontendScriptHandle>;
+
+export class FrontendScriptError extends Error {
+  name = "FrontendScriptError";
+  constructor(error: unknown) {
+    super(error instanceof Error ? error.message : String(error));
+  }
+}
 
 export async function loadFrontendScript(
   source: string,
@@ -21,4 +42,29 @@ export async function loadFrontendScript(
     throw new Error("frontend_script must `export default` a function");
   }
   return module.default;
+}
+
+export async function setUpFrontendScript(
+  setup: FrontendScriptSetup,
+  context: FrontendScriptContext,
+): Promise<FrontendScriptHandle> {
+  const result = await setup(context);
+  if (typeof result === "function") {
+    return { cleanup: result };
+  }
+  if (result == null) {
+    return {};
+  }
+  // Called as methods so that a script returning a class instance
+  // keeps its `this`.
+  return {
+    update:
+      typeof result.update === "function"
+        ? (data) => result.update?.(data)
+        : undefined,
+    cleanup:
+      typeof result.cleanup === "function"
+        ? () => result.cleanup?.()
+        : undefined,
+  };
 }

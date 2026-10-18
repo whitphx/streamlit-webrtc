@@ -302,13 +302,17 @@ On the server, `ctx.data_channels` maps each label to a `DataChannel` whose `sen
 
 Each channel takes the [`RTCDataChannelInit`](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createDataChannel#options) delivery options `ordered`, `maxRetransmits`, `maxPacketLifeTime`, and `protocol`. Data that the next message supersedes, such as per-frame detections or pointer positions, is better sent with `{"ordered": False, "maxRetransmits": 0}` so a lost message is skipped rather than delaying the ones behind it.
 
-`frontend_script` is the source of a JavaScript module whose default export is called at the start of each WebRTC session, inside the component's iframe. It receives:
+`frontend_script` is the source of a JavaScript module whose default export is called at the start of each WebRTC session, inside the component's iframe, before any message can arrive. It receives:
 
 * `channels`: the browser's [`RTCDataChannel`](https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel) objects, keyed by label. Binary messages arrive as `ArrayBuffer`s.
 * `root`: a `<div>` the script owns. It sits below the media element inside a positioned box, so `position: absolute; inset: 0` turns it into an overlay of the video. The component's height follows its size. It is emptied when the session ends.
 * `pc`: the [`RTCPeerConnection`](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection), e.g. to read statistics.
+* `media`: the component's own `video` and `audio` elements, in the modes that receive media. The remote stream plays in `video` when it carries video and in `audio` otherwise; the other one stays hidden. They exist before the stream arrives and stay the same for the whole session, so the script can call [`requestVideoFrameCallback()`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/requestVideoFrameCallback) or read `currentTime` and `paused` to time its drawing against the media. Treat them as read-only, apart from hiding one when the script draws its own visuals in `root` instead (`media.video.hidden = true`; an overlay `root` then has no size to cover, so keep it in flow).
+* `data`: the value passed as `frontend_data` to `webrtc_streamer()`, which must be JSON-serializable.
 
-It may return a cleanup function, called when the session ends. Changes to `frontend_script` take effect from the next session. The script runs with the page's privileges like the rest of your app's code, so never build it from user input.
+It may return a cleanup function, called when the session ends, or an object `{ update(data), cleanup() }` (both optional). On every rerun, if `frontend_data` differs from the value the script last received, `update` is called with the new value, so settings such as an overlay's colour or threshold can change without restarting the session. A script without `update` keeps the value it started with. Changes to `frontend_script` itself take effect from the next session.
+
+If the script fails to load or its setup throws, the session does not start and the error is shown in the component. The script runs with the page's privileges like the rest of your app's code, so never build it from user input.
 
 To line data up with the audio or video it belongs to, keep in mind that a message is handled as soon as it arrives, while media first waits in the receiver's jitter buffer. Holding messages back by the receiver's current `jitterBufferDelay` per emitted sample (from `pc.getStats()`) matches them to the audio well enough for visualizations; see `pages/20_data_channel_binary.py`.
 

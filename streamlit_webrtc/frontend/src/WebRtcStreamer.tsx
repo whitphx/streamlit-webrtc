@@ -8,7 +8,9 @@ import {
 } from "react";
 import Box from "@mui/material/Box";
 import InputMediaControls from "./InputMediaControls";
-import MediaStreamPlayer from "./MediaStreamPlayer";
+import MediaStreamPlayer, {
+  PersistentMediaStreamPlayer,
+} from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
 import { useRenderData } from "streamlit-component-lib-react-hooks";
 import { Streamlit } from "streamlit-component-lib";
@@ -21,6 +23,7 @@ import {
   isTransmittable,
   type InputDeviceKind,
 } from "./webrtc";
+import type { FrontendScriptMedia } from "./webrtc/frontend-script";
 import { useTimer } from "./use-timeout";
 import { getMediaUsage } from "./media-constraint";
 import { ComponentValue, setComponentValue } from "./component-value";
@@ -65,6 +68,7 @@ interface WebRtcStreamerInnerProps {
   mediaToggleControls: boolean;
   dataChannels?: DataChannelSpec[];
   frontendScript?: string | null;
+  frontendData?: unknown;
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
 export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
@@ -125,27 +129,20 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     },
     [],
   );
-  // Created outside React so that it, and whatever the script put in it,
-  // survives the media view being unmounted, e.g. while the device picker
-  // replaces it mid-session.
-  const [frontendScriptRoot] = useState(() => document.createElement("div"));
-  const attachFrontendScriptRoot = useCallback(
-    (container: HTMLDivElement | null) => {
-      container?.appendChild(frontendScriptRoot);
-    },
-    [frontendScriptRoot],
-  );
+  const frontendScriptRootRef = useRef<HTMLDivElement>(null);
+  const frontendScriptMediaRef = useRef<FrontendScriptMedia>({});
   const hasFrontendScript = props.frontendScript != null;
   // The script can change the root's size at any time, which none of the
   // renders that otherwise refresh the frame height would notice.
   useEffect(() => {
-    if (!hasFrontendScript) return;
+    const root = frontendScriptRootRef.current;
+    if (!hasFrontendScript || root == null) return;
     const observer = new ResizeObserver(() => Streamlit.setFrameHeight());
-    observer.observe(frontendScriptRoot);
+    observer.observe(root);
     return () => observer.disconnect();
-  }, [hasFrontendScript, frontendScriptRoot]);
+  }, [hasFrontendScript]);
   const { state, start, stop, updateInputDevice } = useWebRtc(
-    { ...props, frontendScriptRoot },
+    { ...props, frontendScriptRootRef, frontendScriptMediaRef },
     deviceIds.video,
     deviceIds.audio,
     props.onComponentValueChange,
@@ -294,23 +291,21 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     },
     [state.webRtcState, updateInputDevice],
   );
-  if (deviceSelectOpen) {
-    return (
-      <Suspense fallback={null}>
-        <DeviceSelectForm
-          video={videoEnabled}
-          audio={audioEnabled}
-          defaultVideoDeviceId={deviceIds.video}
-          defaultAudioDeviceId={deviceIds.audio}
-          onSelectionResolved={reconcileDeviceIds}
-          onVideoSelect={(deviceId) => selectInputDevice("video", deviceId)}
-          onAudioSelect={(deviceId) => selectInputDevice("audio", deviceId)}
-          onClose={closeDeviceSelect}
-          switchError={deviceSwitchError}
-        />
-      </Suspense>
-    );
-  }
+  const deviceSelectForm = deviceSelectOpen && (
+    <Suspense fallback={null}>
+      <DeviceSelectForm
+        video={videoEnabled}
+        audio={audioEnabled}
+        defaultVideoDeviceId={deviceIds.video}
+        defaultAudioDeviceId={deviceIds.audio}
+        onSelectionResolved={reconcileDeviceIds}
+        onVideoSelect={(deviceId) => selectInputDevice("video", deviceId)}
+        onAudioSelect={(deviceId) => selectInputDevice("audio", deviceId)}
+        onClose={closeDeviceSelect}
+        switchError={deviceSwitchError}
+      />
+    </Suspense>
+  );
 
   const media = state.outputMediaStream ? (
     <MediaStreamPlayer
@@ -322,80 +317,104 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     receivable && <Placeholder loading={state.webRtcState === "SIGNALLING"} />
   );
 
+  // The form is shown over the hidden media view rather than in its place, so
+  // that the media elements and the script's root, which a running
+  // `frontend_script` holds on to, are not replaced.
   return (
-    <Box>
-      <InfoHeader
-        // A switch started from the controls below has no form to report into,
-        // so its failure surfaces here.
-        error={state.error ?? deviceSwitchError}
-        shouldShowTakingTooLongWarning={
-          state.webRtcState === "SIGNALLING" && isTakingTooLong
-        }
-      />
-      {hasFrontendScript ? (
-        <Box py={1}>
-          {/* A script can overlay the media by making its root
+    <>
+      {deviceSelectForm}
+      <Box display={deviceSelectOpen ? "none" : undefined}>
+        <InfoHeader
+          // A switch started from the controls below has no form to report into,
+          // so its failure surfaces here.
+          error={state.error ?? deviceSwitchError}
+          shouldShowTakingTooLongWarning={
+            state.webRtcState === "SIGNALLING" && isTakingTooLong
+          }
+        />
+        {hasFrontendScript ? (
+          <Box py={1}>
+            {/* A script can overlay the media by making its root
               `position: absolute; inset: 0` inside this box. */}
-          <Box position="relative">
-            <Box display="flex">{media}</Box>
-            <div ref={attachFrontendScriptRoot} />
-          </Box>
-        </Box>
-      ) : (
-        <Box py={1} display="flex">
-          {media}
-        </Box>
-      )}
-      {(userControlsPlayingState || showMediaToggleControls) && (
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box display="flex" alignItems="center" gap={1}>
-            {userControlsPlayingState && (
-              <>
-                {state.webRtcState === "PLAYING" ||
-                state.webRtcState === "SIGNALLING" ? (
-                  <TranslatedButton
-                    variant={
-                      state.webRtcState === "SIGNALLING" && !isTakingTooLong
-                        ? "outlined"
-                        : "contained"
+            <Box position="relative">
+              <Box display="flex">
+                {receivable && (
+                  <PersistentMediaStreamPlayer
+                    stream={state.outputMediaStream}
+                    placeholder={
+                      <Placeholder
+                        loading={state.webRtcState === "SIGNALLING"}
+                      />
                     }
-                    onClick={stopWithNotification}
-                    disabled={buttonDisabled}
-                    translationKey="stop"
-                    defaultText="Stop"
-                  />
-                ) : (
-                  <TranslatedButton
-                    variant="contained"
-                    color="primary"
-                    onClick={startWithNotification}
-                    disabled={buttonDisabled}
-                    translationKey="start"
-                    defaultText="Start"
+                    mediaRef={frontendScriptMediaRef}
+                    userDefinedVideoAttrs={props.videoHtmlAttrs}
+                    userDefinedAudioAttrs={props.audioHtmlAttrs}
                   />
                 )}
-              </>
-            )}
-            {showMediaToggleControls && inputMediaStream != null && (
-              <InputMediaControls
+              </Box>
+              <div ref={frontendScriptRootRef} />
+            </Box>
+          </Box>
+        ) : (
+          <Box py={1} display="flex">
+            {media}
+          </Box>
+        )}
+        {(userControlsPlayingState || showMediaToggleControls) && (
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Box display="flex" alignItems="center" gap={1}>
+              {userControlsPlayingState && (
+                <>
+                  {state.webRtcState === "PLAYING" ||
+                  state.webRtcState === "SIGNALLING" ? (
+                    <TranslatedButton
+                      variant={
+                        state.webRtcState === "SIGNALLING" && !isTakingTooLong
+                          ? "outlined"
+                          : "contained"
+                      }
+                      onClick={stopWithNotification}
+                      disabled={buttonDisabled}
+                      translationKey="stop"
+                      defaultText="Stop"
+                    />
+                  ) : (
+                    <TranslatedButton
+                      variant="contained"
+                      color="primary"
+                      onClick={startWithNotification}
+                      disabled={buttonDisabled}
+                      translationKey="start"
+                      defaultText="Start"
+                    />
+                  )}
+                </>
+              )}
+              {showMediaToggleControls && inputMediaStream != null && (
+                <InputMediaControls
+                  disabled={buttonDisabled}
+                  stream={inputMediaStream}
+                  onSelectDevice={selectInputDevice}
+                />
+              )}
+            </Box>
+            {userControlsPlayingState && transmittable && (
+              <TranslatedButton
+                color="inherit"
+                onClick={openDeviceSelect}
                 disabled={buttonDisabled}
-                stream={inputMediaStream}
-                onSelectDevice={selectInputDevice}
+                translationKey="select_device"
+                defaultText="Select Device"
               />
             )}
           </Box>
-          {userControlsPlayingState && transmittable && (
-            <TranslatedButton
-              color="inherit"
-              onClick={openDeviceSelect}
-              disabled={buttonDisabled}
-              translationKey="select_device"
-              defaultText="Select Device"
-            />
-          )}
-        </Box>
-      )}
-    </Box>
+        )}
+      </Box>
+    </>
   );
 }
 
@@ -417,6 +436,7 @@ function WebRtcStreamer() {
     renderData.args.media_toggle_controls ?? true;
   const dataChannels: DataChannelSpec[] = renderData.args.data_channels ?? [];
   const frontendScript: string | null = renderData.args.frontend_script ?? null;
+  const frontendData: unknown = renderData.args.frontend_data ?? null;
 
   if (!isWebRtcMode(mode)) {
     throw new Error(`Invalid mode ${mode}`);
@@ -438,6 +458,7 @@ function WebRtcStreamer() {
       mediaToggleControls={mediaToggleControls}
       dataChannels={dataChannels}
       frontendScript={frontendScript}
+      frontendData={frontendData}
       onComponentValueChange={setComponentValue}
     />
   );

@@ -1,12 +1,23 @@
-import { useReducer, useCallback, useRef, useEffect, useMemo } from "react";
+import {
+  useReducer,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+  type RefObject,
+} from "react";
+import { dequal } from "dequal/lite";
 import { ComponentValue } from "../component-value";
 import { connectReducer, initialState } from "./reducer";
 import { useUniqueId } from "./use-unique-id";
 import { openInputMediaStream } from "./open-input-media-stream";
 import { switchInputDevice, type InputDeviceKind } from "./switch-input-device";
 import {
+  FrontendScriptError,
   loadFrontendScript,
-  type FrontendScriptCleanup,
+  setUpFrontendScript,
+  type FrontendScriptHandle,
+  type FrontendScriptMedia,
 } from "./frontend-script";
 
 export type { InputDeviceKind };
@@ -39,7 +50,9 @@ export const useWebRtc = (
     sendbackAudio: boolean;
     dataChannels?: DataChannelSpec[];
     frontendScript?: string | null;
-    frontendScriptRoot?: HTMLDivElement;
+    frontendData?: unknown;
+    frontendScriptRootRef?: RefObject<HTMLDivElement>;
+    frontendScriptMediaRef?: RefObject<FrontendScriptMedia>;
   },
   videoDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
   audioDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
@@ -60,7 +73,10 @@ export const useWebRtc = (
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pcRef = useRef<RTCPeerConnection>();
-  const frontendScriptCleanupRef = useRef<FrontendScriptCleanup>();
+  const frontendScriptHandleRef = useRef<FrontendScriptHandle>();
+  const deliveredFrontendDataRef = useRef<unknown>();
+  const frontendDataRef = useRef(props.frontendData);
+  frontendDataRef.current = props.frontendData;
   const reducer = useMemo(
     () => connectReducer(onComponentValueChange),
     [onComponentValueChange],
@@ -84,14 +100,14 @@ export const useWebRtc = (
         return;
       }
 
-      const frontendScriptCleanup = frontendScriptCleanupRef.current;
-      frontendScriptCleanupRef.current = undefined;
+      const frontendScriptHandle = frontendScriptHandleRef.current;
+      frontendScriptHandleRef.current = undefined;
       try {
-        frontendScriptCleanup?.();
+        frontendScriptHandle?.cleanup?.();
       } catch (error) {
         console.error("frontend_script cleanup failed", error);
       }
-      props.frontendScriptRoot?.replaceChildren();
+      props.frontendScriptRootRef?.current?.replaceChildren();
 
       // close transceivers
       if (pc.getTransceivers) {
@@ -121,7 +137,7 @@ export const useWebRtc = (
       .finally(() => {
         dispatch({ type: "STOPPED" });
       });
-  }, [state.webRtcState, props.frontendScriptRoot]);
+  }, [state.webRtcState, props.frontendScriptRootRef]);
 
   const stopRef = useRef(stop);
   stopRef.current = stop;
@@ -178,7 +194,10 @@ export const useWebRtc = (
       await import("webrtc-adapter");
 
       const frontendScriptSetup = props.frontendScript
-        ? await loadFrontendScript(props.frontendScript)
+        ? await loadFrontendScript(props.frontendScript).catch((error) => {
+            console.error("frontend_script failed to load", error);
+            throw new FrontendScriptError(error);
+          })
         : undefined;
 
       dispatch({ type: "SIGNALLING_START" });
@@ -275,20 +294,30 @@ export const useWebRtc = (
       );
 
       if (frontendScriptSetup) {
-        const root = props.frontendScriptRoot;
+        const root = props.frontendScriptRootRef?.current;
         if (root == null) {
           throw new Error("No root element for frontend_script");
         }
+        const { video, audio } = props.frontendScriptMediaRef?.current ?? {};
+        const data = frontendDataRef.current;
         try {
-          const cleanup = await frontendScriptSetup({ pc, channels, root });
-          if (typeof cleanup === "function") {
-            frontendScriptCleanupRef.current = cleanup;
-          }
+          frontendScriptHandleRef.current = await setUpFrontendScript(
+            frontendScriptSetup,
+            {
+              pc,
+              channels,
+              root,
+              media: { ...(video && { video }), ...(audio && { audio }) },
+              data,
+            },
+          );
+          deliveredFrontendDataRef.current = data;
         } catch (error) {
+          console.error("frontend_script setup failed", error);
           pc.getSenders().forEach((sender) => sender.track?.stop());
           pc.close();
           root.replaceChildren();
-          throw error;
+          throw new FrontendScriptError(error);
         }
       }
 
@@ -347,12 +376,30 @@ export const useWebRtc = (
     props.sendbackAudio,
     props.dataChannels,
     props.frontendScript,
-    props.frontendScriptRoot,
+    props.frontendScriptRootRef,
+    props.frontendScriptMediaRef,
     state.webRtcState,
     onDevicesOpened,
     onDevicesUnavailable,
     uniqueIdGenerator,
   ]);
+
+  // Runs after every render rather than when `frontendData` changes: each
+  // rerun brings a new object even when the data is equal, and the data can
+  // change while the script's setup is still running.
+  useEffect(() => {
+    const update = frontendScriptHandleRef.current?.update;
+    const data = frontendDataRef.current;
+    if (update == null || dequal(data, deliveredFrontendDataRef.current)) {
+      return;
+    }
+    deliveredFrontendDataRef.current = data;
+    try {
+      update(data);
+    } catch (error) {
+      console.error("frontend_script update failed", error);
+    }
+  });
 
   // processAnswer
   useEffect(() => {

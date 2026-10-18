@@ -1,7 +1,10 @@
 import { Streamlit } from "streamlit-component-lib";
+import Box from "@mui/material/Box";
+import type { FrontendScriptMedia } from "./webrtc/frontend-script";
 import React, {
   useEffect,
   useCallback,
+  type MutableRefObject,
   VideoHTMLAttributes,
   AudioHTMLAttributes,
   HTMLAttributes,
@@ -19,6 +22,50 @@ type UserDefinedHTMLAudioAttributes = Partial<
     keyof Omit<HTMLAttributes<HTMLVideoElement>, "hidden" | "style"> | "src"
   >
 >;
+
+function pickVideoProps(
+  attrs: UserDefinedHTMLVideoAttributes | undefined,
+): VideoHTMLAttributes<HTMLVideoElement> {
+  // NOTE: Enumerate all allowed props instead of simply using spread operator
+  //       passing all the fields in attrs
+  //       in order to block unexpected fields especially like dangerouslySetInnerHTML.
+  return {
+    hidden: attrs?.hidden,
+    style: attrs?.style,
+    autoPlay: attrs?.autoPlay,
+    controls: attrs?.controls,
+    controlsList: attrs?.controlsList,
+    crossOrigin: attrs?.crossOrigin,
+    loop: attrs?.loop,
+    mediaGroup: attrs?.mediaGroup,
+    muted: attrs?.muted,
+    playsInline: attrs?.playsInline,
+    preload: attrs?.preload,
+    height: attrs?.height,
+    poster: attrs?.poster,
+    width: attrs?.width,
+    disablePictureInPicture: attrs?.disablePictureInPicture,
+    disableRemotePlayback: attrs?.disableRemotePlayback,
+  };
+}
+
+function pickAudioProps(
+  attrs: UserDefinedHTMLAudioAttributes | undefined,
+): AudioHTMLAttributes<HTMLAudioElement> {
+  return {
+    hidden: attrs?.hidden,
+    style: attrs?.style,
+    autoPlay: attrs?.autoPlay,
+    controls: attrs?.controls,
+    controlsList: attrs?.controlsList,
+    crossOrigin: attrs?.crossOrigin,
+    loop: attrs?.loop,
+    mediaGroup: attrs?.mediaGroup,
+    muted: attrs?.muted,
+    playsInline: attrs?.playsInline,
+    preload: attrs?.preload,
+  };
+}
 
 interface MediaStreamPlayerProps {
   stream: MediaStream;
@@ -44,48 +91,79 @@ function MediaStreamPlayer(props: MediaStreamPlayerProps) {
   const refreshFrameHeight = useCallback(() => Streamlit.setFrameHeight(), []);
 
   if (hasVideo) {
-    // NOTE: Enumerate all allowed props instead of simply using spread operator
-    //       passing all the fields in props.userDefinedVideoAttrs
-    //       in order to block unexpected fields especially like dangerouslySetInnerHTML.
-    const videoProps: VideoHTMLAttributes<HTMLVideoElement> = {
-      hidden: props.userDefinedVideoAttrs?.hidden,
-      style: props.userDefinedVideoAttrs?.style,
-      autoPlay: props.userDefinedVideoAttrs?.autoPlay,
-      controls: props.userDefinedVideoAttrs?.controls,
-      controlsList: props.userDefinedVideoAttrs?.controlsList,
-      crossOrigin: props.userDefinedVideoAttrs?.crossOrigin,
-      loop: props.userDefinedVideoAttrs?.loop,
-      mediaGroup: props.userDefinedVideoAttrs?.mediaGroup,
-      muted: props.userDefinedVideoAttrs?.muted,
-      playsInline: props.userDefinedVideoAttrs?.playsInline,
-      preload: props.userDefinedVideoAttrs?.preload,
-      height: props.userDefinedVideoAttrs?.height,
-      poster: props.userDefinedVideoAttrs?.poster,
-      width: props.userDefinedVideoAttrs?.width,
-      disablePictureInPicture:
-        props.userDefinedVideoAttrs?.disablePictureInPicture,
-      disableRemotePlayback: props.userDefinedVideoAttrs?.disableRemotePlayback,
-    };
-
     return (
-      <video {...videoProps} ref={refCallback} onCanPlay={refreshFrameHeight} />
+      <video
+        {...pickVideoProps(props.userDefinedVideoAttrs)}
+        ref={refCallback}
+        onCanPlay={refreshFrameHeight}
+      />
     );
   } else {
-    const audioProps: AudioHTMLAttributes<HTMLAudioElement> = {
-      hidden: props.userDefinedAudioAttrs?.hidden,
-      style: props.userDefinedAudioAttrs?.style,
-      autoPlay: props.userDefinedAudioAttrs?.autoPlay,
-      controls: props.userDefinedAudioAttrs?.controls,
-      controlsList: props.userDefinedAudioAttrs?.controlsList,
-      crossOrigin: props.userDefinedAudioAttrs?.crossOrigin,
-      loop: props.userDefinedAudioAttrs?.loop,
-      mediaGroup: props.userDefinedAudioAttrs?.mediaGroup,
-      muted: props.userDefinedAudioAttrs?.muted,
-      playsInline: props.userDefinedAudioAttrs?.playsInline,
-      preload: props.userDefinedAudioAttrs?.preload,
-    };
-    return <audio ref={refCallback} {...audioProps} />;
+    return (
+      <audio
+        ref={refCallback}
+        {...pickAudioProps(props.userDefinedAudioAttrs)}
+      />
+    );
   }
 }
 
 export default React.memo(MediaStreamPlayer);
+
+interface PersistentMediaStreamPlayerProps {
+  stream: MediaStream | null;
+  placeholder: React.ReactNode;
+  mediaRef: MutableRefObject<FrontendScriptMedia>;
+  userDefinedVideoAttrs: UserDefinedHTMLVideoAttributes | undefined;
+  userDefinedAudioAttrs: UserDefinedHTMLAudioAttributes | undefined;
+}
+/**
+ * Plays the stream like `MediaStreamPlayer`, but keeps one `<video>` and one
+ * `<audio>` element mounted for as long as it is, whether a stream is playing
+ * or not, so that `frontend_script` can be handed both before the stream
+ * arrives and keep using them across the session.
+ */
+export function PersistentMediaStreamPlayer(
+  props: PersistentMediaStreamPlayerProps,
+) {
+  const { stream, mediaRef } = props;
+  useEffect(() => {
+    Streamlit.setFrameHeight();
+  });
+
+  const hasVideo = stream != null && stream.getVideoTracks().length > 0;
+  const hasAudioOnly = stream != null && !hasVideo;
+
+  useEffect(() => {
+    const { video, audio } = mediaRef.current;
+    if (video) video.srcObject = hasVideo ? stream : null;
+    if (audio) audio.srcObject = hasAudioOnly ? stream : null;
+  }, [mediaRef, stream, hasVideo, hasAudioOnly]);
+
+  const refreshFrameHeight = useCallback(() => Streamlit.setFrameHeight(), []);
+
+  return (
+    <>
+      {stream == null && props.placeholder}
+      {/* The wrappers hide whichever element is not playing, leaving the
+          elements' own `hidden` and `style` to the app. */}
+      <Box display={hasVideo ? "contents" : "none"}>
+        <video
+          {...pickVideoProps(props.userDefinedVideoAttrs)}
+          ref={(node) => {
+            mediaRef.current.video = node ?? undefined;
+          }}
+          onCanPlay={refreshFrameHeight}
+        />
+      </Box>
+      <Box display={hasAudioOnly ? "contents" : "none"}>
+        <audio
+          {...pickAudioProps(props.userDefinedAudioAttrs)}
+          ref={(node) => {
+            mediaRef.current.audio = node ?? undefined;
+          }}
+        />
+      </Box>
+    </>
+  );
+}

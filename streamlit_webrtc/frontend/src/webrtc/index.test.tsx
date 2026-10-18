@@ -1,6 +1,10 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useWebRtc, type DataChannelSpec } from ".";
+import {
+  FrontendScriptError,
+  type FrontendScriptMedia,
+} from "./frontend-script";
 
 const switchInputDevice = vi.fn<() => Promise<void>>();
 vi.mock("./switch-input-device", () => ({
@@ -8,7 +12,8 @@ vi.mock("./switch-input-device", () => ({
 }));
 vi.mock("webrtc-adapter", () => ({ default: {} }));
 const frontendScriptSetup = vi.fn();
-vi.mock("./frontend-script", () => ({
+vi.mock("./frontend-script", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./frontend-script")>()),
   loadFrontendScript: () => Promise.resolve(frontendScriptSetup),
 }));
 
@@ -62,31 +67,35 @@ class FakePeerConnection {
   close() {}
 }
 
-function renderWebRtc(
-  extraProps: {
-    dataChannels?: DataChannelSpec[];
-    frontendScript?: string;
-    frontendScriptRoot?: HTMLDivElement;
-  } = {},
-) {
-  return renderHook(() =>
-    useWebRtc(
-      {
-        ...extraProps,
-        mode: "SENDONLY",
-        desiredPlayingState: undefined,
-        sdpAnswerJson: undefined,
-        rtcConfiguration: undefined,
-        mediaStreamConstraints: { video: true, audio: false },
-        sendbackVideo: false,
-        sendbackAudio: false,
-      },
-      undefined,
-      undefined,
-      vi.fn(),
-      vi.fn(),
-      vi.fn(),
-    ),
+interface ExtraProps {
+  dataChannels?: DataChannelSpec[];
+  frontendScript?: string;
+  frontendData?: unknown;
+  frontendScriptRootRef?: { current: HTMLDivElement | null };
+  frontendScriptMediaRef?: { current: FrontendScriptMedia };
+}
+
+function renderWebRtc(initialProps: ExtraProps = {}) {
+  return renderHook(
+    (extraProps: ExtraProps) =>
+      useWebRtc(
+        {
+          ...extraProps,
+          mode: "SENDONLY",
+          desiredPlayingState: undefined,
+          sdpAnswerJson: undefined,
+          rtcConfiguration: undefined,
+          mediaStreamConstraints: { video: true, audio: false },
+          sendbackVideo: false,
+          sendbackAudio: false,
+        },
+        undefined,
+        undefined,
+        vi.fn(),
+        vi.fn(),
+        vi.fn(),
+      ),
+    { initialProps },
   );
 }
 
@@ -174,6 +183,7 @@ describe("useWebRtc", () => {
         return cleanup;
       });
       const root = document.createElement("div");
+      const video = document.createElement("video");
 
       const { result } = renderWebRtc({
         dataChannels: [
@@ -181,11 +191,14 @@ describe("useWebRtc", () => {
           { label: "frames", id: 1, ordered: false, maxRetransmits: 0 },
         ],
         frontendScript: "export default () => {}",
-        frontendScriptRoot: root,
+        frontendData: { color: "red" },
+        frontendScriptRootRef: { current: root },
+        frontendScriptMediaRef: { current: { video } },
       });
       await act(async () => result.current.start());
 
-      const [{ pc, channels, root: scriptRoot }] =
+      expect(frontendScriptSetup).toHaveBeenCalledOnce();
+      const [{ pc, channels, root: scriptRoot, media, data }] =
         frontendScriptSetup.mock.calls[0];
       expect((pc as FakePeerConnection).dataChannels).toEqual([
         { label: "events", init: { id: 0, negotiated: true } },
@@ -196,6 +209,8 @@ describe("useWebRtc", () => {
       ]);
       expect(Object.keys(channels)).toEqual(["events", "frames"]);
       expect(scriptRoot).toBe(root);
+      expect(media).toEqual({ video });
+      expect(data).toEqual({ color: "red" });
       expect(root.childElementCount).toBe(1);
 
       vi.useFakeTimers();
@@ -208,16 +223,92 @@ describe("useWebRtc", () => {
       expect(root.childElementCount).toBe(0);
     });
 
+    it("calls the script's update only when the data changes", async () => {
+      const update = vi.fn();
+      const cleanup = vi.fn();
+      frontendScriptSetup.mockReturnValue({ update, cleanup });
+      const props = {
+        frontendScript: "export default () => {}",
+        frontendData: { color: "red", threshold: 1 },
+        frontendScriptRootRef: { current: document.createElement("div") },
+      };
+
+      const { result, rerender } = renderWebRtc(props);
+      await act(async () => result.current.start());
+
+      rerender({ ...props, frontendData: { threshold: 1, color: "red" } });
+      expect(update).not.toHaveBeenCalled();
+
+      rerender({ ...props, frontendData: { color: "blue", threshold: 1 } });
+      rerender({ ...props, frontendData: { color: "blue", threshold: 1 } });
+      expect(update).toHaveBeenCalledOnce();
+      expect(update).toHaveBeenCalledWith({ color: "blue", threshold: 1 });
+      expect(frontendScriptSetup).toHaveBeenCalledOnce();
+
+      vi.useFakeTimers();
+      await act(async () => {
+        result.current.stop();
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(cleanup).toHaveBeenCalledOnce();
+    });
+
+    it("delivers data that changed while the setup was running", async () => {
+      const update = vi.fn();
+      let finishSetup = () => {};
+      frontendScriptSetup.mockReturnValue(
+        new Promise((resolve) => {
+          finishSetup = () => resolve({ update });
+        }),
+      );
+      const props = {
+        frontendScript: "export default () => {}",
+        frontendData: 1,
+        frontendScriptRootRef: { current: document.createElement("div") },
+      };
+
+      const { result, rerender } = renderWebRtc(props);
+      let started: Promise<void> = Promise.resolve();
+      await act(async () => {
+        started = result.current.start();
+      });
+      rerender({ ...props, frontendData: 2 });
+      await act(async () => {
+        finishSetup();
+        await started;
+      });
+
+      expect(update).toHaveBeenCalledExactlyOnceWith(2);
+    });
+
+    it("ignores data changes when the script has no update", async () => {
+      frontendScriptSetup.mockReturnValue(undefined);
+      const props = {
+        frontendScript: "export default () => {}",
+        frontendData: 1,
+        frontendScriptRootRef: { current: document.createElement("div") },
+      };
+
+      const { result, rerender } = renderWebRtc(props);
+      await act(async () => result.current.start());
+      rerender({ ...props, frontendData: 2 });
+
+      expect(result.current.state.error).toBeNull();
+      expect(frontendScriptSetup).toHaveBeenCalledOnce();
+    });
+
     it("fails the start when the script throws", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
       frontendScriptSetup.mockRejectedValue(new Error("script bug"));
 
       const { result } = renderWebRtc({
         frontendScript: "export default () => {}",
-        frontendScriptRoot: document.createElement("div"),
+        frontendScriptRootRef: { current: document.createElement("div") },
       });
       await act(async () => result.current.start());
 
       expect(result.current.state.webRtcState).toBe("STOPPED");
+      expect(result.current.state.error).toBeInstanceOf(FrontendScriptError);
       expect(result.current.state.error?.message).toBe("script bug");
     });
   });
