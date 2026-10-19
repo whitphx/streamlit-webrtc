@@ -387,11 +387,12 @@ describe("useWebRtc", () => {
       const staleCleanup = vi.fn();
       let finishStaleSetup = () => {};
       frontendScriptSetup
-        .mockReturnValueOnce(
-          new Promise((resolve) => {
+        .mockImplementationOnce(({ root }) => {
+          root.appendChild(document.createElement("canvas"));
+          return new Promise((resolve) => {
             finishStaleSetup = () => resolve(staleCleanup);
-          }),
-        )
+          });
+        })
         .mockImplementationOnce(({ root }) => {
           root.appendChild(document.createElement("canvas"));
         });

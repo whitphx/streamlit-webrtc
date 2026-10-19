@@ -340,6 +340,9 @@ export const useWebRtc = (
           const { video, audio } = props.frontendScriptMediaRef?.current ?? {};
           const data = frontendDataRef.current;
           frontendScriptRootOwnerRef.current = session;
+          // A session stopped during its setup leaves whatever it had drawn
+          // so far, since its release must not empty a root it lost.
+          root.replaceChildren();
           try {
             frontendScriptHandle = await setUpFrontendScript(
               frontendScriptSetup,
