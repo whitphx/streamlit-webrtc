@@ -176,6 +176,52 @@ describe("useWebRtc", () => {
     });
   });
 
+  describe("when the offer settles after a stop", () => {
+    let settleOffer:
+      | { resolve: () => void; reject: (error: Error) => void }
+      | undefined;
+
+    beforeEach(() => {
+      settleOffer = undefined;
+      vi.stubGlobal("navigator", {
+        mediaDevices: {
+          getUserMedia: () => Promise.resolve(makeStream("camera")),
+        },
+      });
+      vi.stubGlobal(
+        "RTCPeerConnection",
+        class extends FakePeerConnection {
+          setLocalDescription() {
+            return new Promise<void>((resolve, reject) => {
+              settleOffer = { resolve, reject };
+            });
+          }
+        },
+      );
+    });
+
+    it.each([
+      ["succeeds", () => settleOffer?.resolve()],
+      ["fails", () => settleOffer?.reject(new Error("closed"))],
+    ])("ignores an offer that %s", async (_, settle) => {
+      const { result } = renderWebRtc();
+      await act(async () => result.current.start());
+      expect(settleOffer).toBeDefined();
+
+      vi.useFakeTimers();
+      await act(async () => {
+        result.current.stop();
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      vi.useRealTimers();
+      await act(async () => settle());
+
+      expect(result.current.state.webRtcState).toBe("STOPPED");
+      expect(result.current.state.sdpOffer).toBeNull();
+      expect(result.current.state.error).toBeNull();
+    });
+  });
+
   describe("with data channels and a frontend script", () => {
     beforeEach(() => {
       vi.stubGlobal("navigator", {
