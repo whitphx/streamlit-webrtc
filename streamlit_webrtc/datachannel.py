@@ -51,6 +51,16 @@ def compile_data_channel_specs(
                 f"Data channel {label!r} cannot set both "
                 "maxPacketLifeTime and maxRetransmits"
             )
+        for key, value in (
+            ("maxPacketLifeTime", options.get("maxPacketLifeTime")),
+            ("maxRetransmits", options.get("maxRetransmits")),
+        ):
+            # The browser declares both as `[EnforceRange] unsigned short`
+            # and would throw from createDataChannel() instead.
+            if value is not None and not 0 <= value <= 65535:
+                raise ValueError(
+                    f"{key} of data channel {label!r} must be between 0 and 65535"
+                )
         spec = DataChannelSpec(label=label, id=channel_id)
         # aiortc reads a None option as unset, but the browser's WebIDL
         # conversion turns a JSON null into 0, false, or "null",

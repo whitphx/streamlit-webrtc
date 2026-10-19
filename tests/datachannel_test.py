@@ -29,6 +29,21 @@ class TestCompileDataChannelSpecs:
         )
         assert specs == [{"label": "x", "id": 0}]
 
+    @pytest.mark.parametrize("key", ["maxPacketLifeTime", "maxRetransmits"])
+    @pytest.mark.parametrize("value", [-1, 65536])
+    def test_rejects_out_of_range_partial_reliability_option(
+        self, key: str, value: int
+    ) -> None:
+        with pytest.raises(ValueError, match=key):
+            compile_data_channel_specs({"x": {key: value}})  # type: ignore[misc]
+
+    @pytest.mark.parametrize("key", ["maxPacketLifeTime", "maxRetransmits"])
+    def test_accepts_the_range_bounds(self, key: str) -> None:
+        assert compile_data_channel_specs({"x": {key: 0}, "y": {key: 65535}}) == [  # type: ignore[misc]
+            {"label": "x", "id": 0, key: 0},
+            {"label": "y", "id": 1, key: 65535},
+        ]
+
     def test_rejects_both_partial_reliability_options(self) -> None:
         with pytest.raises(ValueError, match="both"):
             compile_data_channel_specs(
