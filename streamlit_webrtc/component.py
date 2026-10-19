@@ -806,6 +806,8 @@ def webrtc_streamer(
             "source_audio_track": source_audio_track,
             "sink_video_track": sink_video_track,
             "sink_audio_track": sink_audio_track,
+            "data_channels": data_channels,
+            "on_data_channel_message": on_data_channel_message,
         }
         for name, value in unsupported.items():
             if value is not None:
