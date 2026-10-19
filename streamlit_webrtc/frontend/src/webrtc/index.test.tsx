@@ -12,9 +12,11 @@ vi.mock("./switch-input-device", () => ({
 }));
 vi.mock("webrtc-adapter", () => ({ default: {} }));
 const frontendScriptSetup = vi.fn();
+let frontendScriptLoaded: Promise<void> = Promise.resolve();
 vi.mock("./frontend-script", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./frontend-script")>()),
-  loadFrontendScript: () => Promise.resolve(frontendScriptSetup),
+  loadFrontendScript: () =>
+    frontendScriptLoaded.then(() => frontendScriptSetup),
 }));
 
 function makeStream(name: string): MediaStream {
@@ -39,6 +41,7 @@ class FakePeerConnection {
   private senders: Array<{ track: unknown }> = [];
   dataChannels: Array<{ label: string; init: RTCDataChannelInit }> = [];
   offerCreated = false;
+  closed = false;
   addEventListener() {}
   createDataChannel(label: string, init: RTCDataChannelInit) {
     if (this.offerCreated) {
@@ -64,7 +67,9 @@ class FakePeerConnection {
   setLocalDescription() {
     return Promise.resolve();
   }
-  close() {}
+  close() {
+    this.closed = true;
+  }
 }
 
 interface ExtraProps {
@@ -100,6 +105,7 @@ function renderWebRtc(initialProps: ExtraProps = {}) {
 }
 
 afterEach(() => {
+  frontendScriptLoaded = Promise.resolve();
   cleanup();
   vi.unstubAllGlobals();
   vi.useRealTimers();
@@ -295,6 +301,82 @@ describe("useWebRtc", () => {
 
       expect(result.current.state.error).toBeNull();
       expect(frontendScriptSetup).toHaveBeenCalledOnce();
+    });
+
+    it("tears down a session that was stopped during the script's setup", async () => {
+      const cleanup = vi.fn();
+      let finishSetup = () => {};
+      frontendScriptSetup.mockReturnValue(
+        new Promise((resolve) => {
+          finishSetup = () => resolve(cleanup);
+        }),
+      );
+      const root = document.createElement("div");
+      root.appendChild(document.createElement("canvas"));
+
+      const { result } = renderWebRtc({
+        frontendScript: "export default () => {}",
+        frontendScriptRootRef: { current: root },
+      });
+      let started: Promise<void> = Promise.resolve();
+      await act(async () => {
+        started = result.current.start();
+      });
+      expect(result.current.state.webRtcState).toBe("SIGNALLING");
+
+      await act(async () => result.current.stop());
+      expect(result.current.state.webRtcState).toBe("STOPPED");
+
+      await act(async () => {
+        finishSetup();
+        await started;
+      });
+
+      const [{ pc }] = frontendScriptSetup.mock.calls[0];
+      const fakePc = pc as FakePeerConnection;
+      expect(fakePc.offerCreated).toBe(false);
+      expect(fakePc.closed).toBe(true);
+      for (const sender of fakePc.getSenders()) {
+        expect((sender.track as MediaStreamTrack).stop).toHaveBeenCalled();
+      }
+      expect(cleanup).toHaveBeenCalledOnce();
+      expect(root.childElementCount).toBe(0);
+      expect(result.current.state.webRtcState).toBe("STOPPED");
+      expect(result.current.state.sdpOffer).toBeNull();
+      expect(result.current.state.error).toBeNull();
+    });
+
+    it("refuses a second start while the script is loading", async () => {
+      const PeerConnection = vi.fn(function () {
+        return new FakePeerConnection();
+      });
+      vi.stubGlobal("RTCPeerConnection", PeerConnection);
+      let finishLoad = () => {};
+      frontendScriptLoaded = new Promise((resolve) => {
+        finishLoad = resolve;
+      });
+      const props = {
+        frontendScript: "export default () => {}",
+        frontendScriptRootRef: { current: document.createElement("div") },
+      };
+
+      const { result } = renderWebRtc(props);
+      let started: Promise<void> = Promise.resolve();
+      await act(async () => {
+        started = result.current.start();
+      });
+      await expect(result.current.start()).rejects.toThrow(
+        "WebRTC is already started",
+      );
+
+      await act(async () => {
+        finishLoad();
+        await started;
+      });
+
+      expect(PeerConnection).toHaveBeenCalledOnce();
+      expect(frontendScriptSetup).toHaveBeenCalledOnce();
+      expect(result.current.state.sdpOffer).not.toBeNull();
     });
 
     it("fails the start when the script throws", async () => {

@@ -73,6 +73,9 @@ export const useWebRtc = (
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pcRef = useRef<RTCPeerConnection>();
+  // Bumped by every start() and stop(), so that a start() resuming from one
+  // of its awaits can tell that its session has been stopped or replaced.
+  const sessionRef = useRef(0);
   const frontendScriptHandleRef = useRef<FrontendScriptHandle>();
   const deliveredFrontendDataRef = useRef<unknown>();
   const frontendDataRef = useRef(props.frontendData);
@@ -93,6 +96,7 @@ export const useWebRtc = (
 
       const pc = pcRef.current;
       pcRef.current = undefined;
+      sessionRef.current++;
 
       dispatch({ type: "STOPPING" });
 
@@ -187,7 +191,14 @@ export const useWebRtc = (
       return Promise.reject(new Error("WebRTC is already started"));
     }
 
+    const session = ++sessionRef.current;
+    const isSuperseded = () => sessionRef.current !== session;
+
     const startInner = async () => {
+      // Dispatched before the first await so that the state leaves STOPPED,
+      // which shows Stop and blocks a second start(), for the whole setup.
+      dispatch({ type: "SIGNALLING_START" });
+
       // Load the `webrtc-adapter` shims before any `RTCPeerConnection` /
       // `getUserMedia` call below. The import is dynamic so the polyfill is
       // split into its own chunk and not paid for on initial render.
@@ -199,8 +210,9 @@ export const useWebRtc = (
             throw new FrontendScriptError(error);
           })
         : undefined;
-
-      dispatch({ type: "SIGNALLING_START" });
+      if (isSuperseded()) {
+        return;
+      }
 
       uniqueIdGenerator.reset();
 
@@ -226,6 +238,11 @@ export const useWebRtc = (
           audioDeviceIdRequest,
           onDevicesUnavailable,
         );
+        if (isSuperseded()) {
+          inputMediaStream?.getTracks().forEach((track) => track.stop());
+          pc.close();
+          return;
+        }
 
         if (inputMediaStream != null) {
           const openedDeviceIds: {
@@ -300,8 +317,9 @@ export const useWebRtc = (
         }
         const { video, audio } = props.frontendScriptMediaRef?.current ?? {};
         const data = frontendDataRef.current;
+        let frontendScriptHandle: FrontendScriptHandle;
         try {
-          frontendScriptHandleRef.current = await setUpFrontendScript(
+          frontendScriptHandle = await setUpFrontendScript(
             frontendScriptSetup,
             {
               pc,
@@ -311,7 +329,6 @@ export const useWebRtc = (
               data,
             },
           );
-          deliveredFrontendDataRef.current = data;
         } catch (error) {
           console.error("frontend_script setup failed", error);
           pc.getSenders().forEach((sender) => sender.track?.stop());
@@ -319,6 +336,19 @@ export const useWebRtc = (
           root.replaceChildren();
           throw new FrontendScriptError(error);
         }
+        if (isSuperseded()) {
+          try {
+            frontendScriptHandle.cleanup?.();
+          } catch (error) {
+            console.error("frontend_script cleanup failed", error);
+          }
+          pc.getSenders().forEach((sender) => sender.track?.stop());
+          pc.close();
+          root.replaceChildren();
+          return;
+        }
+        frontendScriptHandleRef.current = frontendScriptHandle;
+        deliveredFrontendDataRef.current = data;
       }
 
       pc.addEventListener("connectionstatechange", () => {
@@ -360,12 +390,18 @@ export const useWebRtc = (
         });
     };
 
-    return startInner().catch((error) =>
+    return startInner().catch((error) => {
+      // A stopped or replaced session has no UI left to report to,
+      // and an ERROR would mark the session now running as stopped.
+      if (isSuperseded()) {
+        console.error(error);
+        return;
+      }
       dispatch({
         type: "ERROR",
         error,
-      }),
-    );
+      });
+    });
   }, [
     audioDeviceIdRequest,
     videoDeviceIdRequest,
