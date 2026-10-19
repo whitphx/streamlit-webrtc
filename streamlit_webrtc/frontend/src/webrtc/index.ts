@@ -76,6 +76,7 @@ export const useWebRtc = (
   // Bumped by every start() and stop(), so that a start() resuming from one
   // of its awaits can tell that its session has been stopped or replaced.
   const sessionRef = useRef(0);
+  const frontendScriptRootOwnerRef = useRef<number>();
   const frontendScriptHandleRef = useRef<FrontendScriptHandle>();
   const deliveredFrontendDataRef = useRef<unknown>();
   const frontendDataRef = useRef(props.frontendData);
@@ -222,149 +223,164 @@ export const useWebRtc = (
       console.debug("RTCConfiguration:", config);
       const pc = new RTCPeerConnection(config);
 
-      // Connect received audio / video to DOM elements
-      if (mode === "SENDRECV" || mode === "RECVONLY") {
-        pc.addEventListener("track", (evt) => {
-          const outputMediaStream = evt.streams[0]; // TODO: Handle multiple streams
-          dispatch({ type: "SET_OUTPUT_MEDIA_STREAM", outputMediaStream });
-        });
-      }
-
-      // Set up transceivers
-      if (mode === "SENDRECV" || mode === "SENDONLY") {
-        const inputMediaStream = await openInputMediaStream(
-          props.mediaStreamConstraints,
-          videoDeviceIdRequest,
-          audioDeviceIdRequest,
-          onDevicesUnavailable,
-        );
-        if (isSuperseded()) {
-          inputMediaStream?.getTracks().forEach((track) => track.stop());
-          pc.close();
-          return;
-        }
-
-        if (inputMediaStream != null) {
-          const openedDeviceIds: {
-            video?: MediaDeviceInfo["deviceId"];
-            audio?: MediaDeviceInfo["deviceId"];
-          } = {};
-          dispatch({ type: "SET_INPUT_MEDIA_STREAM", inputMediaStream });
-          inputMediaStream.getTracks().forEach((track) => {
-            pc.addTrack(track, inputMediaStream);
-
-            const kind = track.kind;
-            if (kind !== "video" && kind !== "audio") {
-              return;
-            }
-            const deviceId = track.getSettings().deviceId;
-            if (deviceId == null) {
-              return;
-            }
-            openedDeviceIds[kind] = deviceId;
-          });
-          if (Object.keys(openedDeviceIds).length > 0) {
-            onDevicesOpened(openedDeviceIds);
-          }
-        }
-
-        if (mode === "SENDONLY") {
-          for (const transceiver of pc.getTransceivers()) {
-            transceiver.direction = "sendonly";
-          }
-        } else if (mode === "SENDRECV") {
-          // When the local capture is one-sided (e.g. audio-only), the SDP
-          // offer ends up with only an audio m-section and the server has
-          // nowhere to attach a video sender. Add an explicit recvonly
-          // transceiver for any kind we are not sending so the server can
-          // still send back a track of that kind (driven by `source_*`).
-          // Gated on the corresponding `sendback_*` so opting out skips
-          // the extra m-section.
-          const localKinds = new Set(
-            pc
-              .getTransceivers()
-              .map((t) => t.sender.track?.kind)
-              .filter(
-                (k): k is "audio" | "video" => k === "audio" || k === "video",
-              ),
-          );
-          if (props.sendbackVideo && !localKinds.has("video")) {
-            pc.addTransceiver("video", { direction: "recvonly" });
-          }
-          if (props.sendbackAudio && !localKinds.has("audio")) {
-            pc.addTransceiver("audio", { direction: "recvonly" });
-          }
-        }
-      } else if (mode === "RECVONLY") {
-        pc.addTransceiver("video", { direction: "recvonly" });
-        pc.addTransceiver("audio", { direction: "recvonly" });
-      }
-      console.debug("transceivers", pc.getTransceivers());
-
-      // Created before the offer so that it negotiates the SCTP transport.
-      // See `compile_data_channel_specs()` for why they are `negotiated`.
-      const channels = Object.fromEntries(
-        (props.dataChannels ?? []).map(({ label, ...init }) => [
-          label,
-          pc.createDataChannel(label, { ...init, negotiated: true }),
-        ]),
-      );
-
-      if (frontendScriptSetup) {
-        const root = props.frontendScriptRootRef?.current;
-        if (root == null) {
-          throw new Error("No root element for frontend_script");
-        }
-        const { video, audio } = props.frontendScriptMediaRef?.current ?? {};
-        const data = frontendDataRef.current;
-        let frontendScriptHandle: FrontendScriptHandle;
+      let openedInputMediaStream: MediaStream | null = null;
+      let frontendScriptHandle: FrontendScriptHandle | undefined;
+      // Until pcRef holds the connection, stop() cannot reach what this
+      // session has opened, so every exit before that goes through here.
+      const release = () => {
         try {
-          frontendScriptHandle = await setUpFrontendScript(
-            frontendScriptSetup,
-            {
-              pc,
-              channels,
-              root,
-              media: { ...(video && { video }), ...(audio && { audio }) },
-              data,
-            },
-          );
+          frontendScriptHandle?.cleanup?.();
         } catch (error) {
-          console.error("frontend_script setup failed", error);
-          pc.getSenders().forEach((sender) => sender.track?.stop());
-          pc.close();
-          root.replaceChildren();
-          throw new FrontendScriptError(error);
+          console.error("frontend_script cleanup failed", error);
         }
-        if (isSuperseded()) {
-          try {
-            frontendScriptHandle.cleanup?.();
-          } catch (error) {
-            console.error("frontend_script cleanup failed", error);
+        // A session stopped during its setup can finish after the next one
+        // has started drawing into the same root.
+        if (frontendScriptRootOwnerRef.current === session) {
+          frontendScriptRootOwnerRef.current = undefined;
+          props.frontendScriptRootRef?.current?.replaceChildren();
+        }
+        openedInputMediaStream?.getTracks().forEach((track) => track.stop());
+        pc.close();
+      };
+
+      try {
+        // Connect received audio / video to DOM elements
+        if (mode === "SENDRECV" || mode === "RECVONLY") {
+          pc.addEventListener("track", (evt) => {
+            const outputMediaStream = evt.streams[0]; // TODO: Handle multiple streams
+            dispatch({ type: "SET_OUTPUT_MEDIA_STREAM", outputMediaStream });
+          });
+        }
+
+        // Set up transceivers
+        if (mode === "SENDRECV" || mode === "SENDONLY") {
+          const inputMediaStream = await openInputMediaStream(
+            props.mediaStreamConstraints,
+            videoDeviceIdRequest,
+            audioDeviceIdRequest,
+            onDevicesUnavailable,
+          );
+          openedInputMediaStream = inputMediaStream;
+          if (isSuperseded()) {
+            release();
+            return;
           }
-          pc.getSenders().forEach((sender) => sender.track?.stop());
-          pc.close();
-          root.replaceChildren();
-          return;
+
+          if (inputMediaStream != null) {
+            const openedDeviceIds: {
+              video?: MediaDeviceInfo["deviceId"];
+              audio?: MediaDeviceInfo["deviceId"];
+            } = {};
+            dispatch({ type: "SET_INPUT_MEDIA_STREAM", inputMediaStream });
+            inputMediaStream.getTracks().forEach((track) => {
+              pc.addTrack(track, inputMediaStream);
+
+              const kind = track.kind;
+              if (kind !== "video" && kind !== "audio") {
+                return;
+              }
+              const deviceId = track.getSettings().deviceId;
+              if (deviceId == null) {
+                return;
+              }
+              openedDeviceIds[kind] = deviceId;
+            });
+            if (Object.keys(openedDeviceIds).length > 0) {
+              onDevicesOpened(openedDeviceIds);
+            }
+          }
+
+          if (mode === "SENDONLY") {
+            for (const transceiver of pc.getTransceivers()) {
+              transceiver.direction = "sendonly";
+            }
+          } else if (mode === "SENDRECV") {
+            // When the local capture is one-sided (e.g. audio-only), the SDP
+            // offer ends up with only an audio m-section and the server has
+            // nowhere to attach a video sender. Add an explicit recvonly
+            // transceiver for any kind we are not sending so the server can
+            // still send back a track of that kind (driven by `source_*`).
+            // Gated on the corresponding `sendback_*` so opting out skips
+            // the extra m-section.
+            const localKinds = new Set(
+              pc
+                .getTransceivers()
+                .map((t) => t.sender.track?.kind)
+                .filter(
+                  (k): k is "audio" | "video" => k === "audio" || k === "video",
+                ),
+            );
+            if (props.sendbackVideo && !localKinds.has("video")) {
+              pc.addTransceiver("video", { direction: "recvonly" });
+            }
+            if (props.sendbackAudio && !localKinds.has("audio")) {
+              pc.addTransceiver("audio", { direction: "recvonly" });
+            }
+          }
+        } else if (mode === "RECVONLY") {
+          pc.addTransceiver("video", { direction: "recvonly" });
+          pc.addTransceiver("audio", { direction: "recvonly" });
         }
-        frontendScriptHandleRef.current = frontendScriptHandle;
-        deliveredFrontendDataRef.current = data;
+        console.debug("transceivers", pc.getTransceivers());
+
+        // Created before the offer so that it negotiates the SCTP transport.
+        // See `compile_data_channel_specs()` for why they are `negotiated`.
+        const channels = Object.fromEntries(
+          (props.dataChannels ?? []).map(({ label, ...init }) => [
+            label,
+            pc.createDataChannel(label, { ...init, negotiated: true }),
+          ]),
+        );
+
+        if (frontendScriptSetup) {
+          const root = props.frontendScriptRootRef?.current;
+          if (root == null) {
+            throw new Error("No root element for frontend_script");
+          }
+          const { video, audio } = props.frontendScriptMediaRef?.current ?? {};
+          const data = frontendDataRef.current;
+          frontendScriptRootOwnerRef.current = session;
+          try {
+            frontendScriptHandle = await setUpFrontendScript(
+              frontendScriptSetup,
+              {
+                pc,
+                channels,
+                root,
+                media: { ...(video && { video }), ...(audio && { audio }) },
+                data,
+              },
+            );
+          } catch (error) {
+            console.error("frontend_script setup failed", error);
+            throw new FrontendScriptError(error);
+          }
+          if (isSuperseded()) {
+            release();
+            return;
+          }
+          frontendScriptHandleRef.current = frontendScriptHandle;
+          deliveredFrontendDataRef.current = data;
+        }
+
+        pc.addEventListener("connectionstatechange", () => {
+          console.debug("connectionstatechange", pc.connectionState);
+          if (pc.connectionState === "connected") {
+            dispatch({ type: "START_PLAYING" });
+          } else if (
+            pc.connectionState === "disconnected" ||
+            pc.connectionState === "closed" ||
+            pc.connectionState === "failed"
+          ) {
+            stopRef.current();
+          }
+        });
+
+        pcRef.current = pc;
+      } catch (error) {
+        release();
+        throw error;
       }
-
-      pc.addEventListener("connectionstatechange", () => {
-        console.debug("connectionstatechange", pc.connectionState);
-        if (pc.connectionState === "connected") {
-          dispatch({ type: "START_PLAYING" });
-        } else if (
-          pc.connectionState === "disconnected" ||
-          pc.connectionState === "closed" ||
-          pc.connectionState === "failed"
-        ) {
-          stopRef.current();
-        }
-      });
-
-      pcRef.current = pc;
 
       // Trickle ICE
       pc.addEventListener("icecandidate", (evt) => {
@@ -378,6 +394,9 @@ export const useWebRtc = (
       pc.createOffer()
         .then((offer) =>
           pc.setLocalDescription(offer).then(() => {
+            if (isSuperseded()) {
+              return;
+            }
             const localDescription = pc.localDescription;
             if (localDescription == null) {
               throw new Error("Failed to create an offer SDP");
@@ -386,6 +405,9 @@ export const useWebRtc = (
           }),
         )
         .catch((error) => {
+          if (isSuperseded()) {
+            return;
+          }
           dispatch({ type: "SET_OFFER_ERROR", error });
         });
     };

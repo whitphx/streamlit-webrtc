@@ -47,6 +47,10 @@ class FakePeerConnection {
     if (this.offerCreated) {
       throw new Error("Created after the offer");
     }
+    // Mirrors the `[EnforceRange] unsigned short` conversion in browsers.
+    if ((init.maxRetransmits ?? 0) > 65535) {
+      throw new TypeError("maxRetransmits is out of range");
+    }
     this.dataChannels.push({ label, init });
     return { label };
   }
@@ -377,6 +381,74 @@ describe("useWebRtc", () => {
       expect(PeerConnection).toHaveBeenCalledOnce();
       expect(frontendScriptSetup).toHaveBeenCalledOnce();
       expect(result.current.state.sdpOffer).not.toBeNull();
+    });
+
+    it("leaves the next session's root alone when a stopped setup finishes", async () => {
+      const staleCleanup = vi.fn();
+      let finishStaleSetup = () => {};
+      frontendScriptSetup
+        .mockReturnValueOnce(
+          new Promise((resolve) => {
+            finishStaleSetup = () => resolve(staleCleanup);
+          }),
+        )
+        .mockImplementationOnce(({ root }) => {
+          root.appendChild(document.createElement("canvas"));
+        });
+      const root = document.createElement("div");
+
+      const { result } = renderWebRtc({
+        frontendScript: "export default () => {}",
+        frontendScriptRootRef: { current: root },
+      });
+      let staleStarted: Promise<void> = Promise.resolve();
+      await act(async () => {
+        staleStarted = result.current.start();
+      });
+      await act(async () => result.current.stop());
+      await act(async () => result.current.start());
+      expect(root.childElementCount).toBe(1);
+
+      await act(async () => {
+        finishStaleSetup();
+        await staleStarted;
+      });
+
+      const [{ pc: stalePc }] = frontendScriptSetup.mock.calls[0];
+      expect((stalePc as FakePeerConnection).closed).toBe(true);
+      expect(staleCleanup).toHaveBeenCalledOnce();
+      expect(root.childElementCount).toBe(1);
+      expect(result.current.state.webRtcState).toBe("SIGNALLING");
+      expect(result.current.state.sdpOffer).not.toBeNull();
+    });
+
+    it("releases the camera and the connection when the setup throws", async () => {
+      const camera = makeStream("camera");
+      vi.stubGlobal("navigator", {
+        mediaDevices: { getUserMedia: () => Promise.resolve(camera) },
+      });
+      const pcs: FakePeerConnection[] = [];
+      vi.stubGlobal(
+        "RTCPeerConnection",
+        vi.fn(function () {
+          const pc = new FakePeerConnection();
+          pcs.push(pc);
+          return pc;
+        }),
+      );
+
+      const { result } = renderWebRtc({
+        dataChannels: [{ label: "frames", id: 0, maxRetransmits: 65536 }],
+      });
+      await act(async () => result.current.start());
+
+      expect(result.current.state.webRtcState).toBe("STOPPED");
+      expect(result.current.state.error).toBeInstanceOf(TypeError);
+      expect(pcs).toHaveLength(1);
+      expect(pcs[0].closed).toBe(true);
+      for (const track of camera.getTracks()) {
+        expect(track.stop).toHaveBeenCalled();
+      }
     });
 
     it("fails the start when the script throws", async () => {
