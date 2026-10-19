@@ -178,8 +178,7 @@ describe("useWebRtc", () => {
 
   describe("when the offer settles after a stop", () => {
     let settleOffer:
-      | { resolve: () => void; reject: (error: Error) => void }
-      | undefined;
+      { resolve: () => void; reject: (error: Error) => void } | undefined;
 
     beforeEach(() => {
       settleOffer = undefined;
