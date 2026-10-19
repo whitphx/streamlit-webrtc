@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Callable, Dict, List, Mapping, Optional, TypedDict, Union
+from typing import Callable, Dict, List, Mapping, Optional, TypedDict, Union, cast
 
 from aiortc import RTCDataChannel, RTCPeerConnection
 
@@ -52,7 +52,15 @@ def compile_data_channel_specs(
                 "maxPacketLifeTime and maxRetransmits"
             )
         spec = DataChannelSpec(label=label, id=channel_id)
-        spec.update(options)
+        # aiortc reads a None option as unset, but the browser's WebIDL
+        # conversion turns a JSON null into 0, false, or "null",
+        # so sending it would make the two ends of the channel disagree.
+        spec.update(
+            cast(
+                DataChannelOptions,
+                {key: value for key, value in options.items() if value is not None},
+            )
+        )
         specs.append(spec)
     return specs
 

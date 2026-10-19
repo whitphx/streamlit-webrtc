@@ -23,6 +23,12 @@ class TestCompileDataChannelSpecs:
         with pytest.raises(ValueError, match="max_retransmits"):
             compile_data_channel_specs({"x": {"max_retransmits": 0}})  # type: ignore[typeddict-unknown-key]
 
+    def test_drops_options_set_to_none(self) -> None:
+        specs = compile_data_channel_specs(
+            {"x": {"ordered": None, "maxRetransmits": None, "protocol": None}}  # type: ignore[typeddict-item]
+        )
+        assert specs == [{"label": "x", "id": 0}]
+
     def test_rejects_both_partial_reliability_options(self) -> None:
         with pytest.raises(ValueError, match="both"):
             compile_data_channel_specs(
