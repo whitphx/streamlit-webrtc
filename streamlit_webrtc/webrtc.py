@@ -424,6 +424,12 @@ def _register_exit_hook() -> None:
 
 
 class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
+    backend = "aiortc"
+
+    @property
+    def local_description(self) -> Optional[RTCSessionDescription]:
+        return self.pc.localDescription
+
     @property
     def video_processor(
         self,
