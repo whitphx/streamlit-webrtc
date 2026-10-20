@@ -280,8 +280,11 @@ export default function ({ channels, root, pc }) {
   channels.events.addEventListener("message", (event) => {
     label.textContent = JSON.parse(event.data).text;
   });
-  root.addEventListener("click", () => channels.events.send("clicked"));
-  return () => { /* Cleanup when the session ends. */ };
+  const listeners = new AbortController();
+  root.addEventListener("click", () => channels.events.send("clicked"), {
+    signal: listeners.signal,
+  });
+  return () => listeners.abort();  // Cleanup when the session ends.
 }
 """
 
@@ -305,7 +308,7 @@ Each channel takes the [`RTCDataChannelInit`](https://developer.mozilla.org/en-U
 `frontend_script` is the source of a JavaScript module whose default export is called at the start of each WebRTC session, inside the component's iframe, before any message can arrive. It receives:
 
 * `channels`: the browser's [`RTCDataChannel`](https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel) objects, keyed by label. Binary messages arrive as `ArrayBuffer`s.
-* `root`: a `<div>` the script owns. It sits below the media element inside a positioned box, so `position: absolute; inset: 0` turns it into an overlay of the video. The component's height follows its size. It is emptied when the session ends.
+* `root`: a `<div>` the script owns. It sits below the media element inside a positioned box, so `position: absolute; inset: 0` turns it into an overlay of the video. The component's height follows its size. It is emptied when the session ends, but the same element serves every session, so remove the listeners the script adds to it in its cleanup.
 * `pc`: the [`RTCPeerConnection`](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection), e.g. to read statistics.
 * `media`: the component's own `video` and `audio` elements, in the modes that receive media. The remote stream plays in `video` when it carries video and in `audio` otherwise; the other one stays hidden. They exist before the stream arrives and stay the same for the whole session, so the script can call [`requestVideoFrameCallback()`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/requestVideoFrameCallback) or read `currentTime` and `paused` to time its drawing against the media. Treat them as read-only, apart from hiding one when the script draws its own visuals in `root` instead (`media.video.hidden = true`; an overlay `root` then has no size to cover, so keep it in flow).
 * `data`: the value passed as `frontend_data` to `webrtc_streamer()`, which must be JSON-serializable.

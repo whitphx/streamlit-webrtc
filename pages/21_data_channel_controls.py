@@ -43,20 +43,24 @@ export default function ({ channels, root }) {
       y: (event.clientY - rect.top) / rect.height,
     }));
   };
-  root.addEventListener("pointermove", (event) => sendPointer(event, "move"));
+  // The same root serves every session, so the cleanup removes these.
+  const listeners = new AbortController();
+  const { signal } = listeners;
+  root.addEventListener("pointermove", (event) => sendPointer(event, "move"), { signal });
   root.addEventListener("pointerdown", (event) => {
     root.focus();
     sendPointer(event, "down");
-  });
+  }, { signal });
   root.addEventListener("keydown", (event) => {
     if (channels.keys.readyState !== "open") return;
     event.preventDefault();
     channels.keys.send(event.key);
-  });
+  }, { signal });
   channels.keys.addEventListener("message", (event) => {
     const { typed, events } = JSON.parse(event.data);
     status.textContent = `server got ${events} events, typed: ${typed}`;
   });
+  return () => listeners.abort();
 }
 """
 
