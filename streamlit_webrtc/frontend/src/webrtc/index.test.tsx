@@ -552,15 +552,17 @@ describe("useWebRtc", () => {
       vi.spyOn(console, "error").mockImplementation(() => {});
       frontendScriptSetup.mockRejectedValue(new Error("script bug"));
 
+      const container = document.createElement("div");
       const { result } = renderWebRtc({
         frontendScript: "export default () => {}",
-        frontendScriptContainerRef: { current: document.createElement("div") },
+        frontendScriptContainerRef: { current: container },
       });
       await act(async () => result.current.start());
 
       expect(result.current.state.webRtcState).toBe("STOPPED");
       expect(result.current.state.error).toBeInstanceOf(FrontendScriptError);
       expect(result.current.state.error?.message).toBe("script bug");
+      expect(container.childElementCount).toBe(0);
     });
   });
 });

@@ -625,7 +625,7 @@ describe("<WebRtcStreamerInner />", () => {
       return true;
     };
 
-    it("keeps the script's root and media elements across the device picker", async () => {
+    it("keeps the script's container and media elements across the device picker", async () => {
       stubDevices();
       const { frontendScriptContainerRef, frontendScriptMediaRef } =
         renderStreamer({
@@ -676,7 +676,7 @@ describe("<WebRtcStreamerInner />", () => {
       expect(audio?.srcObject).toBe(audioOnlyStream);
     });
 
-    it("keeps the running script's root until the session stops when the script is removed", async () => {
+    it("keeps the script's container until the session stops when the script is removed", async () => {
       const {
         frontendScriptContainerRef,
         frontendScriptMediaRef,
