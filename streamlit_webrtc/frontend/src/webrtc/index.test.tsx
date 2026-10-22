@@ -395,6 +395,35 @@ describe("useWebRtc", () => {
       expect(result.current.state.error).toBeNull();
     });
 
+    it("releases the camera and the connection on stop while the setup never settles", async () => {
+      frontendScriptSetup.mockImplementation(({ root }) => {
+        root.appendChild(document.createElement("canvas"));
+        return new Promise(() => {});
+      });
+      const root = document.createElement("div");
+
+      const { result } = renderWebRtc({
+        frontendScript: "export default () => {}",
+        frontendScriptRootRef: { current: root },
+      });
+      await act(async () => {
+        result.current.start();
+      });
+      expect(frontendScriptSetup).toHaveBeenCalledOnce();
+
+      await act(async () => result.current.stop());
+
+      const [{ pc }] = frontendScriptSetup.mock.calls[0];
+      const fakePc = pc as FakePeerConnection;
+      expect(fakePc.closed).toBe(true);
+      expect(fakePc.getSenders()).not.toHaveLength(0);
+      for (const sender of fakePc.getSenders()) {
+        expect((sender.track as MediaStreamTrack).stop).toHaveBeenCalled();
+      }
+      expect(root.childElementCount).toBe(0);
+      expect(result.current.state.webRtcState).toBe("STOPPED");
+    });
+
     it("refuses a second start while the script is loading", async () => {
       const PeerConnection = vi.fn(function () {
         return new FakePeerConnection();

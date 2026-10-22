@@ -76,6 +76,10 @@ export const useWebRtc = (
   // Bumped by every start() and stop(), so that a start() resuming from one
   // of its awaits can tell that its session has been stopped or replaced.
   const sessionRef = useRef(0);
+  // Holds the release of a session whose setup is still running, so that
+  // stop() does not have to wait for the setup to settle, which an app's
+  // frontend_script may never do.
+  const releaseSetupRef = useRef<() => void>();
   const frontendScriptRootOwnerRef = useRef<number>();
   const frontendScriptHandleRef = useRef<FrontendScriptHandle>();
   const deliveredFrontendDataRef = useRef<unknown>();
@@ -102,6 +106,7 @@ export const useWebRtc = (
       dispatch({ type: "STOPPING" });
 
       if (pc == null) {
+        releaseSetupRef.current?.();
         return;
       }
 
@@ -225,11 +230,17 @@ export const useWebRtc = (
 
       let openedInputMediaStream: MediaStream | null = null;
       let frontendScriptHandle: FrontendScriptHandle | undefined;
-      // Until pcRef holds the connection, stop() cannot reach what this
-      // session has opened, so every exit before that goes through here.
+      // Until pcRef holds the connection, stop() reaches what this session
+      // has opened only through here. It can run twice, from stop() and
+      // when the setup settles, so each step is safe to repeat.
       const release = () => {
+        if (releaseSetupRef.current === release) {
+          releaseSetupRef.current = undefined;
+        }
+        const handle = frontendScriptHandle;
+        frontendScriptHandle = undefined;
         try {
-          frontendScriptHandle?.cleanup?.();
+          handle?.cleanup?.();
         } catch (error) {
           console.error("frontend_script cleanup failed", error);
         }
@@ -242,6 +253,7 @@ export const useWebRtc = (
         openedInputMediaStream?.getTracks().forEach((track) => track.stop());
         pc.close();
       };
+      releaseSetupRef.current = release;
 
       try {
         // Connect received audio / video to DOM elements
@@ -340,8 +352,8 @@ export const useWebRtc = (
           const { video, audio } = props.frontendScriptMediaRef?.current ?? {};
           const data = frontendDataRef.current;
           frontendScriptRootOwnerRef.current = session;
-          // A session stopped during its setup leaves whatever it had drawn
-          // so far, since its release must not empty a root it lost.
+          // A session stopped during its setup can draw until the setup
+          // settles, and its release must not empty a root it lost.
           root.replaceChildren();
           try {
             frontendScriptHandle = await setUpFrontendScript(
@@ -380,6 +392,7 @@ export const useWebRtc = (
         });
 
         pcRef.current = pc;
+        releaseSetupRef.current = undefined;
       } catch (error) {
         release();
         throw error;
