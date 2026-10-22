@@ -108,11 +108,41 @@ class TestDataChannelSend:
 
         raw.send.assert_called_once_with(b"sent")
 
+    @pytest.mark.asyncio
+    async def test_counts_messages_not_yet_handed_to_the_channel(self) -> None:
+        raw = Mock(readyState="open", bufferedAmount=0)
+        channel = DataChannel(raw, asyncio.get_running_loop())
+        message = b"x" * 1024
+
+        results = [channel.send(message, max_buffered=1024) for _ in range(1000)]
+
+        assert results.count(True) == 2
+        assert results[:2] == [True, True]
+        assert channel.buffered_amount == 2048
+        await asyncio.sleep(0)
+        assert raw.send.call_count == 2
+        assert channel.buffered_amount == 0
+        assert channel.send(message, max_buffered=1024) is True
+
+    @pytest.mark.asyncio
+    async def test_counts_a_str_by_its_utf8_length(self) -> None:
+        raw = Mock(readyState="open", bufferedAmount=0)
+        channel = DataChannel(raw, asyncio.get_running_loop())
+
+        channel.send("\u00e9")
+
+        assert channel.buffered_amount == 2
+        await asyncio.sleep(0)
+        assert channel.buffered_amount == 0
+
     def test_returns_false_after_the_loop_closed(self) -> None:
         loop = asyncio.new_event_loop()
         loop.close()
         raw = Mock(readyState="open", bufferedAmount=0)
 
-        assert DataChannel(raw, loop).send("late") is False
+        channel = DataChannel(raw, loop)
+
+        assert channel.send("late") is False
 
         raw.send.assert_not_called()
+        assert channel.buffered_amount == 0

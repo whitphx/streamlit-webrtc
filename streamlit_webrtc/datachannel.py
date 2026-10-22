@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import threading
 from typing import Callable, Dict, List, Mapping, Optional, TypedDict, Union, cast
 
 from aiortc import RTCDataChannel, RTCPeerConnection
@@ -84,6 +85,12 @@ class DataChannel:
     def __init__(self, channel: RTCDataChannel, loop: asyncio.AbstractEventLoop):
         self._channel = channel
         self._loop = loop
+        # Bytes of messages `send()` has scheduled on the loop that the
+        # channel has not taken yet. The channel's own bufferedAmount only
+        # grows when they run, so without this a burst of sends from another
+        # thread would all pass the `max_buffered` check.
+        self._pending_bytes = 0
+        self._pending_lock = threading.Lock()
 
     @property
     def label(self) -> str:
@@ -96,13 +103,16 @@ class DataChannel:
 
     @property
     def buffered_amount(self) -> int:
-        """Bytes queued for sending but not yet handed to the network.
+        """Bytes queued for sending but not yet handed to the network,
+        including messages ``send()`` accepted that are still on their way
+        to the event loop.
 
         ``send(data, max_buffered=...)`` checks it to skip messages a slow
         link can't keep up with, instead of letting the queue (and the
         latency) grow.
         """
-        return self._channel.bufferedAmount
+        with self._pending_lock:
+            return self._channel.bufferedAmount + self._pending_bytes
 
     def send(
         self,
@@ -121,28 +131,47 @@ class DataChannel:
         """
         if self._channel.readyState != "open":
             return False
-        if max_buffered is not None and self._channel.bufferedAmount > max_buffered:
-            return False
+        # Counted the way aiortc counts it into bufferedAmount.
+        size = (
+            len(data.encode("utf8"))
+            if isinstance(data, str)
+            else memoryview(data).nbytes
+        )
+        with self._pending_lock:
+            if (
+                max_buffered is not None
+                and self._channel.bufferedAmount + self._pending_bytes > max_buffered
+            ):
+                return False
+            self._pending_bytes += size
         if not isinstance(data, (str, bytes)):
             # Copy now: the send happens later on the event loop thread,
             # and the caller may reuse the buffer in the meantime.
             data = bytes(data)
         try:
-            self._loop.call_soon_threadsafe(self._send, data)
+            self._loop.call_soon_threadsafe(self._send, data, size)
         except RuntimeError:
+            with self._pending_lock:
+                self._pending_bytes -= size
             return False
         return True
 
-    def _send(self, data: DataChannelMessage) -> None:
-        # The channel can close between the check in `send()`
-        # and this call on the event loop thread.
-        if self._channel.readyState != "open":
-            logger.debug(
-                "Data channel %s closed before a queued message was sent.",
-                self.label,
-            )
-            return
-        self._channel.send(data)
+    def _send(self, data: DataChannelMessage, size: int) -> None:
+        try:
+            # The channel can close between the check in `send()`
+            # and this call on the event loop thread.
+            if self._channel.readyState != "open":
+                logger.debug(
+                    "Data channel %s closed before a queued message was sent.",
+                    self.label,
+                )
+                return
+            self._channel.send(data)
+        finally:
+            # Released only after the channel has counted the message,
+            # so that a check in between always sees it in one of the counts.
+            with self._pending_lock:
+                self._pending_bytes -= size
 
 
 DataChannelMessageCallback = Callable[[DataChannel, DataChannelMessage], None]
