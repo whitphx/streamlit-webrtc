@@ -54,7 +54,10 @@ export default function ({ channels, root }) {
   root.addEventListener("keydown", (event) => {
     // Only the keys the server types are taken from the browser, so that
     // Tab still moves focus out of the overlay and shortcuts keep working.
-    if (channels.keys.readyState !== "open" || event.ctrlKey || event.metaKey) return;
+    if (
+      channels.keys.readyState !== "open" ||
+      event.ctrlKey || event.metaKey || event.altKey
+    ) return;
     channels.keys.send(event.key);
     if (event.key === "Backspace" || event.key.length === 1) event.preventDefault();
   }, { signal });
