@@ -1,4 +1,5 @@
 import asyncio
+from typing import Union
 from unittest.mock import Mock
 
 import pytest
@@ -109,20 +110,26 @@ class TestDataChannelSend:
         raw.send.assert_called_once_with(b"sent")
 
     @pytest.mark.asyncio
-    async def test_counts_messages_not_yet_handed_to_the_channel(self) -> None:
+    @pytest.mark.parametrize(
+        ("message", "size"),
+        [(b"x" * 1024, 1024), (b"", 1), ("", 1)],
+        ids=["kibibyte", "empty-bytes", "empty-str"],
+    )
+    async def test_counts_messages_not_yet_handed_to_the_channel(
+        self, message: Union[str, bytes], size: int
+    ) -> None:
         raw = Mock(readyState="open", bufferedAmount=0)
         channel = DataChannel(raw, asyncio.get_running_loop())
-        message = b"x" * 1024
 
-        results = [channel.send(message, max_buffered=1024) for _ in range(1000)]
+        results = [channel.send(message, max_buffered=size) for _ in range(1000)]
 
         assert results.count(True) == 2
         assert results[:2] == [True, True]
-        assert channel.buffered_amount == 2048
+        assert channel.buffered_amount == 2 * size
         await asyncio.sleep(0)
         assert raw.send.call_count == 2
         assert channel.buffered_amount == 0
-        assert channel.send(message, max_buffered=1024) is True
+        assert channel.send(message, max_buffered=size) is True
 
     @pytest.mark.asyncio
     async def test_counts_a_str_by_its_utf8_length(self) -> None:

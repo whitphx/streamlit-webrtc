@@ -131,11 +131,13 @@ class DataChannel:
         """
         if self._channel.readyState != "open":
             return False
-        # Counted the way aiortc counts it into bufferedAmount.
-        size = (
+        # Counted the way aiortc counts it into bufferedAmount, where an
+        # empty message still takes the one byte it is padded to on the wire.
+        size = max(
             len(data.encode("utf8"))
             if isinstance(data, str)
-            else memoryview(data).nbytes
+            else memoryview(data).nbytes,
+            1,
         )
         with self._pending_lock:
             if (
