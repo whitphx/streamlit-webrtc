@@ -80,7 +80,7 @@ interface ExtraProps {
   dataChannels?: DataChannelSpec[];
   frontendScript?: string;
   frontendData?: unknown;
-  frontendScriptRootRef?: { current: HTMLDivElement | null };
+  frontendScriptContainerRef?: { current: HTMLDivElement | null };
   frontendScriptMediaRef?: { current: FrontendScriptMedia };
 }
 
@@ -237,7 +237,7 @@ describe("useWebRtc", () => {
         root.appendChild(document.createElement("canvas"));
         return cleanup;
       });
-      const root = document.createElement("div");
+      const container = document.createElement("div");
       const video = document.createElement("video");
 
       const { result } = renderWebRtc({
@@ -247,7 +247,7 @@ describe("useWebRtc", () => {
         ],
         frontendScript: "export default () => {}",
         frontendData: { color: "red" },
-        frontendScriptRootRef: { current: root },
+        frontendScriptContainerRef: { current: container },
         frontendScriptMediaRef: { current: { video } },
       });
       await act(async () => result.current.start());
@@ -263,10 +263,11 @@ describe("useWebRtc", () => {
         },
       ]);
       expect(Object.keys(channels)).toEqual(["events", "frames"]);
-      expect(scriptRoot).toBe(root);
+      expect(container.childElementCount).toBe(1);
+      expect(container.firstElementChild).toBe(scriptRoot);
       expect(media).toEqual({ video });
       expect(data).toEqual({ color: "red" });
-      expect(root.childElementCount).toBe(1);
+      expect(scriptRoot.childElementCount).toBe(1);
 
       vi.useFakeTimers();
       await act(async () => {
@@ -275,7 +276,7 @@ describe("useWebRtc", () => {
       });
 
       expect(cleanup).toHaveBeenCalledOnce();
-      expect(root.childElementCount).toBe(0);
+      expect(container.childElementCount).toBe(0);
     });
 
     it("calls the script's update only when the data changes", async () => {
@@ -285,7 +286,7 @@ describe("useWebRtc", () => {
       const props = {
         frontendScript: "export default () => {}",
         frontendData: { color: "red", threshold: 1 },
-        frontendScriptRootRef: { current: document.createElement("div") },
+        frontendScriptContainerRef: { current: document.createElement("div") },
       };
 
       const { result, rerender } = renderWebRtc(props);
@@ -319,7 +320,7 @@ describe("useWebRtc", () => {
       const props = {
         frontendScript: "export default () => {}",
         frontendData: 1,
-        frontendScriptRootRef: { current: document.createElement("div") },
+        frontendScriptContainerRef: { current: document.createElement("div") },
       };
 
       const { result, rerender } = renderWebRtc(props);
@@ -341,7 +342,7 @@ describe("useWebRtc", () => {
       const props = {
         frontendScript: "export default () => {}",
         frontendData: 1,
-        frontendScriptRootRef: { current: document.createElement("div") },
+        frontendScriptContainerRef: { current: document.createElement("div") },
       };
 
       const { result, rerender } = renderWebRtc(props);
@@ -360,12 +361,11 @@ describe("useWebRtc", () => {
           finishSetup = () => resolve(cleanup);
         }),
       );
-      const root = document.createElement("div");
-      root.appendChild(document.createElement("canvas"));
+      const container = document.createElement("div");
 
       const { result } = renderWebRtc({
         frontendScript: "export default () => {}",
-        frontendScriptRootRef: { current: root },
+        frontendScriptContainerRef: { current: container },
       });
       let started: Promise<void> = Promise.resolve();
       await act(async () => {
@@ -389,7 +389,7 @@ describe("useWebRtc", () => {
         expect((sender.track as MediaStreamTrack).stop).toHaveBeenCalled();
       }
       expect(cleanup).toHaveBeenCalledOnce();
-      expect(root.childElementCount).toBe(0);
+      expect(container.childElementCount).toBe(0);
       expect(result.current.state.webRtcState).toBe("STOPPED");
       expect(result.current.state.sdpOffer).toBeNull();
       expect(result.current.state.error).toBeNull();
@@ -405,11 +405,11 @@ describe("useWebRtc", () => {
         await loading;
         root.appendChild(document.createElement("canvas"));
       });
-      const root = document.createElement("div");
+      const container = document.createElement("div");
 
       const { result } = renderWebRtc({
         frontendScript: "export default () => {}",
-        frontendScriptRootRef: { current: root },
+        frontendScriptContainerRef: { current: container },
       });
       let started: Promise<void> = Promise.resolve();
       await act(async () => {
@@ -419,14 +419,14 @@ describe("useWebRtc", () => {
 
       await act(async () => result.current.stop());
 
-      const [{ pc }] = frontendScriptSetup.mock.calls[0];
+      const [{ pc, root }] = frontendScriptSetup.mock.calls[0];
       const fakePc = pc as FakePeerConnection;
       expect(fakePc.closed).toBe(true);
       expect(fakePc.getSenders()).not.toHaveLength(0);
       for (const sender of fakePc.getSenders()) {
         expect((sender.track as MediaStreamTrack).stop).toHaveBeenCalled();
       }
-      expect(root.childElementCount).toBe(0);
+      expect(container.childElementCount).toBe(0);
       expect(result.current.state.webRtcState).toBe("STOPPED");
 
       await act(async () => {
@@ -434,7 +434,8 @@ describe("useWebRtc", () => {
         await started;
       });
 
-      expect(root.childElementCount).toBe(0);
+      expect(container.childElementCount).toBe(0);
+      expect(root.isConnected).toBe(false);
       expect(fakePc.offerCreated).toBe(false);
       expect(result.current.state.webRtcState).toBe("STOPPED");
     });
@@ -450,7 +451,7 @@ describe("useWebRtc", () => {
       });
       const props = {
         frontendScript: "export default () => {}",
-        frontendScriptRootRef: { current: document.createElement("div") },
+        frontendScriptContainerRef: { current: document.createElement("div") },
       };
 
       const { result } = renderWebRtc(props);
@@ -472,24 +473,26 @@ describe("useWebRtc", () => {
       expect(result.current.state.sdpOffer).not.toBeNull();
     });
 
-    it("leaves the next session's root alone when a stopped setup finishes", async () => {
+    it("keeps what a stopped session draws late out of the next session's root", async () => {
       const staleCleanup = vi.fn();
-      let finishStaleSetup = () => {};
+      let finishStaleLoading = () => {};
+      const staleLoading = new Promise<void>((resolve) => {
+        finishStaleLoading = resolve;
+      });
       frontendScriptSetup
-        .mockImplementationOnce(({ root }) => {
+        .mockImplementationOnce(async ({ root }) => {
+          await staleLoading;
           root.appendChild(document.createElement("canvas"));
-          return new Promise((resolve) => {
-            finishStaleSetup = () => resolve(staleCleanup);
-          });
+          return staleCleanup;
         })
         .mockImplementationOnce(({ root }) => {
           root.appendChild(document.createElement("canvas"));
         });
-      const root = document.createElement("div");
+      const container = document.createElement("div");
 
       const { result } = renderWebRtc({
         frontendScript: "export default () => {}",
-        frontendScriptRootRef: { current: root },
+        frontendScriptContainerRef: { current: container },
       });
       let staleStarted: Promise<void> = Promise.resolve();
       await act(async () => {
@@ -497,17 +500,21 @@ describe("useWebRtc", () => {
       });
       await act(async () => result.current.stop());
       await act(async () => result.current.start());
-      expect(root.childElementCount).toBe(1);
 
       await act(async () => {
-        finishStaleSetup();
+        finishStaleLoading();
         await staleStarted;
       });
 
-      const [{ pc: stalePc }] = frontendScriptSetup.mock.calls[0];
+      const [{ pc: stalePc, root: staleRoot }] =
+        frontendScriptSetup.mock.calls[0];
+      const [{ root }] = frontendScriptSetup.mock.calls[1];
+      expect(staleRoot.isConnected).toBe(false);
+      expect(container.childElementCount).toBe(1);
+      expect(container.firstElementChild).toBe(root);
+      expect(root.childElementCount).toBe(1);
       expect((stalePc as FakePeerConnection).closed).toBe(true);
       expect(staleCleanup).toHaveBeenCalledOnce();
-      expect(root.childElementCount).toBe(1);
       expect(result.current.state.webRtcState).toBe("SIGNALLING");
       expect(result.current.state.sdpOffer).not.toBeNull();
     });
@@ -547,7 +554,7 @@ describe("useWebRtc", () => {
 
       const { result } = renderWebRtc({
         frontendScript: "export default () => {}",
-        frontendScriptRootRef: { current: document.createElement("div") },
+        frontendScriptContainerRef: { current: document.createElement("div") },
       });
       await act(async () => result.current.start());
 

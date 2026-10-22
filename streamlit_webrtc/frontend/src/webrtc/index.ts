@@ -51,7 +51,7 @@ export const useWebRtc = (
     dataChannels?: DataChannelSpec[];
     frontendScript?: string | null;
     frontendData?: unknown;
-    frontendScriptRootRef?: RefObject<HTMLDivElement>;
+    frontendScriptContainerRef?: RefObject<HTMLDivElement>;
     frontendScriptMediaRef?: RefObject<FrontendScriptMedia>;
   },
   videoDeviceIdRequest: MediaDeviceInfo["deviceId"] | undefined,
@@ -80,7 +80,7 @@ export const useWebRtc = (
   // stop() does not have to wait for the setup to settle, which an app's
   // frontend_script may never do.
   const releaseSetupRef = useRef<() => void>();
-  const frontendScriptRootOwnerRef = useRef<number>();
+  const frontendScriptRootRef = useRef<HTMLDivElement>();
   const frontendScriptHandleRef = useRef<FrontendScriptHandle>();
   const deliveredFrontendDataRef = useRef<unknown>();
   const frontendDataRef = useRef(props.frontendData);
@@ -117,7 +117,8 @@ export const useWebRtc = (
       } catch (error) {
         console.error("frontend_script cleanup failed", error);
       }
-      props.frontendScriptRootRef?.current?.replaceChildren();
+      frontendScriptRootRef.current?.remove();
+      frontendScriptRootRef.current = undefined;
 
       // close transceivers
       if (pc.getTransceivers) {
@@ -147,7 +148,7 @@ export const useWebRtc = (
       .finally(() => {
         dispatch({ type: "STOPPED" });
       });
-  }, [state.webRtcState, props.frontendScriptRootRef]);
+  }, [state.webRtcState]);
 
   const stopRef = useRef(stop);
   stopRef.current = stop;
@@ -230,6 +231,7 @@ export const useWebRtc = (
 
       let openedInputMediaStream: MediaStream | null = null;
       let frontendScriptHandle: FrontendScriptHandle | undefined;
+      let frontendScriptRoot: HTMLDivElement | undefined;
       // Until pcRef holds the connection, stop() reaches what this session
       // has opened only through here. It can run twice, from stop() and
       // when the setup settles, so each step is safe to repeat.
@@ -244,11 +246,7 @@ export const useWebRtc = (
         } catch (error) {
           console.error("frontend_script cleanup failed", error);
         }
-        // A session stopped during its setup can finish after the next one
-        // has started drawing into the same root.
-        if (frontendScriptRootOwnerRef.current === session) {
-          props.frontendScriptRootRef?.current?.replaceChildren();
-        }
+        frontendScriptRoot?.remove();
         openedInputMediaStream?.getTracks().forEach((track) => track.stop());
         pc.close();
       };
@@ -344,16 +342,18 @@ export const useWebRtc = (
         );
 
         if (frontendScriptSetup) {
-          const root = props.frontendScriptRootRef?.current;
-          if (root == null) {
-            throw new Error("No root element for frontend_script");
+          const container = props.frontendScriptContainerRef?.current;
+          if (container == null) {
+            throw new Error("No container element for frontend_script");
           }
+          // A new element for every session, because a stopped session's
+          // setup keeps running until it settles and must not draw into
+          // the view of the session that replaced it.
+          const root = document.createElement("div");
+          container.appendChild(root);
+          frontendScriptRoot = root;
           const { video, audio } = props.frontendScriptMediaRef?.current ?? {};
           const data = frontendDataRef.current;
-          frontendScriptRootOwnerRef.current = session;
-          // A stopped session whose setup has not settled yet can still draw
-          // here, and its release must not empty a root it lost.
-          root.replaceChildren();
           try {
             frontendScriptHandle = await setUpFrontendScript(
               frontendScriptSetup,
@@ -374,6 +374,7 @@ export const useWebRtc = (
             return;
           }
           frontendScriptHandleRef.current = frontendScriptHandle;
+          frontendScriptRootRef.current = root;
           deliveredFrontendDataRef.current = data;
         }
 
@@ -449,7 +450,7 @@ export const useWebRtc = (
     props.sendbackAudio,
     props.dataChannels,
     props.frontendScript,
-    props.frontendScriptRootRef,
+    props.frontendScriptContainerRef,
     props.frontendScriptMediaRef,
     state.webRtcState,
     onDevicesOpened,

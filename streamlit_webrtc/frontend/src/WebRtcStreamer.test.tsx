@@ -180,7 +180,7 @@ function renderStreamer({
     vi.mocked(useWebRtc).mock.calls[0];
 
   return {
-    frontendScriptRootRef: webRtcProps.frontendScriptRootRef,
+    frontendScriptContainerRef: webRtcProps.frontendScriptContainerRef,
     frontendScriptMediaRef: webRtcProps.frontendScriptMediaRef,
     rerender: async () => {
       await act(async () => rerender(streamer()));
@@ -627,20 +627,21 @@ describe("<WebRtcStreamerInner />", () => {
 
     it("keeps the script's root and media elements across the device picker", async () => {
       stubDevices();
-      const { frontendScriptRootRef, frontendScriptMediaRef } = renderStreamer({
-        frontendScript: "export default () => {}",
-      });
-      const root = frontendScriptRootRef?.current;
+      const { frontendScriptContainerRef, frontendScriptMediaRef } =
+        renderStreamer({
+          frontendScript: "export default () => {}",
+        });
+      const container = frontendScriptContainerRef?.current;
       const video = frontendScriptMediaRef?.current?.video;
-      expect(root?.isConnected).toBe(true);
+      expect(container?.isConnected).toBe(true);
       expect(video?.isConnected).toBe(true);
       const canvas = document.createElement("canvas");
-      root?.appendChild(canvas);
+      container?.appendChild(canvas);
 
       fireEvent.click(screen.getByRole("button", { name: "Select Device" }));
       fireEvent.click(await screen.findByRole("button", { name: "Close" }));
 
-      expect(frontendScriptRootRef?.current).toBe(root);
+      expect(frontendScriptContainerRef?.current).toBe(container);
       expect(frontendScriptMediaRef?.current?.video).toBe(video);
       expect(canvas.isConnected).toBe(true);
       expect(isShown(canvas)).toBe(true);
@@ -651,14 +652,14 @@ describe("<WebRtcStreamerInner />", () => {
         getVideoTracks: () => [],
         getAudioTracks: () => [{}],
       } as unknown as MediaStream;
-      const { frontendScriptRootRef, frontendScriptMediaRef, rerender } =
+      const { frontendScriptContainerRef, frontendScriptMediaRef, rerender } =
         renderStreamer({
           frontendScript: "export default () => {}",
           outputMediaStream: audioOnlyStream,
         });
       const { video, audio } = frontendScriptMediaRef?.current ?? {};
       const canvas = document.createElement("canvas");
-      frontendScriptRootRef?.current?.appendChild(canvas);
+      frontendScriptContainerRef?.current?.appendChild(canvas);
 
       expect(audio?.srcObject).toBe(audioOnlyStream);
       expect(isShown(audio as HTMLAudioElement)).toBe(true);
@@ -676,25 +677,28 @@ describe("<WebRtcStreamerInner />", () => {
     });
 
     it("keeps the running script's root until the session stops when the script is removed", async () => {
-      const { frontendScriptRootRef, frontendScriptMediaRef, rerenderWith } =
-        renderStreamer({ frontendScript: "export default () => {}" });
-      const root = frontendScriptRootRef?.current;
+      const {
+        frontendScriptContainerRef,
+        frontendScriptMediaRef,
+        rerenderWith,
+      } = renderStreamer({ frontendScript: "export default () => {}" });
+      const container = frontendScriptContainerRef?.current;
       const video = frontendScriptMediaRef?.current?.video;
       const canvas = document.createElement("canvas");
-      root?.appendChild(canvas);
+      container?.appendChild(canvas);
 
       await rerenderWith(null, "PLAYING");
       await rerenderWith(null, "STOPPING");
 
-      expect(frontendScriptRootRef?.current).toBe(root);
+      expect(frontendScriptContainerRef?.current).toBe(container);
       expect(frontendScriptMediaRef?.current?.video).toBe(video);
       expect(canvas.isConnected).toBe(true);
       expect(video?.isConnected).toBe(true);
 
       await rerenderWith(null, "STOPPED");
 
-      expect(frontendScriptRootRef?.current).toBeNull();
-      expect(root?.isConnected).toBe(false);
+      expect(frontendScriptContainerRef?.current).toBeNull();
+      expect(container?.isConnected).toBe(false);
     });
 
     it("shows a script error in the component", () => {

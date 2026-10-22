@@ -43,7 +43,6 @@ export default function ({ channels, root }) {
       y: (event.clientY - rect.top) / rect.height,
     }));
   };
-  // The same root serves every session, so the cleanup removes these.
   const listeners = new AbortController();
   const { signal } = listeners;
   root.addEventListener("pointermove", (event) => sendPointer(event, "move"), { signal });

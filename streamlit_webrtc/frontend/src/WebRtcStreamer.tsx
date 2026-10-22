@@ -129,10 +129,10 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     },
     [],
   );
-  const frontendScriptRootRef = useRef<HTMLDivElement>(null);
+  const frontendScriptContainerRef = useRef<HTMLDivElement>(null);
   const frontendScriptMediaRef = useRef<FrontendScriptMedia>({});
   const { state, start, stop, updateInputDevice } = useWebRtc(
-    { ...props, frontendScriptRootRef, frontendScriptMediaRef },
+    { ...props, frontendScriptContainerRef, frontendScriptMediaRef },
     deviceIds.video,
     deviceIds.audio,
     props.onComponentValueChange,
@@ -150,10 +150,10 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   // The script can change the root's size at any time, which none of the
   // renders that otherwise refresh the frame height would notice.
   useEffect(() => {
-    const root = frontendScriptRootRef.current;
-    if (!hasFrontendScript || root == null) return;
+    const container = frontendScriptContainerRef.current;
+    if (!hasFrontendScript || container == null) return;
     const observer = new ResizeObserver(() => Streamlit.setFrameHeight());
-    observer.observe(root);
+    observer.observe(container);
     return () => observer.disconnect();
   }, [hasFrontendScript]);
 
@@ -359,7 +359,7 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
                   />
                 )}
               </Box>
-              <div ref={frontendScriptRootRef} />
+              <div ref={frontendScriptContainerRef} />
             </Box>
           </Box>
         ) : (
