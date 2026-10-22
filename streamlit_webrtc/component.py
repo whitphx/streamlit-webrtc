@@ -12,6 +12,7 @@ from typing import (
     Generic,
     List,
     Literal,
+    Mapping,
     NamedTuple,
     Optional,
     TypeVar,
@@ -49,6 +50,12 @@ from .config import (
 )
 from .credentials import (
     get_available_ice_servers,
+)
+from .datachannel import (
+    DataChannel,
+    DataChannelMessageCallback,
+    DataChannelOptions,
+    compile_data_channel_specs,
 )
 from .native_webrtc import NativeAudioWorker, load_native_peer
 from .session_info import get_script_run_count, get_this_session_info
@@ -142,6 +149,7 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     input_audio_track = _WorkerForwarded[MediaStreamTrack]("input_audio_track")
     output_video_track = _WorkerForwarded[MediaStreamTrack]("output_video_track")
     output_audio_track = _WorkerForwarded[MediaStreamTrack]("output_audio_track")
+    data_channels = _WorkerForwarded[Dict[str, DataChannel]]("data_channels")
 
     def __init__(
         self,
@@ -559,6 +567,10 @@ def webrtc_streamer(
     async_transform: Optional[bool] = None,
     media_toggle_controls: bool = True,
     backend: Literal["aiortc", "native"] = "aiortc",
+    data_channels: Optional[Mapping[str, DataChannelOptions]] = None,
+    on_data_channel_message: Optional[DataChannelMessageCallback] = None,
+    frontend_script: Optional[str] = None,
+    frontend_data: Any = None,
 ) -> WebRtcStreamerContext:
     # XXX: We wanted something like `WebRtcStreamerContext[None, None]`
     # as the return value, but could not find a good solution
@@ -607,6 +619,10 @@ def webrtc_streamer(
     async_transform: Optional[bool] = None,
     media_toggle_controls: bool = True,
     backend: Literal["aiortc", "native"] = "aiortc",
+    data_channels: Optional[Mapping[str, DataChannelOptions]] = None,
+    on_data_channel_message: Optional[DataChannelMessageCallback] = None,
+    frontend_script: Optional[str] = None,
+    frontend_data: Any = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, Any]:
     pass
 
@@ -651,6 +667,10 @@ def webrtc_streamer(
     async_transform: Optional[bool] = None,
     media_toggle_controls: bool = True,
     backend: Literal["aiortc", "native"] = "aiortc",
+    data_channels: Optional[Mapping[str, DataChannelOptions]] = None,
+    on_data_channel_message: Optional[DataChannelMessageCallback] = None,
+    frontend_script: Optional[str] = None,
+    frontend_data: Any = None,
 ) -> WebRtcStreamerContext[Any, AudioProcessorT]:
     pass
 
@@ -695,6 +715,10 @@ def webrtc_streamer(
     async_transform: Optional[bool] = None,
     media_toggle_controls: bool = True,
     backend: Literal["aiortc", "native"] = "aiortc",
+    data_channels: Optional[Mapping[str, DataChannelOptions]] = None,
+    on_data_channel_message: Optional[DataChannelMessageCallback] = None,
+    frontend_script: Optional[str] = None,
+    frontend_data: Any = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     pass
 
@@ -738,6 +762,10 @@ def webrtc_streamer(
     async_transform: Optional[bool] = None,
     media_toggle_controls: bool = True,
     backend: Literal["aiortc", "native"] = "aiortc",
+    data_channels: Optional[Mapping[str, DataChannelOptions]] = None,
+    on_data_channel_message: Optional[DataChannelMessageCallback] = None,
+    frontend_script: Optional[str] = None,
+    frontend_data: Any = None,
 ) -> WebRtcStreamerContext[VideoProcessorT, AudioProcessorT]:
     # Backward compatibility
     if video_transformer_factory is not None:
@@ -778,6 +806,8 @@ def webrtc_streamer(
             "source_audio_track": source_audio_track,
             "sink_video_track": sink_video_track,
             "sink_audio_track": sink_audio_track,
+            "data_channels": data_channels,
+            "on_data_channel_message": on_data_channel_message,
         }
         for name, value in unsupported.items():
             if value is not None:
@@ -829,6 +859,8 @@ def webrtc_streamer(
         processor_factory=audio_processor_factory,
     )
 
+    data_channel_specs = compile_data_channel_specs(data_channels or {})
+
     context = _get_or_create_context(key)
     active_worker = context._get_worker()
     if active_worker is not None and active_worker.backend != backend:
@@ -862,6 +894,9 @@ def webrtc_streamer(
         # capture cannot receive a server-generated video stream.
         sendback_video=sendback_video,
         sendback_audio=sendback_audio,
+        data_channels=data_channel_specs,
+        frontend_script=frontend_script,
+        frontend_data=frontend_data,
         on_change=_make_state_change_callback(key, frontend_key, on_change),
     )
     component_value = _restore_snapshot_if_needed(context, component_value)
@@ -906,6 +941,8 @@ def webrtc_streamer(
             sink_audio_track=sink_audio_track,
             sendback_video=sendback_video,
             sendback_audio=sendback_audio,
+            data_channel_specs=data_channel_specs,
+            on_data_channel_message=on_data_channel_message,
         ),
     )
 
@@ -914,14 +951,14 @@ def webrtc_streamer(
         if component_value and component_value.get("iceCandidates"):
             worker.set_ice_candidates_from_offerer(component_value["iceCandidates"])
 
-        if isinstance(worker, WebRtcWorker) and (
-            video_frame_callback or queued_video_frames_callback or on_video_ended
-        ):
-            worker.update_video_callbacks(
-                frame_callback=video_frame_callback,
-                queued_frames_callback=queued_video_frames_callback,
-                on_ended=on_video_ended,
-            )
+        if isinstance(worker, WebRtcWorker):
+            worker.on_data_channel_message = on_data_channel_message
+            if video_frame_callback or queued_video_frames_callback or on_video_ended:
+                worker.update_video_callbacks(
+                    frame_callback=video_frame_callback,
+                    queued_frames_callback=queued_video_frames_callback,
+                    on_ended=on_video_ended,
+                )
         if (
             backend == "native"
             or audio_frame_callback

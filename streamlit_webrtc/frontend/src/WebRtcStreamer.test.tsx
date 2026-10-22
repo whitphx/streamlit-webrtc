@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   act,
   cleanup,
@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import { WebRtcStreamerInner } from "./WebRtcStreamer";
 import { useWebRtc } from "./webrtc";
 import { persistDeviceIds } from "./device-storage";
+import { FrontendScriptError } from "./webrtc/frontend-script";
 import { makeDevice, stubMediaDevices } from "./media-devices-test-utils";
 
 vi.mock("streamlit-component-lib-react-hooks", () => ({
@@ -43,10 +44,16 @@ vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
     onSelectionResolved: (devices: { video?: string; audio?: string }) => void;
     onVideoSelect: (deviceId: string) => Promise<void> | void;
     onAudioSelect: (deviceId: string) => Promise<void> | void;
+    onClose: () => void;
     switchError?: Error | null;
   }) {
-    const { onSelectionResolved, onVideoSelect, onAudioSelect, switchError } =
-      props;
+    const {
+      onSelectionResolved,
+      onVideoSelect,
+      onAudioSelect,
+      onClose,
+      switchError,
+    } = props;
     useEffect(() => {
       onSelectionResolved(resolvedSelection);
     }, [onSelectionResolved]);
@@ -63,6 +70,9 @@ vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
         </button>
         <button type="button" onClick={selectAudio}>
           Choose another microphone
+        </button>
+        <button type="button" onClick={onClose}>
+          Close
         </button>
         {switchError != null && <div role="alert">{switchError.message}</div>}
       </div>
@@ -108,13 +118,19 @@ function makeStream() {
 
 function renderStreamer({
   mediaToggleControls = true,
+  frontendScript = undefined,
   webRtcState = "PLAYING",
+  outputMediaStream = null,
+  error = null,
   updateInputDevice = vi
     .fn<(kind: "video" | "audio", deviceId: string) => Promise<void>>()
     .mockResolvedValue(undefined),
 }: {
   mediaToggleControls?: boolean;
-  webRtcState?: "STOPPED" | "PLAYING";
+  frontendScript?: string;
+  webRtcState?: "STOPPED" | "PLAYING" | "STOPPING";
+  outputMediaStream?: MediaStream | null;
+  error?: Error | null;
   updateInputDevice?: (
     kind: "video" | "audio",
     deviceId: string,
@@ -129,9 +145,9 @@ function renderStreamer({
         webRtcState: currentState as typeof webRtcState,
         sdpOffer: null,
         iceCandidates: {},
-        outputMediaStream: null,
+        outputMediaStream,
         inputMediaStream,
-        error: null,
+        error,
       },
       start: vi.fn(),
       stop: vi.fn(),
@@ -140,7 +156,7 @@ function renderStreamer({
   const stream = makeStream();
   mockWebRtc(stream);
 
-  const streamer = () => (
+  const streamer = (script: string | null | undefined = frontendScript) => (
     <WebRtcStreamerInner
       disabled={false}
       mode="SENDRECV"
@@ -154,15 +170,28 @@ function renderStreamer({
       videoHtmlAttrs={{}}
       audioHtmlAttrs={{}}
       mediaToggleControls={mediaToggleControls}
+      frontendScript={script}
       onComponentValueChange={vi.fn()}
     />
   );
   const { rerender } = render(streamer());
 
-  const [, , , , onDevicesOpened, onDevicesUnavailable] =
+  const [webRtcProps, , , , onDevicesOpened, onDevicesUnavailable] =
     vi.mocked(useWebRtc).mock.calls[0];
 
   return {
+    frontendScriptContainerRef: webRtcProps.frontendScriptContainerRef,
+    frontendScriptMediaRef: webRtcProps.frontendScriptMediaRef,
+    rerender: async () => {
+      await act(async () => rerender(streamer()));
+    },
+    rerenderWith: async (
+      script: string | null,
+      currentState: typeof webRtcState,
+    ) => {
+      mockWebRtc(stream, currentState);
+      await act(async () => rerender(streamer(script)));
+    },
     updateInputDevice,
     onDevicesOpened,
     onDevicesUnavailable,
@@ -576,5 +605,122 @@ describe("<WebRtcStreamerInner />", () => {
         { clearing: false },
       ),
     );
+  });
+
+  describe("with a frontend script", () => {
+    beforeEach(() => {
+      vi.stubGlobal(
+        "ResizeObserver",
+        class {
+          observe() {}
+          disconnect() {}
+        },
+      );
+    });
+
+    const isShown = (element: Element) => {
+      for (let e: Element | null = element; e != null; e = e.parentElement) {
+        if (getComputedStyle(e).display === "none") return false;
+      }
+      return true;
+    };
+
+    it("keeps the script's container and media elements across the device picker", async () => {
+      stubDevices();
+      const { frontendScriptContainerRef, frontendScriptMediaRef } =
+        renderStreamer({
+          frontendScript: "export default () => {}",
+        });
+      const container = frontendScriptContainerRef?.current;
+      const video = frontendScriptMediaRef?.current?.video;
+      expect(container?.isConnected).toBe(true);
+      expect(video?.isConnected).toBe(true);
+      const canvas = document.createElement("canvas");
+      container?.appendChild(canvas);
+
+      fireEvent.click(screen.getByRole("button", { name: "Select Device" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Close" }));
+
+      expect(frontendScriptContainerRef?.current).toBe(container);
+      expect(frontendScriptMediaRef?.current?.video).toBe(video);
+      expect(canvas.isConnected).toBe(true);
+      expect(isShown(canvas)).toBe(true);
+    });
+
+    it("plays an audio-only stream in the audio element, leaving the root free for the app's own visuals", async () => {
+      const audioOnlyStream = {
+        getVideoTracks: () => [],
+        getAudioTracks: () => [{}],
+      } as unknown as MediaStream;
+      const { frontendScriptContainerRef, frontendScriptMediaRef, rerender } =
+        renderStreamer({
+          frontendScript: "export default () => {}",
+          outputMediaStream: audioOnlyStream,
+        });
+      const { video, audio } = frontendScriptMediaRef?.current ?? {};
+      const canvas = document.createElement("canvas");
+      frontendScriptContainerRef?.current?.appendChild(canvas);
+
+      expect(audio?.srcObject).toBe(audioOnlyStream);
+      expect(isShown(audio as HTMLAudioElement)).toBe(true);
+      expect(video?.srcObject).toBeNull();
+      expect(isShown(video as HTMLVideoElement)).toBe(false);
+      expect(isShown(canvas)).toBe(true);
+      expect(screen.queryByTestId("VideoLabelIcon")).toBeNull();
+
+      // An app drawing its own player hides the component's one, and a
+      // rerun leaves it hidden.
+      (audio as HTMLAudioElement).hidden = true;
+      await rerender();
+      expect(audio?.hidden).toBe(true);
+      expect(audio?.srcObject).toBe(audioOnlyStream);
+    });
+
+    it("keeps the script's container until the session stops when the script is removed", async () => {
+      const {
+        frontendScriptContainerRef,
+        frontendScriptMediaRef,
+        rerenderWith,
+      } = renderStreamer({ frontendScript: "export default () => {}" });
+      const container = frontendScriptContainerRef?.current;
+      const video = frontendScriptMediaRef?.current?.video;
+      const canvas = document.createElement("canvas");
+      container?.appendChild(canvas);
+
+      await rerenderWith(null, "PLAYING");
+      await rerenderWith(null, "STOPPING");
+
+      expect(frontendScriptContainerRef?.current).toBe(container);
+      expect(frontendScriptMediaRef?.current?.video).toBe(video);
+      expect(canvas.isConnected).toBe(true);
+      expect(video?.isConnected).toBe(true);
+
+      await rerenderWith(null, "STOPPED");
+
+      expect(frontendScriptContainerRef?.current).toBeNull();
+      expect(container?.isConnected).toBe(false);
+    });
+
+    it("waits for the session to stop before switching to a script added by a rerun", async () => {
+      const { frontendScriptContainerRef, rerenderWith } = renderStreamer();
+
+      await rerenderWith("export default () => {}", "PLAYING");
+      expect(frontendScriptContainerRef?.current).toBeNull();
+
+      await rerenderWith("export default () => {}", "STOPPED");
+      expect(frontendScriptContainerRef?.current?.isConnected).toBe(true);
+    });
+
+    it("shows a script error in the component", () => {
+      renderStreamer({
+        frontendScript: "export default () => {}",
+        webRtcState: "STOPPED",
+        error: new FrontendScriptError(new Error("script bug")),
+      });
+
+      expect(screen.getByRole("alert").textContent).toBe(
+        "FrontendScriptError: script bug",
+      );
+    });
   });
 });
