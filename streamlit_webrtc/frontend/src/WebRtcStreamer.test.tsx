@@ -701,6 +701,16 @@ describe("<WebRtcStreamerInner />", () => {
       expect(container?.isConnected).toBe(false);
     });
 
+    it("waits for the session to stop before switching to a script added by a rerun", async () => {
+      const { frontendScriptContainerRef, rerenderWith } = renderStreamer();
+
+      await rerenderWith("export default () => {}", "PLAYING");
+      expect(frontendScriptContainerRef?.current).toBeNull();
+
+      await rerenderWith("export default () => {}", "STOPPED");
+      expect(frontendScriptContainerRef?.current?.isConnected).toBe(true);
+    });
+
     it("shows a script error in the component", () => {
       renderStreamer({
         frontendScript: "export default () => {}",

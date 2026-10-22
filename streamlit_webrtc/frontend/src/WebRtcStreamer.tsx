@@ -4,6 +4,7 @@ import {
   useState,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
 } from "react";
 import Box from "@mui/material/Box";
@@ -140,13 +141,17 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     handleDevicesUnavailable,
   );
   // Follows the prop only between sessions. A running script holds on to
-  // the root and the media elements, so a rerun that drops
+  // its root and the media elements, so a rerun that drops
   // `frontend_script` must not unmount them under it.
-  const hasFrontendScriptRef = useRef(props.frontendScript != null);
-  if (state.webRtcState === "STOPPED") {
-    hasFrontendScriptRef.current = props.frontendScript != null;
-  }
-  const hasFrontendScript = hasFrontendScriptRef.current;
+  const committedHasFrontendScriptRef = useRef(props.frontendScript != null);
+  const hasFrontendScript =
+    state.webRtcState === "STOPPED"
+      ? props.frontendScript != null
+      : committedHasFrontendScriptRef.current;
+  // Recorded after commit, since React can discard a render.
+  useLayoutEffect(() => {
+    committedHasFrontendScriptRef.current = hasFrontendScript;
+  });
   // The script can change the root's size at any time, which none of the
   // renders that otherwise refresh the frame height would notice.
   useEffect(() => {
