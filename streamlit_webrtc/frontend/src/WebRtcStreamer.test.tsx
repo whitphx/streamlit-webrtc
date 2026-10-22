@@ -128,7 +128,7 @@ function renderStreamer({
 }: {
   mediaToggleControls?: boolean;
   frontendScript?: string;
-  webRtcState?: "STOPPED" | "PLAYING";
+  webRtcState?: "STOPPED" | "PLAYING" | "STOPPING";
   outputMediaStream?: MediaStream | null;
   error?: Error | null;
   updateInputDevice?: (
@@ -156,7 +156,7 @@ function renderStreamer({
   const stream = makeStream();
   mockWebRtc(stream);
 
-  const streamer = () => (
+  const streamer = (script: string | null | undefined = frontendScript) => (
     <WebRtcStreamerInner
       disabled={false}
       mode="SENDRECV"
@@ -170,7 +170,7 @@ function renderStreamer({
       videoHtmlAttrs={{}}
       audioHtmlAttrs={{}}
       mediaToggleControls={mediaToggleControls}
-      frontendScript={frontendScript}
+      frontendScript={script}
       onComponentValueChange={vi.fn()}
     />
   );
@@ -184,6 +184,13 @@ function renderStreamer({
     frontendScriptMediaRef: webRtcProps.frontendScriptMediaRef,
     rerender: async () => {
       await act(async () => rerender(streamer()));
+    },
+    rerenderWith: async (
+      script: string | null,
+      currentState: typeof webRtcState,
+    ) => {
+      mockWebRtc(stream, currentState);
+      await act(async () => rerender(streamer(script)));
     },
     updateInputDevice,
     onDevicesOpened,
@@ -666,6 +673,28 @@ describe("<WebRtcStreamerInner />", () => {
       await rerender();
       expect(audio?.hidden).toBe(true);
       expect(audio?.srcObject).toBe(audioOnlyStream);
+    });
+
+    it("keeps the running script's root until the session stops when the script is removed", async () => {
+      const { frontendScriptRootRef, frontendScriptMediaRef, rerenderWith } =
+        renderStreamer({ frontendScript: "export default () => {}" });
+      const root = frontendScriptRootRef?.current;
+      const video = frontendScriptMediaRef?.current?.video;
+      const canvas = document.createElement("canvas");
+      root?.appendChild(canvas);
+
+      await rerenderWith(null, "PLAYING");
+      await rerenderWith(null, "STOPPING");
+
+      expect(frontendScriptRootRef?.current).toBe(root);
+      expect(frontendScriptMediaRef?.current?.video).toBe(video);
+      expect(canvas.isConnected).toBe(true);
+      expect(video?.isConnected).toBe(true);
+
+      await rerenderWith(null, "STOPPED");
+
+      expect(frontendScriptRootRef?.current).toBeNull();
+      expect(root?.isConnected).toBe(false);
     });
 
     it("shows a script error in the component", () => {

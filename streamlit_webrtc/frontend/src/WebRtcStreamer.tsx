@@ -131,7 +131,22 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   );
   const frontendScriptRootRef = useRef<HTMLDivElement>(null);
   const frontendScriptMediaRef = useRef<FrontendScriptMedia>({});
-  const hasFrontendScript = props.frontendScript != null;
+  const { state, start, stop, updateInputDevice } = useWebRtc(
+    { ...props, frontendScriptRootRef, frontendScriptMediaRef },
+    deviceIds.video,
+    deviceIds.audio,
+    props.onComponentValueChange,
+    handleDevicesOpened,
+    handleDevicesUnavailable,
+  );
+  // Follows the prop only between sessions. A running script holds on to
+  // the root and the media elements, so a rerun that drops
+  // `frontend_script` must not unmount them under it.
+  const hasFrontendScriptRef = useRef(props.frontendScript != null);
+  if (state.webRtcState === "STOPPED") {
+    hasFrontendScriptRef.current = props.frontendScript != null;
+  }
+  const hasFrontendScript = hasFrontendScriptRef.current;
   // The script can change the root's size at any time, which none of the
   // renders that otherwise refresh the frame height would notice.
   useEffect(() => {
@@ -141,14 +156,6 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     observer.observe(root);
     return () => observer.disconnect();
   }, [hasFrontendScript]);
-  const { state, start, stop, updateInputDevice } = useWebRtc(
-    { ...props, frontendScriptRootRef, frontendScriptMediaRef },
-    deviceIds.video,
-    deviceIds.audio,
-    props.onComponentValueChange,
-    handleDevicesOpened,
-    handleDevicesUnavailable,
-  );
 
   const {
     start: startTakingTooLongTimeout,
