@@ -247,7 +247,6 @@ export const useWebRtc = (
         // A session stopped during its setup can finish after the next one
         // has started drawing into the same root.
         if (frontendScriptRootOwnerRef.current === session) {
-          frontendScriptRootOwnerRef.current = undefined;
           props.frontendScriptRootRef?.current?.replaceChildren();
         }
         openedInputMediaStream?.getTracks().forEach((track) => track.stop());
@@ -352,8 +351,8 @@ export const useWebRtc = (
           const { video, audio } = props.frontendScriptMediaRef?.current ?? {};
           const data = frontendDataRef.current;
           frontendScriptRootOwnerRef.current = session;
-          // A session stopped during its setup can draw until the setup
-          // settles, and its release must not empty a root it lost.
+          // A stopped session whose setup has not settled yet can still draw
+          // here, and its release must not empty a root it lost.
           root.replaceChildren();
           try {
             frontendScriptHandle = await setUpFrontendScript(

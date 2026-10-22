@@ -395,10 +395,15 @@ describe("useWebRtc", () => {
       expect(result.current.state.error).toBeNull();
     });
 
-    it("releases the camera and the connection on stop while the setup never settles", async () => {
-      frontendScriptSetup.mockImplementation(({ root }) => {
+    it("releases the camera and the connection on stop while the setup is still running", async () => {
+      let finishLoading = () => {};
+      const loading = new Promise<void>((resolve) => {
+        finishLoading = resolve;
+      });
+      frontendScriptSetup.mockImplementation(async ({ root }) => {
         root.appendChild(document.createElement("canvas"));
-        return new Promise(() => {});
+        await loading;
+        root.appendChild(document.createElement("canvas"));
       });
       const root = document.createElement("div");
 
@@ -406,8 +411,9 @@ describe("useWebRtc", () => {
         frontendScript: "export default () => {}",
         frontendScriptRootRef: { current: root },
       });
+      let started: Promise<void> = Promise.resolve();
       await act(async () => {
-        result.current.start();
+        started = result.current.start();
       });
       expect(frontendScriptSetup).toHaveBeenCalledOnce();
 
@@ -421,6 +427,15 @@ describe("useWebRtc", () => {
         expect((sender.track as MediaStreamTrack).stop).toHaveBeenCalled();
       }
       expect(root.childElementCount).toBe(0);
+      expect(result.current.state.webRtcState).toBe("STOPPED");
+
+      await act(async () => {
+        finishLoading();
+        await started;
+      });
+
+      expect(root.childElementCount).toBe(0);
+      expect(fakePc.offerCreated).toBe(false);
       expect(result.current.state.webRtcState).toBe("STOPPED");
     });
 
