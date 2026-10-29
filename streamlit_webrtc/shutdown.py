@@ -102,6 +102,11 @@ class SessionShutdownObserver:
                     )
                     navigated_away = True
                     break
+            # Holding the session through the wait would keep it alive for
+            # good. Streamlit drops an expired disconnected session from its
+            # storage without shutting it down, so the only way this thread
+            # learns it is gone is the weak reference above going dead.
+            del app_session
             if self._polling_thread_stop_event.wait(1.0):
                 logger.debug("Polling thread stop requested.")
                 return
