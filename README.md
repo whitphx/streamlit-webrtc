@@ -318,21 +318,44 @@ The function may be `async`, for example to load a model first, and the session 
 
 If the script fails to load or its setup throws, the session does not start and the error is shown in the component. The script runs with the page's privileges like the rest of your app's code, so never build it from user input.
 
-To show data when the audio it belongs to is heard, stamp each message with the audio's RTP timestamp and let the browser look up when that timestamp plays. A message is handled as soon as it arrives, while the audio waits in the receiver's jitter buffer and the output device, and the two may not even take the same network path, so arrival time alone cannot line them up. On the server, `ctx.rtp_timestamp("audio", pts, time_base)` returns the RTP timestamp under which the browser plays the media the outbound track had at `pts` (`None` until the sender has encoded its first frame). In `frontend_script`, `createPlayoutClock("audio")` returns a clock whose `playoutTime(rtpTimestamp)` is the `performance.now()` time at which that audio is or will be heard, from the receiver's [`getSynchronizationSources()`](https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpReceiver/getSynchronizationSources) plus the output delay where the browser reports one. It returns `null` until the audio has started playing.
+See `pages/19_data_channel_overlay.py`, `pages/20_data_channel_binary.py`, and `pages/21_data_channel_controls.py` for complete examples.
+
+### Syncing data with the media
+
+A data channel message is handled as soon as it arrives, while the media it describes first waits in the receiver's jitter buffer, then in the decoder or the output device, and the two may not even take the same network path. Drawing on arrival is fine for data that only needs to be roughly current, such as a status readout. When the data has to line up with what is heard or seen, such as captions, a beat visualization, or boxes around a moving object, stamp each message with the RTP timestamp of the media it belongs to and let the browser look up when that media plays.
+
+On the server, `ctx.rtp_timestamp(kind, pts, time_base)` returns the RTP timestamp under which the browser plays what the outbound `"audio"` or `"video"` track sent at `pts`. Take `pts` and `time_base` from a source track's callback, as in the examples below, or from a frame callback with `async_processing=False`: with asynchronous processing a processed frame goes out under a later frame's pts. It returns `None` until the sender has encoded its first frame, and always with `backend="native"`.
+
+In `frontend_script`, `createPlayoutClock(kind)` returns a clock whose `playoutTime(rtpTimestamp)` is the `performance.now()` time at which that media is heard or shown, or `null` until it plays. For audio it follows the receiver's [`getSynchronizationSources()`](https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpReceiver/getSynchronizationSources) and adds the output delay where the browser reports one. For video it uses the [`requestVideoFrameCallback()`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/requestVideoFrameCallback) metadata of the component's video element, which tells exactly when each frame is shown, and falls back to the receiver's estimate where the browser does not report the frames' RTP timestamps or the element shows no frames. Call `clock.close()` when the script is done with it.
 
 ```js
 export default function ({ channels, createPlayoutClock }) {
   const clock = createPlayoutClock("audio");
+  const queue = [];
   channels.frames.addEventListener("message", ({ data }) => {
-    const rtpTimestamp = new DataView(data).getUint32(0, true);
-    const dueAt = clock.playoutTime(rtpTimestamp);
-    // ... draw the frame at the first animation frame at or after dueAt
+    queue.push({ rtpTimestamp: new DataView(data).getUint32(0, true), data });
   });
-  return () => clock.close();
+  let animationFrame;
+  const draw = () => {
+    animationFrame = requestAnimationFrame(draw);
+    while (queue.length > 0) {
+      const dueAt = clock.playoutTime(queue[0].rtpTimestamp);
+      if (dueAt === null || dueAt > performance.now()) break;
+      const frame = queue.shift();
+      // ... draw `frame`
+    }
+  };
+  draw();
+  return () => {
+    cancelAnimationFrame(animationFrame);
+    clock.close();
+  };
 }
 ```
 
-See `pages/19_data_channel_overlay.py`, `pages/20_data_channel_binary.py`, and `pages/21_data_channel_controls.py` for complete examples.
+For video, check the queue in a `requestVideoFrameCallback()` loop against the callback's `metadata.expectedDisplayTime` instead, so that the data is drawn in the same rendering step as its frame.
+
+`pages/22_data_channel_audio_sync.py` flashes a beat count in time with a click track, and `pages/23_data_channel_video_sync.py` draws detection boxes over the frames they were found in. Both can switch to drawing on arrival and add a simulated delay to the data channel, to show what the clock corrects. `scripts/measure_av_sync.py` runs them in headless Chromium and prints how far the drawn data is from its media in each setting.
 
 ## Class-based callbacks
 The function-based callbacks (`video_frame_callback` / `audio_frame_callback`) shown above are the recommended API.
