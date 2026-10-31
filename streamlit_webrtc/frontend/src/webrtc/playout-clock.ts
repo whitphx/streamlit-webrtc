@@ -4,6 +4,12 @@
 // marks when its first sample played, so the clock keeps the earliest
 // estimate over a window several packets long.
 const WINDOW_MS = 300;
+// Presented video frames are kept longer, so that data arriving after its
+// frame still finds the exact time the frame was shown.
+const FRAME_WINDOW_MS = 2000;
+// A slow stream presents only a few frames per second, so a window as short
+// as the audio's would often hold none.
+const RECENT_FRAMES_MS = 1000;
 const SAMPLE_INTERVAL_MS = 10;
 const STATS_INTERVAL_MS = 1000;
 const DEFAULT_CLOCK_RATES = { audio: 48000, video: 90000 } as const;
@@ -15,16 +21,42 @@ export interface PlayoutClock {
   close(): void;
 }
 
+interface Estimate {
+  at: number;
+  rtp: number;
+  time: number;
+}
+
 function wrapDelta(a: number, b: number): number {
   return ((((a - b) % 2 ** 32) + 2 ** 32 + 2 ** 31) % 2 ** 32) - 2 ** 31;
+}
+
+// Where `rtp` falls on the earliest timeline that the estimates allow.
+function extrapolate(
+  estimates: Estimate[],
+  rtp: number,
+  msPerTick: number,
+): number {
+  const latest = estimates[estimates.length - 1];
+  let earliest = Infinity;
+  for (const e of estimates) {
+    earliest = Math.min(
+      earliest,
+      e.time - wrapDelta(e.rtp, latest.rtp) * msPerTick,
+    );
+  }
+  return earliest + wrapDelta(rtp, latest.rtp) * msPerTick;
 }
 
 export function createPlayoutClock(
   pc: RTCPeerConnection,
   kind: "audio" | "video",
+  video?: HTMLVideoElement,
 ): PlayoutClock {
   // Each estimate is the time the receiver handed RTP timestamp `rtp` to its track.
-  let estimates: { at: number; rtp: number; time: number }[] = [];
+  let estimates: Estimate[] = [];
+  // Each frame is the time the video element showed RTP timestamp `rtp`.
+  let frames: Estimate[] = [];
   let clockRate: number | null = null;
   let outputDelayMs: number | null = null;
   let previousPlayout: { delay: number; samples: number } | null = null;
@@ -32,7 +64,38 @@ export function createPlayoutClock(
   function stop() {
     clearInterval(timer);
     clearInterval(statsTimer);
+    if (frameCallback !== null) video?.cancelVideoFrameCallback(frameCallback);
+    frameCallback = null;
     estimates = [];
+    frames = [];
+  }
+
+  // The element reports the RTP timestamp of each frame it presents and when
+  // the frame becomes visible, after decoding and rendering, which the
+  // receiver's own estimates cannot see.
+  // https://wicg.github.io/video-rvfc/#dom-videoframecallbackmetadata-rtptimestamp
+  let frameCallback: number | null = null;
+  function onVideoFrame(now: number, metadata: VideoFrameCallbackMetadata) {
+    if (pc.signalingState === "closed") {
+      stop();
+      return;
+    }
+    // A browser that leaves the field out does so for every frame, and the
+    // clock then runs on the receiver's estimates alone.
+    if (metadata.rtpTimestamp === undefined || !video) {
+      frameCallback = null;
+      return;
+    }
+    frames.push({
+      at: now,
+      rtp: metadata.rtpTimestamp >>> 0,
+      time: metadata.expectedDisplayTime,
+    });
+    while (frames[0].at < now - FRAME_WINDOW_MS) frames.shift();
+    frameCallback = video.requestVideoFrameCallback(onVideoFrame);
+  }
+  if (kind === "video" && video && "requestVideoFrameCallback" in video) {
+    frameCallback = video.requestVideoFrameCallback(onVideoFrame);
   }
 
   function sample() {
@@ -95,20 +158,28 @@ export function createPlayoutClock(
 
   function playoutTime(rtpTimestamp: number): number | null {
     sample();
-    const latest = estimates[estimates.length - 1];
-    if (!latest || clockRate === null) return null;
-    const msPerTick = 1000 / clockRate;
-    let earliest = Infinity;
-    for (const e of estimates) {
-      earliest = Math.min(
-        earliest,
-        e.time - wrapDelta(e.rtp, latest.rtp) * msPerTick,
+    const msPerTick = 1000 / (clockRate ?? DEFAULT_CLOCK_RATES[kind]);
+    const now = performance.now();
+    const latestFrame = frames[frames.length - 1];
+    // The element presents no frames while it is hidden or paused, and the
+    // receiver's estimates are then all there is.
+    if (latestFrame && latestFrame.at >= now - RECENT_FRAMES_MS) {
+      const target = rtpTimestamp >>> 0;
+      for (let i = frames.length - 1; i >= 0; i--) {
+        if (frames[i].rtp === target) return frames[i].time;
+      }
+      // A frame not presented yet is due no earlier than the recent frames
+      // imply. Some of them waited an extra display refresh, so the earliest
+      // of them is the best guess.
+      return extrapolate(
+        frames.filter((f) => f.at >= now - RECENT_FRAMES_MS),
+        target,
+        msPerTick,
       );
     }
+    if (!estimates.length || clockRate === null) return null;
     return (
-      earliest +
-      wrapDelta(rtpTimestamp, latest.rtp) * msPerTick +
-      (outputDelayMs ?? 0)
+      extrapolate(estimates, rtpTimestamp, msPerTick) + (outputDelayMs ?? 0)
     );
   }
 

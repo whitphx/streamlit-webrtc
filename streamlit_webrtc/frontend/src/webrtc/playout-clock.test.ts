@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPlayoutClock } from "./playout-clock";
 
-function fakePeerConnection() {
+function fakePeerConnection(kind: "audio" | "video" = "audio") {
   const source: { current?: { timestamp: number; rtpTimestamp: number } } = {};
   const receiver = {
-    track: { kind: "audio" },
+    track: { kind },
     getSynchronizationSources: () => (source.current ? [source.current] : []),
     getParameters: () => ({
-      codecs: [{ clockRate: 48000 }],
+      codecs: [{ clockRate: kind === "audio" ? 48000 : 90000 }],
     }),
   };
   const playout = { totalPlayoutDelay: 0, totalSamplesCount: 0 };
@@ -26,6 +26,36 @@ function fakePeerConnection() {
     };
   };
   return { pc, deliver, playout };
+}
+
+// A video element that presents a frame when the test says so.
+function fakeVideo({ rtpTimestamps = true } = {}) {
+  let callbacks = new Map<number, VideoFrameRequestCallback>();
+  let nextHandle = 1;
+  const video = {
+    requestVideoFrameCallback(callback: VideoFrameRequestCallback) {
+      callbacks.set(nextHandle, callback);
+      return nextHandle++;
+    },
+    cancelVideoFrameCallback(handle: number) {
+      callbacks.delete(handle);
+    },
+  } as unknown as HTMLVideoElement;
+  // Presents the frame with RTP timestamp `rtp` at page time `at`, to be
+  // visible at `displayAt`.
+  const present = (at: number, rtp: number, displayAt = at + 16) => {
+    vi.advanceTimersByTime(at - performance.now());
+    const pending = callbacks;
+    callbacks = new Map();
+    for (const callback of pending.values()) {
+      callback(at, {
+        expectedDisplayTime: displayAt,
+        presentationTime: at,
+        ...(rtpTimestamps && { rtpTimestamp: rtp >>> 0 }),
+      } as VideoFrameCallbackMetadata);
+    }
+  };
+  return { video, present, pendingCallbacks: () => callbacks.size };
 }
 
 describe("createPlayoutClock", () => {
@@ -88,5 +118,72 @@ describe("createPlayoutClock", () => {
     ];
 
     expect(createPlayoutClock(pc, "audio").playoutTime(0)).toBeNull();
+  });
+
+  describe("video", () => {
+    it("gives the time the element shows a presented frame", () => {
+      const { pc } = fakePeerConnection("video");
+      const { video, present } = fakeVideo();
+      const clock = createPlayoutClock(pc, "video", video);
+      present(1000, 3000, 1016);
+      present(1033, 6000, 1050);
+      present(1066, 9000, 1083);
+
+      expect(clock.playoutTime(6000)).toBe(1050);
+    });
+
+    it("places a frame not presented yet on the earliest recent timeline", () => {
+      const { pc } = fakePeerConnection("video");
+      const { video, present } = fakeVideo();
+      const clock = createPlayoutClock(pc, "video", video);
+      // 30 fps on a 60 Hz display: the middle frame waited a refresh.
+      present(1000, 3000, 1016);
+      present(1050, 6000, 1066);
+      present(1066, 9000, 1083);
+
+      expect(clock.playoutTime(12000)).toBeCloseTo(1016 + 100);
+    });
+
+    it("falls back to the receiver where frames carry no RTP timestamp", () => {
+      const { pc, deliver } = fakePeerConnection("video");
+      const { video, present, pendingCallbacks } = fakeVideo({
+        rtpTimestamps: false,
+      });
+      const clock = createPlayoutClock(pc, "video", video);
+      present(1000, 3000);
+      deliver(1010, 3000);
+
+      expect(pendingCallbacks()).toBe(0);
+      expect(clock.playoutTime(6000)).toBeCloseTo(1010 + 1000 / 30);
+    });
+
+    it("falls back to the receiver while the element presents nothing", () => {
+      const { pc, deliver } = fakePeerConnection("video");
+      const { video, present } = fakeVideo();
+      const clock = createPlayoutClock(pc, "video", video);
+      present(1000, 3000, 1016);
+      deliver(3000, 63000);
+
+      expect(clock.playoutTime(66000)).toBeCloseTo(3000 + 1000 / 30);
+    });
+
+    it("works without requestVideoFrameCallback", () => {
+      const { pc, deliver } = fakePeerConnection("video");
+      const clock = createPlayoutClock(pc, "video", {} as HTMLVideoElement);
+      deliver(1000, 3000);
+
+      expect(clock.playoutTime(3000)).toBeCloseTo(1000);
+    });
+
+    it("stops watching the element when closed", () => {
+      const { pc } = fakePeerConnection("video");
+      const { video, present, pendingCallbacks } = fakeVideo();
+      const clock = createPlayoutClock(pc, "video", video);
+      present(1000, 3000);
+      clock.close();
+
+      expect(pendingCallbacks()).toBe(0);
+      expect(clock.playoutTime(3000)).toBeNull();
+    });
   });
 });
