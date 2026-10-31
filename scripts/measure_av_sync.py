@@ -120,17 +120,20 @@ VIDEO_PROBE = """
 class Condition(NamedTuple):
     sync: bool
     delay_ms: int
+    hold: bool
 
     def __str__(self) -> str:
         mode = "synced" if self.sync else "arrival"
-        return f"{mode}, data delayed {self.delay_ms} ms"
+        hold = " + holdForData" if self.hold else ""
+        return f"{mode}{hold}, data delayed {self.delay_ms} ms"
 
 
 CONDITIONS = [
-    Condition(sync=True, delay_ms=0),
-    Condition(sync=False, delay_ms=0),
-    Condition(sync=True, delay_ms=150),
-    Condition(sync=False, delay_ms=150),
+    Condition(sync=True, delay_ms=0, hold=False),
+    Condition(sync=False, delay_ms=0, hold=False),
+    Condition(sync=True, delay_ms=150, hold=False),
+    Condition(sync=False, delay_ms=150, hold=False),
+    Condition(sync=True, delay_ms=150, hold=True),
 ]
 
 
@@ -199,6 +202,9 @@ def apply(page: Page, condition: Condition, sync_label: str) -> None:
     delay = page.get_by_label("Simulated extra delay of the data channel (ms)")
     delay.fill(str(condition.delay_ms))
     delay.press("Enter")
+    checkbox = page.get_by_role("checkbox")
+    if checkbox.is_checked() != condition.hold:
+        page.get_by_text("holdForData").click()
     page.wait_for_timeout(1000)
 
 
@@ -242,6 +248,18 @@ def measure_video(page: Page, frame: Frame, seconds: float) -> List[float]:
     return frame.evaluate("() => window.__avsync.errors")
 
 
+def report(frame: Frame, kind: str, condition: Condition, errors: List[float]) -> None:
+    target = frame.evaluate(
+        """(kind) => window.__pcs
+          .filter((pc) => pc.signalingState !== "closed")
+          .flatMap((pc) => pc.getReceivers())
+          .find((r) => r.track.kind === kind)?.jitterBufferTarget ?? null""",
+        kind,
+    )
+    hold = f"  (held {target:.0f} ms)" if target is not None else ""
+    print(f"  {condition!s:42}  {summarize(errors)}{hold}", flush=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--executable-path", help="the Chromium to run")
@@ -269,7 +287,7 @@ def main() -> None:
                 apply(page, condition, "In sync with the audio")
                 page.wait_for_timeout(args.warmup * 1000)
                 errors = measure_audio(page, frame, args.seconds)
-                print(f"  {condition!s:28}  {summarize(errors)}", flush=True)
+                report(frame, "audio", condition, errors)
 
             print("Video: frame of the boxes on screen minus frame on screen")
             frame = start_sample(page, f"{url}/data_channel_video_sync")
@@ -278,7 +296,7 @@ def main() -> None:
                 apply(page, condition, "In sync with the video")
                 page.wait_for_timeout(args.warmup * 1000)
                 errors = measure_video(page, frame, args.seconds)
-                print(f"  {condition!s:28}  {summarize(errors)}", flush=True)
+                report(frame, "video", condition, errors)
         finally:
             browser.close()
 
