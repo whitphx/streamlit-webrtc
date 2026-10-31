@@ -2299,7 +2299,7 @@ DEALINGS IN THE SOFTWARE.
 
 - hyper-rustls 0.27.9
 - rustls-native-certs 0.8.4
-- rustls 0.23.45
+- rustls 0.23.46
 
 ```text
 Copyright (c) 2016 Joseph Birr-Pixton <jpixton@gmail.com>
