@@ -262,6 +262,16 @@ describe("createPlayoutClock", () => {
       expect(receiver.jitterBufferTarget).toBeGreaterThan(100);
     });
 
+    it("releases the hold when closed", async () => {
+      const { pc, play, receiver } = fakePeerConnection();
+      const clock = createPlayoutClock(pc, "audio", { holdForData: {} });
+      await play(clock, 6000, { marginMs: 10 });
+      expect(receiver.jitterBufferTarget).toBe(80);
+      clock.close();
+
+      expect(receiver.jitterBufferTarget).toBeNull();
+    });
+
     it("leaves the receiver alone where jitterBufferTarget is missing", async () => {
       vi.unstubAllGlobals();
       const { pc, play, receiver } = fakePeerConnection();

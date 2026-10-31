@@ -74,6 +74,7 @@ export interface PlayoutClock {
    * is judged by these arrivals, and `hold().marginMs` reports their margin. */
   noteDataArrival(rtpTimestamp: number, arrivalTime?: number): void;
   hold(): HoldState;
+  /** Stops the clock and releases any hold it put on the receiver. */
   close(): void;
 }
 
@@ -393,6 +394,11 @@ export function createPlayoutClock(
         ),
       ),
     }),
-    close: stop,
+    close() {
+      // The receiver outlives the clock, e.g. when a script swaps clocks to
+      // change options, and must not keep a hold nobody manages.
+      if (targetMs !== null) setTarget(null);
+      stop();
+    },
   };
 }
