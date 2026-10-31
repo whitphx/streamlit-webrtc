@@ -11,13 +11,56 @@ const FRAME_WINDOW_MS = 2000;
 // as the audio's would often hold none.
 const RECENT_FRAMES_MS = 1000;
 const SAMPLE_INTERVAL_MS = 10;
-const STATS_INTERVAL_MS = 1000;
+const STATS_INTERVAL_MS = 250;
 const DEFAULT_CLOCK_RATES = { audio: 48000, video: 90000 } as const;
+
+// Margins are judged per second, and the buffer only moves on what most
+// recent seconds agree on. A sender that stalls delivers one burst of very
+// late data and then catches up; delaying the media for every stall would
+// keep it at the cap without saving the frames of the next one.
+const BUCKET_MS = 1000;
+const RAISE_BUCKETS = 5;
+const MARGIN_WINDOW_MS = 8000;
+// The jitter buffer grows gradually, by stretching audio or holding frames,
+// so a raise takes a while to show in the margins.
+// Raising again before then would count the same shortfall twice.
+const SETTLE_MS = 1500;
+const LATE_QUANTILE = 0.98;
+const LOWER_MS_PER_S = 5;
+
+export interface HoldForDataOptions {
+  /** Margin in ms that data should keep ahead of its media's playout, e.g.
+   * the time needed to render it. */
+  safetyMs?: number;
+  /** The most the media may be delayed, in ms. */
+  maxMs?: number;
+}
+
+export interface PlayoutClockOptions {
+  /** Delay the media through the receiver's `jitterBufferTarget` when the
+   * data reported with `noteDataArrival()` arrives too late for it. */
+  holdForData?: HoldForDataOptions;
+}
+
+export interface HoldState {
+  /** Whether the clock adjusts the receiver: `holdForData` was given and the
+   * browser has `jitterBufferTarget`. */
+  supported: boolean;
+  targetMs: number | null;
+  jitterBufferMs: number | null;
+  /** The margin, in ms, that nearly all recent data kept, taken over the
+   * median second. */
+  marginMs: number | null;
+}
 
 export interface PlayoutClock {
   /** The `performance.now()` time at which the received media with this RTP
    * timestamp is heard or shown, or `null` until the media plays. */
   playoutTime(rtpTimestamp: number): number | null;
+  /** Reports that the data for this RTP timestamp has arrived. `holdForData`
+   * is judged by these arrivals, and `hold().marginMs` reports their margin. */
+  noteDataArrival(rtpTimestamp: number, arrivalTime?: number): void;
+  hold(): HoldState;
   close(): void;
 }
 
@@ -29,6 +72,12 @@ interface Estimate {
 
 function wrapDelta(a: number, b: number): number {
   return ((((a - b) % 2 ** 32) + 2 ** 32 + 2 ** 31) % 2 ** 32) - 2 ** 31;
+}
+
+function lowQuantile(xs: number[]): number | null {
+  if (!xs.length) return null;
+  const sorted = [...xs].sort((a, b) => a - b);
+  return sorted[Math.floor((sorted.length - 1) * (1 - LATE_QUANTILE))];
 }
 
 // Where `rtp` falls on the earliest timeline that the estimates allow.
@@ -48,9 +97,36 @@ function extrapolate(
   return earliest + wrapDelta(rtp, latest.rtp) * msPerTick;
 }
 
+// The upper median, so that late seconds have to be the majority.
+function median(xs: number[]): number | null {
+  if (!xs.length) return null;
+  const sorted = [...xs].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)];
+}
+
+// The low quantile of the margins in each whole BUCKET_MS from `since` to
+// `now`, skipping empty buckets.
+function bucketLows(
+  margins: { at: number; margin: number }[],
+  since: number,
+  now: number,
+): number[] {
+  const lows: number[] = [];
+  for (let end = now; end - BUCKET_MS >= since; end -= BUCKET_MS) {
+    const low = lowQuantile(
+      margins
+        .filter((m) => m.at >= end - BUCKET_MS && m.at < end)
+        .map((m) => m.margin),
+    );
+    if (low !== null) lows.push(low);
+  }
+  return lows;
+}
+
 export function createPlayoutClock(
   pc: RTCPeerConnection,
   kind: "audio" | "video",
+  { holdForData }: PlayoutClockOptions = {},
   video?: HTMLVideoElement,
 ): PlayoutClock {
   // Each estimate is the time the receiver handed RTP timestamp `rtp` to its track.
@@ -59,7 +135,35 @@ export function createPlayoutClock(
   let frames: Estimate[] = [];
   let clockRate: number | null = null;
   let outputDelayMs: number | null = null;
-  let previousPlayout: { delay: number; samples: number } | null = null;
+  let jitterBufferMs: number | null = null;
+  const previous: {
+    playout?: { delay: number; samples: number };
+    inbound?: { delay: number; emitted: number };
+  } = {};
+  let margins: { at: number; margin: number }[] = [];
+  let targetMs: number | null = null;
+  let lastRaise = -Infinity;
+  let lastControl: number | null = null;
+  const safetyMs = holdForData?.safetyMs ?? 40;
+  const maxMs = holdForData?.maxMs ?? 400;
+
+  // jitterBufferTarget is a hint the receiver may not follow, and older
+  // browsers lack it. https://w3c.github.io/webrtc-pc/#dom-rtcrtpreceiver-jitterbuffertarget
+  const supported =
+    holdForData !== undefined &&
+    typeof RTCRtpReceiver !== "undefined" &&
+    "jitterBufferTarget" in RTCRtpReceiver.prototype;
+
+  function setTarget(ms: number | null) {
+    const receiver = pc.getReceivers().find((r) => r.track.kind === kind);
+    if (!receiver) return;
+    targetMs = ms;
+    try {
+      receiver.jitterBufferTarget = ms === null ? null : Math.round(ms);
+    } catch (error) {
+      console.warn("jitterBufferTarget rejected", error);
+    }
+  }
 
   function stop() {
     clearInterval(timer);
@@ -68,6 +172,7 @@ export function createPlayoutClock(
     frameCallback = null;
     estimates = [];
     frames = [];
+    margins = [];
   }
 
   // The element reports the RTP timestamp of each frame it presents and when
@@ -131,30 +236,85 @@ export function createPlayoutClock(
     }
   }
 
-  // Audio handed to the track still passes the output device's buffers
-  // before it is heard. Browsers that report it do so as the average
-  // playout delay of the samples played.
-  // https://w3c.github.io/webrtc-stats/#dom-rtcaudioplayoutstats-totalplayoutdelay
-  async function sampleOutputDelay() {
-    if (kind !== "audio" || pc.signalingState === "closed") return;
+  async function sampleStats() {
+    if (pc.signalingState === "closed") return;
     const stats = await pc.getStats();
     stats.forEach((report) => {
-      if (report.type !== "media-playout") return;
-      const current = {
-        delay: report.totalPlayoutDelay,
-        samples: report.totalSamplesCount,
-      };
-      if (previousPlayout && current.samples > previousPlayout.samples) {
-        outputDelayMs =
-          (1000 * (current.delay - previousPlayout.delay)) /
-          (current.samples - previousPlayout.samples);
+      // Audio handed to the track still passes the output device's buffers
+      // before it is heard. Browsers that report it do so as the average
+      // playout delay of the samples played.
+      // https://w3c.github.io/webrtc-stats/#dom-rtcaudioplayoutstats-totalplayoutdelay
+      if (report.type === "media-playout" && kind === "audio") {
+        const current = {
+          delay: report.totalPlayoutDelay,
+          samples: report.totalSamplesCount,
+        };
+        const before = previous.playout;
+        if (before && current.samples > before.samples) {
+          outputDelayMs =
+            (1000 * (current.delay - before.delay)) /
+            (current.samples - before.samples);
+        }
+        previous.playout = current;
       }
-      previousPlayout = current;
+      if (report.type === "inbound-rtp" && report.kind === kind) {
+        const current = {
+          delay: report.jitterBufferDelay,
+          emitted: report.jitterBufferEmittedCount,
+        };
+        const before = previous.inbound;
+        if (before && current.emitted > before.emitted) {
+          jitterBufferMs =
+            (1000 * (current.delay - before.delay)) /
+            (current.emitted - before.emitted);
+        }
+        previous.inbound = current;
+      }
     });
+    if (supported) control(performance.now());
+  }
+
+  // The margins come from the playout clock, so they show what the buffer
+  // actually does rather than what the target asked for: when the receiver
+  // ignores a target, the data stays late and the next raise asks for more.
+  function control(now: number) {
+    while (margins.length && margins[0].at < now - MARGIN_WINDOW_MS) {
+      margins.shift();
+    }
+    const dt = lastControl === null ? 0 : now - lastControl;
+    lastControl = now;
+    // Without the buffer's own delay, a raise could not tell how much of the
+    // target the buffer already holds.
+    if (jitterBufferMs === null) return;
+    if (!margins.length) {
+      if (targetMs !== null) setTarget(null);
+      return;
+    }
+    const recent = bucketLows(
+      margins,
+      Math.max(now - RAISE_BUCKETS * BUCKET_MS, lastRaise + SETTLE_MS),
+      now,
+    );
+    // A stall spans at most two seconds, so three late seconds are not one.
+    const recentLow = recent.length >= 3 ? median(recent) : null;
+    if (recentLow !== null && recentLow < safetyMs) {
+      // A target below the delay the buffer already holds changes nothing,
+      // so the raise starts from whichever is larger.
+      const base = Math.max(targetMs ?? 0, jitterBufferMs);
+      setTarget(Math.min(maxMs, base + safetyMs - recentLow));
+      lastRaise = now;
+      return;
+    }
+    const low = median(bucketLows(margins, now - MARGIN_WINDOW_MS, now));
+    if (targetMs !== null && low !== null && low > safetyMs) {
+      const lowered =
+        targetMs - Math.min(low - safetyMs, (LOWER_MS_PER_S * dt) / 1000);
+      setTarget(lowered > 0 ? lowered : null);
+    }
   }
 
   const timer = setInterval(sample, SAMPLE_INTERVAL_MS);
-  const statsTimer = setInterval(sampleOutputDelay, STATS_INTERVAL_MS);
+  const statsTimer = setInterval(sampleStats, STATS_INTERVAL_MS);
 
   function playoutTime(rtpTimestamp: number): number | null {
     sample();
@@ -183,5 +343,26 @@ export function createPlayoutClock(
     );
   }
 
-  return { playoutTime, close: stop };
+  return {
+    playoutTime,
+    noteDataArrival(rtpTimestamp, arrivalTime = performance.now()) {
+      const due = playoutTime(rtpTimestamp);
+      if (due === null) return;
+      margins.push({ at: arrivalTime, margin: due - arrivalTime });
+      while (margins[0].at < arrivalTime - MARGIN_WINDOW_MS) margins.shift();
+    },
+    hold: () => ({
+      supported,
+      targetMs,
+      jitterBufferMs,
+      marginMs: median(
+        bucketLows(
+          margins,
+          performance.now() - MARGIN_WINDOW_MS,
+          performance.now(),
+        ),
+      ),
+    }),
+    close: stop,
+  };
 }

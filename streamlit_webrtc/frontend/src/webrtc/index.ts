@@ -360,8 +360,8 @@ export const useWebRtc = (
               frontendScriptSetup,
               {
                 pc,
-                createPlayoutClock: (kind) =>
-                  createPlayoutClock(pc, kind, video),
+                createPlayoutClock: (kind, options) =>
+                  createPlayoutClock(pc, kind, options, video),
                 channels,
                 root,
                 media: { ...(video && { video }), ...(audio && { audio }) },
