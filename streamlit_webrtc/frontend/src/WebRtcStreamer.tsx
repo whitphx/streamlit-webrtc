@@ -4,21 +4,27 @@ import {
   useState,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
 } from "react";
 import Box from "@mui/material/Box";
 import InputMediaControls from "./InputMediaControls";
-import MediaStreamPlayer from "./MediaStreamPlayer";
+import MediaStreamPlayer, {
+  PersistentMediaStreamPlayer,
+} from "./MediaStreamPlayer";
 import Placeholder from "./Placeholder";
 import { useRenderData } from "streamlit-component-lib-react-hooks";
+import { Streamlit } from "streamlit-component-lib";
 import {
   useWebRtc,
+  type DataChannelSpec,
   WebRtcMode,
   isWebRtcMode,
   isReceivable,
   isTransmittable,
   type InputDeviceKind,
 } from "./webrtc";
+import type { FrontendScriptMedia } from "./webrtc/frontend-script";
 import { useTimer } from "./use-timeout";
 import { getMediaUsage } from "./media-constraint";
 import { ComponentValue, setComponentValue } from "./component-value";
@@ -61,6 +67,9 @@ interface WebRtcStreamerInnerProps {
   videoHtmlAttrs: Record<string, string>;
   audioHtmlAttrs: Record<string, string>;
   mediaToggleControls: boolean;
+  dataChannels?: DataChannelSpec[];
+  frontendScript?: string | null;
+  frontendData?: unknown;
   onComponentValueChange: (newComponentValue: ComponentValue) => void;
 }
 export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
@@ -121,14 +130,37 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     },
     [],
   );
+  const frontendScriptContainerRef = useRef<HTMLDivElement>(null);
+  const frontendScriptMediaRef = useRef<FrontendScriptMedia>({});
   const { state, start, stop, updateInputDevice } = useWebRtc(
-    props,
+    { ...props, frontendScriptContainerRef, frontendScriptMediaRef },
     deviceIds.video,
     deviceIds.audio,
     props.onComponentValueChange,
     handleDevicesOpened,
     handleDevicesUnavailable,
   );
+  // Follows the prop only between sessions. A running script holds on to
+  // its root and the media elements, so a rerun that drops
+  // `frontend_script` must not unmount them under it.
+  const committedHasFrontendScriptRef = useRef(props.frontendScript != null);
+  const hasFrontendScript =
+    state.webRtcState === "STOPPED"
+      ? props.frontendScript != null
+      : committedHasFrontendScriptRef.current;
+  // Recorded after commit, since React can discard a render.
+  useLayoutEffect(() => {
+    committedHasFrontendScriptRef.current = hasFrontendScript;
+  });
+  // The script can change the root's size at any time, which none of the
+  // renders that otherwise refresh the frame height would notice.
+  useEffect(() => {
+    const container = frontendScriptContainerRef.current;
+    if (!hasFrontendScript || container == null) return;
+    const observer = new ResizeObserver(() => Streamlit.setFrameHeight());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [hasFrontendScript]);
 
   const {
     start: startTakingTooLongTimeout,
@@ -170,6 +202,12 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   );
 
   const [deviceSelectOpen, setDeviceSelectOpen] = useState(false);
+  // The media view is hidden rather than unmounted while the picker is open,
+  // and its memoized children do not rerender when it comes back,
+  // so none of them would refresh the height.
+  useEffect(() => {
+    Streamlit.setFrameHeight();
+  }, [deviceSelectOpen]);
   // Kept per kind: a camera that failed to switch is still on the wrong device
   // after a microphone switch succeeds, so one kind's outcome cannot answer for
   // the other's.
@@ -271,97 +309,130 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
     },
     [state.webRtcState, updateInputDevice],
   );
-  if (deviceSelectOpen) {
-    return (
-      <Suspense fallback={null}>
-        <DeviceSelectForm
-          video={videoEnabled}
-          audio={audioEnabled}
-          defaultVideoDeviceId={deviceIds.video}
-          defaultAudioDeviceId={deviceIds.audio}
-          onSelectionResolved={reconcileDeviceIds}
-          onVideoSelect={(deviceId) => selectInputDevice("video", deviceId)}
-          onAudioSelect={(deviceId) => selectInputDevice("audio", deviceId)}
-          onClose={closeDeviceSelect}
-          switchError={deviceSwitchError}
-        />
-      </Suspense>
-    );
-  }
-
-  return (
-    <Box>
-      <InfoHeader
-        // A switch started from the controls below has no form to report into,
-        // so its failure surfaces here.
-        error={state.error ?? deviceSwitchError}
-        shouldShowTakingTooLongWarning={
-          state.webRtcState === "SIGNALLING" && isTakingTooLong
-        }
+  const deviceSelectForm = deviceSelectOpen && (
+    <Suspense fallback={null}>
+      <DeviceSelectForm
+        video={videoEnabled}
+        audio={audioEnabled}
+        defaultVideoDeviceId={deviceIds.video}
+        defaultAudioDeviceId={deviceIds.audio}
+        onSelectionResolved={reconcileDeviceIds}
+        onVideoSelect={(deviceId) => selectInputDevice("video", deviceId)}
+        onAudioSelect={(deviceId) => selectInputDevice("audio", deviceId)}
+        onClose={closeDeviceSelect}
+        switchError={deviceSwitchError}
       />
-      <Box py={1} display="flex">
-        {state.outputMediaStream ? (
-          <MediaStreamPlayer
-            stream={state.outputMediaStream}
-            userDefinedVideoAttrs={props.videoHtmlAttrs}
-            userDefinedAudioAttrs={props.audioHtmlAttrs}
-          />
-        ) : (
-          receivable && (
-            <Placeholder loading={state.webRtcState === "SIGNALLING"} />
-          )
-        )}
-      </Box>
-      {(userControlsPlayingState || showMediaToggleControls) && (
-        <Box display="flex" alignItems="center" justifyContent="space-between">
-          <Box display="flex" alignItems="center" gap={1}>
-            {userControlsPlayingState && (
-              <>
-                {state.webRtcState === "PLAYING" ||
-                state.webRtcState === "SIGNALLING" ? (
-                  <TranslatedButton
-                    variant={
-                      state.webRtcState === "SIGNALLING" && !isTakingTooLong
-                        ? "outlined"
-                        : "contained"
+    </Suspense>
+  );
+
+  const media = state.outputMediaStream ? (
+    <MediaStreamPlayer
+      stream={state.outputMediaStream}
+      userDefinedVideoAttrs={props.videoHtmlAttrs}
+      userDefinedAudioAttrs={props.audioHtmlAttrs}
+    />
+  ) : (
+    receivable && <Placeholder loading={state.webRtcState === "SIGNALLING"} />
+  );
+
+  // The form is shown over the hidden media view rather than in its place, so
+  // that the media elements and the script's root, which a running
+  // `frontend_script` holds on to, are not replaced.
+  return (
+    <>
+      {deviceSelectForm}
+      <Box display={deviceSelectOpen ? "none" : undefined}>
+        <InfoHeader
+          // A switch started from the controls below has no form to report into,
+          // so its failure surfaces here.
+          error={state.error ?? deviceSwitchError}
+          shouldShowTakingTooLongWarning={
+            state.webRtcState === "SIGNALLING" && isTakingTooLong
+          }
+        />
+        {hasFrontendScript ? (
+          <Box py={1}>
+            {/* A script can overlay the media by making its root
+              `position: absolute; inset: 0` inside this box. */}
+            <Box position="relative">
+              <Box display="flex">
+                {receivable && (
+                  <PersistentMediaStreamPlayer
+                    stream={state.outputMediaStream}
+                    placeholder={
+                      <Placeholder
+                        loading={state.webRtcState === "SIGNALLING"}
+                      />
                     }
-                    onClick={stopWithNotification}
-                    disabled={buttonDisabled}
-                    translationKey="stop"
-                    defaultText="Stop"
-                  />
-                ) : (
-                  <TranslatedButton
-                    variant="contained"
-                    color="primary"
-                    onClick={startWithNotification}
-                    disabled={buttonDisabled}
-                    translationKey="start"
-                    defaultText="Start"
+                    mediaRef={frontendScriptMediaRef}
+                    userDefinedVideoAttrs={props.videoHtmlAttrs}
+                    userDefinedAudioAttrs={props.audioHtmlAttrs}
                   />
                 )}
-              </>
-            )}
-            {showMediaToggleControls && inputMediaStream != null && (
-              <InputMediaControls
+              </Box>
+              <div ref={frontendScriptContainerRef} />
+            </Box>
+          </Box>
+        ) : (
+          <Box py={1} display="flex">
+            {media}
+          </Box>
+        )}
+        {(userControlsPlayingState || showMediaToggleControls) && (
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Box display="flex" alignItems="center" gap={1}>
+              {userControlsPlayingState && (
+                <>
+                  {state.webRtcState === "PLAYING" ||
+                  state.webRtcState === "SIGNALLING" ? (
+                    <TranslatedButton
+                      variant={
+                        state.webRtcState === "SIGNALLING" && !isTakingTooLong
+                          ? "outlined"
+                          : "contained"
+                      }
+                      onClick={stopWithNotification}
+                      disabled={buttonDisabled}
+                      translationKey="stop"
+                      defaultText="Stop"
+                    />
+                  ) : (
+                    <TranslatedButton
+                      variant="contained"
+                      color="primary"
+                      onClick={startWithNotification}
+                      disabled={buttonDisabled}
+                      translationKey="start"
+                      defaultText="Start"
+                    />
+                  )}
+                </>
+              )}
+              {showMediaToggleControls && inputMediaStream != null && (
+                <InputMediaControls
+                  disabled={buttonDisabled}
+                  stream={inputMediaStream}
+                  onSelectDevice={selectInputDevice}
+                />
+              )}
+            </Box>
+            {userControlsPlayingState && transmittable && (
+              <TranslatedButton
+                color="inherit"
+                onClick={openDeviceSelect}
                 disabled={buttonDisabled}
-                stream={inputMediaStream}
-                onSelectDevice={selectInputDevice}
+                translationKey="select_device"
+                defaultText="Select Device"
               />
             )}
           </Box>
-          {userControlsPlayingState && transmittable && (
-            <TranslatedButton
-              color="inherit"
-              onClick={openDeviceSelect}
-              disabled={buttonDisabled}
-              translationKey="select_device"
-              defaultText="Select Device"
-            />
-          )}
-        </Box>
-      )}
-    </Box>
+        )}
+      </Box>
+    </>
   );
 }
 
@@ -381,6 +452,9 @@ function WebRtcStreamer() {
   const audioHtmlAttrs = renderData.args.audio_html_attrs;
   const mediaToggleControls: boolean =
     renderData.args.media_toggle_controls ?? true;
+  const dataChannels: DataChannelSpec[] = renderData.args.data_channels ?? [];
+  const frontendScript: string | null = renderData.args.frontend_script ?? null;
+  const frontendData: unknown = renderData.args.frontend_data ?? null;
 
   if (!isWebRtcMode(mode)) {
     throw new Error(`Invalid mode ${mode}`);
@@ -400,6 +474,9 @@ function WebRtcStreamer() {
       videoHtmlAttrs={videoHtmlAttrs}
       audioHtmlAttrs={audioHtmlAttrs}
       mediaToggleControls={mediaToggleControls}
+      dataChannels={dataChannels}
+      frontendScript={frontendScript}
+      frontendData={frontendData}
       onComponentValueChange={setComponentValue}
     />
   );

@@ -42,6 +42,7 @@ class NativeAudioWorker:
     input_audio_track = None
     output_video_track = None
     output_audio_track = None
+    data_channels = None
 
     def __init__(
         self,
