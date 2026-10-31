@@ -8,6 +8,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { useEffect } from "react";
+import { Streamlit } from "streamlit-component-lib";
 import { WebRtcStreamerInner } from "./WebRtcStreamer";
 import { useWebRtc } from "./webrtc";
 import { persistDeviceIds } from "./device-storage";
@@ -83,6 +84,7 @@ vi.mock("./DeviceSelect/DeviceSelectForm", () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   resolvedSelection = { video: "old-video", audio: "old-audio" };
 });
@@ -245,6 +247,17 @@ describe("<WebRtcStreamerInner />", () => {
     await screen.findByRole("button", { name: "Choose another camera" });
 
     expect(updateInputDevice).not.toHaveBeenCalled();
+  });
+
+  it("refreshes the frame height when the device picker closes", async () => {
+    renderStreamer();
+    fireEvent.click(screen.getByRole("button", { name: "Select Device" }));
+    const close = await screen.findByRole("button", { name: "Close" });
+    const setFrameHeight = vi.spyOn(Streamlit, "setFrameHeight");
+
+    fireEvent.click(close);
+
+    expect(setFrameHeight).toHaveBeenCalled();
   });
 
   it("persists a user-selected device only after switching succeeds", async () => {

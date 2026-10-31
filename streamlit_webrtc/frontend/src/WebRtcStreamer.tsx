@@ -202,6 +202,12 @@ export function WebRtcStreamerInner(props: WebRtcStreamerInnerProps) {
   );
 
   const [deviceSelectOpen, setDeviceSelectOpen] = useState(false);
+  // The media view is hidden rather than unmounted while the picker is open,
+  // and its memoized children do not rerender when it comes back,
+  // so none of them would refresh the height.
+  useEffect(() => {
+    Streamlit.setFrameHeight();
+  }, [deviceSelectOpen]);
   // Kept per kind: a camera that failed to switch is still on the wrong device
   // after a microphone switch succeeds, so one kind's outcome cannot answer for
   // the other's.
