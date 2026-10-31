@@ -1,6 +1,7 @@
 import asyncio
 import concurrent.futures
 import enum
+import fractions
 import itertools
 import logging
 import queue
@@ -63,6 +64,7 @@ from .process import (
 )
 from .receive import AudioReceiver, VideoReceiver
 from .relay import get_global_relay
+from .rtp import outbound_rtp_timestamp
 from .sink import MediaSink
 
 __all__ = [
@@ -478,6 +480,17 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
     @property
     def data_channels(self) -> Dict[str, DataChannel]:
         return self._data_channels
+
+    def rtp_timestamp(
+        self,
+        kind: Literal["audio", "video"],
+        pts: int,
+        time_base: fractions.Fraction,
+    ) -> Optional[int]:
+        for sender in self.pc.getSenders():
+            if sender.kind == kind and sender.track is not None:
+                return outbound_rtp_timestamp(sender, pts, time_base)
+        return None
 
     def __init__(
         self,

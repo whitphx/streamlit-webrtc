@@ -310,6 +310,7 @@ Each channel takes the [`RTCDataChannelInit`](https://developer.mozilla.org/en-U
 * `channels`: the browser's [`RTCDataChannel`](https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel) objects, keyed by label. Binary messages arrive as `ArrayBuffer`s.
 * `root`: a new `<div>` for each session, which the script owns. It sits below the media element inside a positioned box, so `position: absolute; inset: 0` turns it into an overlay of the video. The component's height follows its size. It is removed from the page when the session ends, so anything drawn into it after that is never shown.
 * `pc`: the [`RTCPeerConnection`](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection), e.g. to read statistics.
+* `createPlayoutClock`: makes a clock that tells when received media with a given RTP timestamp plays (see below).
 * `media`: the component's own `video` and `audio` elements, in the modes that receive media. The remote stream plays in `video` when it carries video and in `audio` otherwise; the other one stays hidden. They exist before the stream arrives and stay the same for the whole session, so the script can call [`requestVideoFrameCallback()`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/requestVideoFrameCallback) or read `currentTime` and `paused` to time its drawing against the media. Treat them as read-only, apart from hiding one when the script draws its own visuals in `root` instead (`media.video.hidden = true`; an overlay `root` then has no size to cover, so keep it in flow).
 * `data`: the value passed as `frontend_data` to `webrtc_streamer()`, which must be JSON-serializable.
 
@@ -317,7 +318,19 @@ The function may be `async`, for example to load a model first, and the session 
 
 If the script fails to load or its setup throws, the session does not start and the error is shown in the component. The script runs with the page's privileges like the rest of your app's code, so never build it from user input.
 
-To line data up with the audio or video it belongs to, keep in mind that a message is handled as soon as it arrives, while media first waits in the receiver's jitter buffer. Holding messages back by the receiver's current `jitterBufferDelay` per emitted sample (from `pc.getStats()`) matches them to the audio well enough for visualizations; see `pages/20_data_channel_binary.py`.
+To show data when the audio it belongs to is heard, stamp each message with the audio's RTP timestamp and let the browser look up when that timestamp plays. A message is handled as soon as it arrives, while the audio waits in the receiver's jitter buffer and the output device, and the two may not even take the same network path, so arrival time alone cannot line them up. On the server, `ctx.rtp_timestamp("audio", pts, time_base)` returns the RTP timestamp under which the browser plays the media the outbound track had at `pts` (`None` until the sender has encoded its first frame). In `frontend_script`, `createPlayoutClock("audio")` returns a clock whose `playoutTime(rtpTimestamp)` is the `performance.now()` time at which that audio is or will be heard, from the receiver's [`getSynchronizationSources()`](https://developer.mozilla.org/en-US/docs/Web/API/RTCRtpReceiver/getSynchronizationSources) plus the output delay where the browser reports one. It returns `null` until the audio has started playing.
+
+```js
+export default function ({ channels, createPlayoutClock }) {
+  const clock = createPlayoutClock("audio");
+  channels.frames.addEventListener("message", ({ data }) => {
+    const rtpTimestamp = new DataView(data).getUint32(0, true);
+    const dueAt = clock.playoutTime(rtpTimestamp);
+    // ... draw the frame at the first animation frame at or after dueAt
+  });
+  return () => clock.close();
+}
+```
 
 See `pages/19_data_channel_overlay.py`, `pages/20_data_channel_binary.py`, and `pages/21_data_channel_controls.py` for complete examples.
 

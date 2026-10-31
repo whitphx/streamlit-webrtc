@@ -1,3 +1,5 @@
+import type { PlayoutClock } from "./playout-clock";
+
 export interface FrontendScriptMedia {
   video?: HTMLVideoElement;
   audio?: HTMLAudioElement;
@@ -5,6 +7,7 @@ export interface FrontendScriptMedia {
 
 export interface FrontendScriptContext {
   pc: RTCPeerConnection;
+  createPlayoutClock: (kind: "audio" | "video") => PlayoutClock;
   channels: Record<string, RTCDataChannel>;
   root: HTMLDivElement;
   media: FrontendScriptMedia;

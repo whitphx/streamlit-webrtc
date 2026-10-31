@@ -10,6 +10,7 @@ import { dequal } from "dequal/lite";
 import { ComponentValue } from "../component-value";
 import { connectReducer, initialState } from "./reducer";
 import { useUniqueId } from "./use-unique-id";
+import { createPlayoutClock } from "./playout-clock";
 import { openInputMediaStream } from "./open-input-media-stream";
 import { switchInputDevice, type InputDeviceKind } from "./switch-input-device";
 import {
@@ -359,6 +360,7 @@ export const useWebRtc = (
               frontendScriptSetup,
               {
                 pc,
+                createPlayoutClock: (kind) => createPlayoutClock(pc, kind),
                 channels,
                 root,
                 media: { ...(video && { video }), ...(audio && { audio }) },

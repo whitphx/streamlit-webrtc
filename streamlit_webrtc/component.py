@@ -1,4 +1,5 @@
 import copy
+import fractions
 import json
 import logging
 import os
@@ -196,6 +197,31 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         if not isinstance(worker, NativeAudioWorker):
             raise NotImplementedError('clear_audio_output() requires backend="native"')
         worker.clear_audio_output(timeout=timeout)
+
+    def rtp_timestamp(
+        self,
+        kind: Literal["audio", "video"],
+        pts: int,
+        time_base: fractions.Fraction,
+    ) -> Optional[int]:
+        """The RTP timestamp under which the browser plays what the outbound
+        ``kind`` track sent at ``pts``.
+
+        A data channel message stamped with it can be scheduled in the
+        browser against the media's playback with
+        ``context.createPlayoutClock()`` in ``frontend_script``. The two
+        travel separately, so a message can be shown when its media plays
+        whatever each of them took to arrive.
+
+        Returns ``None`` before the track's sender has started encoding,
+        and always with ``backend="native"``.
+
+        Call it from the source track's callback or any other thread.
+        """
+        worker = self._get_worker()
+        if not isinstance(worker, WebRtcWorker):
+            return None
+        return worker.rtp_timestamp(kind, pts, time_base)
 
     @property
     def state(self) -> WebRtcStreamerState:
