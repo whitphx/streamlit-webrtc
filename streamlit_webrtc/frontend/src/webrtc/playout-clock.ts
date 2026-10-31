@@ -11,7 +11,11 @@ const FRAME_WINDOW_MS = 2000;
 // as the audio's would often hold none.
 const RECENT_FRAMES_MS = 1000;
 const SAMPLE_INTERVAL_MS = 10;
-const STATS_INTERVAL_MS = 250;
+const STATS_INTERVAL_MS = 1000;
+// The hold moves the target only when it reads the stats. Without a hold,
+// the stats give just the output delay, which changes too slowly
+// to be worth reading this often.
+const HOLD_STATS_INTERVAL_MS = 250;
 const DEFAULT_CLOCK_RATES = { audio: 48000, video: 90000 } as const;
 
 // Margins are judged per second, and the buffer only moves on what most
@@ -336,7 +340,10 @@ export function createPlayoutClock(
   }
 
   const timer = setInterval(sample, SAMPLE_INTERVAL_MS);
-  const statsTimer = setInterval(sampleStats, STATS_INTERVAL_MS);
+  const statsTimer = setInterval(
+    sampleStats,
+    supported ? HOLD_STATS_INTERVAL_MS : STATS_INTERVAL_MS,
+  );
 
   function playoutTime(rtpTimestamp: number): number | null {
     // sample() refills the estimates for as long as the connection is open,

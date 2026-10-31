@@ -272,6 +272,19 @@ describe("createPlayoutClock", () => {
       expect(receiver.jitterBufferTarget).toBeNull();
     });
 
+    it("reads the stats more often only while it holds", async () => {
+      const held = fakePeerConnection().pc;
+      const plain = fakePeerConnection().pc;
+      const heldStats = vi.spyOn(held, "getStats");
+      const plainStats = vi.spyOn(plain, "getStats");
+      createPlayoutClock(held, "audio", { holdForData: {} });
+      createPlayoutClock(plain, "audio");
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(heldStats).toHaveBeenCalledTimes(4);
+      expect(plainStats).toHaveBeenCalledTimes(1);
+    });
+
     it("leaves the receiver alone where jitterBufferTarget is missing", async () => {
       vi.unstubAllGlobals();
       const { pc, play, receiver } = fakePeerConnection();
