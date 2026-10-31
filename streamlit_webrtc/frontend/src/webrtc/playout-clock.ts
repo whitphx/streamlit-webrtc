@@ -60,8 +60,10 @@ export function createPlayoutClock(
   let clockRate: number | null = null;
   let outputDelayMs: number | null = null;
   let previousPlayout: { delay: number; samples: number } | null = null;
+  let closed = false;
 
   function stop() {
+    closed = true;
     clearInterval(timer);
     clearInterval(statsTimer);
     if (frameCallback !== null) video?.cancelVideoFrameCallback(frameCallback);
@@ -157,6 +159,9 @@ export function createPlayoutClock(
   const statsTimer = setInterval(sampleOutputDelay, STATS_INTERVAL_MS);
 
   function playoutTime(rtpTimestamp: number): number | null {
+    // sample() refills the estimates for as long as the connection is open,
+    // so a clock closed before its connection would keep answering.
+    if (closed) return null;
     sample();
     const msPerTick = 1000 / (clockRate ?? DEFAULT_CLOCK_RATES[kind]);
     const now = performance.now();
