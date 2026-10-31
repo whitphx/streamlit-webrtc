@@ -19,6 +19,9 @@ const DEFAULT_CLOCK_RATES = { audio: 48000, video: 90000 } as const;
 // late data and then catches up; delaying the media for every stall would
 // keep it at the cap without saving the frames of the next one.
 const BUCKET_MS = 1000;
+// A second with only a few arrivals is the tail of a stall, not a second the
+// data kept its usual pace through.
+const MIN_BUCKET_SAMPLES = 10;
 const RAISE_BUCKETS = 5;
 const MARGIN_WINDOW_MS = 8000;
 // The jitter buffer grows gradually, by stretching audio or holding frames,
@@ -26,7 +29,17 @@ const MARGIN_WINDOW_MS = 8000;
 // Raising again before then would count the same shortfall twice.
 const SETTLE_MS = 1500;
 const LATE_QUANTILE = 0.98;
-const LOWER_MS_PER_S = 5;
+// Lowering runs on margins seconds old, so it overshoots by its rate times
+// the few seconds the raise takes to notice. At this rate the overshoot stays
+// within a typical safety margin, so frames come close but not late.
+const LOWER_MS_PER_S = 10;
+// Data arriving right after the channel opens or after a gap is late for
+// reasons that pass on their own: the transport has no RTT estimate yet, or
+// the sender is flushing what piled up while it stalled. Holding the media
+// back for those seconds delays everything after them for nothing.
+const START_GRACE_MS = 3000;
+const ARRIVAL_GAP_MS = 500;
+const GAP_GRACE_MS = 2000;
 
 export interface HoldForDataOptions {
   /** Margin in ms that data should keep ahead of its media's playout, e.g.
@@ -105,7 +118,7 @@ function median(xs: number[]): number | null {
 }
 
 // The low quantile of the margins in each whole BUCKET_MS from `since` to
-// `now`, skipping empty buckets.
+// `now`, skipping sparse buckets.
 function bucketLows(
   margins: { at: number; margin: number }[],
   since: number,
@@ -113,11 +126,11 @@ function bucketLows(
 ): number[] {
   const lows: number[] = [];
   for (let end = now; end - BUCKET_MS >= since; end -= BUCKET_MS) {
-    const low = lowQuantile(
-      margins
-        .filter((m) => m.at >= end - BUCKET_MS && m.at < end)
-        .map((m) => m.margin),
-    );
+    const bucket = margins
+      .filter((m) => m.at >= end - BUCKET_MS && m.at < end)
+      .map((m) => m.margin);
+    if (bucket.length < MIN_BUCKET_SAMPLES) continue;
+    const low = lowQuantile(bucket);
     if (low !== null) lows.push(low);
   }
   return lows;
@@ -144,6 +157,8 @@ export function createPlayoutClock(
   let targetMs: number | null = null;
   let lastRaise = -Infinity;
   let lastControl: number | null = null;
+  let lastArrival: number | null = null;
+  let ignoreUntil = -Infinity;
   const safetyMs = holdForData?.safetyMs ?? 40;
   const maxMs = holdForData?.maxMs ?? 400;
 
@@ -301,7 +316,11 @@ export function createPlayoutClock(
       // A target below the delay the buffer already holds changes nothing,
       // so the raise starts from whichever is larger.
       const base = Math.max(targetMs ?? 0, jitterBufferMs);
-      setTarget(Math.min(maxMs, base + safetyMs - recentLow));
+      // The shortfall is measured against a buffer that may still be growing
+      // from the last raise, so one raise covers at most one safety margin.
+      setTarget(
+        Math.min(maxMs, base + Math.min(safetyMs, safetyMs - recentLow)),
+      );
       lastRaise = now;
       return;
     }
@@ -346,9 +365,20 @@ export function createPlayoutClock(
   return {
     playoutTime,
     noteDataArrival(rtpTimestamp, arrivalTime = performance.now()) {
+      if (lastArrival === null) {
+        ignoreUntil = arrivalTime + START_GRACE_MS;
+      } else if (arrivalTime - lastArrival > ARRIVAL_GAP_MS) {
+        ignoreUntil = Math.max(ignoreUntil, arrivalTime + GAP_GRACE_MS);
+      }
+      lastArrival = arrivalTime;
+      if (arrivalTime < ignoreUntil) return;
       const due = playoutTime(rtpTimestamp);
       if (due === null) return;
-      margins.push({ at: arrivalTime, margin: due - arrivalTime });
+      const margin = due - arrivalTime;
+      // No allowed hold saves data this late, and counting it would only pin
+      // the target at the cap.
+      if (margin < -maxMs) return;
+      margins.push({ at: arrivalTime, margin });
       while (margins[0].at < arrivalTime - MARGIN_WINDOW_MS) margins.shift();
     },
     hold: () => ({

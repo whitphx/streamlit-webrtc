@@ -31,12 +31,17 @@ function fakePeerConnection(kind: "audio" | "video" = "audio") {
     };
   };
   // Plays `ms` of 20 ms packets that each waited `bufferMs` in the jitter
-  // buffer, with a data message arriving `marginMs` before its audio plays.
+  // buffer, with a data message every `dataEveryMs` arriving `marginMs`
+  // before its audio plays, or no data when `marginMs` is null.
   let rtp = 0;
   const play = async (
     clock: ReturnType<typeof createPlayoutClock>,
     ms: number,
-    { marginMs, bufferMs = 50 }: { marginMs: number; bufferMs?: number },
+    {
+      marginMs,
+      bufferMs = 50,
+      dataEveryMs = 20,
+    }: { marginMs: number | null; bufferMs?: number; dataEveryMs?: number },
   ) => {
     for (let t = 0; t < ms; t += 20) {
       await vi.advanceTimersByTimeAsync(20);
@@ -47,7 +52,9 @@ function fakePeerConnection(kind: "audio" | "video" = "audio") {
       };
       inbound.jitterBufferEmittedCount += 960;
       inbound.jitterBufferDelay += (960 * bufferMs) / 1000;
-      clock.noteDataArrival(rtp + 48 * marginMs);
+      if (marginMs !== null && (t + 20) % dataEveryMs === 0) {
+        clock.noteDataArrival(rtp + 48 * marginMs);
+      }
     }
   };
   return { pc, deliver, playout, play, receiver };
@@ -151,7 +158,7 @@ describe("createPlayoutClock", () => {
     it("raises the jitter buffer target above the delay the buffer holds", async () => {
       const { pc, play, receiver } = fakePeerConnection();
       const clock = createPlayoutClock(pc, "audio", { holdForData: {} });
-      await play(clock, 3000, { marginMs: 10 });
+      await play(clock, 6000, { marginMs: 10 });
 
       // 50 ms already buffered, plus the 30 ms the data is short of 40 ms.
       expect(receiver.jitterBufferTarget).toBe(80);
@@ -168,12 +175,12 @@ describe("createPlayoutClock", () => {
       expect(receiver.jitterBufferTarget).toBe(200);
     });
 
-    it("lowers the target slowly once the data has margin to spare", async () => {
+    it("lowers the target gradually once the data has margin to spare", async () => {
       const { pc, play, receiver } = fakePeerConnection();
       const clock = createPlayoutClock(pc, "audio", { holdForData: {} });
-      await play(clock, 3000, { marginMs: 10 });
+      await play(clock, 6000, { marginMs: 10 });
       expect(receiver.jitterBufferTarget).toBe(80);
-      await play(clock, 8000, { marginMs: 200 });
+      await play(clock, 6000, { marginMs: 200 });
       const lowered = receiver.jitterBufferTarget;
       expect(lowered).toBeLessThan(80);
       expect(lowered).toBeGreaterThan(40);
@@ -185,12 +192,74 @@ describe("createPlayoutClock", () => {
     it("does not delay the audio for one burst of late data", async () => {
       const { pc, play, receiver } = fakePeerConnection();
       const clock = createPlayoutClock(pc, "audio", { holdForData: {} });
-      await play(clock, 3000, { marginMs: 150 });
+      await play(clock, 6000, { marginMs: 150 });
       // A sender stall: half a second of data arrives far too late at once.
       await play(clock, 500, { marginMs: -400 });
       await play(clock, 5000, { marginMs: 150 });
 
       expect(receiver.jitterBufferTarget).toBeNull();
+    });
+
+    it("ignores late data in the first seconds after the channel opens", async () => {
+      const { pc, play, receiver } = fakePeerConnection();
+      const clock = createPlayoutClock(pc, "audio", { holdForData: {} });
+      await play(clock, 2900, { marginMs: -200 });
+      await play(clock, 5000, { marginMs: 150 });
+
+      expect(receiver.jitterBufferTarget).toBeNull();
+    });
+
+    it("ignores late data for a while after a gap in arrivals", async () => {
+      const { pc, play, receiver } = fakePeerConnection();
+      const clock = createPlayoutClock(pc, "audio", { holdForData: {} });
+      await play(clock, 6000, { marginMs: 150 });
+      await play(clock, 600, { marginMs: null });
+      await play(clock, 1900, { marginMs: -200 });
+      await play(clock, 3000, { marginMs: 150 });
+
+      expect(receiver.jitterBufferTarget).toBeNull();
+    });
+
+    it("ignores data later than the cap could save", async () => {
+      const { pc, play, receiver } = fakePeerConnection();
+      const clock = createPlayoutClock(pc, "audio", {
+        holdForData: { maxMs: 400 },
+      });
+      await play(clock, 3000, { marginMs: 150 });
+      await play(clock, 5000, { marginMs: -500 });
+
+      expect(receiver.jitterBufferTarget).toBeNull();
+    });
+
+    it("does not judge seconds with only a few arrivals", async () => {
+      const { pc, play, receiver } = fakePeerConnection();
+      const clock = createPlayoutClock(pc, "audio", { holdForData: {} });
+      await play(clock, 3000, { marginMs: 150 });
+      await play(clock, 6000, { marginMs: 10, dataEveryMs: 200 });
+
+      expect(receiver.jitterBufferTarget).toBeNull();
+    });
+
+    it("raises by at most the safety margin at a time", async () => {
+      const { pc, play, receiver } = fakePeerConnection();
+      const clock = createPlayoutClock(pc, "audio", { holdForData: {} });
+      await play(clock, 3000, { marginMs: 150 });
+      await play(clock, 3000, { marginMs: -200 });
+
+      expect(receiver.jitterBufferTarget).toBe(50 + 40);
+    });
+
+    it("lowers from the cap within seconds", async () => {
+      const { pc, play, receiver } = fakePeerConnection();
+      const clock = createPlayoutClock(pc, "audio", {
+        holdForData: { maxMs: 200 },
+      });
+      await play(clock, 30000, { marginMs: 10 });
+      expect(receiver.jitterBufferTarget).toBe(200);
+      await play(clock, 10000, { marginMs: 200 });
+
+      expect(receiver.jitterBufferTarget).toBeLessThan(150);
+      expect(receiver.jitterBufferTarget).toBeGreaterThan(100);
     });
 
     it("leaves the receiver alone where jitterBufferTarget is missing", async () => {
