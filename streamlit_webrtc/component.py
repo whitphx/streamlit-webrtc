@@ -205,18 +205,22 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         time_base: fractions.Fraction,
     ) -> Optional[int]:
         """The RTP timestamp under which the browser plays what the outbound
-        ``kind`` track sent at ``pts``.
+        ``kind`` track sent at ``pts`` in ``time_base``.
 
-        A data channel message stamped with it can be scheduled in the
-        browser against the media's playback with
-        ``context.createPlayoutClock()`` in ``frontend_script``. The two
-        travel separately, so a message can be shown when its media plays
-        whatever each of them took to arrive.
+        A data channel message stamped with it can be shown in the browser
+        when its media plays, whatever each of them took to arrive, with
+        ``createPlayoutClock()`` in ``frontend_script``.
 
-        Returns ``None`` before the track's sender has started encoding,
-        and always with ``backend="native"``.
+        ``pts`` is the outbound frame's, so take it from a source track's
+        callback or a frame callback with ``async_processing=False``. With
+        asynchronous processing a processed frame goes out under the pts of a
+        later input frame.
 
-        Call it from the source track's callback or any other thread.
+        Returns ``None`` before the track's sender has encoded its first
+        frame, always with ``backend="native"``, and when the installed aiortc
+        does not let it read the RTP timestamp origin (logged once).
+
+        Safe to call from any thread.
         """
         worker = self._get_worker()
         if not isinstance(worker, WebRtcWorker):
