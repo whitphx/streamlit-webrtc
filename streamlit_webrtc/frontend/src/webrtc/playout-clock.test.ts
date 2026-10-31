@@ -293,6 +293,16 @@ describe("createPlayoutClock", () => {
     expect(createPlayoutClock(pc, "audio").playoutTime(0)).toBeNull();
   });
 
+  it("returns null once closed, though the connection stays open", () => {
+    const { pc, deliver } = fakePeerConnection();
+    const clock = createPlayoutClock(pc, "audio");
+    deliver(1000, 960);
+
+    expect(clock.playoutTime(960)).toBeCloseTo(1000);
+    clock.close();
+    expect(clock.playoutTime(960)).toBeNull();
+  });
+
   describe("video", () => {
     it("gives the time the element shows a presented frame", () => {
       const { pc } = fakePeerConnection("video");
