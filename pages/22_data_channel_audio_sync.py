@@ -38,6 +38,9 @@ extra_delay_ms = st.number_input(
     value=0,
     step=50,
 )
+hold_for_data = st.checkbox(
+    "Delay the audio when the data arrives too late for it (holdForData)",
+)
 
 SAMPLE_RATE = 48000
 PTIME = 0.020
@@ -69,7 +72,9 @@ export default function ({ channels, root, media, createPlayoutClock, data }) {
   const ctx = canvas.getContext("2d");
 
   let options = data;
-  const clock = createPlayoutClock("audio");
+  let clock = createPlayoutClock("audio", {
+    holdForData: options.holdForData ? {} : undefined,
+  });
   const queue = [];
   const levels = [];
   let lead = null;
@@ -84,6 +89,7 @@ export default function ({ channels, root, media, createPlayoutClock, data }) {
     // Stands in for a slower network path for the data than for the audio.
     setTimeout(() => {
       frame.arrival = performance.now();
+      clock.noteDataArrival(frame.rtpTimestamp, frame.arrival);
       queue.push(frame);
     }, options.extraDelayMs);
   });
@@ -123,15 +129,23 @@ export default function ({ channels, root, media, createPlayoutClock, data }) {
       const height = Math.min(1, level * 3) * canvas.height;
       ctx.fillRect(i * barWidth, canvas.height - height, barWidth, height);
     });
+    const { supported, targetMs } = clock.hold();
     status.textContent =
-      options.sync && lead !== null
+      (options.sync && lead !== null
         ? `drawn ${lead.toFixed(0)} ms after arrival`
-        : "drawn on arrival";
+        : "drawn on arrival") +
+      (supported ? `, audio held ${(targetMs ?? 0).toFixed(0)} ms` : "");
   };
   draw();
 
   return {
     update(newData) {
+      if (newData.holdForData !== options.holdForData) {
+        clock.close();
+        clock = createPlayoutClock("audio", {
+          holdForData: newData.holdForData ? {} : undefined,
+        });
+      }
       options = newData;
       lead = null;
     },
@@ -201,5 +215,6 @@ ctx = webrtc_streamer(
     frontend_data={
         "sync": draw_on == "In sync with the audio",
         "extraDelayMs": extra_delay_ms,
+        "holdForData": hold_for_data,
     },
 )

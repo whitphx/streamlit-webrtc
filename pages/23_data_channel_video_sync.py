@@ -38,6 +38,9 @@ extra_delay_ms = st.number_input(
     value=0,
     step=50,
 )
+hold_for_data = st.checkbox(
+    "Delay the video when the boxes arrive too late for it (holdForData)",
+)
 
 WIDTH, HEIGHT = 640, 360
 FPS = 30
@@ -64,7 +67,9 @@ export default function ({ channels, root, media, createPlayoutClock, data }) {
   resizeObserver.observe(root);
 
   let options = data;
-  const clock = createPlayoutClock("video");
+  let clock = createPlayoutClock("video", {
+    holdForData: options.holdForData ? {} : undefined,
+  });
   const queue = [];
 
   const draw = (detection) => {
@@ -83,6 +88,7 @@ export default function ({ channels, root, media, createPlayoutClock, data }) {
     const detection = JSON.parse(data);
     // Stands in for a slower network path for the data than for the video.
     setTimeout(() => {
+      clock.noteDataArrival(detection.rtpTimestamp);
       if (options.sync) queue.push(detection);
       else draw(detection);
     }, options.extraDelayMs);
@@ -100,14 +106,21 @@ export default function ({ channels, root, media, createPlayoutClock, data }) {
       due = queue.shift();
     }
     if (due) draw(due);
-    status.textContent = options.sync
-      ? "drawn with its frame"
-      : "drawn on arrival";
+    const { supported, targetMs } = clock.hold();
+    status.textContent =
+      (options.sync ? "drawn with its frame" : "drawn on arrival") +
+      (supported ? `, video held ${(targetMs ?? 0).toFixed(0)} ms` : "");
   };
   frameCallback = media.video.requestVideoFrameCallback(onFrame);
 
   return {
     update(newData) {
+      if (newData.holdForData !== options.holdForData) {
+        clock.close();
+        clock = createPlayoutClock("video", {
+          holdForData: newData.holdForData ? {} : undefined,
+        });
+      }
       if (!newData.sync) queue.length = 0;
       options = newData;
     },
@@ -182,5 +195,6 @@ ctx = webrtc_streamer(
     frontend_data={
         "sync": draw_on == "In sync with the video",
         "extraDelayMs": extra_delay_ms,
+        "holdForData": hold_for_data,
     },
 )
