@@ -404,6 +404,11 @@ There are several options for setting up a TURN server:
 * The [Open Relay Project](https://www.metered.ca/tools/openrelay/) provides a free TURN server. However, it does not seem to be stable enough and is often down.
 * A self-hosted TURN server is also an option. See https://github.com/whitphx/streamlit-webrtc/issues/335#issuecomment-897326755.
 
+### Video never appears while audio plays
+If the connection is established and the audio plays but the video keeps showing the loading spinner, the network path may be dropping large packets. `aiortc` up to 1.14.0 sends video in RTP packets of about 1325 bytes, while browsers keep theirs within 1200 bytes. Some TURN relay legs, VPNs and IPv6 tunnels carry less than the former, so they drop the video packets while the much smaller audio packets get through. In `chrome://webrtc-internals`, the inbound video stream then shows a large `packetsLost`, and `framesDecoded` stays at 0.
+
+To avoid this, `webrtc_streamer()` lowers `aiortc`'s video payload size to 1150 bytes, which keeps the packets within 1200 bytes as browsers do. If your network carries even less, set the `STREAMLIT_WEBRTC_MAX_VIDEO_RTP_PAYLOAD_SIZE` environment variable to a smaller payload size in bytes, leaving about 50 bytes for the RTP header and SRTP overhead. Set it to `0` to keep `aiortc`'s own size. The setting applies to the whole process, and only to `aiortc` versions with the fixed 1300-byte payload size. If your app sets `aiortc.codecs.vpx.PACKET_MAX` or `aiortc.codecs.h264.PACKET_MAX` itself, its value is kept.
+
 ## Logging
 For logging, this library uses the standard `logging` module and follows the practice described in [the official logging tutorial](https://docs.python.org/3/howto/logging.html#advanced-logging-tutorial). Then the logger names are the same as the module names - `streamlit_webrtc` or `streamlit_webrtc.*`.
 
