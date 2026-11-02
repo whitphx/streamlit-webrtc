@@ -27,13 +27,14 @@ SAMPLE_RATE = 48000
 PTIME = 0.020
 SAMPLES_PER_FRAME = int(SAMPLE_RATE * PTIME)
 NUM_BANDS = 32
-# A sequence number, then the band magnitudes.
-SPECTRUM_STRUCT = struct.Struct(f"<I{NUM_BANDS}f")
+# A sequence number, the RTP timestamp the frame's audio plays under, then the
+# band magnitudes.
+SPECTRUM_STRUCT = struct.Struct(f"<II{NUM_BANDS}f")
 
 FRONTEND_SCRIPT = """
 const NUM_BANDS = __NUM_BANDS__;
 
-export default function ({ pc, channels, root, media }) {
+export default function ({ channels, root, media, createPlayoutClock }) {
   const canvas = document.createElement("canvas");
   canvas.width = 640;
   canvas.height = 200;
@@ -43,34 +44,18 @@ export default function ({ pc, channels, root, media }) {
   root.append(canvas, status);
   const ctx = canvas.getContext("2d");
 
-  // The audio waits in the receiver's jitter buffer before it plays, while
-  // a message is handled as soon as it arrives. Both travel over the same
-  // transport, so holding each message back by the jitter buffer delay
-  // lines it up with the audio it was sent with.
-  let playoutDelayMs = 0;
-  let previous = null;
-  const statsTimer = setInterval(async () => {
-    const stats = await pc.getStats();
-    stats.forEach((report) => {
-      if (report.type !== "inbound-rtp" || report.kind !== "audio") return;
-      const { jitterBufferDelay, jitterBufferEmittedCount } = report;
-      if (previous && jitterBufferEmittedCount > previous.jitterBufferEmittedCount) {
-        playoutDelayMs =
-          (1000 * (jitterBufferDelay - previous.jitterBufferDelay)) /
-          (jitterBufferEmittedCount - previous.jitterBufferEmittedCount);
-      }
-      previous = { jitterBufferDelay, jitterBufferEmittedCount };
-    });
-  }, 500);
-
+  // Each message carries the RTP timestamp of its audio, and the clock
+  // tells when the audio with that timestamp is heard.
+  const clock = createPlayoutClock("audio");
   const queue = [];
   let received = 0;
   channels.spectrum.addEventListener("message", ({ data }) => {
     const view = new DataView(data);
     queue.push({
-      dueAt: performance.now() + playoutDelayMs,
+      arrival: performance.now(),
+      rtpTimestamp: view.getUint32(4, true),
       seq: view.getUint32(0, true),
-      bands: new Float32Array(data, 4, NUM_BANDS),
+      bands: new Float32Array(data, 8, NUM_BANDS),
     });
     received++;
   });
@@ -86,8 +71,10 @@ export default function ({ pc, channels, root, media }) {
       return;
     }
     let frame;
-    while (queue.length > 0 && queue[0].dueAt <= performance.now()) {
-      frame = queue.shift();
+    while (queue.length > 0) {
+      const dueAt = clock.playoutTime(queue[0].rtpTimestamp);
+      if (dueAt === null || dueAt > performance.now()) break;
+      frame = { ...queue.shift(), dueAt };
     }
     if (!frame) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -99,13 +86,13 @@ export default function ({ pc, channels, root, media }) {
     });
     status.textContent =
       `frame #${frame.seq}, ${received} received, ` +
-      `drawn ${playoutDelayMs.toFixed(0)} ms after arrival to match the audio`;
+      `drawn ${(frame.dueAt - frame.arrival).toFixed(0)} ms after arrival to match the audio`;
   };
   draw();
 
   return () => {
     cancelAnimationFrame(animationFrame);
-    clearInterval(statsTimer);
+    clock.close();
   };
 }
 """.replace("__NUM_BANDS__", str(NUM_BANDS))
@@ -126,13 +113,20 @@ def audio_source_callback(pts: int, time_base: fractions.Fraction) -> av.AudioFr
 
     seq = pts // SAMPLES_PER_FRAME
     channels = ctx.data_channels if ctx else None
-    if channels and "spectrum" in channels and seq % 2 == 0:
+    # None until the sender has encoded its first frame.
+    rtp_timestamp = ctx.rtp_timestamp("audio", pts, time_base) if ctx else None
+    if (
+        channels
+        and "spectrum" in channels
+        and seq % 2 == 0
+        and rtp_timestamp is not None
+    ):
         spectrum = np.abs(np.fft.rfft(samples)) / (SAMPLES_PER_FRAME / 4)
         bands = [
             spectrum[lo : max(hi, lo + 1)].max()
             for lo, hi in zip(band_edges, band_edges[1:])
         ]
-        channels["spectrum"].send(SPECTRUM_STRUCT.pack(seq, *bands))
+        channels["spectrum"].send(SPECTRUM_STRUCT.pack(seq, rtp_timestamp, *bands))
 
     frame = av.AudioFrame.from_ndarray(
         (samples * 32767).astype(np.int16).reshape(1, -1), format="s16", layout="mono"
