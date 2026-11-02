@@ -2,6 +2,17 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.79.0'></a>
+## 0.79.0 — 2026-10-19
+
+### Added
+
+- Add an experimental native audio backend for `webrtc_streamer()`, with frame callbacks and output clearing, using a separately installed companion wheel.
+
+### Chore
+
+- Add an experimental native audio companion package with bundled WebRTC wheel builds and transport tests.
+
 <a id='changelog-0.78.1'></a>
 ## 0.78.1 — 2026-09-18
 
