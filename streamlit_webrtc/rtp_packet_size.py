@@ -18,20 +18,26 @@ AIORTC_LEGACY_PAYLOAD_SIZE = 1300
 # and the RTX original sequence number.
 DEFAULT_PAYLOAD_SIZE = 1150
 
+# aiortc's packetizers loop forever or divide by zero when the payload
+# headers leave no room for data, so smaller values are refused.
+MIN_PAYLOAD_SIZE = 100
+
 
 def cap_video_rtp_payload_size() -> None:
     value = os.environ.get(PAYLOAD_SIZE_ENV_VAR, "").strip()
+    if value == "0":
+        return
     payload_size = DEFAULT_PAYLOAD_SIZE
     if value:
-        try:
+        if value.isdigit() and int(value) >= MIN_PAYLOAD_SIZE:
             payload_size = int(value)
-        except ValueError:
+        else:
             logger.warning(
-                "Ignoring %s=%r, which is not an integer", PAYLOAD_SIZE_ENV_VAR, value
+                "Ignoring %s=%r, which is not 0 or an integer of at least %d",
+                PAYLOAD_SIZE_ENV_VAR,
+                value,
+                MIN_PAYLOAD_SIZE,
             )
-
-    if payload_size <= 0:
-        return
 
     for module in (vpx, h264):
         # Leave a value other than the legacy one alone: it is either an aiortc

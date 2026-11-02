@@ -111,8 +111,9 @@ def test_env_var_zero_opts_out(packet_max, monkeypatch):
     assert h264.PACKET_MAX == AIORTC_LEGACY_PAYLOAD_SIZE
 
 
-def test_invalid_env_var_falls_back_to_default(packet_max, monkeypatch, caplog):
-    monkeypatch.setenv(PAYLOAD_SIZE_ENV_VAR, "small")
+@pytest.mark.parametrize("value", ["small", "4", "-1", "1e3"])
+def test_invalid_env_var_falls_back_to_default(packet_max, monkeypatch, caplog, value):
+    monkeypatch.setenv(PAYLOAD_SIZE_ENV_VAR, value)
 
     with caplog.at_level(logging.WARNING, logger="streamlit_webrtc"):
         cap_video_rtp_payload_size()
