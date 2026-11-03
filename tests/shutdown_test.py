@@ -1,4 +1,6 @@
+import gc
 import threading
+import weakref
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import patch
@@ -55,6 +57,28 @@ def test_callback_fires_on_session_shutdown():
     try:
         session._state = AppSessionState.SHUTDOWN_REQUESTED
         assert callback_called.wait(3.0)
+    finally:
+        observer.stop()
+
+
+def test_callback_fires_when_session_is_dropped_without_shutdown():
+    session = _FakeAppSession(page_hash="page-A")
+    session_ref = weakref.ref(session)
+    callback_called = threading.Event()
+    with (
+        patch(
+            "streamlit_webrtc.shutdown.get_this_session_info",
+            return_value=_make_session_info(session),
+        ),
+        patch("streamlit_webrtc.shutdown.get_script_run_ctx", return_value=None),
+    ):
+        observer = SessionShutdownObserver(callback_called.set)
+    try:
+        del session
+        # The patchers' mocks keep the session info in reference cycles.
+        gc.collect()
+        assert callback_called.wait(3.0)
+        assert session_ref() is None
     finally:
         observer.stop()
 
