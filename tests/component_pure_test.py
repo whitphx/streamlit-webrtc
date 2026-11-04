@@ -1,5 +1,7 @@
+import threading
+import time
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Dict
 from unittest.mock import MagicMock
 
 import pytest
@@ -193,6 +195,112 @@ class TestStateChangeCallback:
         assert context._sdp_answer_json is None
         assert context._is_sdp_answer_sent is False
         assert context.state == WebRtcStreamerState(playing=False, signalling=True)
+
+
+class _ContentionSignallingLock:
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.contended = threading.Event()
+
+    def __enter__(self) -> None:
+        if not self._lock.acquire(blocking=False):
+            self.contended.set()
+            self._lock.acquire()
+
+    def __exit__(self, *exc_info: object) -> None:
+        self._lock.release()
+
+
+class TestNegotiationRace:
+    """A newer offer's state-change callback runs on another thread while a
+    superseded run is attaching its worker or flushing its answer."""
+
+    key = "negotiation-race"
+    first_offer = {"sdp": "first offer", "type": "offer"}
+    second_offer = {"sdp": "second offer", "type": "offer"}
+
+    @pytest.fixture
+    def context(self, monkeypatch):
+        monkeypatch.setattr(component, "rerun", lambda: None)
+        context: WebRtcStreamerContext[Any, Any] = WebRtcStreamerContext(
+            worker=None, state=WebRtcStreamerState(playing=False, signalling=True)
+        )
+        context._frontend_sdp_offer = self.first_offer
+        context._negotiation_lock = _ContentionSignallingLock()  # type: ignore[assignment]
+        st.session_state[self.key] = context
+        yield context
+        del st.session_state[self.key]
+        del st.session_state[generate_frontend_component_key(self.key)]
+
+    def _report_offer_concurrently(
+        self, context: WebRtcStreamerContext, sdp_offer: Dict
+    ) -> threading.Thread:
+        """Run the callback for `sdp_offer` on another thread, and return once
+        it has finished or is waiting for the negotiation lock."""
+        frontend_key = generate_frontend_component_key(self.key)
+        st.session_state[frontend_key] = {"playing": False, "sdpOffer": sdp_offer}
+        thread = threading.Thread(
+            target=_make_state_change_callback(self.key, frontend_key, None)
+        )
+        thread.start()
+        lock = context._negotiation_lock
+        assert isinstance(lock, _ContentionSignallingLock)
+        deadline = time.monotonic() + 5
+        while thread.is_alive() and not lock.contended.wait(0.01):
+            assert time.monotonic() < deadline
+        return thread
+
+    def test_new_offer_during_worker_attach_discards_the_worker(self, context) -> None:
+        worker = MagicMock()
+        worker.local_description = None
+        set_worker = context._set_worker
+        threads: list[threading.Thread] = []
+
+        def set_worker_then_report_new_offer(new_worker) -> None:
+            set_worker(new_worker)
+            if new_worker is worker and not threads:
+                threads.append(
+                    self._report_offer_concurrently(context, self.second_offer)
+                )
+
+        context._set_worker = set_worker_then_report_new_offer
+
+        _handle_worker_lifecycle(
+            context,
+            key=self.key,
+            sdp_offer=self.first_offer,
+            make_worker=lambda: worker,
+        )
+        threads[0].join()
+
+        worker.stop.assert_called_once()
+        assert context._get_worker() is None
+
+    def test_new_offer_during_answer_flush_drops_the_answer(self, context) -> None:
+        worker = MagicMock()
+        context._set_worker(worker)
+        context._worker_sdp_offer = self.first_offer
+        threads: list[threading.Thread] = []
+
+        def answer_then_report_new_offer() -> SimpleNamespace:
+            if not threads:
+                threads.append(
+                    self._report_offer_concurrently(context, self.second_offer)
+                )
+            return SimpleNamespace(sdp="first answer", type="answer")
+
+        type(worker).local_description = property(
+            lambda self: answer_then_report_new_offer()
+        )
+
+        _handle_worker_lifecycle(
+            context, key=self.key, sdp_offer=self.first_offer, make_worker=pytest.fail
+        )
+        threads[0].join()
+
+        worker.stop.assert_called_once()
+        assert context._get_worker() is None
+        assert context._sdp_answer_json is None
 
 
 class TestValidateSinkConflicts:
