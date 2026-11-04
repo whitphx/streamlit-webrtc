@@ -126,9 +126,12 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
 
     _component_value_snapshot: Union[ComponentValueSnapshot, None]
     _worker_creation_lock: threading.Lock
+    _negotiation_lock: threading.Lock
     _sdp_answer_json: Optional[str]
     _is_sdp_answer_sent: bool
     _last_rendered_run_count: Optional[int]
+    _frontend_sdp_offer: Union[Dict, str, None]
+    _worker_sdp_offer: Optional[Dict]
 
     # Passthrough attributes forwarded to the worker. Each returns the
     # worker's attribute when a worker is attached, otherwise None.
@@ -154,9 +157,19 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._set_state(state)
         self._component_value_snapshot = None
         self._worker_creation_lock = threading.Lock()
+        # Guards the worker, the offer it was made for and its SDP answer,
+        # which a superseded run's thread can still be writing while the
+        # state-change callback discards them. It is never held across
+        # `process_offer()` or `worker.stop()`, which block for seconds.
+        self._negotiation_lock = threading.Lock()
         self._sdp_answer_json = None
         self._is_sdp_answer_sent = False
         self._last_rendered_run_count = None
+        # The `sdpOffer` the frontend reported last ("" while it is not
+        # signalling), and None until it reports one. A script run that is
+        # slow, blocked or superseded can still be holding an older offer.
+        self._frontend_sdp_offer = None
+        self._worker_sdp_offer = None
 
     def _set_worker(
         self,
@@ -338,27 +351,54 @@ def _get_or_create_context(key: str) -> WebRtcStreamerContext:
     if current_run_count is not None:
         context._last_rendered_run_count = current_run_count
 
-    if context._sdp_answer_json:
-        # The SDP answer was set in a previous run and forwarded to the
-        # frontend in this run via the component args; mark it sent so the
-        # next `_handle_worker_lifecycle` call doesn't trigger another rerun.
-        context._is_sdp_answer_sent = True
+    with context._negotiation_lock:
+        if context._sdp_answer_json:
+            # The SDP answer was set in a previous run and forwarded to the
+            # frontend in this run via the component args; mark it sent so the
+            # next `_handle_worker_lifecycle` call doesn't trigger another rerun.
+            context._is_sdp_answer_sent = True
 
     return context
+
+
+def _discard_negotiation(
+    context: WebRtcStreamerContext,
+) -> Optional[Union[WebRtcWorker, NativeAudioWorker]]:
+    """Detach the worker and drop the SDP answer it produced.
+
+    The caller holds `context._negotiation_lock`, and passes the returned
+    worker to `_stop_discarded_worker()` once it has released the lock.
+    """
+    worker = context._get_worker()
+    context._set_worker(None)
+    context._worker_sdp_offer = None
+    context._sdp_answer_json = None
+    context._is_sdp_answer_sent = False
+    return worker
+
+
+def _stop_discarded_worker(
+    worker: Optional[Union[WebRtcWorker, NativeAudioWorker]],
+) -> None:
+    if worker:
+        LOGGER.debug("Stopping the worker of a discarded negotiation.")
+        worker.stop()
 
 
 def _reset_context(context: WebRtcStreamerContext) -> None:
     """Tear down worker / signalling state so the next lifecycle reconciliation
     treats the component as freshly mounted."""
-    worker = context._get_worker()
-    if worker:
-        LOGGER.debug("Stopping worker during context reset.")
-        worker.stop()
-    context._set_worker(None)
+    with context._negotiation_lock:
+        discarded_worker = _discard_negotiation(context)
+    _stop_discarded_worker(discarded_worker)
     context._set_state(WebRtcStreamerState(playing=False, signalling=False))
-    context._sdp_answer_json = None
-    context._is_sdp_answer_sent = False
     context._component_value_snapshot = None
+
+
+def _is_current_offer(context: WebRtcStreamerContext, sdp_offer: Dict) -> bool:
+    return context._frontend_sdp_offer is None or (
+        context._frontend_sdp_offer == sdp_offer
+    )
 
 
 def _make_state_change_callback(
@@ -380,6 +420,21 @@ def _make_state_change_callback(
         context = st.session_state[key]
         old_state = context.state
         context._set_state(new_state)
+
+        sdp_offer = component_value.get("sdpOffer")
+        with context._negotiation_lock:
+            context._frontend_sdp_offer = sdp_offer
+            # The frontend can stop and start again before any script run sees
+            # it idle, e.g. while a slow `on_change` blocks the stop's run until
+            # the restart supersedes it. The worker and answer for the old
+            # offer are then still here, and the run about to render would hand
+            # that answer to the new offer.
+            worker_offer = context._worker_sdp_offer
+            is_superseded = bool(sdp_offer) and worker_offer not in (None, sdp_offer)
+            discarded_worker = _discard_negotiation(context) if is_superseded else None
+        if is_superseded:
+            LOGGER.debug("The frontend sent a new offer (key=%s).", key)
+            _stop_discarded_worker(discarded_worker)
 
         if user_on_change and old_state != new_state:
             user_on_change()
@@ -477,7 +532,11 @@ def _handle_worker_lifecycle(
     # This point can be reached in parallel, so the lock makes worker
     # creation atomic.
     with context._worker_creation_lock:
-        if not context._get_worker() and sdp_offer:
+        if (
+            not context._get_worker()
+            and sdp_offer
+            and _is_current_offer(context, sdp_offer)
+        ):
             LOGGER.debug(
                 "No worker exists though the offer SDP is set. "
                 'Create a new worker (key="%s").',
@@ -492,21 +551,36 @@ def _handle_worker_lifecycle(
                 # give a bit more headroom here.
                 timeout=10,
             )
-            context._set_worker(worker)
+            # `process_offer()` blocks until ICE gathering ends, which takes
+            # seconds when a STUN or TURN server is unreachable. The frontend
+            # may have stopped, or started over with a new offer, meanwhile,
+            # and the runs that saw it found no worker to stop.
+            with context._negotiation_lock:
+                is_current = _is_current_offer(context, sdp_offer)
+                if is_current:
+                    context._set_worker(worker)
+                    context._worker_sdp_offer = sdp_offer
+            if not is_current:
+                LOGGER.debug(
+                    "The frontend left this offer while the worker was being "
+                    'created. Stop the worker (key="%s").',
+                    key,
+                )
+                worker.stop()
 
     # --- Flush answer ---
-    running_worker = context._get_worker()
-    if (
-        running_worker
-        and running_worker.local_description
-        and not context._is_sdp_answer_sent
-    ):
-        context._sdp_answer_json = json.dumps(
-            {
-                "sdp": running_worker.local_description.sdp,
-                "type": running_worker.local_description.type,
-            }
+    with context._negotiation_lock:
+        running_worker = context._get_worker()
+        unsent_answer = (
+            running_worker.local_description
+            if running_worker and not context._is_sdp_answer_sent
+            else None
         )
+        if unsent_answer:
+            context._sdp_answer_json = json.dumps(
+                {"sdp": unsent_answer.sdp, "type": unsent_answer.type}
+            )
+    if unsent_answer:
         LOGGER.debug("Rerun to send the SDP answer to frontend")
         # NOTE: rerun() may not work if it's called inside the lock when the
         # `runner.fastReruns` config is enabled, because
