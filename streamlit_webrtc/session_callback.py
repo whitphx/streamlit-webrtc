@@ -46,14 +46,23 @@ def _without_ui(ctx: ScriptRunContext) -> ScriptRunContext:
     # sharing these objects with the callback. Fresh cursors keep a stray
     # `st.write()` from shifting that run's element positions, and without
     # `script_requests` a stray `st.rerun()` cannot interrupt it.
+    # Session state refuses writes to keys of widgets in the `*_this_run` sets,
+    # so sharing them would make a callback that resets a widget's value raise,
+    # and a stray widget call would add its IDs to a run in progress.
     try:
         return dataclasses.replace(
-            ctx, _enqueue=_drop_forward_msg, cursors={}, script_requests=None
+            ctx,
+            _enqueue=_drop_forward_msg,
+            cursors={},
+            script_requests=None,
+            widget_ids_this_run=set(),
+            widget_user_keys_this_run=set(),
+            form_ids_this_run=set(),
         )
     except TypeError:
         # A future Streamlit may rename these fields. State access matters
         # more than the guard, so fall back to the unguarded context.
-        logger.debug("Could not copy ScriptRunContext; attaching it as is.")
+        logger.warning("Could not copy ScriptRunContext; attaching it as is.")
         return ctx
 
 
@@ -89,7 +98,7 @@ def run_ended_callback(
     if current is not None and ctx is not None and current.session_id == ctx.session_id:
         # Stopped from the session's own script run, e.g. a factory source
         # track on STOP. Running inline keeps every `st.*` command working
-        # and the result visible to the rest of this run, as it always was.
+        # and makes the result visible to the rest of this run.
         _call_logging_errors(callback, owner)
         return
 

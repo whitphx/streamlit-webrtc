@@ -198,6 +198,41 @@ def test_callback_for_a_discarded_session_does_not_raise() -> None:
     assert ctx.sent == []  # type: ignore[attr-defined]
 
 
+def test_callback_can_write_a_widget_keyed_entry_during_a_run() -> None:
+    ctx = _make_ctx("session-a")
+    live_run_widget_ids: List[str] = []
+
+    def script_run() -> None:
+        st.checkbox("Recording", key="recording")
+        live_run_widget_ids.extend(ctx.widget_ids_this_run)
+
+    script_thread = add_script_run_ctx(threading.Thread(target=script_run), ctx)
+    script_thread.start()
+    script_thread.join(timeout=5)
+    assert live_run_widget_ids
+    live_run_user_keys = set(ctx.widget_user_keys_this_run)
+
+    done = threading.Event()
+    errors: List[BaseException] = []
+
+    def on_ended() -> None:
+        try:
+            st.session_state["recording"] = False
+            st.checkbox("Stray", key="stray")
+        except BaseException as e:
+            errors.append(e)
+        finally:
+            done.set()
+
+    _audio_process_track(on_ended, ctx).stop()
+
+    assert done.wait(timeout=5)
+    assert errors == []
+    assert ctx.session_state["recording"] is False
+    assert ctx.widget_ids_this_run == set(live_run_widget_ids)
+    assert ctx.widget_user_keys_this_run == live_run_user_keys
+
+
 def test_sink_on_ended_runs_off_the_loop_with_session_state() -> None:
     ctx = _make_ctx("session-a")
     done = threading.Event()
