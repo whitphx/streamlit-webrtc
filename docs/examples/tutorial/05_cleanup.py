@@ -1,13 +1,19 @@
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer
 
+log_file = st.session_state.get("frame_log")
+if log_file is None or log_file.closed:
+    log_file = open("frames.log", "a")
+    st.session_state["frame_log"] = log_file
+
 
 def video_frame_callback(frame):
+    log_file.write(f"{frame.time}\n")
     return frame
 
 
 def on_video_ended():
-    st.session_state.pop("my_session_resource", None)
+    log_file.close()
 
 
 webrtc_streamer(
