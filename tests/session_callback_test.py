@@ -11,6 +11,7 @@ import pytest
 import streamlit as st
 from aiortc import MediaStreamTrack, RTCPeerConnection
 from aiortc.contrib.media import MediaRelay
+from aiortc.mediastreams import MediaStreamError
 from streamlit.runtime.fragment import MemoryFragmentStorage
 from streamlit.runtime.memory_uploaded_file_manager import MemoryUploadedFileManager
 from streamlit.runtime.pages_manager import PagesManager
@@ -231,6 +232,40 @@ def test_callback_can_write_a_widget_keyed_entry_during_a_run() -> None:
     assert ctx.session_state["recording"] is False
     assert ctx.widget_ids_this_run == set(live_run_widget_ids)
     assert ctx.widget_user_keys_this_run == live_run_user_keys
+
+
+class _HeldAudioTrack(MediaStreamTrack):
+    kind = "audio"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.release = asyncio.Event()
+
+    async def recv(self):
+        await self.release.wait()
+        return _audio_frame()
+
+
+@pytest.mark.asyncio
+async def test_frame_arriving_after_stop_does_not_reach_the_processor() -> None:
+    input_track = _HeldAudioTrack()
+    processed: List[av.AudioFrame] = []
+
+    def frame_callback(frame: av.AudioFrame) -> av.AudioFrame:
+        processed.append(frame)
+        return frame
+
+    processor = CallbackAttachableProcessor[av.AudioFrame](frame_callback, None, None)
+    track = AudioProcessTrack(input_track, processor)
+
+    pending = asyncio.create_task(track.recv())
+    await asyncio.sleep(0)
+    track.stop()
+    input_track.release.set()
+
+    with pytest.raises(MediaStreamError):
+        await pending
+    assert processed == []
 
 
 def test_sink_on_ended_runs_off_the_loop_with_session_state() -> None:
