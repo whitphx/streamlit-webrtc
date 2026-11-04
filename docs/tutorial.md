@@ -94,7 +94,7 @@ The callbacks are executed in forked threads different from the main one, so the
 
 ## Cleanup on Stop
 
-`webrtc_streamer()` accepts `on_video_ended` and `on_audio_ended` arguments — zero-argument callables that fire when the corresponding input media track ends (the user clicks "STOP", closes the page, or the connection drops). If the page closes before the connection is established, they fire only when Streamlit discards the disconnected session, at least `server.disconnectedSessionTTL` seconds later. They are the recommended hook for tearing down per-session resources that the frame callbacks allocated, such as worker threads, model handles, file writers, or queues. The `on_ended` argument of the sink factory helpers fires at the same point for its track and runs where these callbacks run. A source track's `on_ended` instead runs on whichever thread stops the track, which is the script thread when the user clicks STOP.
+`webrtc_streamer()` accepts `on_video_ended` and `on_audio_ended` arguments — zero-argument callables that fire when the corresponding input media track ends (the user clicks "STOP", closes the page, or the connection drops). They are the recommended hook for tearing down per-session resources that the frame callbacks allocated, such as worker threads, model handles, file writers, or queues. The `on_ended` argument of the sink factory helpers fires at the same point for its track and runs where these callbacks run. A source track's `on_ended` instead runs on whichever thread stops the track, which is the script thread when the user clicks STOP.
 
 ```python title="app.py"
 --8<-- "./examples/tutorial/05_cleanup.py"
@@ -105,6 +105,8 @@ With the default `aiortc` backend, these callbacks run on the server's asyncio e
 * `st.*` calls do not work inside them, and that includes `st.session_state`. The callback has no script run context, so `st.session_state` there is a stand-in that Streamlit shares across the whole process, and reading or removing a key in it never reaches the session. Look the resource up in the script, as above, and let the callback close over it. When the next run should rebuild the resource, have the script check whether it is still usable rather than removing it from session state in the callback.
 * The event loop serves every session of the app, so a callback that blocks, e.g. by joining a thread or waiting for a network connection to close, stalls all of them. Hand such work to a thread.
 * Shared state must be mutated in a thread-safe way (e.g. with a `threading.Lock`, a `queue`, or a `threading.Event`).
+
+If the page closes while the connection is still being set up, before the browser's network candidates reach the server, these callbacks fire only after Streamlit discards the disconnected session. That happens no sooner than `server.disconnectedSessionTTL` seconds later, and in current Streamlit releases not until another session disconnects ([streamlit/streamlit#17860](https://github.com/streamlit/streamlit/issues/17860)).
 
 When using the class-based API (`video_processor_factory` / `audio_processor_factory`), override `VideoProcessorBase.on_ended()` / `AudioProcessorBase.on_ended()` instead — they fire at the same lifecycle point.
 
