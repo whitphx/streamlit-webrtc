@@ -1,3 +1,3 @@
-## Chore
+## Changed
 
-- The "Cleanup on Stop" docs no longer show `st.session_state.pop()` inside `on_video_ended`, which runs without a script run context and so never reaches the session's state. The example now closes over the resource, and the docs say that the session-end callbacks run on the event loop that serves every session, so blocking work belongs in a thread.
+- The "Cleanup on Stop" docs no longer suggest removing `st.session_state` entries in `on_video_ended` / `on_audio_ended`, which run without a script run context and so never reach the session's state. The example closes over the resource instead, and the docs say these callbacks run on the event loop that serves every session, so blocking work belongs in a thread.
