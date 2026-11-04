@@ -234,7 +234,9 @@ webrtc_streamer(
 
 Each callback runs on a thread of its own, not on the server's event loop, so a callback that blocks, e.g. by joining a worker thread, does not hold up other sessions. While the callback runs, that thread carries the script run context of the session that started the stream, so `st.session_state` reads and writes reach that session. This holds after the page has closed, for as long as Streamlit keeps the disconnected session. The callback can finish after the script run that STOP triggers, so its changes may show only on the next run. Other `st.*` calls, such as `st.write()` or `st.rerun()`, have no effect there, and shared state must be mutated in a thread-safe way (e.g. with a `threading.Lock`, a `queue`, or a `threading.Event`).
 
-The `on_ended` argument of the sink and source factory helpers (`create_video_sink_track()`, `create_audio_source_track()`, etc.) runs the same way. The exception is a source track stopped from its own session's script run, as on STOP: its callback runs right there, within that run.
+The `on_ended` argument of the sink factory helpers (`create_video_sink_track()`, `create_audio_sink_track()`) fires at the same point for its track and runs the same way. So does the `on_ended` argument of the source factory helpers (`create_video_source_track()`, `create_audio_source_track()`), with one exception. When the user clicks STOP, the script run of the track's own session stops the source track, and its callback runs right there, on the script thread, within that run.
+
+If the page closes while the connection is still being set up, before the browser's network candidates reach the server, these callbacks fire only after Streamlit discards the disconnected session. That happens no sooner than `server.disconnectedSessionTTL` seconds later, and in current Streamlit releases not until another session disconnects ([streamlit/streamlit#17860](https://github.com/streamlit/streamlit/issues/17860)).
 
 When using the [class-based API](#class-based-callbacks), override `VideoProcessorBase.on_ended()` / `AudioProcessorBase.on_ended()` instead — they fire at the same lifecycle point.
 
