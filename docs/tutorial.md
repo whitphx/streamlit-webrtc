@@ -94,7 +94,7 @@ The callbacks are executed in forked threads different from the main one, so the
 
 ## Cleanup on Stop
 
-`webrtc_streamer()` accepts `on_video_ended` and `on_audio_ended` arguments — zero-argument callables that fire when the corresponding input media track ends (the user clicks "STOP", closes the page, or the connection drops). They are the recommended hook for tearing down per-session resources that the frame callbacks allocated, such as worker threads, model handles, file writers, or queues. The `on_ended` argument of the sink factory helpers fires at the same point for its track and runs where these callbacks run. A source track's `on_ended` instead runs on whichever thread stops the track, which is the script thread when the user clicks STOP.
+`webrtc_streamer()` accepts `on_video_ended` and `on_audio_ended` arguments — zero-argument callables that fire when the corresponding input media track ends (the user clicks "STOP", closes the page, or the connection drops). If the page closes before the connection is established, they fire only when Streamlit discards the disconnected session, at least `server.disconnectedSessionTTL` seconds later. They are the recommended hook for tearing down per-session resources that the frame callbacks allocated, such as worker threads, model handles, file writers, or queues. The `on_ended` argument of the sink factory helpers fires at the same point for its track and runs where these callbacks run. A source track's `on_ended` instead runs on whichever thread stops the track, which is the script thread when the user clicks STOP.
 
 ```python title="app.py"
 --8<-- "./examples/tutorial/05_cleanup.py"
