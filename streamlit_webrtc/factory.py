@@ -248,7 +248,11 @@ def create_process_track(
         loop = get_global_event_loop()
         relay = get_global_relay()
         with loop_context(loop):
-            processor_track = Track(relay.subscribe(input_track), processor)
+            processor_track = Track(
+                relay.subscribe(input_track),
+                processor,
+                script_run_ctx=get_script_run_ctx(),
+            )
             st.session_state[cache_key] = processor_track
 
     return processor_track
@@ -308,6 +312,7 @@ def create_video_source_track(
         video_source_track = VideoSourceTrack(callback=callback, fps=fps)
         is_new_track = True
     video_source_track._on_ended_callback = on_ended
+    video_source_track._on_ended_script_run_ctx = get_script_run_ctx()
     reset_on_webrtc_session_end = _attach_factory_lifecycle(
         session_state=session_state,
         cache_key=cache_key,
@@ -365,6 +370,7 @@ def create_video_sink_track(
         video_sink_track = VideoSinkTrack(callback=callback)
         is_new_track = True
     video_sink_track._on_ended_callback = on_ended
+    video_sink_track._on_ended_script_run_ctx = get_script_run_ctx()
     reset_on_webrtc_session_end = _attach_factory_lifecycle(
         session_state=session_state,
         cache_key=cache_key,
@@ -416,6 +422,7 @@ def create_audio_sink_track(
         audio_sink_track = AudioSinkTrack(callback=callback)
         is_new_track = True
     audio_sink_track._on_ended_callback = on_ended
+    audio_sink_track._on_ended_script_run_ctx = get_script_run_ctx()
     reset_on_webrtc_session_end = _attach_factory_lifecycle(
         session_state=session_state,
         cache_key=cache_key,
@@ -542,6 +549,7 @@ def create_audio_source_track(
         )
         is_new_track = True
     audio_source_track._on_ended_callback = on_ended
+    audio_source_track._on_ended_script_run_ctx = get_script_run_ctx()
     reset_on_webrtc_session_end = _attach_factory_lifecycle(
         session_state=session_state,
         cache_key=cache_key,

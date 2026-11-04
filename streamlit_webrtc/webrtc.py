@@ -29,6 +29,7 @@ from aiortc.sdp import candidate_from_sdp
 
 from streamlit_webrtc.shutdown import SessionShutdownObserver
 
+from ._compat import ScriptRunContext, get_script_run_ctx
 from .eventloop import get_global_event_loop, loop_context
 from .models import (
     AudioFrameCallback,
@@ -95,6 +96,7 @@ def _wrap_with_processor(
     *,
     async_processing: bool,
     relay: MediaRelay,
+    script_run_ctx: Optional[ScriptRunContext],
 ) -> MediaStreamTrack:
     """Wrap ``track`` in a kind-matched process track when a processor is given,
     otherwise return ``track`` unchanged."""
@@ -105,10 +107,18 @@ def _wrap_with_processor(
     relayed = relay.subscribe(track)
     if track.kind == "audio":
         audio_cls = AsyncAudioProcessTrack if async_processing else AudioProcessTrack
-        return audio_cls(track=relayed, processor=cast(AudioProcessorBase, processor))
+        return audio_cls(
+            track=relayed,
+            processor=cast(AudioProcessorBase, processor),
+            script_run_ctx=script_run_ctx,
+        )
     if track.kind == "video":
         video_cls = AsyncVideoProcessTrack if async_processing else VideoProcessTrack
-        return video_cls(track=relayed, processor=cast(VideoProcessorBase, processor))
+        return video_cls(
+            track=relayed,
+            processor=cast(VideoProcessorBase, processor),
+            script_run_ctx=script_run_ctx,
+        )
     raise ValueError(f"Unknown track kind {track.kind}")
 
 
@@ -154,6 +164,7 @@ async def _process_offer_coro(
     sendback_audio: bool,
     on_track_created: Callable[[TrackType, MediaStreamTrack], None],
     remote_description_set_event: asyncio.Event,
+    script_run_ctx: Optional[ScriptRunContext],
 ):
     def _source_for(kind: str) -> Optional[MediaStreamTrack]:
         return source_audio_track if kind == "audio" else source_video_track
@@ -186,6 +197,7 @@ async def _process_offer_coro(
                 _processor_for(kind),
                 async_processing=async_processing,
                 relay=relay,
+                script_run_ctx=script_run_ctx,
             )
         if _sink_for(kind) is not None:
             return None
@@ -196,6 +208,7 @@ async def _process_offer_coro(
             _processor_for(kind),
             async_processing=async_processing,
             relay=relay,
+            script_run_ctx=script_run_ctx,
         )
 
     # Tracks which kinds the peer is actually sending. Populated by `on_track`
@@ -264,6 +277,7 @@ async def _process_offer_coro(
                         _processor_for(input_track.kind),
                         async_processing=async_processing,
                         relay=relay,
+                        script_run_ctx=script_run_ctx,
                     )
                     logger.info("Add a track %s to receiver %s", output_track, receiver)
                     receiver.addTrack(relay.subscribe(output_track))
@@ -500,6 +514,9 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         # if they do, they must have constructed the relay on the same loop.
         self._loop = loop if loop is not None else get_global_event_loop()
         self._relay = relay if relay is not None else get_global_relay()
+        # The worker is created on the script thread, but its processors are
+        # created and stopped on other threads, so the session is captured here.
+        self._script_run_ctx = get_script_run_ctx(suppress_warning=True)
 
         self._process_offer_thread: Union[threading.Thread, None] = None
         self.pc = RTCPeerConnection(rtc_configuration)
@@ -713,6 +730,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                 sendback_audio=self.sendback_audio,
                 on_track_created=on_track_created,
                 remote_description_set_event=self._remote_description_set,
+                script_run_ctx=self._script_run_ctx,
             ),
             loop=loop,
         )
