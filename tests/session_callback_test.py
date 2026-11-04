@@ -76,9 +76,11 @@ def _audio_process_track(
 
 def test_session_state_write_reaches_registering_session() -> None:
     ctx = _make_ctx("session-a")
+    ctx.session_state["resource"] = "allocated by the script"
     done = threading.Event()
 
     def on_ended() -> None:
+        st.session_state.pop("resource", None)
         st.session_state["ended"] = True
         done.set()
 
@@ -86,6 +88,7 @@ def test_session_state_write_reaches_registering_session() -> None:
 
     assert done.wait(timeout=5)
     assert ctx.session_state["ended"] is True
+    assert "resource" not in ctx.session_state
 
 
 def test_two_sessions_do_not_see_each_others_state() -> None:
