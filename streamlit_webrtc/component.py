@@ -129,6 +129,8 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
     _sdp_answer_json: Optional[str]
     _is_sdp_answer_sent: bool
     _last_rendered_run_count: Optional[int]
+    _frontend_sdp_offer: Union[Dict, str, None]
+    _worker_sdp_offer: Optional[Dict]
 
     # Passthrough attributes forwarded to the worker. Each returns the
     # worker's attribute when a worker is attached, otherwise None.
@@ -157,6 +159,11 @@ class WebRtcStreamerContext(Generic[VideoProcessorT, AudioProcessorT]):
         self._sdp_answer_json = None
         self._is_sdp_answer_sent = False
         self._last_rendered_run_count = None
+        # The `sdpOffer` the frontend reported last ("" while it is not
+        # signalling), and None until it reports one. A script run that is
+        # slow, blocked or superseded can still be holding an older offer.
+        self._frontend_sdp_offer = None
+        self._worker_sdp_offer = None
 
     def _set_worker(
         self,
@@ -347,18 +354,30 @@ def _get_or_create_context(key: str) -> WebRtcStreamerContext:
     return context
 
 
-def _reset_context(context: WebRtcStreamerContext) -> None:
-    """Tear down worker / signalling state so the next lifecycle reconciliation
-    treats the component as freshly mounted."""
+def _discard_negotiation(context: WebRtcStreamerContext) -> None:
+    """Stop the worker and drop the SDP answer it produced."""
     worker = context._get_worker()
     if worker:
         LOGGER.debug("Stopping worker during context reset.")
         worker.stop()
     context._set_worker(None)
-    context._set_state(WebRtcStreamerState(playing=False, signalling=False))
+    context._worker_sdp_offer = None
     context._sdp_answer_json = None
     context._is_sdp_answer_sent = False
+
+
+def _reset_context(context: WebRtcStreamerContext) -> None:
+    """Tear down worker / signalling state so the next lifecycle reconciliation
+    treats the component as freshly mounted."""
+    _discard_negotiation(context)
+    context._set_state(WebRtcStreamerState(playing=False, signalling=False))
     context._component_value_snapshot = None
+
+
+def _is_current_offer(context: WebRtcStreamerContext, sdp_offer: Dict) -> bool:
+    return context._frontend_sdp_offer is None or (
+        context._frontend_sdp_offer == sdp_offer
+    )
 
 
 def _make_state_change_callback(
@@ -380,6 +399,17 @@ def _make_state_change_callback(
         context = st.session_state[key]
         old_state = context.state
         context._set_state(new_state)
+
+        sdp_offer = component_value.get("sdpOffer")
+        context._frontend_sdp_offer = sdp_offer
+        # The frontend can stop and start again before any script run sees it
+        # idle, e.g. while a slow `on_change` blocks the stop's run until the
+        # restart supersedes it. The worker and answer for the old offer are
+        # then still here, and the run about to render would hand that answer
+        # to the new offer.
+        if sdp_offer and context._worker_sdp_offer not in (None, sdp_offer):
+            LOGGER.debug("The frontend sent a new offer (key=%s).", key)
+            _discard_negotiation(context)
 
         if user_on_change and old_state != new_state:
             user_on_change()
@@ -477,7 +507,11 @@ def _handle_worker_lifecycle(
     # This point can be reached in parallel, so the lock makes worker
     # creation atomic.
     with context._worker_creation_lock:
-        if not context._get_worker() and sdp_offer:
+        if (
+            not context._get_worker()
+            and sdp_offer
+            and _is_current_offer(context, sdp_offer)
+        ):
             LOGGER.debug(
                 "No worker exists though the offer SDP is set. "
                 'Create a new worker (key="%s").',
@@ -492,7 +526,20 @@ def _handle_worker_lifecycle(
                 # give a bit more headroom here.
                 timeout=10,
             )
-            context._set_worker(worker)
+            # `process_offer()` blocks until ICE gathering ends, which takes
+            # seconds when a STUN or TURN server is unreachable. The frontend
+            # may have stopped, or started over with a new offer, meanwhile,
+            # and the runs that saw it found no worker to stop.
+            if _is_current_offer(context, sdp_offer):
+                context._set_worker(worker)
+                context._worker_sdp_offer = sdp_offer
+            else:
+                LOGGER.debug(
+                    "The frontend left this offer while the worker was being "
+                    'created. Stop the worker (key="%s").',
+                    key,
+                )
+                worker.stop()
 
     # --- Flush answer ---
     running_worker = context._get_worker()

@@ -1,6 +1,9 @@
+from types import SimpleNamespace
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
+import streamlit as st
 
 import streamlit_webrtc.component as component
 from streamlit_webrtc.component import (
@@ -8,6 +11,7 @@ from streamlit_webrtc.component import (
     WebRtcStreamerContext,
     WebRtcStreamerState,
     _handle_worker_lifecycle,
+    _make_state_change_callback,
     _validate_sink_conflicts,
     compile_state,
     generate_frontend_component_key,
@@ -112,6 +116,83 @@ class TestHandleWorkerLifecycle:
         )
 
         assert reruns == []
+
+    @pytest.mark.parametrize(
+        "frontend_sdp_offer_after", ["", {"sdp": "second offer", "type": "offer"}]
+    )
+    def test_worker_for_an_offer_left_during_its_creation_is_stopped(
+        self, monkeypatch, frontend_sdp_offer_after
+    ) -> None:
+        reruns: list[bool] = []
+        monkeypatch.setattr(component, "rerun", lambda: reruns.append(True))
+        offer = {"sdp": "first offer", "type": "offer"}
+        context: WebRtcStreamerContext[Any, Any] = WebRtcStreamerContext(
+            worker=None, state=WebRtcStreamerState(playing=False, signalling=True)
+        )
+        context._frontend_sdp_offer = offer
+        worker = MagicMock()
+        worker.local_description = SimpleNamespace(sdp="first answer", type="answer")
+
+        def leave_offer(*args, **kwargs) -> None:
+            context._frontend_sdp_offer = frontend_sdp_offer_after
+
+        worker.process_offer.side_effect = leave_offer
+
+        _handle_worker_lifecycle(
+            context, key="k", sdp_offer=offer, make_worker=lambda: worker
+        )
+
+        worker.stop.assert_called_once()
+        assert context._get_worker() is None
+        assert context._sdp_answer_json is None
+        assert reruns == []
+
+    def test_run_holding_an_offer_the_frontend_left_creates_no_worker(self) -> None:
+        context: WebRtcStreamerContext[Any, Any] = WebRtcStreamerContext(
+            worker=None, state=WebRtcStreamerState(playing=False, signalling=True)
+        )
+        context._frontend_sdp_offer = {"sdp": "second offer", "type": "offer"}
+
+        _handle_worker_lifecycle(
+            context,
+            key="k",
+            sdp_offer={"sdp": "first offer", "type": "offer"},
+            make_worker=lambda: pytest.fail("worker should not be created"),
+        )
+
+        assert context._get_worker() is None
+
+
+class TestStateChangeCallback:
+    def test_new_offer_discards_the_previous_offers_worker_and_answer(self) -> None:
+        key = "state-change-callback"
+        frontend_key = generate_frontend_component_key(key)
+        context: WebRtcStreamerContext[Any, Any] = WebRtcStreamerContext(
+            worker=None, state=WebRtcStreamerState(playing=True, signalling=False)
+        )
+        worker = MagicMock()
+        context._set_worker(worker)
+        context._worker_sdp_offer = {"sdp": "first offer", "type": "offer"}
+        context._sdp_answer_json = '{"sdp":"first answer","type":"answer"}'
+        context._is_sdp_answer_sent = True
+        st.session_state[key] = context
+        # STOP and START again with no script run in between.
+        st.session_state[frontend_key] = {
+            "playing": False,
+            "sdpOffer": {"sdp": "second offer", "type": "offer"},
+            "iceCandidates": {},
+        }
+        try:
+            _make_state_change_callback(key, frontend_key, None)()
+        finally:
+            del st.session_state[key]
+            del st.session_state[frontend_key]
+
+        worker.stop.assert_called_once()
+        assert context._get_worker() is None
+        assert context._sdp_answer_json is None
+        assert context._is_sdp_answer_sent is False
+        assert context.state == WebRtcStreamerState(playing=False, signalling=True)
 
 
 class TestValidateSinkConflicts:
