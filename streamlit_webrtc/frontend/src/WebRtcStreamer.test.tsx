@@ -147,6 +147,7 @@ function renderStreamer({
       componentKey="test-key"
       desiredPlayingState={undefined}
       sdpAnswerJson={undefined}
+      answererIceCandidates={undefined}
       rtcConfiguration={undefined}
       mediaStreamConstraints={{ audio: true, video: true }}
       sendbackVideo={true}
