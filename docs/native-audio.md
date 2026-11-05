@@ -16,6 +16,6 @@ Audio callbacks run serially. A slow callback can cause older received frames to
 
 For playback interruption, call `context.clear_audio_output()` from the Streamlit script or an asynchronous processing callback thread. It discards queued native output and the result of an in-flight callback, but cannot retract audio already sent to the browser. If clearing exceeds `timeout`, the method raises `TimeoutError`; the clear operation continues in the background. A callback running directly on the WebRTC event loop cannot call this blocking method.
 
-Use the aiortc backend for video, modes other than `SENDRECV`, queued callbacks, processor factories, and source, sink, or recorder adapters. The native backend rejects these configurations before negotiation. Context track and receiver attributes are unavailable with this backend. Stop the stream before changing its backend, or use a different component key.
+Use the aiortc backend for video, modes other than `SENDRECV`, queued callbacks, processor factories, source, sink, or recorder adapters, and data channels. The native backend rejects these configurations before negotiation. Context track and receiver attributes are unavailable with this backend. Stop the stream before changing its backend, or use a different component key.
 
 The native answer still waits for ICE gathering. Server-side Trickle ICE is separate work.

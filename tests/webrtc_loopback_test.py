@@ -20,6 +20,7 @@ import pytest
 from aiortc import RTCPeerConnection
 from aiortc.contrib.media import MediaRelay
 
+from streamlit_webrtc.datachannel import compile_data_channel_specs
 from streamlit_webrtc.sink import AudioSinkTrack, VideoSinkTrack
 from streamlit_webrtc.source import AudioSourceTrack, VideoSourceTrack
 from streamlit_webrtc.webrtc import WebRtcMode, WebRtcWorker
@@ -400,3 +401,81 @@ async def test_sink_track_swap_across_sessions() -> None:
         assert await _drain_until(lambda: len(received_b) >= 1, loop.time() + 15)
     finally:
         await _teardown_loopback(client_b, worker_b)
+
+
+@pytest.mark.asyncio
+async def test_data_channels_carry_messages_both_ways() -> None:
+    loop = asyncio.get_running_loop()
+    client = RTCPeerConnection()
+    client.addTrack(VideoSourceTrack(_source_callback, fps=15))
+    # Mirror the frontend: the browser creates the same negotiated channels
+    # before making the offer.
+    client_events = client.createDataChannel("events", negotiated=True, id=0)
+    client_frames = client.createDataChannel(
+        "frames", negotiated=True, id=1, ordered=False, maxRetransmits=0
+    )
+    received_by_client: List[Any] = []
+    client_frames.on("message", received_by_client.append)
+
+    received_by_server: List[Any] = []
+
+    def on_message(channel, message) -> None:
+        received_by_server.append((channel.label, message))
+        channel.send("ack:" + message)
+
+    client_events.on("message", received_by_client.append)
+
+    worker: WebRtcWorker = WebRtcWorker(
+        loop=loop,
+        relay=MediaRelay(),
+        mode=WebRtcMode.SENDONLY,
+        **_WORKER_DEFAULTS,
+        data_channel_specs=compile_data_channel_specs(
+            {"events": {}, "frames": {"ordered": False, "maxRetransmits": 0}}
+        ),
+        on_data_channel_message=on_message,
+    )
+    _wire_ice(client, worker)
+    await client.setLocalDescription(await client.createOffer())
+    assert client.localDescription is not None
+    answer = await asyncio.to_thread(
+        worker.process_offer,
+        client.localDescription.sdp,
+        client.localDescription.type,
+        10,
+    )
+    await client.setRemoteDescription(answer)
+
+    try:
+        assert set(worker.data_channels) == {"events", "frames"}
+        assert await _drain_until(
+            lambda: worker.data_channels["frames"].ready_state == "open",
+            loop.time() + 15,
+        )
+        assert await asyncio.to_thread(worker.data_channels["frames"].send, b"\x00\x01")
+        assert await _drain_until(
+            lambda: b"\x00\x01" in received_by_client, loop.time() + 5
+        )
+
+        assert await _drain_until(
+            lambda: client_events.readyState == "open", loop.time() + 5
+        )
+        client_events.send("key:a")
+        assert await _drain_until(
+            lambda: "ack:key:a" in received_by_client, loop.time() + 5
+        )
+        assert received_by_server == [("events", "key:a")]
+    finally:
+        await _teardown_loopback(client, worker)
+
+
+@pytest.mark.asyncio
+async def test_data_channels_are_skipped_when_the_offer_has_none() -> None:
+    client, worker = await _setup_loopback(
+        mode=WebRtcMode.SENDONLY,
+        data_channel_specs=compile_data_channel_specs({"events": {}}),
+    )
+    try:
+        assert worker.data_channels == {}
+    finally:
+        await _teardown_loopback(client, worker)

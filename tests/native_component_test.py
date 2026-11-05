@@ -186,6 +186,8 @@ def test_native_rejects_non_audio_capture_before_render(native_component, constr
         "source_audio_track",
         "sink_video_track",
         "sink_audio_track",
+        "data_channels",
+        "on_data_channel_message",
     ],
 )
 def test_native_rejects_unsupported_option_before_render(native_component, option):
@@ -195,6 +197,20 @@ def test_native_rejects_unsupported_option_before_render(native_component, optio
 
     native_component.render.assert_not_called()
     native_component.lifecycle.assert_not_called()
+
+
+def test_native_passes_frontend_script_to_browser(native_component):
+    component.webrtc_streamer(
+        key="native",
+        backend="native",
+        frontend_script="export default () => {}",
+        frontend_data={"color": "red"},
+    )
+
+    args = native_component.render.call_args.kwargs
+    assert args["frontend_script"] == "export default () => {}"
+    assert args["frontend_data"] == {"color": "red"}
+    assert args["data_channels"] == []
 
 
 def test_native_rejects_disabling_return_audio(native_component):

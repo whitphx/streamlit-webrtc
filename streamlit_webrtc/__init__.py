@@ -22,6 +22,12 @@ from .credentials import (
     get_hf_ice_servers,
     get_twilio_ice_servers,
 )
+from .datachannel import (
+    DataChannel,
+    DataChannelMessage,
+    DataChannelMessageCallback,
+    DataChannelOptions,
+)
 from .factory import (
     create_audio_sink_track,
     create_audio_source_track,
@@ -114,6 +120,10 @@ __all__ = [
     "MediaStreamMixTrack",
     "WebRtcStreamerContext",
     "WebRtcStreamerState",
+    "DataChannel",
+    "DataChannelMessage",
+    "DataChannelMessageCallback",
+    "DataChannelOptions",
     "DEFAULT_AUDIO_HTML_ATTRS",
     "DEFAULT_MEDIA_STREAM_CONSTRAINTS",
     "DEFAULT_VIDEO_HTML_ATTRS",
