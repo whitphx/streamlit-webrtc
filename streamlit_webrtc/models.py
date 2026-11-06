@@ -74,9 +74,12 @@ class CallbackAttachableProcessor(ProcessorBase[FrameT]):
         return [self.recv(frames[-1])]
 
     def on_ended(self):
+        # Holding the lock through the call would make a slow callback stall
+        # `update_callbacks()` on the script thread and `recv()` on the loop.
         with self._lock:
-            if self._media_ended_callback:
-                return self._media_ended_callback()
+            ended_callback = self._media_ended_callback
+        if ended_callback:
+            return ended_callback()
 
 
 class VideoProcessorBase(ProcessorBase[av.VideoFrame]):
@@ -123,9 +126,10 @@ class VideoProcessorBase(ProcessorBase[av.VideoFrame]):
         model handles, file writers, queues, etc.) allocated by ``recv()``
         or ``recv_queued()``.
 
-        This is invoked on aiortc's asyncio loop, not Streamlit's main
-        thread, so ``st.*`` calls do not work here and shared state must
-        be accessed in a thread-safe way.
+        This runs on a dedicated thread with the session's script run
+        context attached, so ``st.session_state`` reaches the session that
+        started the stream. Other ``st.*`` calls do not render, and shared
+        state must be accessed in a thread-safe way.
         """
 
 
@@ -176,9 +180,10 @@ class AudioProcessorBase(ProcessorBase[av.AudioFrame]):
         model handles, file writers, queues, etc.) allocated by ``recv()``
         or ``recv_queued()``.
 
-        This is invoked on aiortc's asyncio loop, not Streamlit's main
-        thread, so ``st.*`` calls do not work here and shared state must
-        be accessed in a thread-safe way.
+        This runs on a dedicated thread with the session's script run
+        context attached, so ``st.session_state`` reaches the session that
+        started the stream. Other ``st.*`` calls do not render, and shared
+        state must be accessed in a thread-safe way.
         """
 
 

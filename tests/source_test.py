@@ -1,6 +1,7 @@
 import asyncio
 import fractions
 import logging
+import threading
 import time
 
 import av
@@ -73,23 +74,23 @@ def test_video_source_track_fires_on_ended_on_stop() -> None:
     """
     track = VideoSourceTrack(callback=_video_callback, fps=30)
 
-    calls: list[int] = []
-    track._on_ended_callback = lambda: calls.append(1)
+    ended = threading.Event()
+    track._on_ended_callback = ended.set
 
     track.stop()
 
-    assert calls == [1]
+    assert ended.wait(timeout=5)
 
 
 def test_audio_source_track_fires_on_ended_on_stop() -> None:
     track = AudioSourceTrack(callback=_make_callback(48000, 960), sample_rate=48000)
 
-    calls: list[int] = []
-    track._on_ended_callback = lambda: calls.append(1)
+    ended = threading.Event()
+    track._on_ended_callback = ended.set
 
     track.stop()
 
-    assert calls == [1]
+    assert ended.wait(timeout=5)
 
 
 def test_video_source_track_on_ended_exception_is_swallowed() -> None:

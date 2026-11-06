@@ -10,8 +10,10 @@ from typing import Any
 import av
 from aiortc import RTCConfiguration, RTCSessionDescription
 
+from ._compat import get_script_run_ctx
 from .eventloop import get_global_event_loop
 from .models import AudioFrameCallback, CallbackAttachableProcessor, MediaEndedCallback
+from .session_callback import call_with_script_run_ctx
 from .shutdown import SessionShutdownObserver
 from .webrtc import SignallingTimeoutError
 
@@ -54,6 +56,7 @@ class NativeAudioWorker:
     ) -> None:
         self._peer_class = load_native_peer()
         self._loop = loop if loop is not None else get_global_event_loop()
+        self._script_run_ctx = get_script_run_ctx(suppress_warning=True)
         self.audio_processor = CallbackAttachableProcessor[av.AudioFrame](
             audio_frame_callback, None, on_audio_ended
         )
@@ -159,7 +162,11 @@ class NativeAudioWorker:
                 except Exception:
                     logger.exception("Native audio callback failed during shutdown")
             try:
-                await asyncio.to_thread(self.audio_processor.on_ended)
+                await asyncio.to_thread(
+                    call_with_script_run_ctx,
+                    self.audio_processor.on_ended,
+                    self._script_run_ctx,
+                )
             except Exception:
                 logger.exception("Native audio ended callback failed")
 
