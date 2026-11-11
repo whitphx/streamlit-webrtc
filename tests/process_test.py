@@ -204,3 +204,23 @@ class TestAsyncVideoProcessTrack:
         asyncio.run(trigger())
         track.stop()
         assert proc.ended.wait(timeout=1.0)
+
+    def test_on_ended_called_on_stop_before_any_frame(self) -> None:
+        class CountingProcessor(VideoProcessorBase):
+            def __init__(self) -> None:
+                self.ended = threading.Event()
+
+            def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+                return frame
+
+            def on_ended(self) -> None:
+                self.ended.set()
+
+        proc = CountingProcessor()
+        track = AsyncVideoProcessTrack(
+            track=_StubVideoTrack([_video_frame(0)]), processor=proc
+        )
+
+        track.stop()
+
+        assert proc.ended.wait(timeout=1.0)
