@@ -6,6 +6,9 @@ import av
 from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
+from ._compat import ScriptRunContext
+from .session_callback import run_ended_callback
+
 logger = logging.getLogger(__name__)
 
 FrameT = TypeVar("FrameT", av.VideoFrame, av.AudioFrame)
@@ -57,6 +60,7 @@ class CallbackSinkTrack(Generic[FrameT]):
         self.kind = kind
         self._callback: SinkCallback[FrameT] = callback
         self._on_ended_callback: Optional[Callable[[], None]] = None
+        self._on_ended_script_run_ctx: Optional[ScriptRunContext] = None
         self._track: Optional[MediaStreamTrack] = None
         self._task: Optional[asyncio.Task] = None
 
@@ -127,13 +131,9 @@ class CallbackSinkTrack(Generic[FrameT]):
         cb = self._on_ended_callback
         if cb is None:
             return
-        try:
-            cb()
-        except Exception:
-            logger.exception(
-                "%s: on_ended callback raised an exception",
-                self.__class__.__name__,
-            )
+        run_ended_callback(
+            cb, self._on_ended_script_run_ctx, owner=self.__class__.__name__
+        )
 
 
 class VideoSinkTrack(CallbackSinkTrack[av.VideoFrame]):
