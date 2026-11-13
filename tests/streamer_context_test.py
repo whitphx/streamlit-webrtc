@@ -19,6 +19,7 @@ def test_worker_forwarded_returns_none_when_no_worker():
     assert ctx.input_audio_track is None
     assert ctx.output_video_track is None
     assert ctx.output_audio_track is None
+    assert ctx.data_channels is None
 
 
 def test_worker_forwarded_reads_from_attached_worker():
@@ -31,6 +32,7 @@ def test_worker_forwarded_reads_from_attached_worker():
     worker.input_audio_track = "iat"
     worker.output_video_track = "ovt"
     worker.output_audio_track = "oat"
+    worker.data_channels = "dc"
 
     ctx = _make_context(worker=worker)
 
@@ -42,6 +44,7 @@ def test_worker_forwarded_reads_from_attached_worker():
     assert ctx.input_audio_track == "iat"
     assert ctx.output_video_track == "ovt"
     assert ctx.output_audio_track == "oat"
+    assert ctx.data_channels == "dc"
 
 
 def test_worker_forwarded_returns_none_after_worker_garbage_collected():
