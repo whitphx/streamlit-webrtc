@@ -21,8 +21,8 @@ importers:
         specifier: ^6.4.8
         version: 6.4.8(@emotion/react@11.14.0(@types/react@18.3.18)(react@18.3.1)(supports-color@7.2.0))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@18.3.18)(react@18.3.1)(supports-color@7.2.0))(@types/react@18.3.18)(react@18.3.1)(supports-color@7.2.0))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       chroma-js:
-        specifier: ^3.2.0
-        version: 3.2.0
+        specifier: ^3.3.0
+        version: 3.3.0
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1775,8 +1775,8 @@ packages:
     resolution: {integrity: sha512-Qgzu8kfBvo+cA4962jnP1KkS6Dop5NS6g7R5LFYJr4b8Ub94PPQXUksCw9PvXoeXPRRddRNC5C1JQUR2SMGtnA==}
     engines: {node: '>= 14.16.0'}
 
-  chroma-js@3.2.0:
-    resolution: {integrity: sha512-os/OippSlX1RlWWr+QDPcGUZs0uoqr32urfxESG9U93lhUfbnlyckte84Q8P1UQY/qth983AS1JONKmLS4T0nw==}
+  chroma-js@3.3.0:
+    resolution: {integrity: sha512-afEEP0zHO4dxwrqTllKSFWs83+u+htEsmyvSe8IPjKjrfy3qmNk+vpWAdpbA2fJa14LTgkGyemC74J6v3HSUZA==}
 
   classnames@2.5.1:
     resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
@@ -5554,7 +5554,7 @@ snapshots:
     dependencies:
       readdirp: 4.1.2
 
-  chroma-js@3.2.0: {}
+  chroma-js@3.3.0: {}
 
   classnames@2.5.1: {}
 
