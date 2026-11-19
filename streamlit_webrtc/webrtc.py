@@ -56,6 +56,7 @@ from .process import (
 )
 from .receive import AudioReceiver, VideoReceiver
 from .relay import get_global_relay
+from .rtp_packet_size import cap_video_rtp_payload_size
 from .sink import MediaSink
 
 __all__ = [
@@ -502,6 +503,7 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
         self._relay = relay if relay is not None else get_global_relay()
 
         self._process_offer_thread: Union[threading.Thread, None] = None
+        cap_video_rtp_payload_size()
         self.pc = RTCPeerConnection(rtc_configuration)
         self._answer_queue: queue.Queue = queue.Queue()
 
