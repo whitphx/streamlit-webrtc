@@ -17,6 +17,13 @@ dependencies = [
 [project.urls]
 Repository = "https://github.com/whitphx/streamlit-webrtc"
 
+# Forks carrying trickle ICE support; temporary until the changes land in
+# upstream releases. Note these only apply to uv-based workflows, and a PyPI
+# release cannot ship git dependencies.
+[tool.uv.sources]
+aioice = { git = "https://github.com/whitphx/aioice", branch = "dev-trickle-ice" }
+aiortc = { git = "https://github.com/whitphx/aiortc", branch = "dev-trickle-ice" }
+
 [dependency-groups]
 dev = [
     "ruff>=0.9.10",
