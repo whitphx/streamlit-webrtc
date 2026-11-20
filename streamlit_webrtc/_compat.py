@@ -11,13 +11,23 @@ requiring Python >=3.10), so all paths below assume that floor.
 
 from streamlit import cache_data, rerun
 from streamlit.runtime.app_session import AppSession, AppSessionState
-from streamlit.runtime.scriptrunner import get_script_run_ctx
+from streamlit.runtime.scriptrunner import (
+    ScriptRunContext,
+    add_script_run_ctx,
+    get_script_run_ctx,
+)
+from streamlit.runtime.scriptrunner_utils.script_run_context import (
+    SCRIPT_RUN_CONTEXT_ATTR_NAME,
+)
 from streamlit.runtime.session_manager import ActiveSessionInfo as SessionInfo
 
 __all__ = [
     "AppSession",
     "AppSessionState",
+    "SCRIPT_RUN_CONTEXT_ATTR_NAME",
+    "ScriptRunContext",
     "SessionInfo",
+    "add_script_run_ctx",
     "cache_data",
     "get_script_run_ctx",
     "rerun",

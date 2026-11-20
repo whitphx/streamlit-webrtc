@@ -11,17 +11,25 @@ import av
 from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
+from ._compat import ScriptRunContext
 from .models import AudioProcessorT, FrameT, ProcessorT, VideoProcessorT
+from .session_callback import run_ended_callback
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
 class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
-    def __init__(self, track: MediaStreamTrack, processor: ProcessorT):
+    def __init__(
+        self,
+        track: MediaStreamTrack,
+        processor: ProcessorT,
+        script_run_ctx: Optional[ScriptRunContext] = None,
+    ):
         super().__init__()  # don't forget this!
         self.track = track
         self.processor: ProcessorT = processor
+        self._script_run_ctx = script_run_ctx
 
         def on_input_track_ended():
             logger.debug("Input track %s ended. Stop self %s", self.track, self)
@@ -34,6 +42,10 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
             raise MediaStreamError
 
         frame = await self.track.recv()
+        # `on_ended` runs on another thread once this track stops, so a frame
+        # that arrives after `stop()` must not reach the processor.
+        if self.readyState != "live":
+            raise MediaStreamError
 
         new_frame = self.processor.recv(frame)
         new_frame.pts = frame.pts
@@ -45,7 +57,11 @@ class MediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         super().stop()
 
         if hasattr(self.processor, "on_ended"):
-            self.processor.on_ended()
+            run_ended_callback(
+                self.processor.on_ended,
+                self._script_run_ctx,
+                owner=self.__class__.__name__,
+            )
 
 
 class VideoProcessTrack(MediaProcessTrack[VideoProcessorT, av.VideoFrame]):
@@ -70,11 +86,13 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         track: MediaStreamTrack,
         processor: ProcessorT,
         stop_timeout: Optional[float] = None,
+        script_run_ctx: Optional[ScriptRunContext] = None,
     ):
         super().__init__()  # don't forget this!
 
         self.track = track
         self.processor: ProcessorT = processor
+        self._script_run_ctx = script_run_ctx
 
         self._last_out_frame: Union[FrameT, None] = None
 
@@ -213,7 +231,11 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         self._thread.join(self.stop_timeout)
 
         if hasattr(self.processor, "on_ended"):
-            self.processor.on_ended()
+            run_ended_callback(
+                self.processor.on_ended,
+                self._script_run_ctx,
+                owner=self.__class__.__name__,
+            )
 
     async def recv(self):
         if self.readyState != "live":
