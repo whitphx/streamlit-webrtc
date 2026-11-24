@@ -688,7 +688,8 @@ class WebRtcWorker(Generic[VideoProcessorT, AudioProcessorT]):
                         await self.pc.close()
                     except Exception as e:
                         logger.debug(
-                            "Error occurred while closing the peer connection", e
+                            "Error occurred while closing the peer connection: %s",
+                            e,
                         )
                 self.stop()
 
