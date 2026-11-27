@@ -209,8 +209,10 @@ class AsyncMediaProcessTrack(MediaStreamTrack, Generic[ProcessorT, FrameT]):
         super().stop()
 
         self.track.stop()
-        self._in_queue.put(__SENTINEL__)
-        self._thread.join(self.stop_timeout)
+        # The worker thread and its queue only exist once `recv()` has run.
+        if self._thread is not None:
+            self._in_queue.put(__SENTINEL__)
+            self._thread.join(self.stop_timeout)
 
         if hasattr(self.processor, "on_ended"):
             self.processor.on_ended()
