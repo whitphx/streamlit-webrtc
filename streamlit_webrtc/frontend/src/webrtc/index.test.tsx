@@ -55,6 +55,7 @@ function renderWebRtc() {
         mode: "SENDONLY",
         desiredPlayingState: undefined,
         sdpAnswerJson: undefined,
+        answererIceCandidates: undefined,
         rtcConfiguration: undefined,
         mediaStreamConstraints: { video: true, audio: false },
         sendbackVideo: false,
