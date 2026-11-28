@@ -8,6 +8,9 @@ import av
 from aiortc import MediaStreamTrack
 from aiortc.mediastreams import MediaStreamError
 
+from ._compat import ScriptRunContext
+from .session_callback import run_ended_callback
+
 logger = logging.getLogger(__name__)
 
 # Copied from https://github.com/aiortc/aiortc/blob/main/src/aiortc/mediastreams.py
@@ -33,6 +36,7 @@ AudioSourceCallback = Callable[
 
 class VideoSourceTrack(MediaStreamTrack):
     _on_ended_callback: Optional[Callable[[], None]]
+    _on_ended_script_run_ctx: Optional[ScriptRunContext]
 
     def __init__(self, callback: VideoSourceCallback, fps: Union[int, float]) -> None:
         super().__init__()
@@ -42,16 +46,16 @@ class VideoSourceTrack(MediaStreamTrack):
         self._started_at: Optional[float] = None
         self._pts: Optional[int] = None
         self._on_ended_callback = None
+        self._on_ended_script_run_ctx = None
         self.on("ended", self._fire_on_ended)
 
     def _fire_on_ended(self) -> None:
         cb = self._on_ended_callback
         if cb is None:
             return
-        try:
-            cb()
-        except Exception:
-            logger.exception("VideoSourceTrack: on_ended callback raised an exception")
+        run_ended_callback(
+            cb, self._on_ended_script_run_ctx, owner=self.__class__.__name__
+        )
 
     async def recv(self) -> av.frame.Frame:
         if self.readyState != "live":
@@ -107,6 +111,7 @@ class VideoSourceTrack(MediaStreamTrack):
 
 class AudioSourceTrack(MediaStreamTrack):
     _on_ended_callback: Optional[Callable[[], None]]
+    _on_ended_script_run_ctx: Optional[ScriptRunContext]
 
     def __init__(
         self,
@@ -128,16 +133,16 @@ class AudioSourceTrack(MediaStreamTrack):
         self._started_at: Optional[float] = None
         self._pts: Optional[int] = None
         self._on_ended_callback = None
+        self._on_ended_script_run_ctx = None
         self.on("ended", self._fire_on_ended)
 
     def _fire_on_ended(self) -> None:
         cb = self._on_ended_callback
         if cb is None:
             return
-        try:
-            cb()
-        except Exception:
-            logger.exception("AudioSourceTrack: on_ended callback raised an exception")
+        run_ended_callback(
+            cb, self._on_ended_script_run_ctx, owner=self.__class__.__name__
+        )
 
     async def recv(self) -> av.frame.Frame:
         if self.readyState != "live":
